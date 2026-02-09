@@ -1,0 +1,87 @@
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <div class="flex items-center justify-between mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Sandcastle</h1>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-gray-600"><%= Current.user.name %></span>
+      <%= button_to "Log out", session_path, method: :delete, class: "text-sm text-gray-500 hover:text-gray-700" %>
+    </div>
+  </div>
+
+  <% if Current.user.admin? && @system_status %>
+    <div class="bg-gray-50 rounded-lg p-4 mb-8 border border-gray-200">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">System Status</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div>
+          <span class="text-gray-500">Docker</span>
+          <p class="font-mono font-medium"><%= @system_status.dig(:docker, :version) || "N/A" %></p>
+        </div>
+        <div>
+          <span class="text-gray-500">Containers</span>
+          <p class="font-mono font-medium"><%= @system_status.dig(:docker, :containers_running) || 0 %> running</p>
+        </div>
+        <div>
+          <span class="text-gray-500">Sandboxes</span>
+          <p class="font-mono font-medium"><%= @system_status.dig(:sandboxes, :total) || 0 %> total</p>
+        </div>
+        <div>
+          <span class="text-gray-500">Running</span>
+          <p class="font-mono font-medium"><%= @system_status.dig(:sandboxes, :running) || 0 %></p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold text-gray-900">My Sandboxes</h2>
+    </div>
+
+    <% if @sandboxes.any? %>
+      <div class="grid gap-4">
+        <% @sandboxes.each do |sandbox| %>
+          <%= render "sandbox", sandbox: sandbox %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <p class="text-gray-500">No sandboxes yet.</p>
+        <p class="text-sm text-gray-400 mt-1">Use the CLI to create one: <code class="bg-gray-100 px-2 py-0.5 rounded">sandcastle create my-dev</code></p>
+      </div>
+    <% end %>
+  </div>
+
+  <% if Current.user.admin? && @all_users %>
+    <div>
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">All Users</h2>
+      <div class="overflow-hidden rounded-lg border border-gray-200">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sandboxes</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 bg-white">
+            <% @all_users.each do |user| %>
+              <tr>
+                <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                  <%= user.name %><%= " (admin)" if user.admin? %>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500"><%= user.email_address %></td>
+                <td class="px-4 py-3 text-sm text-gray-500"><%= user.sandboxes.active.count %></td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                    <%= user.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                    <%= user.status %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+</div>

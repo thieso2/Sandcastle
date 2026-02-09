@@ -1,0 +1,33 @@
+<div class="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between" id="<%= dom_id(sandbox) %>">
+  <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2">
+      <span class="inline-block w-2 h-2 rounded-full
+        <%= case sandbox.status
+            when 'running' then 'bg-green-500'
+            when 'stopped' then 'bg-yellow-500'
+            when 'pending' then 'bg-blue-500 animate-pulse'
+            else 'bg-gray-400'
+            end %>">
+      </span>
+      <span class="font-mono font-medium text-gray-900"><%= sandbox.name %></span>
+    </div>
+    <span class="text-xs text-gray-400"><%= sandbox.image %></span>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <code class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600"><%= sandbox.connect_command %></code>
+    <span class="text-xs text-gray-400">port <%= sandbox.ssh_port %></span>
+
+    <% if sandbox.status == "stopped" %>
+      <%= button_to "Start", start_api_sandbox_path(sandbox), method: :post,
+            class: "text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700" %>
+    <% elsif sandbox.status == "running" %>
+      <%= button_to "Stop", stop_api_sandbox_path(sandbox), method: :post,
+            class: "text-xs px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700" %>
+    <% end %>
+
+    <%= button_to "Destroy", api_sandbox_path(sandbox), method: :delete,
+          class: "text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700",
+          data: { turbo_confirm: "Destroy sandbox #{sandbox.name}?" } %>
+  </div>
+</div>
