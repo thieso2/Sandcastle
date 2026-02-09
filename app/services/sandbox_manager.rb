@@ -100,6 +100,102 @@ class SandboxManager
     { state: "not_found" }
   end
 
+  def snapshot(sandbox:, name: nil)
+    raise Error, "Sandbox has no running container" if sandbox.container_id.blank?
+
+    name ||= Date.today.iso8601
+    user = sandbox.user
+    repo = "sc-snap-#{user.name}"
+
+    container = Docker::Container.get(sandbox.container_id)
+    image = container.commit(
+      repo: repo,
+      tag: name,
+      comment: "sandbox:#{sandbox.name}"
+    )
+
+    {
+      name: name,
+      image: "#{repo}:#{name}",
+      sandbox: sandbox.name,
+      created_at: Time.current
+    }
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to create snapshot: #{e.message}"
+  end
+
+  def list_snapshots(user:)
+    repo_prefix = "sc-snap-#{user.name}"
+
+    Docker::Image.all.each_with_object([]) do |img, result|
+      repo_tags = img.info["RepoTags"] || []
+      repo_tags.each do |tag|
+        repo, tag_name = tag.split(":")
+        next unless repo == repo_prefix
+
+        result << {
+          name: tag_name,
+          image: tag,
+          size: img.info["Size"],
+          created_at: Time.at(img.info["Created"])
+        }
+      end
+    end
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to list snapshots: #{e.message}"
+  end
+
+  def destroy_snapshot(user:, name:)
+    image_ref = "sc-snap-#{user.name}:#{name}"
+    Docker::Image.get(image_ref).remove
+  rescue Docker::Error::NotFoundError
+    raise Error, "Snapshot '#{name}' not found"
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to destroy snapshot: #{e.message}"
+  end
+
+  def restore(sandbox:, snapshot_name:)
+    user = sandbox.user
+    image_ref = "sc-snap-#{user.name}:#{snapshot_name}"
+
+    Docker::Image.get(image_ref)
+
+    if sandbox.container_id.present?
+      begin
+        old_container = Docker::Container.get(sandbox.container_id)
+        old_container.stop(t: 5) rescue nil
+        old_container.delete(force: true)
+      rescue Docker::Error::NotFoundError
+        # Already gone
+      end
+    end
+
+    container = Docker::Container.create(
+      "Image" => image_ref,
+      "Hostname" => sandbox.full_name,
+      "Env" => [
+        "SANDCASTLE_USER=#{user.name}",
+        "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
+      ],
+      "HostConfig" => {
+        "Runtime" => "sysbox-runc",
+        "PortBindings" => {
+          "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
+        },
+        "Binds" => volume_binds(user, sandbox),
+        "RestartPolicy" => { "Name" => "unless-stopped" }
+      }
+    )
+
+    container.start
+    sandbox.update!(container_id: container.id, image: image_ref, status: "running")
+    sandbox
+  rescue Docker::Error::NotFoundError
+    raise Error, "Snapshot '#{snapshot_name}' not found"
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to restore snapshot: #{e.message}"
+  end
+
   def connect_info(sandbox:)
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
     {

@@ -1,6 +1,6 @@
 module Api
   class SandboxesController < BaseController
-    before_action :set_sandbox, only: %i[show destroy start stop connect]
+    before_action :set_sandbox, only: %i[show destroy start stop connect snapshot restore]
 
     def index
       sandboxes = current_user.sandboxes.active
@@ -12,10 +12,16 @@ module Api
     end
 
     def create
+      image = if params[:snapshot].present?
+        "sc-snap-#{current_user.name}:#{params[:snapshot]}"
+      else
+        params[:image] || "sandcastle-sandbox:latest"
+      end
+
       sandbox = SandboxManager.new.create(
         user: current_user,
         name: params.require(:name),
-        image: params[:image] || "sandcastle-sandbox:latest",
+        image: image,
         persistent: params[:persistent] || false
       )
       render json: sandbox_json(sandbox), status: :created
@@ -42,6 +48,16 @@ module Api
     def connect
       info = SandboxManager.new.connect_info(sandbox: @sandbox)
       render json: info
+    end
+
+    def snapshot
+      result = SandboxManager.new.snapshot(sandbox: @sandbox, name: params[:name])
+      render json: result, status: :created
+    end
+
+    def restore
+      SandboxManager.new.restore(sandbox: @sandbox, snapshot_name: params.require(:snapshot))
+      render json: sandbox_json(@sandbox.reload)
     end
 
     private

@@ -128,6 +128,30 @@ func (c *Client) ConnectInfo(id int) (*ConnectInfo, error) {
 	return &info, err
 }
 
+// Snapshots
+
+func (c *Client) SnapshotSandbox(id int, name string) (*Snapshot, error) {
+	var s Snapshot
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/snapshot", id), SnapshotRequest{Name: name}, &s)
+	return &s, err
+}
+
+func (c *Client) RestoreSandbox(id int, snapshot string) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/restore", id), RestoreRequest{Snapshot: snapshot}, &s)
+	return &s, err
+}
+
+func (c *Client) ListSnapshots() ([]Snapshot, error) {
+	var snapshots []Snapshot
+	err := c.do("GET", "/api/snapshots", nil, &snapshots)
+	return snapshots, err
+}
+
+func (c *Client) DestroySnapshot(name string) error {
+	return c.do("DELETE", fmt.Sprintf("/api/snapshots/%s", name), nil, nil)
+}
+
 // Tokens
 
 func (c *Client) CreateToken(req CreateTokenRequest) (*Token, error) {

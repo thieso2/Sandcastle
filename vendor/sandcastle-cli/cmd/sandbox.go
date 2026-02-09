@@ -13,6 +13,7 @@ import (
 var (
 	sandboxImage      string
 	sandboxPersistent bool
+	sandboxSnapshot   string
 )
 
 func init() {
@@ -25,6 +26,7 @@ func init() {
 
 	createCmd.Flags().StringVar(&sandboxImage, "image", "sandcastle-sandbox:latest", "Container image")
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
+	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
 }
 
 var createCmd = &cobra.Command{
@@ -41,6 +43,7 @@ var createCmd = &cobra.Command{
 			Name:       args[0],
 			Image:      sandboxImage,
 			Persistent: sandboxPersistent,
+			Snapshot:   sandboxSnapshot,
 		})
 		if err != nil {
 			return err

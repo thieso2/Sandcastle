@@ -48,10 +48,27 @@ type SystemStatus struct {
 	Resources []map[string]any `json:"resources"`
 }
 
+type Snapshot struct {
+	Name      string    `json:"name"`
+	Image     string    `json:"image"`
+	Sandbox   string    `json:"sandbox"`
+	Size      int64     `json:"size"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type SnapshotRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
+type RestoreRequest struct {
+	Snapshot string `json:"snapshot"`
+}
+
 type CreateSandboxRequest struct {
 	Name       string `json:"name"`
 	Image      string `json:"image,omitempty"`
 	Persistent bool   `json:"persistent,omitempty"`
+	Snapshot   string `json:"snapshot,omitempty"`
 }
 
 type CreateTokenRequest struct {
