@@ -19,6 +19,10 @@ class SandboxesController < ApplicationController
   private
 
   def set_sandbox
-    @sandbox = Current.user.sandboxes.active.find(params[:id])
+    @sandbox = if Current.user.admin?
+      Sandbox.active.find(params[:id])
+    else
+      Current.user.sandboxes.active.find(params[:id])
+    end
   end
 end

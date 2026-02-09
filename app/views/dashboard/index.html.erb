@@ -33,7 +33,7 @@
 
   <div class="mb-8">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-semibold text-gray-900">My Sandboxes</h2>
+      <h2 class="text-xl font-semibold text-gray-900"><%= Current.user.admin? ? "All Sandboxes" : "My Sandboxes" %></h2>
     </div>
 
     <% if @sandboxes.any? %>

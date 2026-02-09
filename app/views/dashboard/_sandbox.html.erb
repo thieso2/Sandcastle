@@ -11,6 +11,9 @@
       </span>
       <span class="font-mono font-medium text-gray-900"><%= sandbox.name %></span>
     </div>
+    <% if Current.user.admin? %>
+      <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded"><%= sandbox.user.name %></span>
+    <% end %>
     <span class="text-xs text-gray-400"><%= sandbox.image %></span>
   </div>
 
