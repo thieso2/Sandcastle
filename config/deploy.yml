@@ -1,0 +1,40 @@
+service: sandcastle
+image: sandcastle
+
+ssh:
+  user: thies
+
+servers:
+  web:
+    hosts:
+      - 192.168.2.50
+
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+  - /data:/data
+  - sandcastle-storage:/rails/storage
+
+proxy:
+  ssl: false
+  host: 192.168.2.50
+  app_port: 80
+  healthcheck:
+    path: /up
+
+registry:
+  server: 192.168.2.50:4443
+  username: kamal
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    SANDCASTLE_HOST: 192.168.2.50
+    SANDCASTLE_DATA_DIR: /data
+  secret:
+    - SECRET_KEY_BASE
+    - RAILS_MASTER_KEY
+
+builder:
+  arch: amd64
+  remote: ssh://thies@192.168.2.50

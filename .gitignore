@@ -45,5 +45,8 @@
 *-credentials.json
 service-account.json
 
+# Kamal secrets (generated environment-specific files)
+/.kamal/secrets-*
+
 # CLI binary
 vendor/sandcastle-cli/sandcastle
