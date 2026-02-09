@@ -1,0 +1,8 @@
+<div class="mx-auto md:w-2/3 w-full">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="font-bold text-4xl">New User</h1>
+    <%= link_to "Back", admin_users_path, class: "text-sm text-gray-500 hover:text-gray-700" %>
+  </div>
+
+  <%= render "form", user: @user %>
+</div>

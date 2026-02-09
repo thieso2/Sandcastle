@@ -1,0 +1,58 @@
+<%= form_with model: [:admin, user], class: "contents" do |form| %>
+  <% if user.errors.any? %>
+    <div class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg">
+      <ul>
+        <% user.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="my-5">
+    <%= form.label :name, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_field :name, required: true, autofocus: true, placeholder: "username",
+          class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :email_address, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.email_field :email_address, required: true, placeholder: "user@example.com",
+          class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :password, user.new_record? ? "Password" : "Password (leave blank to keep current)", class: "block text-sm font-medium text-gray-700" %>
+    <%= form.password_field :password, required: user.new_record?, autocomplete: "new-password",
+          placeholder: "Enter password", maxlength: 72,
+          class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :password_confirmation, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.password_field :password_confirmation, required: user.new_record?, autocomplete: "new-password",
+          placeholder: "Confirm password", maxlength: 72,
+          class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :ssh_public_key, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_area :ssh_public_key, rows: 3, placeholder: "ssh-ed25519 AAAA...",
+          class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full font-mono text-sm" %>
+  </div>
+
+  <div class="my-5">
+    <%= form.label :status, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.select :status, %w[active suspended],
+          {}, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+  </div>
+
+  <div class="my-5 flex items-center gap-2">
+    <%= form.check_box :admin, class: "rounded border-gray-400" %>
+    <%= form.label :admin, "Administrator", class: "text-sm font-medium text-gray-700" %>
+  </div>
+
+  <div class="inline">
+    <%= form.submit class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
+  </div>
+<% end %>

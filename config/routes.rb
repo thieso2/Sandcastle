@@ -4,6 +4,10 @@ Rails.application.routes.draw do
   resource :session
   resources :passwords, param: :token
 
+  namespace :admin do
+    resources :users
+  end
+
   namespace :api do
     resources :sandboxes do
       member do

@@ -45,6 +45,10 @@ module Authentication
       end
     end
 
+    def require_admin!
+      redirect_to root_path, alert: "Not authorized" unless Current.user&.admin?
+    end
+
     def terminate_session
       Current.session.destroy
       cookies.delete(:session_id)
