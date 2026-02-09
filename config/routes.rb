@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     member do
       post :start
       post :stop
+      get :stats, controller: "dashboard", action: "stats"
     end
   end
 

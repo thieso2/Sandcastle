@@ -7,28 +7,31 @@ class DashboardController < ApplicationController
     else
       @sandboxes = Current.user.sandboxes.active.order(:name)
     end
-
-    @sandbox_stats = fetch_sandbox_stats(@sandboxes.select { |s| s.status == "running" })
   end
 
-  private
+  def stats
+    sandbox = if Current.user.admin?
+      Sandbox.active.find(params[:id])
+    else
+      Current.user.sandboxes.active.find(params[:id])
+    end
 
-  def fetch_sandbox_stats(sandboxes)
-    stats = {}
-    sandboxes.each do |sandbox|
-      next if sandbox.container_id.blank?
+    if sandbox.status == "running" && sandbox.container_id.present?
       container = Docker::Container.get(sandbox.container_id)
       raw = container.stats(stream: false)
-      stats[sandbox.id] = {
+      @stats = {
         cpu_percent: calculate_cpu_percent(raw),
         memory_mb: (raw.dig("memory_stats", "usage") || 0) / 1_048_576.0,
         memory_limit_mb: (raw.dig("memory_stats", "limit") || 0) / 1_048_576.0
       }
-    rescue Docker::Error::DockerError
-      stats[sandbox.id] = { cpu_percent: 0, memory_mb: 0, memory_limit_mb: 0 }
     end
-    stats
+
+    render partial: "sandbox_stats", locals: { stats: @stats, sandbox: sandbox }
+  rescue Docker::Error::DockerError
+    render partial: "sandbox_stats", locals: { stats: nil, sandbox: sandbox }
   end
+
+  private
 
   def calculate_cpu_percent(stats)
     cpu_delta = stats.dig("cpu_stats", "cpu_usage", "total_usage").to_f -

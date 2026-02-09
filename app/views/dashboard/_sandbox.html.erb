@@ -16,9 +16,10 @@
     <% end %>
     <span class="text-xs text-gray-400"><%= sandbox.image %></span>
 
-    <% if (stats = @sandbox_stats[sandbox.id]) %>
-      <span class="text-xs text-gray-500">CPU <span class="font-mono font-medium"><%= stats[:cpu_percent] %>%</span></span>
-      <span class="text-xs text-gray-500">MEM <span class="font-mono font-medium"><%= stats[:memory_mb].round(0) %></span>/<span class="font-mono"><%= stats[:memory_limit_mb].round(0) %></span> MB</span>
+    <% if sandbox.status == "running" %>
+      <%= turbo_frame_tag "sandbox_stats_#{sandbox.id}", src: stats_sandbox_path(sandbox), loading: :lazy do %>
+        <span class="text-xs text-gray-400">loading stats...</span>
+      <% end %>
     <% end %>
   </div>
 
