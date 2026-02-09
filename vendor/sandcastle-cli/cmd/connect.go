@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strconv"
+	"time"
 
 	"github.com/sandcastle/cli/api"
 	"github.com/sandcastle/cli/internal/config"
@@ -50,6 +52,10 @@ var connectCmd = &cobra.Command{
 			return err
 		}
 
+		if err := waitForSSH(info.Host, info.Port); err != nil {
+			return err
+		}
+
 		// SSH with tmux attach-or-create
 		return sshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
 	},
@@ -80,6 +86,10 @@ var sshCmd = &cobra.Command{
 			return err
 		}
 
+		if err := waitForSSH(info.Host, info.Port); err != nil {
+			return err
+		}
+
 		return sshExec(info.Host, info.Port, info.User, "")
 	},
 }
@@ -89,6 +99,32 @@ func resolveSandboxName(args []string) string {
 		return args[0]
 	}
 	return config.ActiveSandbox()
+}
+
+func waitForSSH(host string, port int) error {
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
+	deadline := time.Now().Add(30 * time.Second)
+	printed := false
+
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", addr, time.Second)
+		if err == nil {
+			conn.Close()
+			if printed {
+				fmt.Println()
+			}
+			return nil
+		}
+		if !printed {
+			fmt.Printf("Waiting for SSH to be ready...")
+			printed = true
+		}
+		fmt.Print(".")
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	fmt.Println()
+	return fmt.Errorf("timeout waiting for SSH at %s", addr)
 }
 
 func sshExec(host string, port int, user string, remoteCmd string) error {
