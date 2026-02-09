@@ -12,6 +12,13 @@ RUN apt-get update && apt-get install -y \
 # Docker CLI + daemon (Sysbox makes this safe)
 RUN curl -fsSL https://get.docker.com | sh
 
+# Pin runc to 1.1.x — runc 1.2+ added a procfs safety check that fails
+# inside sysbox containers (sysbox-fs mounts /proc/sys as separate FUSE)
+RUN RUNC_VERSION="v1.1.15" \
+    && curl -fsSL "https://github.com/opencontainers/runc/releases/download/${RUNC_VERSION}/runc.amd64" \
+       -o /usr/bin/runc \
+    && chmod +x /usr/bin/runc
+
 # Docker Compose plugin
 RUN mkdir -p /usr/local/lib/docker/cli-plugins \
     && curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \

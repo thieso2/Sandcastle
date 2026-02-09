@@ -4,7 +4,7 @@ class Sandbox < ApplicationRecord
   SSH_PORT_RANGE = (2201..2299)
 
   validates :name, presence: true,
-    uniqueness: { scope: :user_id },
+    uniqueness: { scope: :user_id, conditions: -> { where.not(status: "destroyed") } },
     format: { with: /\A[a-z][a-z0-9_-]{0,62}\z/, message: "must be lowercase alphanumeric" }
   validates :ssh_port, presence: true,
     uniqueness: { conditions: -> { where.not(status: "destroyed") } },
