@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_09_172924) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_09_192504) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -36,7 +36,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_172924) do
     t.integer "user_id", null: false
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
-    t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true
+    t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "status != 'destroyed'"
     t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_sandboxes_on_user_id"
   end

@@ -6,7 +6,8 @@ class Sandbox < ApplicationRecord
   validates :name, presence: true,
     uniqueness: { scope: :user_id },
     format: { with: /\A[a-z][a-z0-9_-]{0,62}\z/, message: "must be lowercase alphanumeric" }
-  validates :ssh_port, presence: true, uniqueness: true,
+  validates :ssh_port, presence: true,
+    uniqueness: { conditions: -> { where.not(status: "destroyed") } },
     inclusion: { in: SSH_PORT_RANGE }
   validates :status, inclusion: { in: %w[pending running stopped destroyed] }
   validates :image, presence: true
