@@ -15,6 +15,11 @@
       <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded"><%= sandbox.user.name %></span>
     <% end %>
     <span class="text-xs text-gray-400"><%= sandbox.image %></span>
+
+    <% if (stats = @sandbox_stats[sandbox.id]) %>
+      <span class="text-xs text-gray-500">CPU <span class="font-mono font-medium"><%= stats[:cpu_percent] %>%</span></span>
+      <span class="text-xs text-gray-500">MEM <span class="font-mono font-medium"><%= stats[:memory_mb].round(0) %></span>/<span class="font-mono"><%= stats[:memory_limit_mb].round(0) %></span> MB</span>
+    <% end %>
   </div>
 
   <div class="flex items-center gap-3">
