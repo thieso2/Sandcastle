@@ -1,0 +1,127 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"strconv"
+
+	"github.com/sandcastle/cli/api"
+	"github.com/sandcastle/cli/internal/config"
+	"github.com/spf13/cobra"
+)
+
+func init() {
+	rootCmd.AddCommand(connectCmd)
+	rootCmd.AddCommand(sshCmd)
+}
+
+var connectCmd = &cobra.Command{
+	Use:   "connect [name]",
+	Short: "SSH into sandbox and attach tmux (auto-starts if stopped)",
+	Args:  cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := resolveSandboxName(args)
+		if name == "" {
+			return fmt.Errorf("specify a sandbox name or set one with: sandcastle use <name>")
+		}
+
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+
+		sandbox, err := findSandboxByName(client, name)
+		if err != nil {
+			return err
+		}
+
+		// Auto-start if stopped
+		if sandbox.Status == "stopped" {
+			fmt.Printf("Starting sandbox %q...\n", name)
+			sandbox, err = client.StartSandbox(sandbox.ID)
+			if err != nil {
+				return fmt.Errorf("failed to start sandbox: %w", err)
+			}
+		}
+
+		info, err := client.ConnectInfo(sandbox.ID)
+		if err != nil {
+			return err
+		}
+
+		// SSH with tmux attach-or-create
+		return sshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
+	},
+}
+
+var sshCmd = &cobra.Command{
+	Use:   "ssh [name]",
+	Short: "SSH into sandbox shell (without tmux)",
+	Args:  cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := resolveSandboxName(args)
+		if name == "" {
+			return fmt.Errorf("specify a sandbox name or set one with: sandcastle use <name>")
+		}
+
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+
+		sandbox, err := findSandboxByName(client, name)
+		if err != nil {
+			return err
+		}
+
+		info, err := client.ConnectInfo(sandbox.ID)
+		if err != nil {
+			return err
+		}
+
+		return sshExec(info.Host, info.Port, info.User, "")
+	},
+}
+
+func resolveSandboxName(args []string) string {
+	if len(args) > 0 {
+		return args[0]
+	}
+	return config.ActiveSandbox()
+}
+
+func sshExec(host string, port int, user string, remoteCmd string) error {
+	sshArgs := []string{
+		"-p", strconv.Itoa(port),
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "LogLevel=ERROR",
+		fmt.Sprintf("%s@%s", user, host),
+	}
+	if remoteCmd != "" {
+		sshArgs = append(sshArgs, "-t", remoteCmd)
+	}
+
+	sshPath, err := exec.LookPath("ssh")
+	if err != nil {
+		return fmt.Errorf("ssh not found: %w", err)
+	}
+
+	proc := &os.ProcAttr{
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+	}
+	process, err := os.StartProcess(sshPath, append([]string{"ssh"}, sshArgs...), proc)
+	if err != nil {
+		return fmt.Errorf("starting ssh: %w", err)
+	}
+
+	state, err := process.Wait()
+	if err != nil {
+		return err
+	}
+	if !state.Success() {
+		os.Exit(state.ExitCode())
+	}
+	return nil
+}

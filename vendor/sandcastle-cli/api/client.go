@@ -1,0 +1,173 @@
+package api
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+
+	"github.com/sandcastle/cli/internal/config"
+)
+
+type Client struct {
+	BaseURL    string
+	Token      string
+	HTTPClient *http.Client
+}
+
+func NewClient() (*Client, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+	if cfg.Server == "" {
+		return nil, fmt.Errorf("server not configured — run: sandcastle config set-server <url>")
+	}
+	return &Client{
+		BaseURL:    cfg.Server,
+		Token:      cfg.Token,
+		HTTPClient: &http.Client{},
+	}, nil
+}
+
+func NewClientWithToken(baseURL, token string) *Client {
+	return &Client{
+		BaseURL:    baseURL,
+		Token:      token,
+		HTTPClient: &http.Client{},
+	}
+}
+
+func (c *Client) do(method, path string, body any, result any) error {
+	var bodyReader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("marshaling request: %w", err)
+		}
+		bodyReader = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequest(method, c.BaseURL+path, bodyReader)
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("reading response: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		var apiErr APIError
+		if json.Unmarshal(respBody, &apiErr) == nil && apiErr.Error != "" {
+			return fmt.Errorf("API error (%d): %s", resp.StatusCode, apiErr.Error)
+		}
+		return fmt.Errorf("API error (%d): %s", resp.StatusCode, string(respBody))
+	}
+
+	if result != nil {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return fmt.Errorf("parsing response: %w", err)
+		}
+	}
+	return nil
+}
+
+// Sandboxes
+
+func (c *Client) ListSandboxes() ([]Sandbox, error) {
+	var sandboxes []Sandbox
+	err := c.do("GET", "/api/sandboxes", nil, &sandboxes)
+	return sandboxes, err
+}
+
+func (c *Client) GetSandbox(id int) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("GET", fmt.Sprintf("/api/sandboxes/%d", id), nil, &s)
+	return &s, err
+}
+
+func (c *Client) CreateSandbox(req CreateSandboxRequest) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("POST", "/api/sandboxes", req, &s)
+	return &s, err
+}
+
+func (c *Client) DestroySandbox(id int) error {
+	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d", id), nil, nil)
+}
+
+func (c *Client) StartSandbox(id int) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/start", id), nil, &s)
+	return &s, err
+}
+
+func (c *Client) StopSandbox(id int) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/stop", id), nil, &s)
+	return &s, err
+}
+
+func (c *Client) ConnectInfo(id int) (*ConnectInfo, error) {
+	var info ConnectInfo
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/connect", id), nil, &info)
+	return &info, err
+}
+
+// Tokens
+
+func (c *Client) CreateToken(req CreateTokenRequest) (*Token, error) {
+	var t Token
+	err := c.do("POST", "/api/tokens", req, &t)
+	return &t, err
+}
+
+func (c *Client) ListTokens() ([]Token, error) {
+	var tokens []Token
+	err := c.do("GET", "/api/tokens", nil, &tokens)
+	return tokens, err
+}
+
+func (c *Client) DestroyToken(id int) error {
+	return c.do("DELETE", fmt.Sprintf("/api/tokens/%d", id), nil, nil)
+}
+
+// Users (admin)
+
+func (c *Client) ListUsers() ([]User, error) {
+	var users []User
+	err := c.do("GET", "/api/users", nil, &users)
+	return users, err
+}
+
+func (c *Client) CreateUser(req CreateUserRequest) (*User, error) {
+	var u User
+	err := c.do("POST", "/api/users", req, &u)
+	return &u, err
+}
+
+func (c *Client) DestroyUser(id int) error {
+	return c.do("DELETE", fmt.Sprintf("/api/users/%d", id), nil, nil)
+}
+
+// Status
+
+func (c *Client) Status() (*SystemStatus, error) {
+	var s SystemStatus
+	err := c.do("GET", "/api/status", nil, &s)
+	return &s, err
+}

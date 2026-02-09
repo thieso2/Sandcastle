@@ -1,0 +1,74 @@
+package api
+
+import "time"
+
+type Sandbox struct {
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	FullName        string    `json:"full_name"`
+	Status          string    `json:"status"`
+	Image           string    `json:"image"`
+	SSHPort         int       `json:"ssh_port"`
+	PersistentVolume bool     `json:"persistent_volume"`
+	ConnectCommand  string    `json:"connect_command"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type ConnectInfo struct {
+	Host    string `json:"host"`
+	Port    int    `json:"port"`
+	User    string `json:"user"`
+	Command string `json:"command"`
+}
+
+type User struct {
+	ID           int       `json:"id"`
+	Name         string    `json:"name"`
+	EmailAddress string    `json:"email_address"`
+	Admin        bool      `json:"admin"`
+	Status       string    `json:"status"`
+	SandboxCount int       `json:"sandbox_count"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type Token struct {
+	ID         int        `json:"id"`
+	Name       string     `json:"name"`
+	Prefix     string     `json:"prefix"`
+	MaskedToken string    `json:"masked_token"`
+	RawToken   string     `json:"raw_token,omitempty"`
+	LastUsedAt *time.Time `json:"last_used_at"`
+	ExpiresAt  *time.Time `json:"expires_at"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+type SystemStatus struct {
+	Docker    map[string]any   `json:"docker"`
+	Sandboxes map[string]int   `json:"sandboxes"`
+	Resources []map[string]any `json:"resources"`
+}
+
+type CreateSandboxRequest struct {
+	Name       string `json:"name"`
+	Image      string `json:"image,omitempty"`
+	Persistent bool   `json:"persistent,omitempty"`
+}
+
+type CreateTokenRequest struct {
+	EmailAddress string `json:"email_address"`
+	Password     string `json:"password"`
+	Name         string `json:"name"`
+}
+
+type CreateUserRequest struct {
+	Name                 string `json:"name"`
+	EmailAddress         string `json:"email_address"`
+	Password             string `json:"password"`
+	PasswordConfirmation string `json:"password_confirmation"`
+	SSHPublicKey         string `json:"ssh_public_key,omitempty"`
+	Admin                bool   `json:"admin,omitempty"`
+}
+
+type APIError struct {
+	Error string `json:"error"`
+}
