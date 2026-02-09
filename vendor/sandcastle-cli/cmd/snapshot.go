@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/sandcastle/cli/api"
@@ -123,7 +124,13 @@ var snapshotRestoreCmd = &cobra.Command{
 			return err
 		}
 
-		sandbox, err = client.RestoreSandbox(sandbox.ID, args[1])
+		// Accept both full image ref (sc-snap-user:name) and just the name
+		snapName := args[1]
+		if parts := strings.SplitN(snapName, ":", 2); len(parts) == 2 {
+			snapName = parts[1]
+		}
+
+		sandbox, err = client.RestoreSandbox(sandbox.ID, snapName)
 		if err != nil {
 			return err
 		}

@@ -50,7 +50,6 @@ var createCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Sandbox %q created (port %d)\n", sandbox.Name, sandbox.SSHPort)
-		fmt.Printf("Connect: %s\n", sandbox.ConnectCommand)
 		return nil
 	},
 }
