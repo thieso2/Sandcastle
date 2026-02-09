@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y \
     jq ripgrep fd-find htop wget unzip ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Prefer IPv4 to avoid slow/broken IPv6 connections
+RUN sed -i 's/#precedence ::ffff:0:0\/96  100/precedence ::ffff:0:0\/96  100/' /etc/gai.conf
+
 # Docker CLI + daemon (Sysbox makes this safe)
 RUN curl -fsSL https://get.docker.com | sh
 
