@@ -8,6 +8,8 @@ servers:
   web:
     hosts:
       - 192.168.2.50
+    options:
+      group-add: 988
 
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
