@@ -27,8 +27,15 @@ chown "$USERNAME:$USERNAME" "/home/$USERNAME"
 # Ensure workspace is accessible
 chown "$USERNAME:$USERNAME" /workspace 2>/dev/null || true
 
-# Allow user to update tools in /usr/local (e.g. Claude Code auto-updater)
-chown -R "$USERNAME:$USERNAME" /usr/local/bin
+# Seed mise + Claude Code into user's ~/.local/bin on first boot
+USER_LOCAL_BIN="/home/$USERNAME/.local/bin"
+mkdir -p "$USER_LOCAL_BIN"
+for tool in mise claude; do
+    if [ ! -f "$USER_LOCAL_BIN/$tool" ] && [ -f "/opt/sandcastle/bin/$tool" ]; then
+        cp "/opt/sandcastle/bin/$tool" "$USER_LOCAL_BIN/$tool"
+    fi
+done
+chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.local"
 
 # Generate SSH host keys if missing
 ssh-keygen -A

@@ -28,18 +28,17 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins \
        -o /usr/local/lib/docker/cli-plugins/docker-compose \
     && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-# mise (dev tool version manager) — install to /usr/local/bin so it survives home bind-mounts
-RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
-RUN echo 'eval "$(mise activate bash)"' > /etc/profile.d/mise.sh
-
-# Shell config
-RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
-    && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc
-
-# Claude Code (standalone binary) — install to /usr/local/bin for same reason
-RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && cp -L /root/.local/bin/claude /usr/local/bin/claude \
+# Stage mise + Claude Code in /opt/sandcastle/bin (seeded to ~/.local/bin on first boot)
+RUN mkdir -p /opt/sandcastle/bin \
+    && curl https://mise.run | MISE_INSTALL_PATH=/opt/sandcastle/bin/mise sh \
+    && curl -fsSL https://claude.ai/install.sh | bash \
+    && cp -L /root/.local/bin/claude /opt/sandcastle/bin/claude \
     && rm -rf /root/.local/share/claude /root/.local/bin/claude
+
+# Shell config: PATH, mise activation, aliases
+RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
+    && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
+    && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc
 
 # SSH configuration (key-only auth)
 RUN mkdir /var/run/sshd \
