@@ -32,7 +32,9 @@ ssh-keygen -A
 
 # Start Docker daemon in background (Sysbox provides isolated /var/lib/docker)
 if command -v dockerd &>/dev/null; then
-    dockerd --storage-driver=overlay2 &>/var/log/dockerd.log &
+    # Match inner Docker bridge MTU to container's eth0 to avoid packet fragmentation
+    ETH0_MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
+    dockerd --storage-driver=overlay2 --mtu="$ETH0_MTU" &>/var/log/dockerd.log &
     # Wait briefly for Docker daemon to be ready
     for i in $(seq 1 30); do
         if docker info &>/dev/null; then
