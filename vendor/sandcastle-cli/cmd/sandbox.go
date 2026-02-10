@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/sandcastle/cli/api"
@@ -34,16 +35,40 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
 	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale network")
 	createCmd.Flags().BoolVarP(&sandboxNoConnect, "no-connect", "n", false, "Don't connect after creation")
-	createCmd.Flags().BoolVar(&sandboxRemove, "rm", false, "Delete sandbox on exit")
-	createCmd.Flags().BoolVar(&sandboxHome, "home", false, "Mount persistent home directory")
-	createCmd.Flags().StringVar(&sandboxData, "data", "", "Mount user data directory (or subpath) to /data")
+	createCmd.Flags().BoolVar(&sandboxRemove, "rm", false, "Delete sandbox on exit (env: SANDCASTLE_RM)")
+	createCmd.Flags().BoolVar(&sandboxHome, "home", false, "Mount persistent home directory (env: SANDCASTLE_HOME)")
+	createCmd.Flags().StringVar(&sandboxData, "data", "", "Mount user data directory (or subpath) to /data (env: SANDCASTLE_DATA)")
 	createCmd.Flags().Lookup("data").NoOptDefVal = "."
 }
 
 var createCmd = &cobra.Command{
 	Use:   "create <name>",
 	Short: "Create a new sandbox",
-	Args:  cobra.ExactArgs(1),
+	Long: `Create a new sandbox.
+
+Environment variables can set defaults for commonly used flags:
+  SANDCASTLE_HOME=1    equivalent to --home
+  SANDCASTLE_DATA=.    equivalent to --data (value is the subpath, "." or "1" for root)
+  SANDCASTLE_RM=1      equivalent to --rm
+
+Flags explicitly passed on the command line take precedence over environment variables.`,
+	Args: cobra.ExactArgs(1),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if !cmd.Flags().Changed("home") && envTruthy("SANDCASTLE_HOME") {
+			sandboxHome = true
+		}
+		if !cmd.Flags().Changed("rm") && envTruthy("SANDCASTLE_RM") {
+			sandboxRemove = true
+		}
+		if !cmd.Flags().Changed("data") {
+			if v := os.Getenv("SANDCASTLE_DATA"); v != "" {
+				if v == "1" || v == "true" {
+					v = "."
+				}
+				sandboxData = v
+			}
+		}
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {
@@ -65,19 +90,19 @@ var createCmd = &cobra.Command{
 
 		fmt.Printf("Sandbox %q created.\n", sandbox.Name)
 
-		// Print active options
-		if sandbox.MountHome || sandbox.DataPath != "" || sandbox.PersistentVolume || sandbox.Tailscale || sandboxRemove {
-			if sandbox.MountHome {
+		// Print active options (use local flags — they reflect what was actually requested)
+		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove {
+			if sandboxHome {
 				fmt.Println("  Home:      mounted (~/ persisted)")
 			}
-			if sandbox.DataPath != "" {
-				label := sandbox.DataPath
+			if sandboxData != "" {
+				label := sandboxData
 				if label == "." {
 					label = "user data root"
 				}
 				fmt.Printf("  Data:      mounted (%s → /data)\n", label)
 			}
-			if sandbox.PersistentVolume {
+			if sandboxPersistent {
 				fmt.Println("  Volume:    persistent (/workspace)")
 			}
 			if sandbox.Tailscale {
@@ -243,6 +268,11 @@ var useCmd = &cobra.Command{
 		fmt.Printf("Active sandbox set to %q\n", args[0])
 		return nil
 	},
+}
+
+func envTruthy(key string) bool {
+	v := strings.ToLower(os.Getenv(key))
+	return v == "1" || v == "true" || v == "yes"
 }
 
 func findSandboxByName(client *api.Client, name string) (*api.Sandbox, error) {
