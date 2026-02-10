@@ -1,5 +1,5 @@
 service: sandcastle
-image: sandcastle
+image: ghcr.io/thieso2/sandcastle
 
 ssh:
   user: thies
@@ -27,8 +27,8 @@ proxy:
     publish: false
 
 registry:
-  server: 100.126.147.91:4443
-  username: kamal
+  server: ghcr.io
+  username: thieso2
   password:
     - KAMAL_REGISTRY_PASSWORD
 

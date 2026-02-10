@@ -106,7 +106,7 @@ ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No
 ## Deployment
 
 - **Host**: `100.106.185.92` (Tailscale IP), SSH user `thies`
-- **Registry**: `100.126.147.91:4443` (private, insecure HTTP — configured in `buildkitd.toml`)
+- **Registry**: `ghcr.io/thieso2/sandcastle` (GitHub Container Registry)
 - **Deploy**: `kamal deploy` (config in `config/deploy.yml`), or `docker-compose up -d`
 - **Host bootstrap**: `bootstrap/sandcastle-bootstrap.sh` (Docker, Sysbox, Caddy, UFW)
 - **Env vars**: `SECRET_KEY_BASE`, `RAILS_MASTER_KEY`, `SANDCASTLE_HOST`, `SANDCASTLE_DATA_DIR` (default `/data`)

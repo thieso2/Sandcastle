@@ -84,6 +84,11 @@ COPY --chown=rails:rails --from=build /rails /rails
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
+# OCI labels for ghcr.io package linking
+LABEL org.opencontainers.image.source="https://github.com/thieso2/sandcastle"
+LABEL org.opencontainers.image.description="Self-hosted shared Docker sandbox platform"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # Start server via Thruster by default, this can be overwritten at runtime
 EXPOSE 80
 CMD ["./bin/thrust", "./bin/rails", "server"]
