@@ -55,10 +55,14 @@
     </div>
   </div>
 
-  <%# Line 2: Timestamps | Stats %>
+  <%# Line 2: Container/image info, timestamps | Stats %>
   <div class="flex items-start justify-between gap-4">
     <div class="text-xs text-gray-400">
-      Created <%= time_ago_in_words(sandbox.created_at) %> ago<% if sandbox.status == "running" %>
+      <% if sandbox.container_id.present? %>
+        <span class="font-mono"><%= sandbox.container_id.first(12) %></span> ·
+      <% end %>
+      <span class="font-mono"><%= sandbox.image.sub("ghcr.io/thieso2/", "") %></span>
+      · Created <%= time_ago_in_words(sandbox.created_at) %> ago<% if sandbox.status == "running" %>
         · Running for <%= time_ago_in_words(sandbox.updated_at) %><% elsif sandbox.status == "stopped" %>
         · Stopped <%= time_ago_in_words(sandbox.updated_at) %> ago<% end %>
     </div>
