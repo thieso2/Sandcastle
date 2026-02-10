@@ -18,7 +18,8 @@ RUN curl -fsSL https://get.docker.com | sh
 # Pin runc to 1.1.x — runc 1.2+ added a procfs safety check that fails
 # inside sysbox containers (sysbox-fs mounts /proc/sys as separate FUSE)
 RUN RUNC_VERSION="v1.1.15" \
-    && curl -fsSL "https://github.com/opencontainers/runc/releases/download/${RUNC_VERSION}/runc.amd64" \
+    && ARCH=$(dpkg --print-architecture) \
+    && curl -fsSL "https://github.com/opencontainers/runc/releases/download/${RUNC_VERSION}/runc.${ARCH}" \
        -o /usr/bin/runc \
     && chmod +x /usr/bin/runc
 
