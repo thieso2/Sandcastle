@@ -281,7 +281,8 @@ class SandboxManager
       "home" => {
         "type" => "disk",
         "source" => home_path,
-        "path" => "/home/#{user.name}"
+        "path" => "/home/#{user.name}",
+        "shift" => "true"
       }
     }
 
@@ -290,7 +291,8 @@ class SandboxManager
       devices["workspace"] = {
         "type" => "disk",
         "source" => sandbox.volume_path,
-        "path" => "/workspace"
+        "path" => "/workspace",
+        "shift" => "true"
       }
     end
 
