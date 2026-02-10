@@ -3,6 +3,7 @@ Rails.application.routes.draw do
 
   resource :session
   resources :passwords, param: :token
+  resource :change_password, only: [ :show, :update ]
 
   resources :sandboxes, only: :destroy do
     member do
