@@ -38,13 +38,13 @@ class TailscaleManager
       tailscale_network: network_name
     )
 
-    # Wait for tailscaled to be ready
-    sleep 3
-
-    login_url = fetch_login_url(instance_name, subnet, user)
-    unless login_url
-      sleep 3
+    # Wait for tailscaled to be ready — cloud-init needs time to boot and
+    # run systemctl start tailscaled
+    login_url = nil
+    5.times do |i|
+      sleep i < 2 ? 5 : 3
       login_url = fetch_login_url(instance_name, subnet, user)
+      break if login_url
     end
     raise Error, "Could not get login URL — tailscaled may not be ready yet" unless login_url
 
