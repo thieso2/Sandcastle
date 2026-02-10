@@ -1,0 +1,95 @@
+#!/bin/bash
+# Remote server setup — run from dev machine
+# Usage: bin/setup-server <ssh-host>
+# Example: bin/setup-server thies@100.79.246.119
+set -euo pipefail
+
+if [ $# -lt 1 ]; then
+    echo "Usage: bin/setup-server <ssh-host>"
+    echo "Example: bin/setup-server thies@100.79.246.119"
+    exit 1
+fi
+
+SSH_HOST="$1"
+REMOTE_DIR="/tmp/sandcastle-setup"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Files to upload (relative to repo root)
+FILES=(
+    bootstrap/sandcastle-bootstrap.sh
+    images/sandbox/build-image.sh
+    images/sandbox/sandcastle-profile.yaml
+    images/sandbox/tmux.conf
+    images/tailscale/build-image.sh
+)
+
+# Verify all files exist locally
+for f in "${FILES[@]}"; do
+    if [ ! -f "$REPO_ROOT/$f" ]; then
+        echo "ERROR: Missing file: $f"
+        exit 1
+    fi
+done
+
+echo "=== Sandcastle Server Setup ==="
+echo "Host: $SSH_HOST"
+echo ""
+
+# 1. Create directory structure and upload files
+echo "Uploading files..."
+ssh "$SSH_HOST" "rm -rf $REMOTE_DIR && mkdir -p $REMOTE_DIR/bootstrap $REMOTE_DIR/images/sandbox $REMOTE_DIR/images/tailscale"
+
+for f in "${FILES[@]}"; do
+    scp -q "$REPO_ROOT/$f" "$SSH_HOST:$REMOTE_DIR/$f"
+done
+echo "Done."
+
+# 2. Run bootstrap
+echo ""
+echo "Running bootstrap (this may take a few minutes on first run)..."
+ssh -t "$SSH_HOST" "sudo bash $REMOTE_DIR/bootstrap/sandcastle-bootstrap.sh"
+
+# 3. Verify
+echo ""
+echo "Verifying installation..."
+FAILED=0
+
+if ssh "$SSH_HOST" "sudo incus profile show sandcastle" &>/dev/null; then
+    echo "  [ok] sandcastle profile exists"
+else
+    echo "  [FAIL] sandcastle profile missing"
+    FAILED=1
+fi
+
+if ssh "$SSH_HOST" "sudo incus image list --format csv -c l" | grep -q "sandcastle-sandbox"; then
+    echo "  [ok] sandcastle-sandbox image exists"
+else
+    echo "  [FAIL] sandcastle-sandbox image missing"
+    FAILED=1
+fi
+
+if ssh "$SSH_HOST" "sudo incus image list --format csv -c l" | grep -q "sandcastle-tailscale"; then
+    echo "  [ok] sandcastle-tailscale image exists"
+else
+    echo "  [FAIL] sandcastle-tailscale image missing"
+    FAILED=1
+fi
+
+# 4. Cleanup
+echo ""
+echo "Cleaning up..."
+ssh "$SSH_HOST" "rm -rf $REMOTE_DIR"
+
+# 5. Result
+echo ""
+if [ $FAILED -eq 0 ]; then
+    echo "=== Server setup complete ==="
+    echo ""
+    echo "Next steps:"
+    echo "  1. kamal deploy"
+    echo "  2. kamal app exec 'bin/rails db:prepare'"
+else
+    echo "=== Setup finished with errors ==="
+    echo "Check the output above for details."
+    exit 1
+fi
