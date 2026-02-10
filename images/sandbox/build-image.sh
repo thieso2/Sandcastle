@@ -11,7 +11,7 @@ if [[ "${1:-}" == "--min" ]]; then
 fi
 
 if $MIN_MODE; then
-  IMAGE_ALIAS="sandcastle-min"
+  IMAGE_ALIAS="sandcastle-sandbox-min"
 else
   IMAGE_ALIAS="sandcastle-sandbox"
 fi
