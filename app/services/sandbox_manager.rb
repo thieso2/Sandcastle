@@ -19,6 +19,8 @@ class SandboxManager
 
     sandbox.save!
 
+    ensure_mount_dirs(user, sandbox)
+
     container = Docker::Container.create(
       "name" => sandbox.full_name,
       "Image" => image,
@@ -243,6 +245,16 @@ class SandboxManager
   end
 
   private
+
+  def ensure_mount_dirs(user, sandbox)
+    if sandbox.mount_home
+      FileUtils.mkdir_p("#{DATA_DIR}/users/#{user.name}/home")
+    end
+    if sandbox.data_path.present?
+      dir = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
+      FileUtils.mkdir_p(dir)
+    end
+  end
 
   def volume_binds(user, sandbox)
     binds = []
