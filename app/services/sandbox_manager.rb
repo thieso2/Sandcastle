@@ -269,6 +269,9 @@ class SandboxManager
   end
 
   def build_devices(user:, sandbox:)
+    home_path = "#{DATA_DIR}/users/#{user.name}/home"
+    FileUtils.mkdir_p(home_path)
+
     devices = {
       "ssh" => {
         "type" => "proxy",
@@ -277,7 +280,7 @@ class SandboxManager
       },
       "home" => {
         "type" => "disk",
-        "source" => "#{DATA_DIR}/users/#{user.name}/home",
+        "source" => home_path,
         "path" => "/home/#{user.name}"
       }
     }
