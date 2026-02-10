@@ -30,6 +30,8 @@ Rails.application.routes.draw do
         post :connect
         post :snapshot
         post :restore
+        post :tailscale_connect
+        delete :tailscale_disconnect
       end
     end
     resources :snapshots, only: [ :index, :destroy ], param: :name

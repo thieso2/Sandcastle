@@ -211,3 +211,15 @@ func (c *Client) TailscaleStatus() (*TailscaleStatus, error) {
 	err := c.do("GET", "/api/tailscale/status", nil, &s)
 	return &s, err
 }
+
+func (c *Client) TailscaleConnect(sandboxID int) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/tailscale_connect", sandboxID), nil, &s)
+	return &s, err
+}
+
+func (c *Client) TailscaleDisconnect(sandboxID int) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/tailscale_disconnect", sandboxID), nil, &s)
+	return &s, err
+}

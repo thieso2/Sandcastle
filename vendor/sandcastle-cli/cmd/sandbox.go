@@ -79,17 +79,17 @@ var listCmd = &cobra.Command{
 
 		active := config.ActiveSandbox()
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tTS\tIMAGE")
+		fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tTAILSCALE IP\tIMAGE")
 		for _, s := range sandboxes {
 			marker := ""
 			if s.Name == active {
 				marker = " *"
 			}
-			ts := ""
-			if s.Tailscale {
-				ts = "yes"
+			tsIP := ""
+			if s.TailscaleIP != "" {
+				tsIP = s.TailscaleIP
 			}
-			fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, ts, s.Image)
+			fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, tsIP, s.Image)
 		}
 		w.Flush()
 		return nil

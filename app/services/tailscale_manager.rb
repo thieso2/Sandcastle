@@ -88,11 +88,18 @@ class TailscaleManager
     container = Docker::Container.get(user.tailscale_container_id)
     running = container.json.dig("State", "Running")
 
+    ts_sandboxes = user.sandboxes.active.where(tailscale: true)
+    sandbox_ips = ts_sandboxes.map do |sb|
+      ip = sandbox_tailscale_ip(sandbox: sb)
+      { name: sb.name, ip: ip }
+    end
+
     result = {
       running: running,
       container_id: user.tailscale_container_id[0..11],
       network: user.tailscale_network,
-      connected_sandboxes: user.sandboxes.active.where(tailscale: true).count
+      connected_sandboxes: ts_sandboxes.count,
+      sandboxes: sandbox_ips
     }
 
     if running

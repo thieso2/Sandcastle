@@ -11,6 +11,7 @@ type Sandbox struct {
 	SSHPort          int       `json:"ssh_port"`
 	PersistentVolume bool      `json:"persistent_volume"`
 	Tailscale        bool      `json:"tailscale"`
+	TailscaleIP      string    `json:"tailscale_ip,omitempty"`
 	ConnectCommand   string    `json:"connect_command"`
 	CreatedAt        time.Time `json:"created_at"`
 }
@@ -93,14 +94,20 @@ type TailscaleEnableRequest struct {
 }
 
 type TailscaleStatus struct {
-	Running            bool   `json:"running"`
-	ContainerID        string `json:"container_id"`
-	Network            string `json:"network"`
-	ConnectedSandboxes int    `json:"connected_sandboxes"`
-	TailscaleIP        string `json:"tailscale_ip"`
-	Hostname           string `json:"hostname"`
-	Tailnet            string `json:"tailnet"`
-	Online             bool   `json:"online"`
+	Running            bool                `json:"running"`
+	ContainerID        string              `json:"container_id"`
+	Network            string              `json:"network"`
+	ConnectedSandboxes int                 `json:"connected_sandboxes"`
+	TailscaleIP        string              `json:"tailscale_ip"`
+	Hostname           string              `json:"hostname"`
+	Tailnet            string              `json:"tailnet"`
+	Online             bool                `json:"online"`
+	Sandboxes          []TailscaleSandbox  `json:"sandboxes"`
+}
+
+type TailscaleSandbox struct {
+	Name string `json:"name"`
+	IP   string `json:"ip"`
 }
 
 type APIError struct {
