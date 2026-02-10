@@ -84,6 +84,10 @@ class TailscaleManager
   rescue IncusClient::NotFoundError
     user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
     raise Error, "Sidecar instance disappeared"
+  rescue IncusClient::OperationError
+    # Exec may fail if the container isn't fully booted yet (e.g. "Failed to
+    # retrieve PID") — treat as still pending rather than fatal.
+    { status: "pending" }
   rescue IncusClient::Error => e
     raise Error, "Failed to check login: #{e.message}"
   end
