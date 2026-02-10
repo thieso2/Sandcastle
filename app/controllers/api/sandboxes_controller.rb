@@ -1,6 +1,6 @@
 module Api
   class SandboxesController < BaseController
-    before_action :set_sandbox, only: %i[show destroy start stop connect snapshot restore tailscale_connect tailscale_disconnect]
+    before_action :set_sandbox, only: %i[show update destroy start stop connect snapshot restore tailscale_connect tailscale_disconnect]
 
     def index
       sandboxes = current_user.sandboxes.active
@@ -29,6 +29,11 @@ module Api
         temporary: params[:temporary] || false
       )
       render json: sandbox_json(sandbox), status: :created
+    end
+
+    def update
+      @sandbox.update!(params.permit(:temporary))
+      render json: sandbox_json(@sandbox)
     end
 
     def destroy

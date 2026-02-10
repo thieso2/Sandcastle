@@ -96,6 +96,10 @@ type CreateSandboxRequest struct {
 	Temporary  bool   `json:"temporary,omitempty"`
 }
 
+type UpdateSandboxRequest struct {
+	Temporary *bool `json:"temporary,omitempty"`
+}
+
 type CreateTokenRequest struct {
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password"`

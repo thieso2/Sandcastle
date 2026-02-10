@@ -29,6 +29,7 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(useCmd)
+	rootCmd.AddCommand(setCmd)
 
 	createCmd.Flags().StringVar(&sandboxImage, "image", "sandcastle-sandbox:latest", "Container image")
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
@@ -133,11 +134,17 @@ Flags explicitly passed on the command line take precedence over environment var
 		sshErr := sshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
 
 		if sandboxRemove {
-			fmt.Printf("Removing sandbox %q...\n", sandbox.Name)
-			if err := client.DestroySandbox(sandbox.ID); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to delete sandbox: %v\n", err)
+			// Re-fetch to check if user toggled to "keep" during the session
+			current, fetchErr := client.GetSandbox(sandbox.ID)
+			if fetchErr == nil && !current.Temporary {
+				fmt.Printf("Sandbox %q was set to keep — skipping removal.\n", sandbox.Name)
 			} else {
-				fmt.Printf("Sandbox %q deleted.\n", sandbox.Name)
+				fmt.Printf("Removing sandbox %q...\n", sandbox.Name)
+				if err := client.DestroySandbox(sandbox.ID); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to delete sandbox: %v\n", err)
+				} else {
+					fmt.Printf("Sandbox %q deleted.\n", sandbox.Name)
+				}
 			}
 		}
 
@@ -182,9 +189,12 @@ var listCmd = &cobra.Command{
 			fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tTAILSCALE IP\tIMAGE")
 		}
 		for _, s := range sandboxes {
-			marker := ""
+			name := s.Name
 			if s.Name == active {
-				marker = " *"
+				name += " *"
+			}
+			if s.Temporary {
+				name += " (temp)"
 			}
 			tsIP := ""
 			if s.TailscaleIP != "" {
@@ -195,9 +205,9 @@ var listCmd = &cobra.Command{
 				if s.RouteURL != "" {
 					route = fmt.Sprintf("%s (:%d)", s.RouteURL, s.RoutePort)
 				}
-				fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, route, tsIP, s.Image)
+				fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\t%s\n", name, s.Status, s.SSHPort, route, tsIP, s.Image)
 			} else {
-				fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, tsIP, s.Image)
+				fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n", name, s.Status, s.SSHPort, tsIP, s.Image)
 			}
 		}
 		w.Flush()
@@ -288,6 +298,50 @@ var useCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Active sandbox set to %q\n", args[0])
+		return nil
+	},
+}
+
+var setCmd = &cobra.Command{
+	Use:   "set <name> <temp|keep>",
+	Short: "Toggle sandbox between temporary and kept",
+	Long: `Toggle a sandbox between temporary (auto-remove on exit) and kept.
+
+  temp   Mark as temporary — will be removed when the CLI session exits
+  keep   Mark as kept — will not be auto-removed`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+
+		sandbox, err := findSandboxByName(client, args[0])
+		if err != nil {
+			return err
+		}
+
+		mode := strings.ToLower(args[1])
+		var temp bool
+		switch mode {
+		case "temp":
+			temp = true
+		case "keep":
+			temp = false
+		default:
+			return fmt.Errorf("unknown mode %q: use \"temp\" or \"keep\"", args[1])
+		}
+
+		sandbox, err = client.UpdateSandbox(sandbox.ID, api.UpdateSandboxRequest{Temporary: &temp})
+		if err != nil {
+			return err
+		}
+
+		if temp {
+			fmt.Printf("Sandbox %q set to temporary (will be removed on exit).\n", sandbox.Name)
+		} else {
+			fmt.Printf("Sandbox %q set to keep (will not be removed on exit).\n", sandbox.Name)
+		}
 		return nil
 	},
 }

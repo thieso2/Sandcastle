@@ -174,6 +174,12 @@ func (c *Client) CreateSandbox(req CreateSandboxRequest) (*Sandbox, error) {
 	return &s, err
 }
 
+func (c *Client) UpdateSandbox(id int, req UpdateSandboxRequest) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("PATCH", fmt.Sprintf("/api/sandboxes/%d", id), req, &s)
+	return &s, err
+}
+
 func (c *Client) DestroySandbox(id int) error {
 	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d", id), nil, nil)
 }
