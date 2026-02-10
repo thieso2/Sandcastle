@@ -34,8 +34,7 @@ RUN echo 'eval "$(mise activate bash)"' > /etc/profile.d/mise.sh
 
 # Claude Code (standalone binary) — install to /usr/local/bin for same reason
 RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && mv /root/.claude/bin/claude /usr/local/bin/claude \
-    && rm -rf /root/.claude
+    && mv /root/.local/bin/claude /usr/local/bin/claude
 
 # SSH configuration (key-only auth)
 RUN mkdir /var/run/sshd \
