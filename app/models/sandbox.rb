@@ -40,7 +40,7 @@ class Sandbox < ApplicationRecord
   end
 
   def temp?
-    !persistent_volume? && !mount_home? && data_path.blank?
+    temporary?
   end
 
   private

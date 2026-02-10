@@ -12,6 +12,7 @@ type Sandbox struct {
 	PersistentVolume bool      `json:"persistent_volume"`
 	MountHome        bool      `json:"mount_home"`
 	DataPath         string    `json:"data_path,omitempty"`
+	Temporary        bool      `json:"temporary"`
 	Tailscale        bool      `json:"tailscale"`
 	TailscaleIP      string    `json:"tailscale_ip,omitempty"`
 	RouteDomain      string    `json:"route_domain,omitempty"`
@@ -92,6 +93,7 @@ type CreateSandboxRequest struct {
 	Tailscale  bool   `json:"tailscale,omitempty"`
 	MountHome  bool   `json:"mount_home,omitempty"`
 	DataPath   string `json:"data_path,omitempty"`
+	Temporary  bool   `json:"temporary,omitempty"`
 }
 
 type CreateTokenRequest struct {

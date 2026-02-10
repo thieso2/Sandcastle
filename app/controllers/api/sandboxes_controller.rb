@@ -25,7 +25,8 @@ module Api
         persistent: params[:persistent] || false,
         tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? },
         mount_home: params[:mount_home] || false,
-        data_path: params[:data_path]
+        data_path: params[:data_path],
+        temporary: params[:temporary] || false
       )
       render json: sandbox_json(sandbox), status: :created
     end
@@ -90,6 +91,7 @@ module Api
         persistent_volume: sandbox.persistent_volume,
         mount_home: sandbox.mount_home,
         data_path: sandbox.data_path,
+        temporary: sandbox.temporary,
         tailscale: sandbox.tailscale,
         route_domain: sandbox.route_domain,
         route_port: sandbox.route_port,

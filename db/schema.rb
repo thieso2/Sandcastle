@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_183440) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_200138) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -64,6 +64,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_183440) do
     t.integer "ssh_port", null: false
     t.string "status", default: "pending", null: false
     t.boolean "tailscale", default: false, null: false
+    t.boolean "temporary", default: false, null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.string "volume_path"

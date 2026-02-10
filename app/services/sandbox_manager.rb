@@ -3,14 +3,15 @@ class SandboxManager
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: "sandcastle-sandbox:latest", persistent: false, tailscale: false, mount_home: false, data_path: nil)
+  def create(user:, name:, image: "sandcastle-sandbox:latest", persistent: false, tailscale: false, mount_home: false, data_path: nil, temporary: false)
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
       status: "pending",
       persistent_volume: persistent,
       mount_home: mount_home,
-      data_path: data_path
+      data_path: data_path,
+      temporary: temporary
     )
 
     if persistent

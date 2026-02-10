@@ -83,6 +83,7 @@ Flags explicitly passed on the command line take precedence over environment var
 			Tailscale:  sandboxTailscale,
 			MountHome:  sandboxHome,
 			DataPath:   sandboxData,
+			Temporary:  sandboxRemove,
 		})
 		if err != nil {
 			return err
