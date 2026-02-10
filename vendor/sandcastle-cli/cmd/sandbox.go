@@ -15,6 +15,7 @@ var (
 	sandboxPersistent bool
 	sandboxSnapshot   string
 	sandboxTailscale  bool
+	sandboxNoConnect  bool
 )
 
 func init() {
@@ -29,6 +30,7 @@ func init() {
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
 	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
 	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale network")
+	createCmd.Flags().BoolVarP(&sandboxNoConnect, "no-connect", "n", false, "Don't connect after creation")
 }
 
 var createCmd = &cobra.Command{
@@ -53,7 +55,24 @@ var createCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Sandbox %q created.\n", sandbox.Name)
-		return nil
+
+		if sandboxNoConnect {
+			return nil
+		}
+
+		// Auto-connect: set as active, wait for SSH, attach tmux
+		_ = config.SetActiveSandbox(sandbox.Name)
+
+		info, err := client.ConnectInfo(sandbox.ID)
+		if err != nil {
+			return err
+		}
+
+		if err := waitForSSH(info.Host, info.Port); err != nil {
+			return err
+		}
+
+		return sshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
 	},
 }
 
