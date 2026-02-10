@@ -16,6 +16,7 @@ var (
 	sandboxSnapshot   string
 	sandboxTailscale  bool
 	sandboxNoConnect  bool
+	sandboxRemove     bool
 	sandboxHome       bool
 	sandboxData       string
 )
@@ -33,6 +34,7 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
 	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale network")
 	createCmd.Flags().BoolVarP(&sandboxNoConnect, "no-connect", "n", false, "Don't connect after creation")
+	createCmd.Flags().BoolVar(&sandboxRemove, "rm", false, "Delete sandbox on exit")
 	createCmd.Flags().BoolVar(&sandboxHome, "home", false, "Mount persistent home directory")
 	createCmd.Flags().StringVar(&sandboxData, "data", "", "Mount user data directory (or subpath) to /data")
 	createCmd.Flags().Lookup("data").NoOptDefVal = "."
@@ -79,7 +81,18 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		return sshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
+		sshErr := sshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
+
+		if sandboxRemove {
+			fmt.Printf("Removing sandbox %q...\n", sandbox.Name)
+			if err := client.DestroySandbox(sandbox.ID); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to delete sandbox: %v\n", err)
+			} else {
+				fmt.Printf("Sandbox %q deleted.\n", sandbox.Name)
+			}
+		}
+
+		return sshErr
 	},
 }
 
