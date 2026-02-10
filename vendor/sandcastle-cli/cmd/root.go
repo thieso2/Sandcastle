@@ -10,9 +10,10 @@ import (
 var Version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:   "sandcastle",
-	Short: "Sandcastle — shared Docker sandbox platform",
-	Long:  "CLI for managing Sandcastle development sandboxes.",
+	Use:          "sandcastle",
+	Short:        "Sandcastle — shared Docker sandbox platform",
+	Long:         "CLI for managing Sandcastle development sandboxes.",
+	SilenceUsage: true,
 }
 
 func Execute() {
