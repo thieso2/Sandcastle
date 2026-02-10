@@ -15,8 +15,11 @@
         <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded"><%= sandbox.user.name %></span>
       <% end %>
 
+      <% if sandbox.temp? %>
+        <span class="text-xs font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">temp</span>
+      <% end %>
       <% if sandbox.mount_home? %>
-        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">home</span>
+        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3"><path fill-rule="evenodd" d="M9.293 2.293a1 1 0 0 1 1.414 0l7 7A1 1 0 0 1 17 11h-1v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6H3a1 1 0 0 1-.707-1.707l7-7Z" clip-rule="evenodd" /></svg> home</span>
       <% end %>
       <% if sandbox.data_path.present? %>
         <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">data<%= ":#{sandbox.data_path}" unless sandbox.data_path == "." %></span>
@@ -25,24 +28,30 @@
         <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">volume</span>
       <% end %>
       <% if sandbox.tailscale? %>
-        <span class="text-xs font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">TS</span>
+        <span class="text-xs font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">Tailscale</span>
       <% end %>
       <% if sandbox.routed? %>
-        <a href="<%= sandbox.route_url %>" target="_blank" rel="noopener" class="text-xs font-medium text-green-700 bg-green-100 px-1.5 py-0.5 rounded hover:bg-green-200"><%= sandbox.route_domain %> :<%= sandbox.route_port %></a>
+        <a href="<%= sandbox.route_url %>" target="_blank" rel="noopener" class="text-xs font-medium text-green-700 bg-green-100 px-1.5 py-0.5 rounded hover:bg-green-200 inline-flex items-center gap-0.5"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3"><path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0-.053 1.06Z" clip-rule="evenodd" /></svg> <%= sandbox.route_domain %> :<%= sandbox.route_port %></a>
       <% end %>
     </div>
 
     <div class="flex items-center gap-2 shrink-0">
-      <% if sandbox.status == "stopped" %>
-        <%= button_to "Start", start_sandbox_path(sandbox), method: :post,
-              class: "text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700" %>
-      <% elsif sandbox.status == "running" %>
-        <%= button_to "Stop", stop_sandbox_path(sandbox), method: :post,
-              class: "text-xs px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700" %>
+      <% if sandbox.temp? %>
+        <%= button_to "Remove", sandbox_path(sandbox), method: :delete,
+              class: "text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700",
+              data: { turbo_confirm: "Remove sandbox #{sandbox.name}? All data will be lost." } %>
+      <% else %>
+        <% if sandbox.status == "stopped" %>
+          <%= button_to "Start", start_sandbox_path(sandbox), method: :post,
+                class: "text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700" %>
+        <% elsif sandbox.status == "running" %>
+          <%= button_to "Stop", stop_sandbox_path(sandbox), method: :post,
+                class: "text-xs px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700" %>
+        <% end %>
+        <%= button_to "Destroy", sandbox_path(sandbox), method: :delete,
+              class: "text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700",
+              data: { turbo_confirm: "Destroy sandbox #{sandbox.name}?" } %>
       <% end %>
-      <%= button_to "Destroy", sandbox_path(sandbox), method: :delete,
-            class: "text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700",
-            data: { turbo_confirm: "Destroy sandbox #{sandbox.name}?" } %>
     </div>
   </div>
 

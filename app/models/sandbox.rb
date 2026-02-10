@@ -39,6 +39,10 @@ class Sandbox < ApplicationRecord
     "https://#{route_domain}" if routed?
   end
 
+  def temp?
+    !persistent_volume? && !mount_home? && data_path.blank?
+  end
+
   private
 
   def assign_ssh_port
