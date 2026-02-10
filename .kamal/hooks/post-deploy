@@ -1,0 +1,26 @@
+#!/bin/bash
+# Post-deploy: stop kamal-proxy (Traefik handles ingress) and ensure Traefik is running
+set -e
+
+REMOTE_HOST="${KAMAL_HOSTS:-100.65.155.100}"
+
+ssh thies@${REMOTE_HOST} bash -s << 'REMOTE'
+# Stop kamal-proxy if running (Traefik handles ports 80/443)
+if docker ps --format '{{.Names}}' | grep -q '^kamal-proxy$'; then
+  docker stop kamal-proxy >/dev/null 2>&1 || true
+  echo "Stopped kamal-proxy"
+fi
+
+# Ensure Traefik is running
+if ! docker ps --format '{{.Names}}' | grep -q '^sandcastle-traefik$'; then
+  docker start sandcastle-traefik 2>/dev/null || \
+  docker run -d --name sandcastle-traefik --restart unless-stopped \
+    --network sandcastle-web \
+    -p 80:80 -p 443:443 \
+    -v /data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro \
+    -v /data/traefik/dynamic:/data/dynamic:ro \
+    -v /data/traefik/acme.json:/data/acme.json \
+    traefik:v3.3
+  echo "Started Traefik"
+fi
+REMOTE

@@ -10,8 +10,7 @@ servers:
       - 100.65.155.100
     options:
       group-add: 988
-      network: sandcastle-web
-      network-alias: sandcastle-web
+      network: "name=sandcastle-web,alias=sandcastle-web"
 
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
