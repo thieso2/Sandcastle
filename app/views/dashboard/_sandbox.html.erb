@@ -1,6 +1,7 @@
-<div class="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between" id="<%= dom_id(sandbox) %>">
-  <div class="flex items-center gap-4">
-    <div class="flex items-center gap-2">
+<div class="bg-white rounded-lg border border-gray-200 p-4 space-y-2" id="<%= dom_id(sandbox) %>">
+  <%# Line 1: Status, name, owner, pills | Action buttons %>
+  <div class="flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2 flex-wrap">
       <span class="inline-block w-2 h-2 rounded-full
         <%= case sandbox.status
             when 'running' then 'bg-green-500'
@@ -10,36 +11,53 @@
             end %>">
       </span>
       <span class="font-mono font-medium text-gray-900"><%= sandbox.name %></span>
+      <% if Current.user.admin? %>
+        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded"><%= sandbox.user.name %></span>
+      <% end %>
+
+      <% if sandbox.mount_home? %>
+        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">home</span>
+      <% end %>
+      <% if sandbox.data_path.present? %>
+        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">data<%= ":#{sandbox.data_path}" unless sandbox.data_path == "." %></span>
+      <% end %>
+      <% if sandbox.persistent_volume? %>
+        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">volume</span>
+      <% end %>
+      <% if sandbox.tailscale? %>
+        <span class="text-xs font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">TS</span>
+      <% end %>
+      <% if sandbox.routed? %>
+        <a href="<%= sandbox.route_url %>" target="_blank" rel="noopener" class="text-xs font-medium text-green-700 bg-green-100 px-1.5 py-0.5 rounded hover:bg-green-200"><%= sandbox.route_domain %> :<%= sandbox.route_port %></a>
+      <% end %>
     </div>
-    <% if Current.user.admin? %>
-      <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded"><%= sandbox.user.name %></span>
-    <% end %>
-    <span class="text-xs text-gray-400"><%= sandbox.image %></span>
-    <% if sandbox.tailscale? %>
-      <span class="text-xs font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">TS</span>
-    <% end %>
+
+    <div class="flex items-center gap-2 shrink-0">
+      <% if sandbox.status == "stopped" %>
+        <%= button_to "Start", start_sandbox_path(sandbox), method: :post,
+              class: "text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700" %>
+      <% elsif sandbox.status == "running" %>
+        <%= button_to "Stop", stop_sandbox_path(sandbox), method: :post,
+              class: "text-xs px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700" %>
+      <% end %>
+      <%= button_to "Destroy", sandbox_path(sandbox), method: :delete,
+            class: "text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700",
+            data: { turbo_confirm: "Destroy sandbox #{sandbox.name}?" } %>
+    </div>
+  </div>
+
+  <%# Line 2: Timestamps | Stats %>
+  <div class="flex items-start justify-between gap-4">
+    <div class="text-xs text-gray-400">
+      Created <%= time_ago_in_words(sandbox.created_at) %> ago<% if sandbox.status == "running" %>
+        · Running for <%= time_ago_in_words(sandbox.updated_at) %><% elsif sandbox.status == "stopped" %>
+        · Stopped <%= time_ago_in_words(sandbox.updated_at) %> ago<% end %>
+    </div>
 
     <% if sandbox.status == "running" %>
       <%= turbo_frame_tag "sandbox_stats_#{sandbox.id}", src: stats_sandbox_path(sandbox), loading: :lazy do %>
         <span class="text-xs text-gray-400">loading stats...</span>
       <% end %>
     <% end %>
-  </div>
-
-  <div class="flex items-center gap-3">
-    <code class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600"><%= sandbox.connect_command %></code>
-    <span class="text-xs text-gray-400">port <%= sandbox.ssh_port %></span>
-
-    <% if sandbox.status == "stopped" %>
-      <%= button_to "Start", start_sandbox_path(sandbox), method: :post,
-            class: "text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700" %>
-    <% elsif sandbox.status == "running" %>
-      <%= button_to "Stop", stop_sandbox_path(sandbox), method: :post,
-            class: "text-xs px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700" %>
-    <% end %>
-
-    <%= button_to "Destroy", sandbox_path(sandbox), method: :delete,
-          class: "text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700",
-          data: { turbo_confirm: "Destroy sandbox #{sandbox.name}?" } %>
   </div>
 </div>
