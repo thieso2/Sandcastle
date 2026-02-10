@@ -53,6 +53,10 @@ incus exec "$BUILD_INSTANCE" -- bash -c '
     -o /usr/local/lib/docker/cli-plugins/docker-compose
   chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
+  # Tailscale
+  curl -fsSL https://tailscale.com/install.sh | sh
+  systemctl enable tailscaled
+
   # Claude Code
   npm install -g @anthropic-ai/claude-code
 

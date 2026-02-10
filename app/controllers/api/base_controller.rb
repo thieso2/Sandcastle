@@ -14,10 +14,6 @@ module Api
       render json: { error: e.message }, status: :unprocessable_entity
     end
 
-    rescue_from TailscaleManager::Error do |e|
-      render json: { error: e.message }, status: :unprocessable_entity
-    end
-
     rescue_from IncusClient::NotFoundError do
       render json: { error: "Not found" }, status: :not_found
     end

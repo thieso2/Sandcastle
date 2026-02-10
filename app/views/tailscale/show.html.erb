@@ -11,50 +11,17 @@
     <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6"><%= flash[:alert] %></div>
   <% end %>
 
-  <% if Current.user.tailscale_enabled? %>
-    <%# ── Connected state ── %>
+  <% if Current.user.tailscale_configured? %>
+    <%# ── Configured state ── %>
     <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
       <div class="flex items-center gap-2 mb-4">
-        <span class="inline-block w-2 h-2 rounded-full <%= @status&.dig(:running) ? 'bg-green-500' : 'bg-red-500' %>"></span>
-        <h2 class="text-lg font-semibold text-gray-900">Sidecar Status</h2>
+        <span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+        <h2 class="text-lg font-semibold text-gray-900">Auth Key Configured</h2>
       </div>
 
-      <% if @error %>
-        <p class="text-red-600 text-sm"><%= @error %></p>
-      <% elsif @status %>
-        <div class="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span class="text-gray-500">Tailscale IP</span>
-            <p class="font-mono font-medium"><%= @status[:tailscale_ip] || "Connecting..." %></p>
-          </div>
-          <div>
-            <span class="text-gray-500">Hostname</span>
-            <p class="font-mono font-medium"><%= @status[:hostname] || "—" %></p>
-          </div>
-          <div>
-            <span class="text-gray-500">Tailnet</span>
-            <p class="font-mono font-medium"><%= @status[:tailnet] || "—" %></p>
-          </div>
-          <div>
-            <span class="text-gray-500">Network</span>
-            <p class="font-mono font-medium"><%= @status[:network] %></p>
-          </div>
-          <div>
-            <span class="text-gray-500">Container</span>
-            <p class="font-mono font-medium"><%= @status[:container_id] %></p>
-          </div>
-          <div>
-            <span class="text-gray-500">Connected Sandboxes</span>
-            <p class="font-mono font-medium"><%= @status[:connected_sandboxes] %></p>
-          </div>
-        </div>
-      <% end %>
-    </div>
-
-    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-      <p class="text-sm text-gray-600">
-        Sandboxes with Tailscale enabled are reachable via SSH on their bridge IP (port 22) from any device on your tailnet.
-        Subnet routes must be <strong>approved in the Tailscale admin console</strong> (or auto-approved via ACL <code class="bg-gray-200 px-1 rounded">autoApprovers</code>).
+      <p class="text-sm text-gray-600 mb-4">
+        Sandboxes created with <code class="bg-gray-100 px-1 rounded">--tailscale</code> will automatically join your tailnet.
+        Each sandbox becomes its own Tailscale node with SSH access enabled.
       </p>
     </div>
 
@@ -72,96 +39,49 @@
       <% end %>
     </div>
 
-    <%= button_to "Disable Tailscale", disable_tailscale_path, method: :delete,
+    <details class="mb-6">
+      <summary class="text-sm text-gray-500 cursor-pointer hover:text-gray-700">Update auth key</summary>
+      <div class="mt-3">
+        <%= form_with url: tailscale_path, method: :patch, class: "space-y-4" do |f| %>
+          <div>
+            <input type="password" name="auth_key" required placeholder="tskey-auth-..."
+                   class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm">
+            Update Key
+          </button>
+        <% end %>
+      </div>
+    </details>
+
+    <%= button_to "Remove Auth Key", tailscale_path, method: :delete,
           class: "px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm",
-          data: { turbo_confirm: "This will disconnect all sandboxes from Tailscale and remove the sidecar. Continue?" } %>
-
-  <% elsif Current.user.tailscale_pending? %>
-    <%# ── Waiting for login ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-      <div class="flex items-center gap-2 mb-4">
-        <span class="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
-        <h2 class="text-lg font-semibold text-gray-900">Waiting for Login</h2>
-      </div>
-
-      <p class="text-sm text-gray-600 mb-4">
-        A Tailscale sidecar has been started. Log in with your Tailscale account to connect it to your tailnet.
-      </p>
-
-      <div id="login-status" class="text-sm text-gray-500 mb-4">Checking authentication status...</div>
-
-      <div class="flex gap-3">
-        <%= button_to "Cancel", disable_tailscale_path, method: :delete,
-              class: "px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm" %>
-      </div>
-    </div>
-
-    <script>
-      (function() {
-        var poll = setInterval(function() {
-          fetch("<%= login_status_tailscale_path %>", { headers: { "Accept": "application/json" } })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-              if (data.status === "authenticated") {
-                clearInterval(poll);
-                window.location.reload();
-              } else if (data.status === "error") {
-                document.getElementById("login-status").textContent = "Error: " + data.error;
-                clearInterval(poll);
-              } else {
-                document.getElementById("login-status").textContent = "Waiting for login...";
-              }
-            })
-            .catch(function() {
-              document.getElementById("login-status").textContent = "Connection error, retrying...";
-            });
-        }, 3000);
-      })();
-    </script>
+          data: { turbo_confirm: "This will remove your stored auth key. Existing sandboxes with Tailscale will keep running, but new ones won't join your tailnet. Continue?" } %>
 
   <% else %>
     <%# ── Setup state ── %>
     <div class="bg-white border border-gray-200 rounded-lg p-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-2">Enable Tailscale</h2>
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">Set Up Tailscale</h2>
       <p class="text-sm text-gray-600 mb-4">
-        Connect your sandboxes to your Tailscale network. A per-user sidecar container will advertise sandbox IPs as subnet routes,
-        making them reachable from any device on your tailnet via SSH.
+        Store a reusable Tailscale auth key to connect your sandboxes to your tailnet.
+        When creating a sandbox with <code class="bg-gray-100 px-1 rounded">--tailscale</code>,
+        Tailscale will be configured inside the sandbox automatically. Each sandbox becomes its own node on your tailnet with Tailscale SSH enabled.
       </p>
 
-      <div class="space-y-6">
-        <%# ── Primary: browser login ── %>
+      <%= form_with url: tailscale_path, method: :patch, class: "space-y-4" do |f| %>
         <div>
-          <h3 class="text-sm font-medium text-gray-700 mb-2">Log in with Tailscale</h3>
-          <p class="text-xs text-gray-500 mb-3">
-            Starts a sidecar container and gives you a link to authenticate with your Tailscale account.
+          <input type="password" name="auth_key" required placeholder="tskey-auth-..."
+                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <p class="text-xs text-gray-500 mt-1">
+            Generate a <strong>reusable</strong> auth key at
+            <code class="bg-gray-100 px-1 rounded">Tailscale Admin &rarr; Settings &rarr; Keys</code>.
+            The key is stored encrypted and used each time a Tailscale-enabled sandbox is created.
           </p>
-          <%= button_to "Connect to Tailscale", login_tailscale_path, method: :post,
-                class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm" %>
         </div>
-
-        <%# ── Alternative: auth key ── %>
-        <details class="group">
-          <summary class="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
-            Or use an auth key
-          </summary>
-          <div class="mt-3">
-            <%= form_with url: enable_tailscale_path, method: :post, class: "space-y-4" do |f| %>
-              <div>
-                <input type="password" name="auth_key" required placeholder="tskey-auth-..."
-                       class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <p class="text-xs text-gray-500 mt-1">
-                  Generate a reusable auth key at
-                  <code class="bg-gray-100 px-1 rounded">Tailscale Admin &rarr; Settings &rarr; Keys</code>.
-                  The key is only used once to authenticate the sidecar and is not stored.
-                </p>
-              </div>
-              <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm">
-                Enable with Auth Key
-              </button>
-            <% end %>
-          </div>
-        </details>
-      </div>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Save Auth Key
+        </button>
+      <% end %>
     </div>
   <% end %>
 </div>

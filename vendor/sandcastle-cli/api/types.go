@@ -34,14 +34,14 @@ type User struct {
 }
 
 type Token struct {
-	ID         int        `json:"id"`
-	Name       string     `json:"name"`
-	Prefix     string     `json:"prefix"`
-	MaskedToken string    `json:"masked_token"`
-	RawToken   string     `json:"raw_token,omitempty"`
-	LastUsedAt *time.Time `json:"last_used_at"`
-	ExpiresAt  *time.Time `json:"expires_at"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	Prefix      string     `json:"prefix"`
+	MaskedToken string     `json:"masked_token"`
+	RawToken    string     `json:"raw_token,omitempty"`
+	LastUsedAt  *time.Time `json:"last_used_at"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 type SystemStatus struct {
@@ -87,37 +87,14 @@ type CreateUserRequest struct {
 	Admin                bool   `json:"admin,omitempty"`
 }
 
-type TailscaleEnableRequest struct {
+type TailscaleConfig struct {
+	Configured bool `json:"configured"`
+	AutoConnect bool `json:"auto_connect"`
+	AuthKeySet bool `json:"auth_key_set"`
+}
+
+type TailscaleUpdateRequest struct {
 	AuthKey string `json:"auth_key"`
-}
-
-type TailscaleLoginResponse struct {
-	LoginURL string `json:"login_url"`
-}
-
-type TailscaleLoginStatus struct {
-	Status      string `json:"status"`
-	TailscaleIP string `json:"tailscale_ip,omitempty"`
-	Hostname    string `json:"hostname,omitempty"`
-	Tailnet     string `json:"tailnet,omitempty"`
-	Error       string `json:"error,omitempty"`
-}
-
-type TailscaleStatus struct {
-	Running            bool                `json:"running"`
-	ContainerID        string              `json:"container_id"`
-	Network            string              `json:"network"`
-	ConnectedSandboxes int                 `json:"connected_sandboxes"`
-	TailscaleIP        string              `json:"tailscale_ip"`
-	Hostname           string              `json:"hostname"`
-	Tailnet            string              `json:"tailnet"`
-	Online             bool                `json:"online"`
-	Sandboxes          []TailscaleSandbox  `json:"sandboxes"`
-}
-
-type TailscaleSandbox struct {
-	Name string `json:"name"`
-	IP   string `json:"ip"`
 }
 
 type APIError struct {

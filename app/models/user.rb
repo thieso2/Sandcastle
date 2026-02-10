@@ -4,6 +4,8 @@ class User < ApplicationRecord
   has_many :sandboxes, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
 
+  encrypts :tailscale_auth_key
+
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   normalizes :name, with: ->(n) { n.strip.downcase }
 
@@ -22,15 +24,7 @@ class User < ApplicationRecord
     status == "active"
   end
 
-  def tailscale_enabled?
-    tailscale_state == "enabled"
-  end
-
-  def tailscale_pending?
-    tailscale_state == "pending"
-  end
-
-  def tailscale_disabled?
-    tailscale_state == "disabled"
+  def tailscale_configured?
+    tailscale_auth_key.present?
   end
 end

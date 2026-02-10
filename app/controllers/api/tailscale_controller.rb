@@ -1,24 +1,16 @@
 module Api
   class TailscaleController < BaseController
-    # Legacy: enable with auth key
-    def enable
-      TailscaleManager.new.enable(
-        user: current_user,
-        auth_key: params.require(:auth_key)
-      )
-      render json: { status: "enabled" }, status: :created
+    def show
+      render json: {
+        configured: current_user.tailscale_configured?,
+        auto_connect: current_user.tailscale_auto_connect?,
+        auth_key_set: current_user.tailscale_auth_key.present?
+      }
     end
 
-    # Phase 1: start sidecar, return login URL
-    def login
-      result = TailscaleManager.new.start_login(user: current_user)
-      render json: result, status: :created
-    end
-
-    # Phase 2: poll for auth completion
-    def login_status
-      result = TailscaleManager.new.check_login(user: current_user)
-      render json: result
+    def update
+      current_user.update!(tailscale_auth_key: params.require(:auth_key))
+      render json: { configured: true }
     end
 
     def update_settings
@@ -26,14 +18,9 @@ module Api
       render json: { auto_connect: current_user.tailscale_auto_connect? }
     end
 
-    def disable
-      TailscaleManager.new.disable(user: current_user)
-      render json: { status: "disabled" }
-    end
-
-    def status
-      result = TailscaleManager.new.status(user: current_user)
-      render json: result
+    def destroy
+      current_user.update!(tailscale_auth_key: nil, tailscale_auto_connect: false)
+      render json: { configured: false }
     end
   end
 end

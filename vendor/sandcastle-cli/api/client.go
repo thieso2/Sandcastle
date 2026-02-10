@@ -199,40 +199,16 @@ func (c *Client) Status() (*SystemStatus, error) {
 
 // Tailscale
 
-func (c *Client) TailscaleEnable(authKey string) error {
-	return c.do("POST", "/api/tailscale/enable", TailscaleEnableRequest{AuthKey: authKey}, nil)
+func (c *Client) TailscaleConfig() (*TailscaleConfig, error) {
+	var cfg TailscaleConfig
+	err := c.do("GET", "/api/tailscale", nil, &cfg)
+	return &cfg, err
 }
 
-func (c *Client) TailscaleLogin() (*TailscaleLoginResponse, error) {
-	var resp TailscaleLoginResponse
-	err := c.do("POST", "/api/tailscale/login", nil, &resp)
-	return &resp, err
+func (c *Client) TailscaleUpdate(authKey string) error {
+	return c.do("PATCH", "/api/tailscale", TailscaleUpdateRequest{AuthKey: authKey}, nil)
 }
 
-func (c *Client) TailscaleLoginStatus() (*TailscaleLoginStatus, error) {
-	var s TailscaleLoginStatus
-	err := c.do("GET", "/api/tailscale/login_status", nil, &s)
-	return &s, err
-}
-
-func (c *Client) TailscaleDisable() error {
-	return c.do("DELETE", "/api/tailscale/disable", nil, nil)
-}
-
-func (c *Client) TailscaleStatus() (*TailscaleStatus, error) {
-	var s TailscaleStatus
-	err := c.do("GET", "/api/tailscale/status", nil, &s)
-	return &s, err
-}
-
-func (c *Client) TailscaleConnect(sandboxID int) (*Sandbox, error) {
-	var s Sandbox
-	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/tailscale_connect", sandboxID), nil, &s)
-	return &s, err
-}
-
-func (c *Client) TailscaleDisconnect(sandboxID int) (*Sandbox, error) {
-	var s Sandbox
-	err := c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/tailscale_disconnect", sandboxID), nil, &s)
-	return &s, err
+func (c *Client) TailscaleRemoveKey() error {
+	return c.do("DELETE", "/api/tailscale", nil, nil)
 }

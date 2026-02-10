@@ -5,11 +5,14 @@ class SandboxManager
   class Error < StandardError; end
 
   def create(user:, name:, image: SANDBOX_IMAGE, persistent: false, tailscale: false)
+    wants_tailscale = (tailscale || user.tailscale_auto_connect?) && user.tailscale_configured?
+
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
       status: "pending",
-      persistent_volume: persistent
+      persistent_volume: persistent,
+      tailscale: wants_tailscale
     )
 
     if persistent
@@ -18,7 +21,7 @@ class SandboxManager
 
     sandbox.save!
 
-    cloud_init = build_cloud_init(user: user, sandbox: sandbox)
+    cloud_init = build_cloud_init(user: user, sandbox: sandbox, tailscale: wants_tailscale)
     devices = build_devices(user: user, sandbox: sandbox)
 
     incus.create_instance(
@@ -39,10 +42,6 @@ class SandboxManager
     incus.change_state(sandbox.full_name, action: "start")
     sandbox.update!(container_id: sandbox.full_name, status: "running")
 
-    if (tailscale || user.tailscale_auto_connect?) && user.tailscale_enabled?
-      TailscaleManager.new.connect_sandbox(sandbox: sandbox)
-    end
-
     sandbox
   rescue IncusClient::Error => e
     # Clean up partial Incus instance to avoid blocking future creates
@@ -56,10 +55,6 @@ class SandboxManager
   end
 
   def destroy(sandbox:, keep_volume: false)
-    if sandbox.tailscale?
-      TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)
-    end
-
     if sandbox.container_id.present?
       begin
         incus.change_state(sandbox.container_id, action: "stop", force: true)
@@ -164,15 +159,10 @@ class SandboxManager
 
   def restore(sandbox:, snapshot_name:)
     user = sandbox.user
-    was_tailscale = sandbox.tailscale?
     instance_name = sandbox.container_id
 
     # Verify snapshot exists
     incus.get_snapshot(instance_name, snapshot_name)
-
-    if sandbox.tailscale?
-      TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)
-    end
 
     # Stop the instance
     begin
@@ -202,10 +192,6 @@ class SandboxManager
     # Update SSH key in case it changed since snapshot
     update_ssh_key(sandbox: sandbox)
 
-    if was_tailscale && user.tailscale_enabled?
-      TailscaleManager.new.connect_sandbox(sandbox: sandbox)
-    end
-
     sandbox
   rescue IncusClient::NotFoundError
     raise Error, "Snapshot '#{snapshot_name}' not found"
@@ -222,8 +208,8 @@ class SandboxManager
       command: sandbox.connect_command(host: host)
     }
 
-    if sandbox.tailscale?
-      ts_ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
+    if sandbox.tailscale? && sandbox.status == "running"
+      ts_ip = tailscale_ip(sandbox: sandbox)
       if ts_ip
         info[:tailscale_ip] = ts_ip
         info[:tailscale_command] = "ssh #{sandbox.user.name}@#{ts_ip}"
@@ -233,13 +219,29 @@ class SandboxManager
     info
   end
 
+  def tailscale_ip(sandbox:)
+    return nil unless sandbox.tailscale? && sandbox.container_id.present?
+
+    result = incus.exec(sandbox.container_id, command: [ "tailscale", "ip", "--4" ])
+    result[:stdout]&.strip.presence
+  rescue IncusClient::Error
+    nil
+  end
+
   private
 
   def incus
     @incus ||= IncusClient.new
   end
 
-  def build_cloud_init(user:, sandbox:)
+  def build_cloud_init(user:, sandbox:, tailscale: false)
+    tailscale_runcmd = if tailscale
+      <<~RUNCMD.chomp
+        - systemctl start tailscaled
+        - tailscale up --authkey=#{user.tailscale_auth_key} --hostname=#{sandbox.full_name} --ssh
+      RUNCMD
+    end
+
     <<~CLOUD_INIT
       #cloud-config
       users:
@@ -265,6 +267,7 @@ class SandboxManager
         - systemctl start ssh
         - systemctl enable docker
         - systemctl start docker
+    #{tailscale_runcmd}
     CLOUD_INIT
   end
 

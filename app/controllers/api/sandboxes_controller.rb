@@ -1,6 +1,6 @@
 module Api
   class SandboxesController < BaseController
-    before_action :set_sandbox, only: %i[show destroy start stop connect snapshot restore tailscale_connect tailscale_disconnect]
+    before_action :set_sandbox, only: %i[show destroy start stop connect snapshot restore]
 
     def index
       sandboxes = current_user.sandboxes.active
@@ -55,16 +55,6 @@ module Api
       render json: sandbox_json(@sandbox.reload)
     end
 
-    def tailscale_connect
-      TailscaleManager.new.connect_sandbox(sandbox: @sandbox)
-      render json: sandbox_json(@sandbox.reload)
-    end
-
-    def tailscale_disconnect
-      TailscaleManager.new.disconnect_sandbox(sandbox: @sandbox)
-      render json: sandbox_json(@sandbox.reload)
-    end
-
     private
 
     def set_sandbox
@@ -85,8 +75,8 @@ module Api
         connect_command: sandbox.connect_command
       }
 
-      if sandbox.tailscale?
-        json[:tailscale_ip] = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
+      if sandbox.tailscale? && sandbox.status == "running"
+        json[:tailscale_ip] = SandboxManager.new.tailscale_ip(sandbox: sandbox)
       end
 
       json

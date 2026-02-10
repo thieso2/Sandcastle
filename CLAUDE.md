@@ -48,8 +48,7 @@ Both concerns provide `require_admin!` for admin-only actions.
 ### Service Objects
 
 Business logic lives in plain Ruby service classes, not models or controllers:
-- `SandboxManager` — Instance lifecycle (create/destroy/start/stop/snapshot/restore). Uses `IncusClient` to talk to the Incus daemon via Unix socket.
-- `TailscaleManager` — Per-user Tailscale sidecar lifecycle (see Tailscale section below)
+- `SandboxManager` — Instance lifecycle (create/destroy/start/stop/snapshot/restore). Uses `IncusClient` to talk to the Incus daemon via Unix socket. Also handles in-sandbox Tailscale setup via cloud-init.
 - `SystemStatus` — Incus server stats for admin dashboard
 
 All service errors inherit from `ServiceName::Error` and are rescued in `Api::BaseController` as 422 JSON responses. `IncusClient::NotFoundError` maps to 404, `ActiveRecord::RecordNotFound` to 404, `RecordInvalid` to 422.
@@ -69,10 +68,10 @@ Each sandbox = one Incus system container with:
 - SSH forwarded via proxy device (host port 2201–2299 → container port 22)
 - User home bind-mounted from `/data/users/{name}/home` via disk device
 - Optional persistent volume at `/data/sandboxes/{name}/vol:/workspace` via disk device
-- Optional Tailscale connectivity via per-user bridge network + NIC device
+- Optional Tailscale installed and configured via cloud-init (`tailscale up --authkey=... --ssh`)
 - Cloud-init provisioning (creates user, injects SSH key, enables Docker + SSH services)
 
-The sandbox image (`images/sandbox/build-image.sh`) is Ubuntu 24.04 with Docker, SSH, and dev tools. Published as `sandcastle-sandbox` in the local Incus image store.
+The sandbox image (`images/sandbox/build-image.sh`) is Ubuntu 24.04 with Docker, SSH, Tailscale, and dev tools. Published as `sandcastle-sandbox` in the local Incus image store.
 
 **Key differences from old Docker+Sysbox setup:**
 - No runc pinning needed (Incus system containers handle this natively)
@@ -83,21 +82,12 @@ The sandbox image (`images/sandbox/build-image.sh`) is Ubuntu 24.04 with Docker,
 
 ### Tailscale System
 
-Per-user Tailscale sidecars connect sandbox instances to a user's own tailnet. Each user gets their own sidecar joining **their** tailnet (not a shared one).
+Tailscale runs directly inside each sandbox (no sidecar containers). Users store a reusable Tailscale auth key in the app (encrypted via `encrypts :tailscale_auth_key`). When `--tailscale` is passed on sandbox create (or `tailscale_auto_connect` is enabled), cloud-init runs `tailscale up --authkey=KEY --hostname=NAME --ssh`.
 
-**Two authentication flows in `TailscaleManager`:**
-- **Auth key flow** (`enable`): One-shot via cloud-init runcmd that runs `tailscale up --authkey=...`
-- **Interactive login flow** (`start_login` → `check_login`): Cloud-init starts `tailscaled`, then `incus exec` runs `tailscale up --reset --timeout=10s` to get a browser login URL, polls `tailscale status --json` for `BackendState == "Running"`
-
-**User `tailscale_state` field:** `disabled` → `pending` (during interactive login) → `enabled`
-
-**Sidecar architecture:**
-- Bridge network: `sc-ts-net-{username}` (Incus managed bridge) with subnet `172.{100+user_id%100}.0.0/16`
-- Instance: `sc-ts-{username}` from `sandcastle-tailscale` image
-- State persisted at `/data/users/{name}/tailscale` via disk device
-- Advertises subnet routes so sandboxes on the bridge are reachable from the tailnet
-- `tailscale_auto_connect` user setting auto-joins new sandboxes to the bridge network
-- Sandbox connectivity via `ts-nic` NIC device attached to the bridge network
+- Each sandbox becomes its own Tailscale node, directly reachable from the user's tailnet
+- `tailscale_auto_connect` user setting auto-enables Tailscale on new sandboxes
+- `SandboxManager#tailscale_ip` queries the sandbox's Tailscale IP via `incus exec tailscale ip --4`
+- No sidecars, bridge networks, or per-user Tailscale containers
 
 ### Snapshots
 
@@ -110,7 +100,7 @@ Snapshots are per-instance ZFS snapshots (instant, copy-on-write):
 ### Background Jobs
 
 Solid Queue (SQLite-backed) with recurring schedule in `config/recurring.yml`:
-- `ContainerSyncJob` — every 5 min, reconciles DB sandbox status with actual Incus instance state and Tailscale sidecar health
+- `ContainerSyncJob` — every 5 min, reconciles DB sandbox status with actual Incus instance state
 
 ### Database
 
@@ -121,7 +111,7 @@ SQLite for everything (primary, cache, queue, cable). Schema has 4 app tables: `
 
 ### Frontend
 
-ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No heavy JS framework — Stimulus controllers only where needed. The Tailscale pending state uses vanilla JS polling (fetch every 3s) to detect auth completion.
+ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No heavy JS framework — Stimulus controllers only where needed.
 
 ## Deployment
 
@@ -130,22 +120,21 @@ ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No
 - **Deploy**: `kamal deploy` (config in `config/deploy.yml`), or `docker-compose up -d`
 - **Host bootstrap**: `bootstrap/sandcastle-bootstrap.sh` (Docker for Kamal, Incus+ZFS for sandboxes, Caddy, UFW)
 - **Env vars**: `SECRET_KEY_BASE`, `RAILS_MASTER_KEY`, `SANDCASTLE_HOST`, `SANDCASTLE_DATA_DIR` (default `/data`), `INCUS_SOCKET` (default `/var/lib/incus/unix.socket`)
-- **Proxy**: kamal-proxy with `response_timeout: 60` (needed for Tailscale login flow which blocks ~13s)
+- **Proxy**: kamal-proxy with `response_timeout: 60`
 - The Kamal app container needs `group-add: incus-admin` for Incus socket access
 - Incus socket mounted at `/var/lib/incus/unix.socket` into the Rails container
 
 ### Image Building
 
 Images are built on the Incus host (not via Dockerfile):
-- `bash images/sandbox/build-image.sh` → publishes `sandcastle-sandbox`
-- `bash images/tailscale/build-image.sh` → publishes `sandcastle-tailscale`
+- `bash images/sandbox/build-image.sh` → publishes `sandcastle-sandbox` (includes Tailscale)
 - `images/sandbox/sandcastle-profile.yaml` — Incus profile with nesting, syscall interception, 50GB root disk
 
 ### Migration from Docker+Sysbox
 
 To migrate an existing deployment:
 1. Run `bootstrap/sandcastle-bootstrap.sh` on the host (installs Incus+ZFS alongside Docker)
-2. Build images: `bash images/sandbox/build-image.sh && bash images/tailscale/build-image.sh`
+2. Build image: `bash images/sandbox/build-image.sh`
 3. Deploy new Rails app: `kamal deploy`
 4. Cutover: `bin/rails incus:cutover` (marks old sandboxes as destroyed; user homes preserved)
 5. Users recreate sandboxes — home directories are re-mounted automatically

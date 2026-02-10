@@ -12,13 +12,8 @@ Rails.application.routes.draw do
     end
   end
 
-  resource :tailscale, only: [], controller: "tailscale" do
-    get :show
-    post :enable
-    post :login
-    get :login_status
+  resource :tailscale, only: [ :show, :update, :destroy ], controller: "tailscale" do
     patch :update_settings
-    delete :disable
   end
 
   namespace :admin do
@@ -33,21 +28,14 @@ Rails.application.routes.draw do
         post :connect
         post :snapshot
         post :restore
-        post :tailscale_connect
-        delete :tailscale_disconnect
       end
     end
     resources :snapshots, only: [ :index, :destroy ], param: :name
     resources :users
     resource :status, only: :show
     resources :tokens, only: [ :index, :create, :destroy ]
-    resource :tailscale, only: [], controller: "tailscale" do
-      post :enable
-      post :login
-      get :login_status
+    resource :tailscale, only: [ :show, :update, :destroy ], controller: "tailscale" do
       patch :update_settings
-      delete :disable
-      get :status
     end
   end
 
