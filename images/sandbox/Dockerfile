@@ -33,7 +33,7 @@ RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 RUN echo 'eval "$(mise activate bash)"' > /etc/profile.d/mise.sh
 
 # Claude Code (standalone binary) — install to /usr/local/bin for same reason
-RUN curl -fsSL https://claude.ai/install.sh | sh \
+RUN curl -fsSL https://claude.ai/install.sh | bash \
     && mv /root/.claude/bin/claude /usr/local/bin/claude \
     && rm -rf /root/.claude
 
