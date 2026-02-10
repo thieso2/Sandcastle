@@ -52,7 +52,7 @@ incus exec "$BUILD_INSTANCE" -- bash -c "
     apt-get install -y --no-install-recommends \
       openssh-server sudo curl git tmux vim-tiny \
       jq ripgrep fd-find htop wget unzip ca-certificates \
-      systemd
+      libatomic1 systemd
   else
     apt-get install -y \
       openssh-server sudo curl git tmux vim \
@@ -69,6 +69,9 @@ incus exec "$BUILD_INSTANCE" -- bash -c "
 
   # Install Mise
   curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
+  cat > /etc/profile.d/mise.sh << 'MISE'
+eval "\$(mise activate bash)"
+MISE
 
   # Tailscale
   curl -fsSL https://tailscale.com/install.sh | sh
