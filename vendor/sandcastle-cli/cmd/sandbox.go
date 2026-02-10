@@ -20,7 +20,7 @@ var (
 func init() {
 	rootCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(listCmd)
-	rootCmd.AddCommand(destroyCmd)
+	rootCmd.AddCommand(deleteCmd)
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(useCmd)
@@ -96,9 +96,9 @@ var listCmd = &cobra.Command{
 	},
 }
 
-var destroyCmd = &cobra.Command{
-	Use:   "destroy <name>",
-	Short: "Destroy a sandbox",
+var deleteCmd = &cobra.Command{
+	Use:   "delete <name>",
+	Short: "Delete a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
@@ -115,7 +115,7 @@ var destroyCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Sandbox %q destroyed.\n", args[0])
+		fmt.Printf("Sandbox %q deleted.\n", args[0])
 		return nil
 	},
 }
