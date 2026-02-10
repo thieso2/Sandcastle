@@ -235,12 +235,22 @@ class SandboxManager
   end
 
   def build_cloud_init(user:, sandbox:, tailscale: false)
-    tailscale_runcmd = if tailscale
-      <<~RUNCMD.chomp
-        - systemctl start tailscaled
-        - tailscale up --authkey=#{user.tailscale_auth_key} --hostname=#{sandbox.full_name} --ssh
-      RUNCMD
+    runcmd = [
+      "chown -R #{user.name}:#{user.name} /home/#{user.name}",
+      "chown #{user.name}:#{user.name} /workspace 2>/dev/null || true",
+      "ssh-keygen -A",
+      "systemctl enable ssh",
+      "systemctl start ssh",
+      "systemctl enable docker",
+      "systemctl start docker"
+    ]
+
+    if tailscale
+      runcmd << "systemctl start tailscaled"
+      runcmd << "tailscale up --authkey=#{user.tailscale_auth_key} --hostname=#{sandbox.full_name} --ssh"
     end
+
+    runcmd_yaml = runcmd.map { |cmd| "    - #{cmd}" }.join("\n")
 
     <<~CLOUD_INIT
       #cloud-config
@@ -260,14 +270,7 @@ class SandboxManager
             #{user.ssh_public_key}
 
       runcmd:
-        - chown -R #{user.name}:#{user.name} /home/#{user.name}
-        - chown #{user.name}:#{user.name} /workspace 2>/dev/null || true
-        - ssh-keygen -A
-        - systemctl enable ssh
-        - systemctl start ssh
-        - systemctl enable docker
-        - systemctl start docker
-    #{tailscale_runcmd}
+    #{runcmd_yaml}
     CLOUD_INIT
   end
 
