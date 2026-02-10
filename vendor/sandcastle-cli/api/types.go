@@ -72,6 +72,8 @@ type CreateSandboxRequest struct {
 	Persistent bool   `json:"persistent,omitempty"`
 	Snapshot   string `json:"snapshot,omitempty"`
 	Tailscale  bool   `json:"tailscale,omitempty"`
+	MountHome  bool   `json:"mount_home,omitempty"`
+	DataPath   string `json:"data_path,omitempty"`
 }
 
 type CreateTokenRequest struct {

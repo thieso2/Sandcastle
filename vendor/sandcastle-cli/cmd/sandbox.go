@@ -16,6 +16,8 @@ var (
 	sandboxSnapshot   string
 	sandboxTailscale  bool
 	sandboxNoConnect  bool
+	sandboxHome       bool
+	sandboxData       string
 )
 
 func init() {
@@ -31,6 +33,9 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
 	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale network")
 	createCmd.Flags().BoolVarP(&sandboxNoConnect, "no-connect", "n", false, "Don't connect after creation")
+	createCmd.Flags().BoolVar(&sandboxHome, "home", false, "Mount persistent home directory")
+	createCmd.Flags().StringVar(&sandboxData, "data", "", "Mount user data directory (or subpath) to /data")
+	createCmd.Flags().Lookup("data").NoOptDefVal = "."
 }
 
 var createCmd = &cobra.Command{
@@ -49,6 +54,8 @@ var createCmd = &cobra.Command{
 			Persistent: sandboxPersistent,
 			Snapshot:   sandboxSnapshot,
 			Tailscale:  sandboxTailscale,
+			MountHome:  sandboxHome,
+			DataPath:   sandboxData,
 		})
 		if err != nil {
 			return err

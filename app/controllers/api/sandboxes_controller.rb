@@ -23,7 +23,9 @@ module Api
         name: params.require(:name),
         image: image,
         persistent: params[:persistent] || false,
-        tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? }
+        tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? },
+        mount_home: params[:mount_home] || false,
+        data_path: params[:data_path]
       )
       render json: sandbox_json(sandbox), status: :created
     end

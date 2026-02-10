@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_143953) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_154704) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -38,7 +38,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_143953) do
   create_table "sandboxes", force: :cascade do |t|
     t.string "container_id"
     t.datetime "created_at", null: false
+    t.string "data_path"
     t.string "image", default: "sandcastle-sandbox:latest", null: false
+    t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
     t.boolean "persistent_volume", default: false, null: false
     t.integer "ssh_port", null: false

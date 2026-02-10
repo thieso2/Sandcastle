@@ -3,12 +3,14 @@ class SandboxManager
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: "sandcastle-sandbox:latest", persistent: false, tailscale: false)
+  def create(user:, name:, image: "sandcastle-sandbox:latest", persistent: false, tailscale: false, mount_home: false, data_path: nil)
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
       status: "pending",
-      persistent_volume: persistent
+      persistent_volume: persistent,
+      mount_home: mount_home,
+      data_path: data_path
     )
 
     if persistent
@@ -243,11 +245,16 @@ class SandboxManager
   private
 
   def volume_binds(user, sandbox)
-    binds = [
-      "#{DATA_DIR}/users/#{user.name}/home:/home/#{user.name}"
-    ]
+    binds = []
+    if sandbox.mount_home
+      binds << "#{DATA_DIR}/users/#{user.name}/home:/home/#{user.name}"
+    end
     if sandbox.persistent_volume && sandbox.volume_path
       binds << "#{sandbox.volume_path}:/workspace"
+    end
+    if sandbox.data_path.present?
+      host_path = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
+      binds << "#{host_path}:/data"
     end
     binds
   end
