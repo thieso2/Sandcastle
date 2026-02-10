@@ -10,19 +10,13 @@ servers:
       - 100.65.155.100
     options:
       group-add: 988
+      network: sandcastle-web
+      network-alias: sandcastle-web
 
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
   - /data:/data
   - sandcastle-storage:/rails/storage
-
-proxy:
-  ssl: true
-  host: demo.sandcastle.rocks
-  app_port: 80
-  response_timeout: 60
-  healthcheck:
-    path: /up
 
 registry:
   server: 100.126.147.91:4443
@@ -42,3 +36,17 @@ env:
 
 builder:
   arch: amd64
+
+accessories:
+  traefik:
+    image: traefik:v3.3
+    host: 100.65.155.100
+    port:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - /data/traefik/dynamic:/data/dynamic:ro
+      - /data/traefik/acme.json:/data/acme.json
+    options:
+      network: sandcastle-web
