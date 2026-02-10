@@ -7,7 +7,7 @@ ssh:
 servers:
   web:
     hosts:
-      - 192.168.2.50
+      - 100.106.185.92
     options:
       group-add: 988
 
@@ -18,20 +18,21 @@ volumes:
 
 proxy:
   ssl: false
-  host: 192.168.2.50
+  host: 100.106.185.92
   app_port: 80
+  response_timeout: 60
   healthcheck:
     path: /up
 
 registry:
-  server: 192.168.2.50:4443
+  server: 100.126.147.91:4443
   username: kamal
   password:
     - KAMAL_REGISTRY_PASSWORD
 
 env:
   clear:
-    SANDCASTLE_HOST: 192.168.2.50
+    SANDCASTLE_HOST: 100.106.185.92
     SANDCASTLE_DATA_DIR: /data
   secret:
     - SECRET_KEY_BASE
@@ -39,4 +40,3 @@ env:
 
 builder:
   arch: amd64
-  remote: ssh://thies@192.168.2.50

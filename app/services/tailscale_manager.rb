@@ -37,10 +37,13 @@ class TailscaleManager
       tailscale_network: network_name
     )
 
-    # Wait for tailscaled to start
-    sleep 2
-
-    login_url = fetch_login_url(container)
+    # Wait for tailscaled to start, retry a few times
+    login_url = nil
+    5.times do
+      sleep 1
+      login_url = fetch_login_url(container)
+      break if login_url
+    end
     raise Error, "Could not get login URL — tailscaled may not be ready yet" unless login_url
 
     { login_url: login_url }
@@ -259,8 +262,10 @@ class TailscaleManager
   end
 
   def pull_image
-    Docker::Image.create("fromImage" => TAILSCALE_IMAGE)
+    Docker::Image.get(TAILSCALE_IMAGE)
   rescue Docker::Error::NotFoundError
+    Docker::Image.create("fromImage" => TAILSCALE_IMAGE)
+  rescue Docker::Error::DockerError
     raise Error, "Failed to pull #{TAILSCALE_IMAGE} — check network connectivity"
   end
 
