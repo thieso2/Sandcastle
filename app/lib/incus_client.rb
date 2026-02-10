@@ -262,12 +262,16 @@ class IncusClient
     case response.code.to_i
     when 200..299
       begin
-        JSON.parse(response.body)
+        data = JSON.parse(response.body)
+        # Incus may return HTTP 200 with an error body
+        if data.is_a?(Hash) && data["type"] == "error"
+          code = data["error_code"] || response.code
+          raise code == 404 ? NotFoundError : Error, data["error"] || "unknown error"
+        end
+        data
       rescue JSON::ParserError
         response.body
       end
-    when 202
-      JSON.parse(response.body)
     when 404
       raise NotFoundError, parse_error(response)
     else
@@ -290,14 +294,15 @@ class IncusClient
     result = get("/1.0/operations/#{uuid}/wait?timeout=#{OPERATION_TIMEOUT}")
 
     status = result.dig("metadata", "status")
+    err = result.dig("metadata", "err")
+
     case status
     when "Success"
       result
     when "Failure"
-      err_msg = result.dig("metadata", "err") || "operation failed"
-      raise OperationError, err_msg
+      raise OperationError, err || "operation failed"
     else
-      raise OperationError, "operation did not complete (status: #{status})"
+      raise OperationError, "operation did not complete (status: #{status || "unknown"})"
     end
   end
 end
