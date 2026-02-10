@@ -1,78 +1,101 @@
 class TailscaleManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
   TAILSCALE_IMAGE = "tailscale/tailscale:latest"
+  LOGIN_URL_PATTERN = %r{https://login\.tailscale\.com/\S+}
 
   class Error < StandardError; end
 
+  # Legacy: one-shot enable with an auth key (still supported for automation)
   def enable(user:, auth_key:)
-    raise Error, "Tailscale already enabled" if user.tailscale_enabled?
+    raise Error, "Tailscale already active" if user.tailscale_enabled? || user.tailscale_pending?
 
-    network_name = "sc-ts-net-#{user.name}"
-    container_name = "sc-ts-#{user.name}"
-    subnet = subnet_for(user)
+    network_name, container = create_and_start_sidecar(user: user, auth_key: auth_key)
 
-    pull_image
-    network = create_network(network_name, subnet)
-    container = create_sidecar(
-      name: container_name,
-      user: user,
-      network: network_name,
-      subnet: subnet,
-      auth_key: auth_key
-    )
-
-    container.start
     user.update!(
-      tailscale_enabled: true,
+      tailscale_state: "enabled",
       tailscale_container_id: container.id,
       tailscale_network: network_name
     )
     user
   rescue Docker::Error::DockerError => e
-    # Cleanup on failure
-    begin
-      Docker::Container.get(container_name).delete(force: true)
-    rescue StandardError
-      nil
-    end
-    begin
-      Docker::Network.get(network_name).delete
-    rescue StandardError
-      nil
-    end
+    cleanup_on_failure(user)
     raise Error, "Failed to enable Tailscale: #{e.message}"
   end
 
+  # Phase 1: start sidecar without auth key, return login URL
+  def start_login(user:)
+    raise Error, "Tailscale already active" if user.tailscale_enabled?
+
+    # If pending, clean up the old attempt first
+    cleanup_sidecar(user) if user.tailscale_pending?
+
+    network_name, container = create_and_start_sidecar(user: user, auth_key: nil)
+
+    user.update!(
+      tailscale_state: "pending",
+      tailscale_container_id: container.id,
+      tailscale_network: network_name
+    )
+
+    # Wait for tailscaled to start
+    sleep 2
+
+    login_url = fetch_login_url(container)
+    raise Error, "Could not get login URL — tailscaled may not be ready yet" unless login_url
+
+    { login_url: login_url }
+  rescue Docker::Error::DockerError => e
+    cleanup_on_failure(user)
+    raise Error, "Failed to start Tailscale login: #{e.message}"
+  end
+
+  # Phase 2: check if the user has completed browser auth
+  def check_login(user:)
+    raise Error, "No pending login" unless user.tailscale_pending?
+    raise Error, "Sidecar container not found" if user.tailscale_container_id.blank?
+
+    container = Docker::Container.get(user.tailscale_container_id)
+    running = container.json.dig("State", "Running")
+    return { status: "pending" } unless running
+
+    status_out = container.exec([ "tailscale", "status", "--json" ])
+    if status_out.first.any?
+      ts_status = JSON.parse(status_out.first.join)
+      if ts_status.dig("BackendState") == "Running"
+        user.update!(tailscale_state: "enabled")
+        ip_out = container.exec([ "tailscale", "ip", "--4" ])
+        tailscale_ip = ip_out.first.first&.strip if ip_out.first.any?
+        return {
+          status: "authenticated",
+          tailscale_ip: tailscale_ip,
+          hostname: ts_status.dig("Self", "HostName"),
+          tailnet: ts_status.dig("MagicDNSSuffix")
+        }
+      end
+    end
+
+    { status: "pending" }
+  rescue JSON::ParserError
+    { status: "pending" }
+  rescue Docker::Error::NotFoundError
+    user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
+    raise Error, "Sidecar container disappeared"
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to check login: #{e.message}"
+  end
+
   def disable(user:)
-    raise Error, "Tailscale not enabled" unless user.tailscale_enabled?
+    raise Error, "Tailscale not active" if user.tailscale_disabled?
 
     # Disconnect all sandboxes first
     user.sandboxes.active.where(tailscale: true).find_each do |sandbox|
       disconnect_sandbox(sandbox: sandbox)
     end
 
-    # Stop and remove sidecar
-    if user.tailscale_container_id.present?
-      begin
-        container = Docker::Container.get(user.tailscale_container_id)
-        container.stop(t: 5) rescue nil
-        container.delete(force: true)
-      rescue Docker::Error::NotFoundError
-        # Already gone
-      end
-    end
-
-    # Remove network
-    if user.tailscale_network.present?
-      begin
-        Docker::Network.get(user.tailscale_network).delete
-      rescue Docker::Error::NotFoundError
-        # Already gone
-      end
-    end
+    cleanup_sidecar(user)
 
     user.update!(
-      tailscale_enabled: false,
+      tailscale_state: "disabled",
       tailscale_container_id: nil,
       tailscale_network: nil
     )
@@ -82,7 +105,7 @@ class TailscaleManager
   end
 
   def status(user:)
-    raise Error, "Tailscale not enabled" unless user.tailscale_enabled?
+    raise Error, "Tailscale not active" unless user.tailscale_enabled? || user.tailscale_pending?
     raise Error, "Sidecar container not found" if user.tailscale_container_id.blank?
 
     container = Docker::Container.get(user.tailscale_container_id)
@@ -170,6 +193,71 @@ class TailscaleManager
 
   private
 
+  def create_and_start_sidecar(user:, auth_key:)
+    network_name = "sc-ts-net-#{user.name}"
+    container_name = "sc-ts-#{user.name}"
+    subnet = subnet_for(user)
+
+    pull_image
+    create_network(network_name, subnet)
+    container = create_sidecar(
+      name: container_name,
+      user: user,
+      network: network_name,
+      subnet: subnet,
+      auth_key: auth_key
+    )
+    container.start
+
+    [ network_name, container ]
+  end
+
+  def fetch_login_url(container)
+    # tailscale login prints the URL and returns; we parse it from combined output
+    out = container.exec([ "tailscale", "login" ])
+    combined = (out[0] + out[1]).join("\n")
+    match = combined.match(LOGIN_URL_PATTERN)
+    match[0] if match
+  rescue Docker::Error::DockerError
+    nil
+  end
+
+  def cleanup_sidecar(user)
+    if user.tailscale_container_id.present?
+      begin
+        container = Docker::Container.get(user.tailscale_container_id)
+        container.stop(t: 5) rescue nil
+        container.delete(force: true)
+      rescue Docker::Error::NotFoundError
+        # Already gone
+      end
+    end
+
+    if user.tailscale_network.present?
+      begin
+        Docker::Network.get(user.tailscale_network).delete
+      rescue Docker::Error::NotFoundError
+        # Already gone
+      end
+    end
+  end
+
+  def cleanup_on_failure(user)
+    container_name = "sc-ts-#{user.name}"
+    network_name = "sc-ts-net-#{user.name}"
+    begin
+      Docker::Container.get(container_name).delete(force: true)
+    rescue StandardError
+      nil
+    end
+    begin
+      Docker::Network.get(network_name).delete
+    rescue StandardError
+      nil
+    end
+    user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
+  end
+
   def pull_image
     Docker::Image.create("fromImage" => TAILSCALE_IMAGE)
   rescue Docker::Error::NotFoundError
@@ -194,16 +282,19 @@ class TailscaleManager
   def create_sidecar(name:, user:, network:, subnet:, auth_key:)
     state_dir = "#{DATA_DIR}/users/#{user.name}/tailscale"
 
+    env = [
+      "TS_STATE_DIR=/var/lib/tailscale",
+      "TS_HOSTNAME=sc-#{user.name}",
+      "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes",
+      "TS_AUTH_ONCE=true"
+    ]
+    env << "TS_AUTHKEY=#{auth_key}" if auth_key.present?
+
     Docker::Container.create(
       "Image" => TAILSCALE_IMAGE,
       "name" => name,
       "Hostname" => "sc-#{user.name}",
-      "Env" => [
-        "TS_STATE_DIR=/var/lib/tailscale",
-        "TS_AUTHKEY=#{auth_key}",
-        "TS_HOSTNAME=sc-#{user.name}",
-        "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes"
-      ],
+      "Env" => env,
       "HostConfig" => {
         "NetworkMode" => network,
         "CapAdd" => [ "NET_ADMIN", "SYS_MODULE" ],

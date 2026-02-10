@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"text/tabwriter"
+	"time"
 
 	"github.com/sandcastle/cli/api"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var tsAuthKey string
@@ -20,7 +20,7 @@ func init() {
 	tailscaleCmd.AddCommand(tsConnectCmd)
 	tailscaleCmd.AddCommand(tsDisconnectCmd)
 
-	tsEnableCmd.Flags().StringVar(&tsAuthKey, "auth-key", "", "Tailscale auth key (tskey-auth-...)")
+	tsEnableCmd.Flags().StringVar(&tsAuthKey, "auth-key", "", "Tailscale auth key (tskey-auth-...) — skips interactive login")
 }
 
 var tailscaleCmd = &cobra.Command{
@@ -31,30 +31,61 @@ var tailscaleCmd = &cobra.Command{
 
 var tsEnableCmd = &cobra.Command{
 	Use:   "enable",
-	Short: "Enable Tailscale sidecar",
+	Short: "Enable Tailscale sidecar (interactive login or --auth-key)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {
 			return err
 		}
 
-		authKey := tsAuthKey
-		if authKey == "" {
-			fmt.Print("Tailscale auth key: ")
-			key, err := term.ReadPassword(int(os.Stdin.Fd()))
-			fmt.Println()
-			if err != nil {
-				return fmt.Errorf("reading auth key: %w", err)
+		// If auth key provided, use the legacy one-shot flow
+		if tsAuthKey != "" {
+			if err := client.TailscaleEnable(tsAuthKey); err != nil {
+				return err
 			}
-			authKey = string(key)
+			fmt.Println("Tailscale enabled. Approve subnet routes in the Tailscale admin console.")
+			return nil
 		}
 
-		if err := client.TailscaleEnable(authKey); err != nil {
+		// Interactive login flow
+		fmt.Println("Starting Tailscale sidecar...")
+		resp, err := client.TailscaleLogin()
+		if err != nil {
 			return err
 		}
 
-		fmt.Println("Tailscale enabled. Approve subnet routes in the Tailscale admin console.")
-		return nil
+		fmt.Println()
+		fmt.Println("To authenticate, open this URL in your browser:")
+		fmt.Println()
+		fmt.Printf("    %s\n", resp.LoginURL)
+		fmt.Println()
+		fmt.Print("Waiting for login...")
+
+		for {
+			time.Sleep(3 * time.Second)
+			status, err := client.TailscaleLoginStatus()
+			if err != nil {
+				fmt.Println()
+				return fmt.Errorf("checking login status: %w", err)
+			}
+
+			switch status.Status {
+			case "authenticated":
+				fmt.Println(" done!")
+				fmt.Println()
+				fmt.Printf("Tailscale IP:  %s\n", status.TailscaleIP)
+				fmt.Printf("Hostname:      %s\n", status.Hostname)
+				fmt.Printf("Tailnet:       %s\n", status.Tailnet)
+				fmt.Println()
+				fmt.Println("Approve subnet routes in the Tailscale admin console.")
+				return nil
+			case "error":
+				fmt.Println()
+				return fmt.Errorf("login failed: %s", status.Error)
+			default:
+				fmt.Print(".")
+			}
+		}
 	},
 }
 

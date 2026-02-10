@@ -93,6 +93,18 @@ type TailscaleEnableRequest struct {
 	AuthKey string `json:"auth_key"`
 }
 
+type TailscaleLoginResponse struct {
+	LoginURL string `json:"login_url"`
+}
+
+type TailscaleLoginStatus struct {
+	Status      string `json:"status"`
+	TailscaleIP string `json:"tailscale_ip,omitempty"`
+	Hostname    string `json:"hostname,omitempty"`
+	Tailnet     string `json:"tailnet,omitempty"`
+	Error       string `json:"error,omitempty"`
+}
+
 type TailscaleStatus struct {
 	Running            bool                `json:"running"`
 	ContainerID        string              `json:"container_id"`

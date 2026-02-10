@@ -15,6 +15,9 @@ Rails.application.routes.draw do
   resource :tailscale, only: [], controller: "tailscale" do
     get :show
     post :enable
+    post :login
+    get :login_status
+    patch :update_settings
     delete :disable
   end
 
@@ -40,6 +43,9 @@ Rails.application.routes.draw do
     resources :tokens, only: [ :index, :create, :destroy ]
     resource :tailscale, only: [], controller: "tailscale" do
       post :enable
+      post :login
+      get :login_status
+      patch :update_settings
       delete :disable
       get :status
     end

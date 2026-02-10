@@ -21,4 +21,16 @@ class User < ApplicationRecord
   def active?
     status == "active"
   end
+
+  def tailscale_enabled?
+    tailscale_state == "enabled"
+  end
+
+  def tailscale_pending?
+    tailscale_state == "pending"
+  end
+
+  def tailscale_disabled?
+    tailscale_state == "disabled"
+  end
 end

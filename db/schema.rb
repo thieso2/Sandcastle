@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_100001) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_120001) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -59,9 +59,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_100001) do
     t.string "password_digest", null: false
     t.text "ssh_public_key"
     t.string "status", default: "active", null: false
+    t.boolean "tailscale_auto_connect", default: false, null: false
     t.string "tailscale_container_id"
-    t.boolean "tailscale_enabled", default: false, null: false
     t.string "tailscale_network"
+    t.string "tailscale_state", default: "disabled", null: false
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["name"], name: "index_users_on_name", unique: true

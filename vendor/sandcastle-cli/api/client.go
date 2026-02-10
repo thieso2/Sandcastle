@@ -202,6 +202,18 @@ func (c *Client) TailscaleEnable(authKey string) error {
 	return c.do("POST", "/api/tailscale/enable", TailscaleEnableRequest{AuthKey: authKey}, nil)
 }
 
+func (c *Client) TailscaleLogin() (*TailscaleLoginResponse, error) {
+	var resp TailscaleLoginResponse
+	err := c.do("POST", "/api/tailscale/login", nil, &resp)
+	return &resp, err
+}
+
+func (c *Client) TailscaleLoginStatus() (*TailscaleLoginStatus, error) {
+	var s TailscaleLoginStatus
+	err := c.do("GET", "/api/tailscale/login_status", nil, &s)
+	return &s, err
+}
+
 func (c *Client) TailscaleDisable() error {
 	return c.do("DELETE", "/api/tailscale/disable", nil, nil)
 }

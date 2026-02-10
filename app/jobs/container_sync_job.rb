@@ -6,7 +6,7 @@ class ContainerSyncJob < ApplicationJob
       sync_sandbox(sandbox)
     end
 
-    User.where(tailscale_enabled: true).find_each do |user|
+    User.where(tailscale_state: [ "enabled", "pending" ]).find_each do |user|
       sync_tailscale_sidecar(user)
     end
   end
@@ -31,7 +31,7 @@ class ContainerSyncJob < ApplicationJob
 
     Docker::Container.get(user.tailscale_container_id)
   rescue Docker::Error::NotFoundError
-    user.update!(tailscale_enabled: false, tailscale_container_id: nil, tailscale_network: nil)
+    user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
     user.sandboxes.active.where(tailscale: true).update_all(tailscale: false)
     Rails.logger.warn("ContainerSyncJob: Tailscale sidecar for #{user.name} gone, marked disabled")
   end

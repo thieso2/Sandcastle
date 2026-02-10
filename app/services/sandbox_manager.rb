@@ -38,7 +38,7 @@ class SandboxManager
     container.start
     sandbox.update!(container_id: container.id, status: "running")
 
-    if tailscale && user.tailscale_enabled?
+    if (tailscale || user.tailscale_auto_connect?) && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
     end
 
