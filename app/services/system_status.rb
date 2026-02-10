@@ -6,7 +6,6 @@ class SystemStatus
     {
       docker: docker_info,
       sandboxes: sandbox_counts,
-      resources: resource_usage,
       host: host_info
     }
   end
