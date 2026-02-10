@@ -18,10 +18,6 @@ class OauthCallbacksController < ApplicationController
   end
 
   def failure
-    error = request.env["omniauth.error"]
-    Rails.logger.error "[OAuth Debug] failure message=#{params[:message]} strategy=#{params[:strategy]}"
-    Rails.logger.error "[OAuth Debug] error_class=#{error.class} error=#{error.message}" if error
-    Rails.logger.error "[OAuth Debug] response_body=#{error.response.body}" if error.respond_to?(:response) && error.response
     redirect_to new_session_path, alert: "OAuth sign in failed: #{params[:message].to_s.humanize}."
   end
 
