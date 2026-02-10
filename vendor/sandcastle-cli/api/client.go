@@ -195,3 +195,19 @@ func (c *Client) Status() (*SystemStatus, error) {
 	err := c.do("GET", "/api/status", nil, &s)
 	return &s, err
 }
+
+// Tailscale
+
+func (c *Client) TailscaleEnable(authKey string) error {
+	return c.do("POST", "/api/tailscale/enable", TailscaleEnableRequest{AuthKey: authKey}, nil)
+}
+
+func (c *Client) TailscaleDisable() error {
+	return c.do("DELETE", "/api/tailscale/disable", nil, nil)
+}
+
+func (c *Client) TailscaleStatus() (*TailscaleStatus, error) {
+	var s TailscaleStatus
+	err := c.do("GET", "/api/tailscale/status", nil, &s)
+	return &s, err
+}

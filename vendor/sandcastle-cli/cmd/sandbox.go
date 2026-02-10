@@ -14,6 +14,7 @@ var (
 	sandboxImage      string
 	sandboxPersistent bool
 	sandboxSnapshot   string
+	sandboxTailscale  bool
 )
 
 func init() {
@@ -27,6 +28,7 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxImage, "image", "sandcastle-sandbox:latest", "Container image")
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
 	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
+	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale network")
 }
 
 var createCmd = &cobra.Command{
@@ -44,6 +46,7 @@ var createCmd = &cobra.Command{
 			Image:      sandboxImage,
 			Persistent: sandboxPersistent,
 			Snapshot:   sandboxSnapshot,
+			Tailscale:  sandboxTailscale,
 		})
 		if err != nil {
 			return err
@@ -76,13 +79,17 @@ var listCmd = &cobra.Command{
 
 		active := config.ActiveSandbox()
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tIMAGE")
+		fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tTS\tIMAGE")
 		for _, s := range sandboxes {
 			marker := ""
 			if s.Name == active {
 				marker = " *"
 			}
-			fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\n", s.Name, marker, s.Status, s.SSHPort, s.Image)
+			ts := ""
+			if s.Tailscale {
+				ts = "yes"
+			}
+			fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, ts, s.Image)
 		}
 		w.Flush()
 		return nil

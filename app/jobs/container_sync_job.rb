@@ -5,6 +5,10 @@ class ContainerSyncJob < ApplicationJob
     Sandbox.active.where.not(container_id: nil).find_each do |sandbox|
       sync_sandbox(sandbox)
     end
+
+    User.where(tailscale_enabled: true).find_each do |user|
+      sync_tailscale_sidecar(user)
+    end
   end
 
   private
@@ -20,5 +24,15 @@ class ContainerSyncJob < ApplicationJob
   rescue Docker::Error::NotFoundError
     sandbox.update!(status: "destroyed", container_id: nil)
     Rails.logger.warn("ContainerSyncJob: #{sandbox.full_name} container gone, marked destroyed")
+  end
+
+  def sync_tailscale_sidecar(user)
+    return if user.tailscale_container_id.blank?
+
+    Docker::Container.get(user.tailscale_container_id)
+  rescue Docker::Error::NotFoundError
+    user.update!(tailscale_enabled: false, tailscale_container_id: nil, tailscale_network: nil)
+    user.sandboxes.active.where(tailscale: true).update_all(tailscale: false)
+    Rails.logger.warn("ContainerSyncJob: Tailscale sidecar for #{user.name} gone, marked disabled")
   end
 end

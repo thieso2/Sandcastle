@@ -3,7 +3,7 @@ class SandboxManager
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: "sandcastle-sandbox:latest", persistent: false)
+  def create(user:, name:, image: "sandcastle-sandbox:latest", persistent: false, tailscale: false)
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
@@ -36,6 +36,11 @@ class SandboxManager
 
     container.start
     sandbox.update!(container_id: container.id, status: "running")
+
+    if tailscale && user.tailscale_enabled?
+      TailscaleManager.new.connect_sandbox(sandbox: sandbox)
+    end
+
     sandbox
   rescue Docker::Error::DockerError => e
     sandbox&.update(status: "destroyed") if sandbox&.persisted?
@@ -43,6 +48,10 @@ class SandboxManager
   end
 
   def destroy(sandbox:, keep_volume: false)
+    if sandbox.tailscale?
+      TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)
+    end
+
     if sandbox.container_id.present?
       begin
         container = Docker::Container.get(sandbox.container_id)
@@ -157,8 +166,13 @@ class SandboxManager
   def restore(sandbox:, snapshot_name:)
     user = sandbox.user
     image_ref = "sc-snap-#{user.name}:#{snapshot_name}"
+    was_tailscale = sandbox.tailscale?
 
     Docker::Image.get(image_ref)
+
+    if sandbox.tailscale?
+      TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)
+    end
 
     if sandbox.container_id.present?
       begin
@@ -189,6 +203,11 @@ class SandboxManager
 
     container.start
     sandbox.update!(container_id: container.id, image: image_ref, status: "running")
+
+    if was_tailscale && user.tailscale_enabled?
+      TailscaleManager.new.connect_sandbox(sandbox: sandbox)
+    end
+
     sandbox
   rescue Docker::Error::NotFoundError
     raise Error, "Snapshot '#{snapshot_name}' not found"
@@ -198,12 +217,22 @@ class SandboxManager
 
   def connect_info(sandbox:)
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
-    {
+    info = {
       host: host,
       port: sandbox.ssh_port,
       user: sandbox.user.name,
       command: sandbox.connect_command(host: host)
     }
+
+    if sandbox.tailscale?
+      ts_ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
+      if ts_ip
+        info[:tailscale_ip] = ts_ip
+        info[:tailscale_command] = "ssh #{sandbox.user.name}@#{ts_ip}"
+      end
+    end
+
+    info
   end
 
   private

@@ -15,6 +15,9 @@
       <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded"><%= sandbox.user.name %></span>
     <% end %>
     <span class="text-xs text-gray-400"><%= sandbox.image %></span>
+    <% if sandbox.tailscale? %>
+      <span class="text-xs font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">TS</span>
+    <% end %>
 
     <% if sandbox.status == "running" %>
       <%= turbo_frame_tag "sandbox_stats_#{sandbox.id}", src: stats_sandbox_path(sandbox), loading: :lazy do %>

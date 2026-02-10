@@ -3,15 +3,16 @@ package api
 import "time"
 
 type Sandbox struct {
-	ID              int       `json:"id"`
-	Name            string    `json:"name"`
-	FullName        string    `json:"full_name"`
-	Status          string    `json:"status"`
-	Image           string    `json:"image"`
-	SSHPort         int       `json:"ssh_port"`
-	PersistentVolume bool     `json:"persistent_volume"`
-	ConnectCommand  string    `json:"connect_command"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID               int       `json:"id"`
+	Name             string    `json:"name"`
+	FullName         string    `json:"full_name"`
+	Status           string    `json:"status"`
+	Image            string    `json:"image"`
+	SSHPort          int       `json:"ssh_port"`
+	PersistentVolume bool      `json:"persistent_volume"`
+	Tailscale        bool      `json:"tailscale"`
+	ConnectCommand   string    `json:"connect_command"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type ConnectInfo struct {
@@ -69,6 +70,7 @@ type CreateSandboxRequest struct {
 	Image      string `json:"image,omitempty"`
 	Persistent bool   `json:"persistent,omitempty"`
 	Snapshot   string `json:"snapshot,omitempty"`
+	Tailscale  bool   `json:"tailscale,omitempty"`
 }
 
 type CreateTokenRequest struct {
@@ -84,6 +86,21 @@ type CreateUserRequest struct {
 	PasswordConfirmation string `json:"password_confirmation"`
 	SSHPublicKey         string `json:"ssh_public_key,omitempty"`
 	Admin                bool   `json:"admin,omitempty"`
+}
+
+type TailscaleEnableRequest struct {
+	AuthKey string `json:"auth_key"`
+}
+
+type TailscaleStatus struct {
+	Running            bool   `json:"running"`
+	ContainerID        string `json:"container_id"`
+	Network            string `json:"network"`
+	ConnectedSandboxes int    `json:"connected_sandboxes"`
+	TailscaleIP        string `json:"tailscale_ip"`
+	Hostname           string `json:"hostname"`
+	Tailnet            string `json:"tailnet"`
+	Online             bool   `json:"online"`
 }
 
 type APIError struct {

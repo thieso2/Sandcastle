@@ -1,0 +1,90 @@
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <div class="flex items-center justify-between mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Tailscale</h1>
+    <%= link_to "Back to Dashboard", root_path, class: "text-sm text-blue-600 hover:text-blue-800" %>
+  </div>
+
+  <% if flash[:notice] %>
+    <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-6"><%= flash[:notice] %></div>
+  <% end %>
+  <% if flash[:alert] %>
+    <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6"><%= flash[:alert] %></div>
+  <% end %>
+
+  <% if Current.user.tailscale_enabled? %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="inline-block w-2 h-2 rounded-full <%= @status&.dig(:running) ? 'bg-green-500' : 'bg-red-500' %>"></span>
+        <h2 class="text-lg font-semibold text-gray-900">Sidecar Status</h2>
+      </div>
+
+      <% if @error %>
+        <p class="text-red-600 text-sm"><%= @error %></p>
+      <% elsif @status %>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span class="text-gray-500">Tailscale IP</span>
+            <p class="font-mono font-medium"><%= @status[:tailscale_ip] || "Connecting..." %></p>
+          </div>
+          <div>
+            <span class="text-gray-500">Hostname</span>
+            <p class="font-mono font-medium"><%= @status[:hostname] || "—" %></p>
+          </div>
+          <div>
+            <span class="text-gray-500">Tailnet</span>
+            <p class="font-mono font-medium"><%= @status[:tailnet] || "—" %></p>
+          </div>
+          <div>
+            <span class="text-gray-500">Network</span>
+            <p class="font-mono font-medium"><%= @status[:network] %></p>
+          </div>
+          <div>
+            <span class="text-gray-500">Container</span>
+            <p class="font-mono font-medium"><%= @status[:container_id] %></p>
+          </div>
+          <div>
+            <span class="text-gray-500">Connected Sandboxes</span>
+            <p class="font-mono font-medium"><%= @status[:connected_sandboxes] %></p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+      <p class="text-sm text-gray-600">
+        Sandboxes with Tailscale enabled are reachable via SSH on their bridge IP (port 22) from any device on your tailnet.
+        Subnet routes must be <strong>approved in the Tailscale admin console</strong> (or auto-approved via ACL <code class="bg-gray-200 px-1 rounded">autoApprovers</code>).
+      </p>
+    </div>
+
+    <%= button_to "Disable Tailscale", disable_tailscale_path, method: :delete,
+          class: "px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm",
+          data: { turbo_confirm: "This will disconnect all sandboxes from Tailscale and remove the sidecar. Continue?" } %>
+
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">Enable Tailscale</h2>
+      <p class="text-sm text-gray-600 mb-4">
+        Connect your sandboxes to your Tailscale network. A per-user sidecar container will advertise sandbox IPs as subnet routes,
+        making them reachable from any device on your tailnet via SSH.
+      </p>
+
+      <%= form_with url: enable_tailscale_path, method: :post, class: "space-y-4" do |f| %>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Auth Key</label>
+          <input type="password" name="auth_key" required placeholder="tskey-auth-..."
+                 class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <p class="text-xs text-gray-500 mt-1">
+            Generate a reusable auth key at
+            <code class="bg-gray-100 px-1 rounded">Tailscale Admin &rarr; Settings &rarr; Keys</code>.
+            The key is only used once to authenticate the sidecar and is not stored.
+          </p>
+        </div>
+
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Enable Tailscale
+        </button>
+      <% end %>
+    </div>
+  <% end %>
+</div>

@@ -22,7 +22,8 @@ module Api
         user: current_user,
         name: params.require(:name),
         image: image,
-        persistent: params[:persistent] || false
+        persistent: params[:persistent] || false,
+        tailscale: params[:tailscale] || false
       )
       render json: sandbox_json(sandbox), status: :created
     end
@@ -75,6 +76,7 @@ module Api
         image: sandbox.image,
         ssh_port: sandbox.ssh_port,
         persistent_volume: sandbox.persistent_volume,
+        tailscale: sandbox.tailscale,
         created_at: sandbox.created_at,
         connect_command: sandbox.connect_command
       }

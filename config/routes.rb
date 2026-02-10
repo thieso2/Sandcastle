@@ -12,6 +12,12 @@ Rails.application.routes.draw do
     end
   end
 
+  resource :tailscale, only: [], controller: "tailscale" do
+    get :show
+    post :enable
+    delete :disable
+  end
+
   namespace :admin do
     resources :users
   end
@@ -30,6 +36,11 @@ Rails.application.routes.draw do
     resources :users
     resource :status, only: :show
     resources :tokens, only: [ :index, :create, :destroy ]
+    resource :tailscale, only: [], controller: "tailscale" do
+      post :enable
+      delete :disable
+      get :status
+    end
   end
 
   get "up" => "rails/health#show", as: :rails_health_check
