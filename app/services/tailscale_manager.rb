@@ -29,6 +29,7 @@ class TailscaleManager
     # If pending, clean up the old attempt first
     cleanup_sidecar(user) if user.tailscale_pending?
 
+    subnet = subnet_for(user)
     network_name, container = create_and_start_sidecar(user: user, auth_key: nil)
 
     user.update!(
@@ -41,7 +42,7 @@ class TailscaleManager
     login_url = nil
     5.times do
       sleep 1
-      login_url = fetch_login_url(container)
+      login_url = fetch_login_url(container, subnet)
       break if login_url
     end
     raise Error, "Could not get login URL — tailscaled may not be ready yet" unless login_url
@@ -215,10 +216,16 @@ class TailscaleManager
     [ network_name, container ]
   end
 
-  def fetch_login_url(container)
-    # tailscale login prints the URL and returns; we parse it from combined output
-    out = container.exec([ "tailscale", "login" ])
-    combined = (out[0] + out[1]).join("\n")
+  def fetch_login_url(container, subnet)
+    # With tailscaled running directly (no containerboot), `tailscale up` prints the login URL
+    out = container.exec([
+      "tailscale", "up",
+      "--advertise-routes=#{subnet}",
+      "--accept-routes",
+      "--hostname=#{container.json.dig("Config", "Hostname")}",
+      "--timeout=5s"
+    ])
+    combined = (out[0].to_a + out[1].to_a).join("\n")
     match = combined.match(LOGIN_URL_PATTERN)
     match[0] if match
   rescue Docker::Error::DockerError
@@ -287,19 +294,10 @@ class TailscaleManager
   def create_sidecar(name:, user:, network:, subnet:, auth_key:)
     state_dir = "#{DATA_DIR}/users/#{user.name}/tailscale"
 
-    env = [
-      "TS_STATE_DIR=/var/lib/tailscale",
-      "TS_HOSTNAME=sc-#{user.name}",
-      "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes",
-      "TS_AUTH_ONCE=true"
-    ]
-    env << "TS_AUTHKEY=#{auth_key}" if auth_key.present?
-
-    Docker::Container.create(
+    config = {
       "Image" => TAILSCALE_IMAGE,
       "name" => name,
       "Hostname" => "sc-#{user.name}",
-      "Env" => env,
       "HostConfig" => {
         "NetworkMode" => network,
         "CapAdd" => [ "NET_ADMIN", "SYS_MODULE" ],
@@ -310,6 +308,23 @@ class TailscaleManager
         "Binds" => [ "#{state_dir}:/var/lib/tailscale" ],
         "RestartPolicy" => { "Name" => "unless-stopped" }
       }
-    )
+    }
+
+    if auth_key.present?
+      # Use containerboot (default entrypoint) with auth key for automated flow
+      config["Env"] = [
+        "TS_STATE_DIR=/var/lib/tailscale",
+        "TS_HOSTNAME=sc-#{user.name}",
+        "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes",
+        "TS_AUTH_ONCE=true",
+        "TS_AUTHKEY=#{auth_key}"
+      ]
+    else
+      # Run tailscaled directly — we manage login via `tailscale up`
+      config["Entrypoint"] = [ "tailscaled", "--state=/var/lib/tailscale/tailscaled.state" ]
+      config["Cmd"] = []
+    end
+
+    Docker::Container.create(config)
   end
 end
