@@ -14,6 +14,9 @@ type Sandbox struct {
 	DataPath         string    `json:"data_path,omitempty"`
 	Tailscale        bool      `json:"tailscale"`
 	TailscaleIP      string    `json:"tailscale_ip,omitempty"`
+	RouteDomain      string    `json:"route_domain,omitempty"`
+	RoutePort        int       `json:"route_port,omitempty"`
+	RouteURL         string    `json:"route_url,omitempty"`
 	ConnectCommand   string    `json:"connect_command"`
 	CreatedAt        time.Time `json:"created_at"`
 }
@@ -66,6 +69,19 @@ type SnapshotRequest struct {
 
 type RestoreRequest struct {
 	Snapshot string `json:"snapshot"`
+}
+
+type RouteRequest struct {
+	Domain string `json:"domain"`
+	Port   int    `json:"port,omitempty"`
+}
+
+type RouteResponse struct {
+	SandboxID   int    `json:"sandbox_id"`
+	SandboxName string `json:"sandbox_name"`
+	Domain      string `json:"domain"`
+	Port        int    `json:"port"`
+	URL         string `json:"url"`
 }
 
 type CreateSandboxRequest struct {

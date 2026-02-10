@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_183440) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -59,6 +59,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_160000) do
     t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
     t.boolean "persistent_volume", default: false, null: false
+    t.string "route_domain"
+    t.integer "route_port", default: 8080
     t.integer "ssh_port", null: false
     t.string "status", default: "pending", null: false
     t.boolean "tailscale", default: false, null: false
@@ -66,6 +68,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_160000) do
     t.integer "user_id", null: false
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
+    t.index ["route_domain"], name: "index_sandboxes_on_route_domain_unique_active", unique: true, where: "route_domain IS NOT NULL AND status != 'destroyed'"
     t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "status != 'destroyed'"
     t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "status != 'destroyed'"
     t.index ["user_id"], name: "index_sandboxes_on_user_id"

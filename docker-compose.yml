@@ -1,8 +1,20 @@
 services:
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - /data/traefik/dynamic:/data/dynamic:ro
+      - /data/traefik/acme.json:/data/acme.json
+    networks:
+      - sandcastle-web
+
   web:
     build: .
-    ports:
-      - "3000:80"
+    container_name: sandcastle-web
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - sandcastle-db:/rails/db
@@ -16,6 +28,8 @@ services:
     restart: unless-stopped
     depends_on:
       - migrate
+    networks:
+      - sandcastle-web
 
   migrate:
     build: .
@@ -30,3 +44,7 @@ services:
 volumes:
   sandcastle-db:
   sandcastle-storage:
+
+networks:
+  sandcastle-web:
+    name: sandcastle-web

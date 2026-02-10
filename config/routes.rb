@@ -47,6 +47,7 @@ Rails.application.routes.draw do
         post :tailscale_connect
         delete :tailscale_disconnect
       end
+      resource :route, only: [ :show, :create, :destroy ], controller: "routes"
     end
     resources :snapshots, only: [ :index, :destroy ], param: :name
     resources :users

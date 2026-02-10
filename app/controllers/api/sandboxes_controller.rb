@@ -91,6 +91,9 @@ module Api
         mount_home: sandbox.mount_home,
         data_path: sandbox.data_path,
         tailscale: sandbox.tailscale,
+        route_domain: sandbox.route_domain,
+        route_port: sandbox.route_port,
+        route_url: sandbox.route_url,
         created_at: sandbox.created_at,
         connect_command: sandbox.connect_command
       }
