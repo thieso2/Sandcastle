@@ -11,7 +11,7 @@ var Version = "dev"
 
 var rootCmd = &cobra.Command{
 	Use:   "sandcastle",
-	Short: "Sandcastle — shared Docker sandbox platform",
+	Short: "Sandcastle — shared sandbox platform",
 	Long:  "CLI for managing Sandcastle development sandboxes.",
 }
 

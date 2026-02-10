@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/sandcastle/cli/internal/config"
 	"github.com/spf13/cobra"
@@ -10,7 +9,6 @@ import (
 
 func init() {
 	rootCmd.AddCommand(configCmd)
-	configCmd.AddCommand(setServerCmd)
 	configCmd.AddCommand(setTokenCmd)
 	configCmd.AddCommand(showConfigCmd)
 }
@@ -20,30 +18,9 @@ var configCmd = &cobra.Command{
 	Short: "Configure CLI settings",
 }
 
-var setServerCmd = &cobra.Command{
-	Use:   "set-server <url>",
-	Short: "Set the Sandcastle server URL",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
-		if err != nil {
-			return err
-		}
-
-		server := strings.TrimRight(args[0], "/")
-		cfg.Server = server
-		if err := config.Save(cfg); err != nil {
-			return err
-		}
-
-		fmt.Printf("Server set to %s\n", server)
-		return nil
-	},
-}
-
 var setTokenCmd = &cobra.Command{
 	Use:   "set-token <token>",
-	Short: "Set the API token manually",
+	Short: "Set the API token for the current server",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
@@ -51,7 +28,12 @@ var setTokenCmd = &cobra.Command{
 			return err
 		}
 
-		cfg.Token = args[0]
+		cur := cfg.Current()
+		if cur == nil {
+			return fmt.Errorf("no current server — run: sandcastle server add <url>")
+		}
+
+		cur.Token = args[0]
 		if err := config.Save(cfg); err != nil {
 			return err
 		}
@@ -70,17 +52,18 @@ var showConfigCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Server: %s\n", cfg.Server)
-		if cfg.Token != "" {
-			// Show only prefix for security
-			if len(cfg.Token) > 12 {
-				fmt.Printf("Token:  %s...\n", cfg.Token[:12])
-			} else {
-				fmt.Println("Token:  (set)")
-			}
-		} else {
-			fmt.Println("Token:  (not set)")
+		cur := cfg.Current()
+		if cur == nil {
+			fmt.Println("No current server configured.")
+			fmt.Println("Run: sandcastle server add <url>")
+			return nil
 		}
+
+		if cur.Alias != "" {
+			fmt.Printf("Alias:  %s\n", cur.Alias)
+		}
+		fmt.Printf("Server: %s\n", cur.Server)
+		fmt.Printf("Token:  %s\n", config.MaskToken(cur.Token))
 		fmt.Printf("Config: %s\n", config.Path())
 		return nil
 	},

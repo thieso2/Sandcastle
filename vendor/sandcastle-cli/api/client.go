@@ -21,12 +21,13 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.Server == "" {
-		return nil, fmt.Errorf("server not configured — run: sandcastle config set-server <url>")
+	cur := cfg.Current()
+	if cur == nil {
+		return nil, fmt.Errorf("no current server — run: sandcastle server add <url>")
 	}
 	return &Client{
-		BaseURL:    cfg.Server,
-		Token:      cfg.Token,
+		BaseURL:    cur.Server,
+		Token:      cur.Token,
 		HTTPClient: &http.Client{},
 	}, nil
 }

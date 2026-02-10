@@ -24,12 +24,15 @@ var loginCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if cfg.Server == "" {
-			return fmt.Errorf("server not configured — run: sandcastle config set-server <url>")
+
+		cur := cfg.Current()
+		if cur == nil {
+			return fmt.Errorf("no current server — run: sandcastle server add <url>")
 		}
 
 		reader := bufio.NewReader(os.Stdin)
 
+		fmt.Printf("Logging into %s\n", cur.Server)
 		fmt.Print("Email: ")
 		email, _ := reader.ReadString('\n')
 		email = strings.TrimSpace(email)
@@ -42,7 +45,7 @@ var loginCmd = &cobra.Command{
 		fmt.Println()
 		password := strings.TrimSpace(string(passwordBytes))
 
-		client := api.NewClientWithToken(cfg.Server, "")
+		client := api.NewClientWithToken(cur.Server, "")
 		token, err := client.CreateToken(api.CreateTokenRequest{
 			EmailAddress: email,
 			Password:     password,
@@ -52,7 +55,7 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf("login failed: %w", err)
 		}
 
-		cfg.Token = token.RawToken
+		cur.Token = token.RawToken
 		if err := config.Save(cfg); err != nil {
 			return fmt.Errorf("saving token: %w", err)
 		}
