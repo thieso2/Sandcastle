@@ -27,6 +27,9 @@ chown "$USERNAME:$USERNAME" "/home/$USERNAME"
 # Ensure workspace is accessible
 chown "$USERNAME:$USERNAME" /workspace 2>/dev/null || true
 
+# Allow user to update tools in /usr/local (e.g. Claude Code auto-updater)
+chown -R "$USERNAME:$USERNAME" /usr/local/bin
+
 # Generate SSH host keys if missing
 ssh-keygen -A
 
