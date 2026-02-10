@@ -9,9 +9,10 @@ Rails.application.routes.draw do
   get  "auth/failure",            to: "oauth_callbacks#failure"
   resource :change_password, only: [ :show, :update ]
 
-  get  "auth/device",         to: "device_auth#show",     as: :auth_device
-  post "auth/device/verify",  to: "device_auth#verify",   as: :auth_device_verify
-  post "auth/device/approve", to: "device_auth#approve",  as: :auth_device_approve
+  get  "auth/device",              to: "device_auth#show",     as: :auth_device
+  post "auth/device/verify",       to: "device_auth#verify",   as: :auth_device_verify
+  get  "auth/device/approve/:id",  to: "device_auth#confirm",  as: :auth_device_confirm
+  post "auth/device/approve",      to: "device_auth#approve",  as: :auth_device_approve
 
   resources :sandboxes, only: :destroy do
     member do

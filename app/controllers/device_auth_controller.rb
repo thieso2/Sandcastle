@@ -8,11 +8,18 @@ class DeviceAuthController < ApplicationController
     @device_code = DeviceCode.pending.not_expired.find_by(user_code: user_code)
 
     if @device_code.nil?
-      flash.now[:alert] = "Invalid or expired code. Please try again."
-      render :show
+      flash[:alert] = "Invalid or expired code. Please try again."
+      redirect_to auth_device_path
     else
-      render :approve
+      redirect_to auth_device_confirm_path(@device_code)
     end
+  end
+
+  def confirm
+    @device_code = DeviceCode.pending.not_expired.find_by!(id: params[:id])
+  rescue ActiveRecord::RecordNotFound
+    flash[:alert] = "Code expired or already used."
+    redirect_to auth_device_path
   end
 
   def approve
@@ -20,5 +27,8 @@ class DeviceAuthController < ApplicationController
     @device_code.approve!(Current.user)
 
     redirect_to root_path, notice: "Device authorized. You can close this tab and return to your terminal."
+  rescue ActiveRecord::RecordNotFound
+    flash[:alert] = "Code expired or already used."
+    redirect_to auth_device_path
   end
 end
