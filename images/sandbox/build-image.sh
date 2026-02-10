@@ -1,13 +1,24 @@
 #!/bin/bash
 # Build the sandcastle-sandbox Incus image from Ubuntu 24.04 cloud image.
-# Run on the Incus host: bash images/sandbox/build-image.sh
+# Usage:
+#   bash images/sandbox/build-image.sh          # full image
+#   bash images/sandbox/build-image.sh --min    # minimal image (no build-essential, aggressive cleanup)
 set -euo pipefail
 
-IMAGE_ALIAS="sandcastle-sandbox"
+MIN_MODE=false
+if [[ "${1:-}" == "--min" ]]; then
+  MIN_MODE=true
+fi
+
+if $MIN_MODE; then
+  IMAGE_ALIAS="sandcastle-min"
+else
+  IMAGE_ALIAS="sandcastle-sandbox"
+fi
 BUILD_INSTANCE="build-sandbox-image"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "=== Building Sandcastle sandbox image ==="
+echo "=== Building ${IMAGE_ALIAS} image ==="
 
 # Clean up any previous build instance
 if incus info "$BUILD_INSTANCE" &>/dev/null; then
@@ -31,18 +42,27 @@ sleep 5
 incus exec "$BUILD_INSTANCE" -- cloud-init status --wait 2>/dev/null || sleep 10
 
 echo "Installing packages..."
-incus exec "$BUILD_INSTANCE" -- bash -c '
+incus exec "$BUILD_INSTANCE" -- bash -c "
   export DEBIAN_FRONTEND=noninteractive
+  MIN_MODE=${MIN_MODE}
 
   apt-get update
-  apt-get install -y \
-    openssh-server sudo curl git tmux vim \
-    build-essential \
-    jq ripgrep fd-find htop wget unzip ca-certificates \
-    systemd
+
+  if \$MIN_MODE; then
+    apt-get install -y --no-install-recommends \
+      openssh-server sudo curl git tmux vim-tiny \
+      jq ripgrep fd-find htop wget unzip ca-certificates \
+      systemd
+  else
+    apt-get install -y \
+      openssh-server sudo curl git tmux vim \
+      build-essential \
+      jq ripgrep fd-find htop wget unzip ca-certificates \
+      systemd
+  fi
 
   # Prefer IPv4 to avoid slow/broken IPv6 connections
-  sed -i "s/#precedence ::ffff:0:0\/96  100/precedence ::ffff:0:0\/96  100/" /etc/gai.conf
+  sed -i 's/#precedence ::ffff:0:0\/96  100/precedence ::ffff:0:0\/96  100/' /etc/gai.conf
 
   # Install Docker CE
   curl -fsSL https://get.docker.com | sh
@@ -50,25 +70,19 @@ incus exec "$BUILD_INSTANCE" -- bash -c '
   # Install Mise
   curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 
-  # Docker Compose plugin
-  mkdir -p /usr/local/lib/docker/cli-plugins
-  curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
-    -o /usr/local/lib/docker/cli-plugins/docker-compose
-  chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-
   # Tailscale
   curl -fsSL https://tailscale.com/install.sh | sh
   systemctl enable tailscaled
 
   # Claude Code
-  curl -fsSL https://claude.ai/install.sh | bash
+  curl -fsSL https://claude.ai/install.sh | BIN_DIR=/usr/local/bin bash
 
   # SSH configuration (key-only auth)
   mkdir -p /var/run/sshd
-  sed -i "s/#PermitRootLogin.*/PermitRootLogin no/" /etc/ssh/sshd_config
-  sed -i "s/#PubkeyAuthentication.*/PubkeyAuthentication yes/" /etc/ssh/sshd_config
-  sed -i "s/#PasswordAuthentication.*/PasswordAuthentication no/" /etc/ssh/sshd_config
-  sed -i "s/PasswordAuthentication yes/PasswordAuthentication no/" /etc/ssh/sshd_config
+  sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  sed -i 's/#PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+  sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
 
   # Enable Docker and SSH as systemd services
   systemctl enable docker
@@ -77,7 +91,16 @@ incus exec "$BUILD_INSTANCE" -- bash -c '
   # Clean up
   apt-get clean
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-'
+
+  if \$MIN_MODE; then
+    # Aggressive cleanup for minimal image
+    rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/*
+    rm -rf /usr/share/locale/* /usr/share/i18n/*
+    rm -rf /var/log/*.log /var/log/**/*.log
+    # Remove Docker buildx plugin (compose is kept)
+    rm -f /usr/libexec/docker/cli-plugins/docker-buildx
+  fi
+"
 
 # Push tmux config
 echo "Pushing tmux.conf..."
