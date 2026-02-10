@@ -126,6 +126,7 @@ ufw --force enable
 echo "Creating data directories..."
 mkdir -p /data/users
 mkdir -p /data/sandboxes
+chown 1000:1000 /data/users /data/sandboxes
 
 # 8. Write Caddyfile (replace DOMAIN with your actual domain)
 DOMAIN="${SANDCASTLE_HOST:-sandcastle.rocks}"
