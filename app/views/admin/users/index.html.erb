@@ -43,9 +43,13 @@
               <% end %>
             </td>
             <td class="px-4 py-3">
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                <%= user.active? ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
-                <%= user.status %>
+              <% status_class = case user.status
+                when "active" then "bg-green-100 text-green-800"
+                when "pending_approval" then "bg-yellow-100 text-yellow-800"
+                else "bg-red-100 text-red-800"
+              end %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium <%= status_class %>">
+                <%= user.status.humanize %>
               </span>
             </td>
             <td class="px-4 py-3 text-sm text-right space-x-3">

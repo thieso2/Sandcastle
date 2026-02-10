@@ -3,6 +3,7 @@ class User < ApplicationRecord
   has_many :sessions, dependent: :destroy
   has_many :sandboxes, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
+  has_many :oauth_identities, dependent: :destroy
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   normalizes :name, with: ->(n) { n.strip.downcase }
@@ -10,7 +11,7 @@ class User < ApplicationRecord
   validates :name, presence: true, uniqueness: true,
     format: { with: /\A[a-z][a-z0-9_-]{1,30}\z/, message: "must be lowercase alphanumeric (2-31 chars, start with letter)" }
   validates :email_address, presence: true, uniqueness: true
-  validates :status, inclusion: { in: %w[active suspended] }
+  validates :status, inclusion: { in: %w[active suspended pending_approval] }
 
   scope :active, -> { where(status: "active") }
 
@@ -20,6 +21,14 @@ class User < ApplicationRecord
 
   def active?
     status == "active"
+  end
+
+  def suspended?
+    status == "suspended"
+  end
+
+  def pending_approval?
+    status == "pending_approval"
   end
 
   def tailscale_enabled?

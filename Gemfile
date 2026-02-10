@@ -26,6 +26,11 @@ gem "bcrypt", "~> 3.1.7"
 gem "docker-api", "~> 2.4"
 # SSH key validation
 gem "sshkey", "~> 3.0"
+# OAuth authentication
+gem "omniauth", "~> 2.1"
+gem "omniauth-github", "~> 2.0"
+gem "omniauth-google-oauth2", "~> 1.2"
+gem "omniauth-rails_csrf_protection", "~> 1.0"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]

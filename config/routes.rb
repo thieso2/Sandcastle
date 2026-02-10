@@ -3,6 +3,10 @@ Rails.application.routes.draw do
 
   resource :session
   resources :passwords, param: :token
+
+  get  "auth/:provider/callback", to: "oauth_callbacks#create"
+  post "auth/:provider/callback", to: "oauth_callbacks#create"
+  get  "auth/failure",            to: "oauth_callbacks#failure"
   resource :change_password, only: [ :show, :update ]
 
   resources :sandboxes, only: :destroy do

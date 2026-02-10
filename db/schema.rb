@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_120001) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_143953) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -22,6 +22,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_120001) do
     t.integer "user_id", null: false
     t.index ["prefix"], name: "index_api_tokens_on_prefix", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
+  end
+
+  create_table "oauth_identities", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "provider", null: false
+    t.string "uid", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["provider", "uid"], name: "index_oauth_identities_on_provider_and_uid", unique: true
+    t.index ["user_id", "provider"], name: "index_oauth_identities_on_user_id_and_provider", unique: true
+    t.index ["user_id"], name: "index_oauth_identities_on_user_id"
   end
 
   create_table "sandboxes", force: :cascade do |t|
@@ -59,16 +70,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_120001) do
     t.string "password_digest", null: false
     t.text "ssh_public_key"
     t.string "status", default: "active", null: false
+    t.string "tailscale_auth_key"
     t.boolean "tailscale_auto_connect", default: false, null: false
-    t.string "tailscale_container_id"
-    t.string "tailscale_network"
-    t.string "tailscale_state", default: "disabled", null: false
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["name"], name: "index_users_on_name", unique: true
   end
 
   add_foreign_key "api_tokens", "users"
+  add_foreign_key "oauth_identities", "users"
   add_foreign_key "sandboxes", "users"
   add_foreign_key "sessions", "users"
 end
