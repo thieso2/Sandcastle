@@ -38,12 +38,14 @@ class TailscaleManager
       tailscale_network: network_name
     )
 
-    # Wait for tailscaled to start, retry a few times
-    login_url = nil
-    5.times do
-      sleep 1
+    # Wait for tailscaled to be ready before calling tailscale up
+    sleep 3
+
+    login_url = fetch_login_url(container, subnet)
+    unless login_url
+      # Retry once after another pause
+      sleep 3
       login_url = fetch_login_url(container, subnet)
-      break if login_url
     end
     raise Error, "Could not get login URL — tailscaled may not be ready yet" unless login_url
 
@@ -217,13 +219,15 @@ class TailscaleManager
   end
 
   def fetch_login_url(container, subnet)
-    # With tailscaled running directly (no containerboot), `tailscale up` prints the login URL
+    # tailscale up prints the login URL then blocks until auth completes or timeout.
+    # --reset avoids "requires mentioning all non-default flags" on subsequent calls.
     out = container.exec([
       "tailscale", "up",
+      "--reset",
       "--advertise-routes=#{subnet}",
       "--accept-routes",
       "--hostname=#{container.json.dig("Config", "Hostname")}",
-      "--timeout=5s"
+      "--timeout=10s"
     ])
     combined = (out[0].to_a + out[1].to_a).join("\n")
     match = combined.match(LOGIN_URL_PATTERN)
