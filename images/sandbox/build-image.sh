@@ -36,8 +36,8 @@ incus exec "$BUILD_INSTANCE" -- bash -c '
 
   apt-get update
   apt-get install -y \
-    openssh-server sudo curl git tmux vim neovim \
-    build-essential python3 python3-pip nodejs npm \
+    openssh-server sudo curl git tmux vim \
+    build-essential \
     jq ripgrep fd-find htop wget unzip ca-certificates \
     systemd
 
@@ -46,6 +46,9 @@ incus exec "$BUILD_INSTANCE" -- bash -c '
 
   # Install Docker CE
   curl -fsSL https://get.docker.com | sh
+
+  # Install Mise
+  curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 
   # Docker Compose plugin
   mkdir -p /usr/local/lib/docker/cli-plugins
@@ -58,7 +61,7 @@ incus exec "$BUILD_INSTANCE" -- bash -c '
   systemctl enable tailscaled
 
   # Claude Code
-  npm install -g @anthropic-ai/claude-code
+  curl -fsSL https://claude.ai/install.sh | bash
 
   # SSH configuration (key-only auth)
   mkdir -p /var/run/sshd
