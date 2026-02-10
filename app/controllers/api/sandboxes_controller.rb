@@ -15,7 +15,7 @@ module Api
       image = if params[:snapshot].present?
         "sc-snap-#{current_user.name}:#{params[:snapshot]}"
       else
-        params[:image] || "sandcastle-sandbox:latest"
+        params[:image] || SandboxManager::DEFAULT_IMAGE
       end
 
       sandbox = SandboxManager.new.create(

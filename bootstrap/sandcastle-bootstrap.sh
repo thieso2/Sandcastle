@@ -117,14 +117,9 @@ else
     echo "sandcastle-web network already exists."
 fi
 
-# 7. Build sandbox image
-echo "Building sandbox image..."
-if [ -d "/opt/sandcastle/images/sandbox" ]; then
-    docker build -t sandcastle-sandbox:latest /opt/sandcastle/images/sandbox/
-else
-    echo "WARNING: Sandbox image directory not found at /opt/sandcastle/images/sandbox"
-    echo "Clone the repo to /opt/sandcastle and re-run, or build manually."
-fi
+# 7. Pull sandbox image
+echo "Pulling sandbox image..."
+docker pull ghcr.io/thieso2/sandcastle-sandbox:latest
 
 echo ""
 echo "=== Bootstrap complete ==="

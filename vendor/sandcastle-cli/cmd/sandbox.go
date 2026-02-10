@@ -31,7 +31,7 @@ func init() {
 	rootCmd.AddCommand(useCmd)
 	rootCmd.AddCommand(setCmd)
 
-	createCmd.Flags().StringVar(&sandboxImage, "image", "sandcastle-sandbox:latest", "Container image")
+	createCmd.Flags().StringVar(&sandboxImage, "image", "ghcr.io/thieso2/sandcastle-sandbox:latest", "Container image")
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
 	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
 	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale network")

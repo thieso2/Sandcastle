@@ -1,9 +1,10 @@
 class SandboxManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
+  DEFAULT_IMAGE = "ghcr.io/thieso2/sandcastle-sandbox:latest"
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: "sandcastle-sandbox:latest", persistent: false, tailscale: false, mount_home: false, data_path: nil, temporary: false)
+  def create(user:, name:, image: DEFAULT_IMAGE, persistent: false, tailscale: false, mount_home: false, data_path: nil, temporary: false)
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
@@ -20,6 +21,7 @@ class SandboxManager
 
     sandbox.save!
 
+    ensure_image(image)
     ensure_mount_dirs(user, sandbox)
 
     container = Docker::Container.create(
@@ -253,6 +255,12 @@ class SandboxManager
   end
 
   private
+
+  def ensure_image(image)
+    Docker::Image.create("fromImage" => image)
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to pull image #{image}: #{e.message}"
+  end
 
   def ensure_mount_dirs(user, sandbox)
     if sandbox.mount_home
