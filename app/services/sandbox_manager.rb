@@ -30,9 +30,11 @@ class SandboxManager
         "security.syscalls.intercept.mknod" => "true",
         "security.syscalls.intercept.setxattr" => "true"
       },
-      devices: devices,
       profiles: [ "default", "sandcastle" ]
     )
+
+    # Devices must be applied after creation — Incus ignores them in the create request
+    incus.update_instance(sandbox.full_name, devices: devices)
 
     incus.change_state(sandbox.full_name, action: "start")
     sandbox.update!(container_id: sandbox.full_name, status: "running")
