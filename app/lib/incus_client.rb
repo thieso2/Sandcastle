@@ -294,6 +294,14 @@ class IncusClient
     return response unless op_url
 
     uuid = op_url.split("/").last
-    get("/1.0/operations/#{uuid}/wait?timeout=#{OPERATION_TIMEOUT}")
+    result = get("/1.0/operations/#{uuid}/wait?timeout=#{OPERATION_TIMEOUT}")
+
+    status = result.dig("metadata", "status")
+    if status == "Failure"
+      err_msg = result.dig("metadata", "err") || "operation failed"
+      raise OperationError, err_msg
+    end
+
+    result
   end
 end
