@@ -85,6 +85,7 @@ COPY --chown=rails:rails --from=build /rails /rails
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 # OCI labels for ghcr.io package linking
+LABEL service="sandcastle"
 LABEL org.opencontainers.image.source="https://github.com/thieso2/sandcastle"
 LABEL org.opencontainers.image.description="Self-hosted shared Docker sandbox platform"
 LABEL org.opencontainers.image.licenses="MIT"

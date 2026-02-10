@@ -1,5 +1,5 @@
 service: sandcastle
-image: ghcr.io/thieso2/sandcastle
+image: thieso2/sandcastle
 
 ssh:
   user: thies
