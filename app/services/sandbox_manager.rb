@@ -43,6 +43,12 @@ class SandboxManager
 
     sandbox
   rescue IncusClient::Error => e
+    # Clean up partial Incus instance to avoid blocking future creates
+    begin
+      incus.delete_instance(sandbox.full_name)
+    rescue IncusClient::Error
+      # Instance may not exist or already be gone
+    end
     sandbox&.update(status: "destroyed") if sandbox&.persisted?
     raise Error, "Failed to create instance: #{e.message}"
   end
