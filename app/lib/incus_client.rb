@@ -51,17 +51,10 @@ class IncusClient
   end
 
   def update_instance(name, config: nil, devices: nil)
-    current = get_instance(name)
     body = {}
     body["config"] = config if config
-    body["devices"] = devices || current["devices"] || {}
-    body["config"] = config || current["config"] || {}
-
-    # PATCH merges, so only send what we want to change
-    patch_body = {}
-    patch_body["config"] = config if config
-    patch_body["devices"] = devices if devices
-    resp = patch("/1.0/instances/#{name}", patch_body)
+    body["devices"] = devices if devices
+    resp = patch("/1.0/instances/#{name}", body)
     wait_for_operation(resp) if resp.is_a?(Hash) && resp["type"] == "async"
     resp
   end
@@ -297,11 +290,14 @@ class IncusClient
     result = get("/1.0/operations/#{uuid}/wait?timeout=#{OPERATION_TIMEOUT}")
 
     status = result.dig("metadata", "status")
-    if status == "Failure"
+    case status
+    when "Success"
+      result
+    when "Failure"
       err_msg = result.dig("metadata", "err") || "operation failed"
       raise OperationError, err_msg
+    else
+      raise OperationError, "operation did not complete (status: #{status})"
     end
-
-    result
   end
 end
