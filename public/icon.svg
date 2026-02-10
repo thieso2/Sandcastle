@@ -1,3 +1,72 @@
-<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="256" cy="256" r="256" fill="red"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="tower" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="towerDark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#sky)"/>
+
+  <!-- Sand base -->
+  <ellipse cx="256" cy="400" rx="220" ry="60" fill="url(#sand)"/>
+  <rect x="36" y="360" width="440" height="40" fill="url(#sand)"/>
+
+  <!-- Center tower (tallest) -->
+  <rect x="216" y="160" width="80" height="200" rx="4" fill="url(#tower)"/>
+  <!-- Crenellations center -->
+  <rect x="216" y="148" width="18" height="24" rx="2" fill="url(#tower)"/>
+  <rect x="247" y="148" width="18" height="24" rx="2" fill="url(#tower)"/>
+  <rect x="278" y="148" width="18" height="24" rx="2" fill="url(#tower)"/>
+  <!-- Door center -->
+  <path d="M240,360 L240,310 Q256,290 272,310 L272,360 Z" fill="#92400e"/>
+
+  <!-- Left tower -->
+  <rect x="100" y="220" width="70" height="140" rx="4" fill="url(#towerDark)"/>
+  <!-- Crenellations left -->
+  <rect x="100" y="208" width="16" height="22" rx="2" fill="url(#towerDark)"/>
+  <rect x="127" y="208" width="16" height="22" rx="2" fill="url(#towerDark)"/>
+  <rect x="154" y="208" width="16" height="22" rx="2" fill="url(#towerDark)"/>
+  <!-- Window left -->
+  <rect x="124" y="260" width="22" height="28" rx="3" fill="#92400e"/>
+
+  <!-- Right tower -->
+  <rect x="342" y="220" width="70" height="140" rx="4" fill="url(#towerDark)"/>
+  <!-- Crenellations right -->
+  <rect x="342" y="208" width="16" height="22" rx="2" fill="url(#towerDark)"/>
+  <rect x="369" y="208" width="16" height="22" rx="2" fill="url(#towerDark)"/>
+  <rect x="396" y="208" width="16" height="22" rx="2" fill="url(#towerDark)"/>
+  <!-- Window right -->
+  <rect x="366" y="260" width="22" height="28" rx="3" fill="#92400e"/>
+
+  <!-- Walls connecting towers -->
+  <rect x="170" y="280" width="46" height="80" rx="2" fill="url(#towerDark)"/>
+  <rect x="296" y="280" width="46" height="80" rx="2" fill="url(#towerDark)"/>
+
+  <!-- Wall crenellations left -->
+  <rect x="170" y="270" width="12" height="18" rx="2" fill="url(#towerDark)"/>
+  <rect x="187" y="270" width="12" height="18" rx="2" fill="url(#towerDark)"/>
+  <rect x="204" y="270" width="12" height="18" rx="2" fill="url(#towerDark)"/>
+
+  <!-- Wall crenellations right -->
+  <rect x="296" y="270" width="12" height="18" rx="2" fill="url(#towerDark)"/>
+  <rect x="313" y="270" width="12" height="18" rx="2" fill="url(#towerDark)"/>
+  <rect x="330" y="270" width="12" height="18" rx="2" fill="url(#towerDark)"/>
+
+  <!-- Flag on center tower -->
+  <line x1="256" y1="148" x2="256" y2="100" stroke="#78350f" stroke-width="3"/>
+  <path d="M258,100 L290,112 L258,124 Z" fill="#ef4444"/>
 </svg>
