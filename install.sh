@@ -34,8 +34,8 @@ if ! grep -qi ubuntu /etc/os-release 2>/dev/null; then
 fi
 
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
-if [ "$ARCH" != "amd64" ]; then
-  error "Sandcastle requires amd64 architecture (got: $ARCH)"
+if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
+  error "Sandcastle requires amd64 or arm64 architecture (got: $ARCH)"
   exit 1
 fi
 
