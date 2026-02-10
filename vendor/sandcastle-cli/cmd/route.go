@@ -2,33 +2,33 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/sandcastle/cli/api"
 	"github.com/spf13/cobra"
 )
 
-var (
-	routePort   int
-	routeRemove bool
-)
-
 func init() {
 	rootCmd.AddCommand(routeCmd)
-	routeCmd.Flags().IntVar(&routePort, "port", 8080, "Container port to route to")
-	routeCmd.Flags().BoolVar(&routeRemove, "remove", false, "Remove existing route")
+	routeCmd.AddCommand(routeSetCmd)
+	routeCmd.AddCommand(routeDeleteCmd)
 }
 
 var routeCmd = &cobra.Command{
-	Use:   "route <sandbox> [domain]",
+	Use:   "route",
 	Short: "Manage custom domain routing for a sandbox",
 	Long: `Add, show, or remove a custom domain route for a sandbox.
 
 Examples:
-  sandcastle route myapp app.example.com              # Add route (default port 8080)
-  sandcastle route myapp app.example.com --port 3000  # Custom port
-  sandcastle route myapp                              # Show current route
-  sandcastle route myapp --remove                     # Remove route`,
-	Args: cobra.RangeArgs(1, 2),
+  sandcastle route set myapp app.example.com         # Add route (default port 8080)
+  sandcastle route set myapp app.example.com 3000    # Custom port
+  sandcastle route delete myapp                      # Remove route`,
+}
+
+var routeSetCmd = &cobra.Command{
+	Use:   "set <sandbox> <domain> [port]",
+	Short: "Set a custom domain route (overwrites existing)",
+	Args:  cobra.RangeArgs(2, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {
@@ -40,41 +40,51 @@ Examples:
 			return err
 		}
 
-		// Remove route
-		if routeRemove {
-			if err := client.RemoveRoute(sandbox.ID); err != nil {
-				return err
-			}
-			fmt.Printf("Route removed from sandbox %q.\n", sandbox.Name)
-			return nil
-		}
-
-		// Show route (no domain arg)
-		if len(args) == 1 {
-			route, err := client.GetRoute(sandbox.ID)
+		port := 8080
+		if len(args) == 3 {
+			port, err = strconv.Atoi(args[2])
 			if err != nil {
-				return err
+				return fmt.Errorf("invalid port: %s", args[2])
 			}
-			fmt.Printf("Domain:  %s\n", route.Domain)
-			fmt.Printf("Port:    %d\n", route.Port)
-			fmt.Printf("URL:     %s\n", route.URL)
-			return nil
 		}
 
-		// Add route
 		route, err := client.AddRoute(sandbox.ID, api.RouteRequest{
 			Domain: args[1],
-			Port:   routePort,
+			Port:   port,
 		})
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("Route added to sandbox %q.\n", sandbox.Name)
+		fmt.Printf("Route set for sandbox %q.\n", sandbox.Name)
 		fmt.Printf("  Domain: %s\n", route.Domain)
 		fmt.Printf("  Port:   %d\n", route.Port)
 		fmt.Printf("  URL:    %s\n", route.URL)
 		fmt.Println("\nPoint your DNS to this server, and Traefik will handle TLS automatically.")
+		return nil
+	},
+}
+
+var routeDeleteCmd = &cobra.Command{
+	Use:   "delete <sandbox>",
+	Short: "Remove a custom domain route",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+
+		sandbox, err := findSandboxByName(client, args[0])
+		if err != nil {
+			return err
+		}
+
+		if err := client.RemoveRoute(sandbox.ID); err != nil {
+			return err
+		}
+
+		fmt.Printf("Route removed from sandbox %q.\n", sandbox.Name)
 		return nil
 	},
 }

@@ -7,7 +7,11 @@ class RouteManager
 
   def add_route(sandbox:, domain:, port: 8080)
     raise Error, "Sandbox is not running" unless sandbox.status == "running"
-    raise Error, "Sandbox already has a route" if sandbox.routed?
+
+    # If domain or port changed, remove old config first
+    if sandbox.routed? && (sandbox.route_domain != domain || sandbox.route_port != port)
+      delete_config(sandbox)
+    end
 
     sandbox.update!(route_domain: domain, route_port: port)
 
