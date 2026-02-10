@@ -16,6 +16,7 @@ var (
 	sandboxSnapshot     string
 	sandboxTailscale    bool
 	sandboxNoTailscale  bool
+	sandboxMin          bool
 )
 
 func init() {
@@ -29,6 +30,7 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxImage, "image", "sandcastle-sandbox", "Container image")
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
 	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
+	createCmd.Flags().BoolVar(&sandboxMin, "min", false, "Use minimal image (sandcastle-sandbox-min)")
 	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale (default: true when auth key is set)")
 	createCmd.Flags().BoolVar(&sandboxNoTailscale, "no-tailscale", false, "Skip Tailscale even if auth key is set")
 }
@@ -43,9 +45,14 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
+		image := sandboxImage
+		if sandboxMin {
+			image = "sandcastle-sandbox-min"
+		}
+
 		req := api.CreateSandboxRequest{
 			Name:       args[0],
-			Image:      sandboxImage,
+			Image:      image,
 			Persistent: sandboxPersistent,
 			Snapshot:   sandboxSnapshot,
 		}
