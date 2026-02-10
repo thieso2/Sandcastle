@@ -1,0 +1,12 @@
+#!/bin/bash
+# Pre-deploy: stop Traefik to free ports 80/443 for kamal-proxy health checks
+set -e
+
+REMOTE_HOST="100.65.155.100"
+
+ssh thies@${REMOTE_HOST} bash -s << 'REMOTE'
+if docker ps --format '{{.Names}}' | grep -q '^sandcastle-traefik$'; then
+  docker stop sandcastle-traefik >/dev/null 2>&1 || true
+  echo "Stopped Traefik (freeing ports for kamal-proxy)"
+fi
+REMOTE
