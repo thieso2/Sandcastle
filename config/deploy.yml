@@ -17,6 +17,15 @@ volumes:
   - /data:/data
   - sandcastle-storage:/rails/storage
 
+proxy:
+  host: demo.sandcastle.rocks
+  app_port: 80
+  response_timeout: 60
+  healthcheck:
+    path: /up
+  run:
+    publish: false
+
 registry:
   server: 100.126.147.91:4443
   username: kamal
