@@ -9,7 +9,7 @@ servers:
     hosts:
       - 100.79.246.119
     options:
-      group-add: incus-admin
+      group-add: 987
 
 volumes:
   - /var/lib/incus/unix.socket:/var/lib/incus/unix.socket
