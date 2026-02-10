@@ -11,6 +11,7 @@ class TailscaleManager
     container_name = "sc-ts-#{user.name}"
     subnet = subnet_for(user)
 
+    pull_image
     network = create_network(network_name, subnet)
     container = create_sidecar(
       name: container_name,
@@ -161,6 +162,12 @@ class TailscaleManager
   end
 
   private
+
+  def pull_image
+    Docker::Image.create("fromImage" => TAILSCALE_IMAGE)
+  rescue Docker::Error::NotFoundError
+    raise Error, "Failed to pull #{TAILSCALE_IMAGE} — check network connectivity"
+  end
 
   def subnet_for(user)
     octet = 100 + (user.id % 100)
