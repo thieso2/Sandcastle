@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Sandcastle is a self-hosted shared Docker sandbox platform. Users get isolated Sysbox containers with SSH access and a full Docker daemon inside. The stack is Rails 8.1 (Ruby 4.0) for the web/API backend and a Go CLI for user interaction.
 
+> **Important:** The container runtime is **Docker + Sysbox** (`sysbox-runc`). Incus/LXD is **not** used and should never be introduced. All container operations go through the `docker-api` gem via the Docker socket.
+
 ## Commands
 
 ### Rails App
