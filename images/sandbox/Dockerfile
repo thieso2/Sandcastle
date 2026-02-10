@@ -32,8 +32,9 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins \
 RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 RUN echo 'eval "$(mise activate bash)"' > /etc/profile.d/mise.sh
 
-# Shell aliases
-RUN echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc
+# Shell config
+RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
+    && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc
 
 # Claude Code (standalone binary) — install to /usr/local/bin for same reason
 RUN curl -fsSL https://claude.ai/install.sh | bash \
