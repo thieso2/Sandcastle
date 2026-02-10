@@ -1,3 +1,3 @@
-[registry."100.106.185.92:4443"]
+[registry."100.126.147.91:4443"]
   http = true
   insecure = true

@@ -88,6 +88,8 @@ module Api
         image: sandbox.image,
         ssh_port: sandbox.ssh_port,
         persistent_volume: sandbox.persistent_volume,
+        mount_home: sandbox.mount_home,
+        data_path: sandbox.data_path,
         tailscale: sandbox.tailscale,
         created_at: sandbox.created_at,
         connect_command: sandbox.connect_command

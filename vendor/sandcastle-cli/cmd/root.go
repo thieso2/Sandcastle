@@ -13,7 +13,8 @@ var rootCmd = &cobra.Command{
 	Use:          "sandcastle",
 	Short:        "Sandcastle — shared Docker sandbox platform",
 	Long:         "CLI for managing Sandcastle development sandboxes.",
-	SilenceUsage: true,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
 func Execute() {

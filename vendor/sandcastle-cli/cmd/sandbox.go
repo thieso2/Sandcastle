@@ -65,6 +65,29 @@ var createCmd = &cobra.Command{
 
 		fmt.Printf("Sandbox %q created.\n", sandbox.Name)
 
+		// Print active options
+		if sandbox.MountHome || sandbox.DataPath != "" || sandbox.PersistentVolume || sandbox.Tailscale || sandboxRemove {
+			if sandbox.MountHome {
+				fmt.Println("  Home:      mounted (~/ persisted)")
+			}
+			if sandbox.DataPath != "" {
+				label := sandbox.DataPath
+				if label == "." {
+					label = "user data root"
+				}
+				fmt.Printf("  Data:      mounted (%s → /data)\n", label)
+			}
+			if sandbox.PersistentVolume {
+				fmt.Println("  Volume:    persistent (/workspace)")
+			}
+			if sandbox.Tailscale {
+				fmt.Println("  Tailscale: enabled")
+			}
+			if sandboxRemove {
+				fmt.Println("  Cleanup:   auto-remove on exit")
+			}
+		}
+
 		if sandboxNoConnect {
 			return nil
 		}
