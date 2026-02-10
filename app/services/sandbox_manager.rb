@@ -219,18 +219,21 @@ class SandboxManager
 
   def connect_info(sandbox:)
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
+    user = sandbox.user.name
     info = {
       host: host,
       port: sandbox.ssh_port,
-      user: sandbox.user.name,
+      user: user,
       command: sandbox.connect_command(host: host)
     }
 
     if sandbox.tailscale?
       ts_ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
       if ts_ip
+        info[:host] = ts_ip
+        info[:port] = 22
+        info[:command] = "ssh #{user}@#{ts_ip}"
         info[:tailscale_ip] = ts_ip
-        info[:tailscale_command] = "ssh #{sandbox.user.name}@#{ts_ip}"
       end
     end
 
