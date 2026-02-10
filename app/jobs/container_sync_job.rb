@@ -9,6 +9,12 @@ class ContainerSyncJob < ApplicationJob
     User.where(tailscale_state: [ "enabled", "pending" ]).find_each do |user|
       sync_tailscale_sidecar(user)
     end
+
+    begin
+      RouteManager.new.sync_all_configs
+    rescue => e
+      Rails.logger.error("ContainerSyncJob: route sync failed: #{e.message}")
+    end
   end
 
   private

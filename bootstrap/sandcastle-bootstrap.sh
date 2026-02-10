@@ -28,42 +28,94 @@ else
     echo "Sysbox already installed."
 fi
 
-# 3. Install Caddy
-if ! command -v caddy &>/dev/null; then
-    echo "Installing Caddy..."
-    apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
-    apt-get update
-    apt-get install -y caddy
-else
-    echo "Caddy already installed."
-fi
-
-# 4. Configure UFW
+# 3. Configure UFW
 echo "Configuring firewall..."
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow 22/tcp       # SSH (host)
-ufw allow 80/tcp       # HTTP (redirect)
-ufw allow 443/tcp      # HTTPS (Caddy)
+ufw allow 80/tcp       # HTTP (Traefik — ACME + redirect)
+ufw allow 443/tcp      # HTTPS (Traefik)
 ufw allow 2201:2299/tcp # Sandbox SSH ports
 ufw --force enable
 
-# 5. Create data directories
+# 4. Create data directories
 echo "Creating data directories..."
 mkdir -p /data/users
 mkdir -p /data/sandboxes
+mkdir -p /data/traefik/dynamic
 
-# 6. Write Caddyfile (replace DOMAIN with your actual domain)
+# 5. Set up Traefik configuration
 DOMAIN="${SANDCASTLE_HOST:-sandcastle.rocks}"
-cat > /etc/caddy/Caddyfile << EOF
-${DOMAIN} {
-    reverse_proxy localhost:3000
-}
+ACME_EMAIL="${ACME_EMAIL:-admin@${DOMAIN}}"
+
+if [ ! -f /data/traefik/traefik.yml ]; then
+    echo "Writing Traefik static config..."
+    cat > /data/traefik/traefik.yml << EOF
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "${ACME_EMAIL}"
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  file:
+    directory: /data/dynamic
+    watch: true
+
+log:
+  level: INFO
+
+api:
+  dashboard: false
 EOF
-systemctl restart caddy
+fi
+
+# Create ACME storage with correct permissions
+if [ ! -f /data/traefik/acme.json ]; then
+    touch /data/traefik/acme.json
+    chmod 600 /data/traefik/acme.json
+fi
+
+# Write initial Rails route config
+echo "Writing Rails route config for Traefik..."
+cat > /data/traefik/dynamic/rails.yml << EOF
+http:
+  routers:
+    rails:
+      rule: "Host(\`${DOMAIN}\`)"
+      service: rails
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+  services:
+    rails:
+      loadBalancer:
+        servers:
+          - url: "http://sandcastle-web:80"
+EOF
+
+# 6. Create sandcastle-web Docker network
+if ! docker network inspect sandcastle-web &>/dev/null; then
+    echo "Creating sandcastle-web Docker network..."
+    docker network create sandcastle-web
+else
+    echo "sandcastle-web network already exists."
+fi
 
 # 7. Build sandbox image
 echo "Building sandbox image..."
@@ -77,7 +129,7 @@ fi
 echo ""
 echo "=== Bootstrap complete ==="
 echo "Next steps:"
-echo "  1. Set SANDCASTLE_HOST in .env"
+echo "  1. Set SANDCASTLE_HOST and ACME_EMAIL in .env"
 echo "  2. Generate SECRET_KEY_BASE: bin/rails secret"
 echo "  3. docker compose up -d"
 echo "  4. docker compose exec web bin/rails db:seed"

@@ -165,8 +165,21 @@ var listCmd = &cobra.Command{
 		}
 
 		active := config.ActiveSandbox()
+
+		hasRoute := false
+		for _, s := range sandboxes {
+			if s.RouteURL != "" {
+				hasRoute = true
+				break
+			}
+		}
+
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tTAILSCALE IP\tIMAGE")
+		if hasRoute {
+			fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tROUTE\tTAILSCALE IP\tIMAGE")
+		} else {
+			fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tTAILSCALE IP\tIMAGE")
+		}
 		for _, s := range sandboxes {
 			marker := ""
 			if s.Name == active {
@@ -176,7 +189,15 @@ var listCmd = &cobra.Command{
 			if s.TailscaleIP != "" {
 				tsIP = s.TailscaleIP
 			}
-			fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, tsIP, s.Image)
+			if hasRoute {
+				route := ""
+				if s.RouteURL != "" {
+					route = fmt.Sprintf("%s (:%d)", s.RouteURL, s.RoutePort)
+				}
+				fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, route, tsIP, s.Image)
+			} else {
+				fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, tsIP, s.Image)
+			}
 		}
 		w.Flush()
 		return nil

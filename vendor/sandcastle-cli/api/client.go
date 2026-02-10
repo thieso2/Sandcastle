@@ -196,6 +196,24 @@ func (c *Client) ConnectInfo(id int) (*ConnectInfo, error) {
 	return &info, err
 }
 
+// Routes
+
+func (c *Client) AddRoute(sandboxID int, req RouteRequest) (*RouteResponse, error) {
+	var r RouteResponse
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/route", sandboxID), req, &r)
+	return &r, err
+}
+
+func (c *Client) GetRoute(sandboxID int) (*RouteResponse, error) {
+	var r RouteResponse
+	err := c.do("GET", fmt.Sprintf("/api/sandboxes/%d/route", sandboxID), nil, &r)
+	return &r, err
+}
+
+func (c *Client) RemoveRoute(sandboxID int) error {
+	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/route", sandboxID), nil, nil)
+}
+
 // Snapshots
 
 func (c *Client) SnapshotSandbox(id int, name string) (*Snapshot, error) {
