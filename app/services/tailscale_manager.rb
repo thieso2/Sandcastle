@@ -314,6 +314,7 @@ class TailscaleManager
 
   def create_sidecar(name:, user:, network:, subnet:, auth_key:)
     state_dir = "#{DATA_DIR}/users/#{user.name}/tailscale"
+    FileUtils.mkdir_p(state_dir)
 
     cloud_init = if auth_key.present?
       <<~CLOUD_INIT
@@ -337,7 +338,8 @@ class TailscaleManager
       "ts-state" => {
         "type" => "disk",
         "source" => state_dir,
-        "path" => "/var/lib/tailscale"
+        "path" => "/var/lib/tailscale",
+        "shift" => "true"
       }
     }
 
@@ -348,8 +350,10 @@ class TailscaleManager
         "user.user-data" => cloud_init,
         "security.nesting" => "true"
       },
-      devices: devices,
       profiles: [ "default" ]
     )
+
+    # Devices must be applied after creation — Incus ignores them in the create request
+    incus.update_instance(name, devices: devices)
   end
 end
