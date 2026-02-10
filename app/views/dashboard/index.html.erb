@@ -9,77 +9,13 @@
     </div>
   </div>
 
-  <% if Current.user.admin? && @system_status %>
-    <div class="bg-gray-50 rounded-lg p-4 mb-8 border border-gray-200">
-      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">System Status</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-        <div>
-          <span class="text-gray-500">Docker</span>
-          <p class="font-mono font-medium"><%= @system_status.dig(:docker, :version) || "N/A" %></p>
-        </div>
-        <div>
-          <span class="text-gray-500">Containers</span>
-          <p class="font-mono font-medium"><%= @system_status.dig(:docker, :containers_running) || 0 %> running</p>
-        </div>
-        <div>
-          <span class="text-gray-500">Sandboxes</span>
-          <p class="font-mono font-medium"><%= @system_status.dig(:sandboxes, :total) || 0 %> total</p>
-        </div>
-        <div>
-          <span class="text-gray-500">Running</span>
-          <p class="font-mono font-medium"><%= @system_status.dig(:sandboxes, :running) || 0 %></p>
-        </div>
+  <% if Current.user.admin? %>
+    <%= turbo_frame_tag "system_status", src: system_status_path, loading: :lazy do %>
+      <div class="bg-gray-50 rounded-lg p-4 mb-8 border border-gray-200 animate-pulse">
+        <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">System Status</h2>
+        <p class="text-sm text-gray-400">Loading...</p>
       </div>
-
-      <% host = @system_status[:host] || {} %>
-      <% if host.present? %>
-        <hr class="my-3 border-gray-200">
-        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Host</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span class="text-gray-500">Memory</span>
-            <% mem = host[:memory] || {} %>
-            <% if mem[:error] %>
-              <p class="font-mono font-medium text-gray-400">N/A</p>
-            <% else %>
-              <p class="font-mono font-medium"><%= mem[:used_gb] %>/<%= mem[:total_gb] %> GB</p>
-              <p class="text-xs text-gray-400">(<%= mem[:percent] %>%)</p>
-            <% end %>
-          </div>
-          <div>
-            <span class="text-gray-500">Disk (<%= SystemStatus::DATA_DIR %>)</span>
-            <% disk = host[:disk] || {} %>
-            <% if disk[:error] %>
-              <p class="font-mono font-medium text-gray-400">N/A</p>
-            <% else %>
-              <p class="font-mono font-medium"><%= disk[:used_gb] %>/<%= disk[:total_gb] %> GB</p>
-              <p class="text-xs text-gray-400">(<%= disk[:percent] %>%)</p>
-            <% end %>
-          </div>
-          <div>
-            <span class="text-gray-500">Load / CPUs</span>
-            <% load = host[:load] || {} %>
-            <% if load[:error] %>
-              <p class="font-mono font-medium text-gray-400">N/A</p>
-            <% else %>
-              <p class="font-mono font-medium"><%= load[:one] %> <%= load[:five] %> <%= load[:fifteen] %></p>
-              <p class="text-xs text-gray-400">/ <%= host[:cpu_count] || "?" %> cores</p>
-            <% end %>
-          </div>
-          <div>
-            <span class="text-gray-500">Uptime</span>
-            <% if host[:uptime] %>
-              <p class="font-mono font-medium"><%= host[:uptime] %></p>
-              <% if host[:processes] %>
-                <p class="text-xs text-gray-400">(<%= host[:processes] %> procs)</p>
-              <% end %>
-            <% else %>
-              <p class="font-mono font-medium text-gray-400">N/A</p>
-            <% end %>
-          </div>
-        </div>
-      <% end %>
-    </div>
+    <% end %>
   <% end %>
 
   <div class="mb-8">

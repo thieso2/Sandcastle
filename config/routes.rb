@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   root "dashboard#index"
+  get "system_status", to: "dashboard#system_status"
 
   resource :session
   resources :passwords, param: :token
