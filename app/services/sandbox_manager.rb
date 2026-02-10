@@ -4,8 +4,8 @@ class SandboxManager
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: SANDBOX_IMAGE, persistent: false, tailscale: false)
-    wants_tailscale = (tailscale || user.tailscale_auto_connect?) && user.tailscale_configured?
+  def create(user:, name:, image: SANDBOX_IMAGE, persistent: false, tailscale: nil)
+    wants_tailscale = user.tailscale_configured? && tailscale != false
 
     sandbox = user.sandboxes.build(
       name: name,

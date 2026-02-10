@@ -17,7 +17,7 @@ module Api
         name: params.require(:name),
         image: params[:image] || SandboxManager::SANDBOX_IMAGE,
         persistent: params[:persistent] || false,
-        tailscale: params[:tailscale] || false
+        tailscale: params[:tailscale]
       )
       render json: sandbox_json(sandbox), status: :created
     end

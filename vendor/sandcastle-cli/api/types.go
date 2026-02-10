@@ -69,7 +69,7 @@ type CreateSandboxRequest struct {
 	Image      string `json:"image,omitempty"`
 	Persistent bool   `json:"persistent,omitempty"`
 	Snapshot   string `json:"snapshot,omitempty"`
-	Tailscale  bool   `json:"tailscale,omitempty"`
+	Tailscale  *bool  `json:"tailscale,omitempty"`
 }
 
 type CreateTokenRequest struct {

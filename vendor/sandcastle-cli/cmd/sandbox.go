@@ -11,10 +11,11 @@ import (
 )
 
 var (
-	sandboxImage      string
-	sandboxPersistent bool
-	sandboxSnapshot   string
-	sandboxTailscale  bool
+	sandboxImage        string
+	sandboxPersistent   bool
+	sandboxSnapshot     string
+	sandboxTailscale    bool
+	sandboxNoTailscale  bool
 )
 
 func init() {
@@ -28,7 +29,8 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxImage, "image", "sandcastle-sandbox", "Container image")
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
 	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
-	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale network")
+	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale (default: true when auth key is set)")
+	createCmd.Flags().BoolVar(&sandboxNoTailscale, "no-tailscale", false, "Skip Tailscale even if auth key is set")
 }
 
 var createCmd = &cobra.Command{
@@ -41,13 +43,23 @@ var createCmd = &cobra.Command{
 			return err
 		}
 
-		sandbox, err := client.CreateSandbox(api.CreateSandboxRequest{
+		req := api.CreateSandboxRequest{
 			Name:       args[0],
 			Image:      sandboxImage,
 			Persistent: sandboxPersistent,
 			Snapshot:   sandboxSnapshot,
-			Tailscale:  sandboxTailscale,
-		})
+		}
+		if sandboxNoTailscale {
+			f := false
+			req.Tailscale = &f
+		} else if sandboxTailscale {
+			t := true
+			req.Tailscale = &t
+		}
+		// When neither flag is set, Tailscale field is nil → server defaults to
+		// connecting if the user has an auth key configured.
+
+		sandbox, err := client.CreateSandbox(req)
 		if err != nil {
 			return err
 		}
