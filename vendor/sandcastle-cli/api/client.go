@@ -21,12 +21,13 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.Server == "" {
-		return nil, fmt.Errorf("server not configured — run: sandcastle config set-server <url>")
+	srv, err := cfg.CurrentServerConfig()
+	if err != nil {
+		return nil, err
 	}
 	return &Client{
-		BaseURL:    cfg.Server,
-		Token:      cfg.Token,
+		BaseURL:    srv.URL,
+		Token:      srv.Token,
 		HTTPClient: &http.Client{},
 	}, nil
 }
@@ -84,6 +85,73 @@ func (c *Client) do(method, path string, body any, result any) error {
 		}
 	}
 	return nil
+}
+
+// doWithStatus is like do but returns the HTTP status code along with the response body.
+func (c *Client) doWithStatus(method, path string, body any) (int, []byte, error) {
+	var bodyReader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return 0, nil, fmt.Errorf("marshaling request: %w", err)
+		}
+		bodyReader = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequest(method, c.BaseURL+path, bodyReader)
+	if err != nil {
+		return 0, nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, fmt.Errorf("reading response: %w", err)
+	}
+
+	return resp.StatusCode, respBody, nil
+}
+
+// Device Auth
+
+func (c *Client) RequestDeviceCode(clientName string) (*DeviceCodeResponse, error) {
+	var resp DeviceCodeResponse
+	err := c.do("POST", "/api/auth/device_code", DeviceCodeRequest{ClientName: clientName}, &resp)
+	return &resp, err
+}
+
+func (c *Client) PollDeviceToken(deviceCode string) (token string, pending bool, err error) {
+	status, body, err := c.doWithStatus("POST", "/api/auth/device_token", DeviceTokenRequest{DeviceCode: deviceCode})
+	if err != nil {
+		return "", false, err
+	}
+
+	switch status {
+	case 200:
+		var resp DeviceTokenResponse
+		if err := json.Unmarshal(body, &resp); err != nil {
+			return "", false, fmt.Errorf("parsing response: %w", err)
+		}
+		return resp.Token, false, nil
+	case 428: // Precondition Required — authorization_pending
+		return "", true, nil
+	default:
+		var apiErr APIError
+		if json.Unmarshal(body, &apiErr) == nil && apiErr.Error != "" {
+			return "", false, fmt.Errorf("%s", apiErr.Error)
+		}
+		return "", false, fmt.Errorf("unexpected status %d: %s", status, string(body))
+	}
 }
 
 // Sandboxes

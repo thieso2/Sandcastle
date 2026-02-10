@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_154704) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_160000) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -22,6 +22,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_154704) do
     t.integer "user_id", null: false
     t.index ["prefix"], name: "index_api_tokens_on_prefix", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
+  end
+
+  create_table "device_codes", force: :cascade do |t|
+    t.integer "api_token_id"
+    t.string "client_name"
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_code", null: false
+    t.integer "user_id"
+    t.index ["api_token_id"], name: "index_device_codes_on_api_token_id"
+    t.index ["code"], name: "index_device_codes_on_code", unique: true
+    t.index ["user_code"], name: "index_device_codes_on_user_code"
+    t.index ["user_id"], name: "index_device_codes_on_user_id"
   end
 
   create_table "oauth_identities", force: :cascade do |t|
@@ -80,6 +96,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_154704) do
   end
 
   add_foreign_key "api_tokens", "users"
+  add_foreign_key "device_codes", "api_tokens"
+  add_foreign_key "device_codes", "users"
   add_foreign_key "oauth_identities", "users"
   add_foreign_key "sandboxes", "users"
   add_foreign_key "sessions", "users"

@@ -1,0 +1,25 @@
+<div class="mx-auto md:w-2/3 w-full">
+  <% if flash[:alert] %>
+    <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block"><%= flash[:alert] %></p>
+  <% end %>
+
+  <h1 class="font-bold text-4xl">Authorize Device</h1>
+  <p class="mt-2 text-gray-600">Enter the code shown in your terminal to authorize the CLI.</p>
+
+  <%= form_with url: auth_device_verify_path, method: :post, class: "contents" do |form| %>
+    <div class="my-5">
+      <%= form.text_field :user_code,
+        value: @user_code,
+        required: true,
+        autofocus: @user_code.blank?,
+        autocomplete: "off",
+        placeholder: "ABCD-1234",
+        class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full text-center text-2xl tracking-widest uppercase",
+        maxlength: 9 %>
+    </div>
+
+    <div>
+      <%= form.submit "Verify Code", class: "w-full rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium cursor-pointer" %>
+    </div>
+  <% end %>
+</div>

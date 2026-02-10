@@ -10,6 +10,8 @@ type Sandbox struct {
 	Image            string    `json:"image"`
 	SSHPort          int       `json:"ssh_port"`
 	PersistentVolume bool      `json:"persistent_volume"`
+	MountHome        bool      `json:"mount_home"`
+	DataPath         string    `json:"data_path,omitempty"`
 	Tailscale        bool      `json:"tailscale"`
 	TailscaleIP      string    `json:"tailscale_ip,omitempty"`
 	ConnectCommand   string    `json:"connect_command"`
@@ -126,4 +128,27 @@ type TailscaleSandbox struct {
 
 type APIError struct {
 	Error string `json:"error"`
+}
+
+// Device auth types
+
+type DeviceCodeRequest struct {
+	ClientName string `json:"client_name"`
+}
+
+type DeviceCodeResponse struct {
+	DeviceCode      string `json:"device_code"`
+	UserCode        string `json:"user_code"`
+	VerificationURL string `json:"verification_url"`
+	ExpiresIn       int    `json:"expires_in"`
+	Interval        int    `json:"interval"`
+}
+
+type DeviceTokenRequest struct {
+	DeviceCode string `json:"device_code"`
+}
+
+type DeviceTokenResponse struct {
+	Token string `json:"token"`
+	Error string `json:"error,omitempty"`
 }

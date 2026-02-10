@@ -9,6 +9,10 @@ Rails.application.routes.draw do
   get  "auth/failure",            to: "oauth_callbacks#failure"
   resource :change_password, only: [ :show, :update ]
 
+  get  "auth/device",         to: "device_auth#show",     as: :auth_device
+  post "auth/device/verify",  to: "device_auth#verify",   as: :auth_device_verify
+  post "auth/device/approve", to: "device_auth#approve",  as: :auth_device_approve
+
   resources :sandboxes, only: :destroy do
     member do
       post :start
@@ -46,6 +50,10 @@ Rails.application.routes.draw do
     resources :users
     resource :status, only: :show
     resources :tokens, only: [ :index, :create, :destroy ]
+    namespace :auth do
+      post :device_code
+      post :device_token
+    end
     resource :tailscale, only: [], controller: "tailscale" do
       post :enable
       post :login
