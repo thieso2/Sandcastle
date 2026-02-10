@@ -192,7 +192,7 @@ var listCmd = &cobra.Command{
 			if hasRoute {
 				route := ""
 				if s.RouteURL != "" {
-					route = s.RouteURL
+					route = fmt.Sprintf("%s (:%d)", s.RouteURL, s.RoutePort)
 				}
 				fmt.Fprintf(w, "%s%s\t%s\t%d\t%s\t%s\t%s\n", s.Name, marker, s.Status, s.SSHPort, route, tsIP, s.Image)
 			} else {
