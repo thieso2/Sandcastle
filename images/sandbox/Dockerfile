@@ -5,8 +5,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # System tools
 RUN apt-get update && apt-get install -y \
     openssh-server sudo curl git tmux vim neovim \
-    build-essential python3 python3-pip nodejs npm \
-    jq ripgrep fd-find htop wget unzip ca-certificates \
+    build-essential \
+    jq ripgrep fd-find htop wget unzip ca-certificates net-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Prefer IPv4 to avoid slow/broken IPv6 connections
@@ -28,8 +28,14 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins \
        -o /usr/local/lib/docker/cli-plugins/docker-compose \
     && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-# Claude Code
-RUN npm install -g @anthropic-ai/claude-code
+# mise (dev tool version manager) — install to /usr/local/bin so it survives home bind-mounts
+RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
+RUN echo 'eval "$(mise activate bash)"' > /etc/profile.d/mise.sh
+
+# Claude Code (standalone binary) — install to /usr/local/bin for same reason
+RUN curl -fsSL https://claude.ai/install.sh | sh \
+    && mv /root/.claude/bin/claude /usr/local/bin/claude \
+    && rm -rf /root/.claude
 
 # SSH configuration (key-only auth)
 RUN mkdir /var/run/sshd \
