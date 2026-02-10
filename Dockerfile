@@ -81,6 +81,14 @@ USER 1000:1000
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --chown=rails:rails --from=build /rails /rails
 
+# Build metadata for version footer
+ARG BUILD_GIT_SHA
+ARG BUILD_GIT_DIRTY
+ARG BUILD_DATE
+ENV BUILD_GIT_SHA=${BUILD_GIT_SHA} \
+    BUILD_GIT_DIRTY=${BUILD_GIT_DIRTY} \
+    BUILD_DATE=${BUILD_DATE}
+
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 

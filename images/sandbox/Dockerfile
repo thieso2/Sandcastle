@@ -52,6 +52,10 @@ RUN chmod +x /entrypoint.sh
 
 COPY tmux.conf /etc/tmux.conf
 
+LABEL org.opencontainers.image.source="https://github.com/thieso2/sandcastle"
+LABEL org.opencontainers.image.description="Sandcastle sandbox image — Ubuntu 24.04 with Docker-in-Docker, SSH, and dev tools"
+LABEL org.opencontainers.image.licenses="MIT"
+
 WORKDIR /workspace
 EXPOSE 22
 
