@@ -18,6 +18,7 @@ class SandboxManager
     sandbox.save!
 
     container = Docker::Container.create(
+      "name" => sandbox.full_name,
       "Image" => image,
       "Hostname" => sandbox.full_name,
       "Env" => [
@@ -185,6 +186,7 @@ class SandboxManager
     end
 
     container = Docker::Container.create(
+      "name" => sandbox.full_name,
       "Image" => image_ref,
       "Hostname" => sandbox.full_name,
       "Env" => [
