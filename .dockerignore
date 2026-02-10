@@ -39,6 +39,9 @@
 # Ignore development files
 /.devcontainer
 
+# Ignore Go CLI (not needed in Rails image)
+/vendor/sandcastle-cli/
+
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*

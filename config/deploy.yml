@@ -41,12 +41,11 @@ accessories:
   traefik:
     image: traefik:v3.3
     host: 100.65.155.100
-    port:
-      - "80:80"
-      - "443:443"
+    port: "443:443"
     volumes:
       - /data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - /data/traefik/dynamic:/data/dynamic:ro
       - /data/traefik/acme.json:/data/acme.json
     options:
+      publish: "80:80"
       network: sandcastle-web
