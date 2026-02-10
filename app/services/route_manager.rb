@@ -81,7 +81,7 @@ class RouteManager
             "rule" => "Host(`#{host}`)",
             "service" => "rails",
             "entryPoints" => [ "websecure" ],
-            "tls" => { "certResolver" => "letsencrypt" }
+            "tls" => tls_config
           }
         },
         "services" => {
@@ -114,7 +114,7 @@ class RouteManager
             "rule" => "Host(`#{sandbox.route_domain}`)",
             "service" => router_name,
             "entryPoints" => [ "websecure" ],
-            "tls" => { "certResolver" => "letsencrypt" }
+            "tls" => tls_config
           }
         },
         "services" => {
@@ -128,6 +128,14 @@ class RouteManager
     }
 
     File.write(config_path(sandbox), config.to_yaml)
+  end
+
+  def tls_config
+    if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+      {}
+    else
+      { "certResolver" => "letsencrypt" }
+    end
   end
 
   def delete_config(sandbox)

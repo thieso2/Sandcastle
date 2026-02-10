@@ -9,12 +9,15 @@ services:
       - /data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - /data/traefik/dynamic:/data/dynamic:ro
       - /data/traefik/acme.json:/data/acme.json
+      - /data/traefik/certs:/data/certs:ro
     networks:
       - sandcastle-web
 
   web:
-    build: .
+    image: ghcr.io/thieso2/sandcastle:latest
     container_name: sandcastle-web
+    group_add:
+      - "${DOCKER_GID:-988}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - sandcastle-db:/rails/db
@@ -25,14 +28,16 @@ services:
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       SANDCASTLE_HOST: ${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: /data
+      SANDCASTLE_TLS_MODE: ${SANDCASTLE_TLS_MODE:-letsencrypt}
     restart: unless-stopped
     depends_on:
-      - migrate
+      migrate:
+        condition: service_completed_successfully
     networks:
       - sandcastle-web
 
   migrate:
-    build: .
+    image: ghcr.io/thieso2/sandcastle:latest
     command: ["./bin/rails", "db:prepare"]
     volumes:
       - sandcastle-db:/rails/db
