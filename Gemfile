@@ -22,8 +22,8 @@ gem "jbuilder"
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem "bcrypt", "~> 3.1.7"
 
-# Docker Engine API client
-gem "docker-api", "~> 2.4"
+# Incus API client (Unix socket HTTP)
+gem "net_http_unix", "~> 0.2"
 # SSH key validation
 gem "sshkey", "~> 3.0"
 

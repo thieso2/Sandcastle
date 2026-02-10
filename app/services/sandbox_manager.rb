@@ -1,9 +1,10 @@
 class SandboxManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
+  SANDBOX_IMAGE = "sandcastle-sandbox"
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: "sandcastle-sandbox:latest", persistent: false, tailscale: false)
+  def create(user:, name:, image: SANDBOX_IMAGE, persistent: false, tailscale: false)
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
@@ -17,35 +18,33 @@ class SandboxManager
 
     sandbox.save!
 
-    container = Docker::Container.create(
-      "name" => sandbox.full_name,
-      "Image" => image,
-      "Hostname" => sandbox.full_name,
-      "Env" => [
-        "SANDCASTLE_USER=#{user.name}",
-        "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
-      ],
-      "HostConfig" => {
-        "Runtime" => "sysbox-runc",
-        "PortBindings" => {
-          "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
-        },
-        "Binds" => volume_binds(user, sandbox),
-        "RestartPolicy" => { "Name" => "unless-stopped" }
-      }
+    cloud_init = build_cloud_init(user: user, sandbox: sandbox)
+    devices = build_devices(user: user, sandbox: sandbox)
+
+    incus.create_instance(
+      name: sandbox.full_name,
+      source: { type: "image", alias: image },
+      config: {
+        "user.user-data" => cloud_init,
+        "security.nesting" => "true",
+        "security.syscalls.intercept.mknod" => "true",
+        "security.syscalls.intercept.setxattr" => "true"
+      },
+      devices: devices,
+      profiles: [ "default", "sandcastle" ]
     )
 
-    container.start
-    sandbox.update!(container_id: container.id, status: "running")
+    incus.change_state(sandbox.full_name, action: "start")
+    sandbox.update!(container_id: sandbox.full_name, status: "running")
 
     if (tailscale || user.tailscale_auto_connect?) && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
     end
 
     sandbox
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     sandbox&.update(status: "destroyed") if sandbox&.persisted?
-    raise Error, "Failed to create container: #{e.message}"
+    raise Error, "Failed to create instance: #{e.message}"
   end
 
   def destroy(sandbox:, keep_volume: false)
@@ -55,11 +54,17 @@ class SandboxManager
 
     if sandbox.container_id.present?
       begin
-        container = Docker::Container.get(sandbox.container_id)
-        container.stop(t: 5) rescue nil
-        container.delete(force: true)
-      rescue Docker::Error::NotFoundError
-        # Container already gone
+        incus.change_state(sandbox.container_id, action: "stop", force: true)
+      rescue IncusClient::NotFoundError
+        # Instance already gone
+      rescue IncusClient::Error
+        # May already be stopped
+      end
+
+      begin
+        incus.delete_instance(sandbox.container_id)
+      rescue IncusClient::NotFoundError
+        # Instance already gone
       end
     end
 
@@ -74,146 +79,129 @@ class SandboxManager
     raise Error, "Sandbox is destroyed" if sandbox.status == "destroyed"
     return sandbox if sandbox.status == "running"
 
-    container = Docker::Container.get(sandbox.container_id)
-    container.start
+    incus.change_state(sandbox.container_id, action: "start")
     sandbox.update!(status: "running")
     sandbox
-  rescue Docker::Error::NotFoundError
+  rescue IncusClient::NotFoundError
     sandbox.update!(status: "destroyed", container_id: nil)
-    raise Error, "Container not found — sandbox must be recreated"
+    raise Error, "Instance not found — sandbox must be recreated"
   end
 
   def stop(sandbox:)
     return sandbox if sandbox.status == "stopped"
 
-    container = Docker::Container.get(sandbox.container_id)
-    container.stop(t: 10)
+    incus.change_state(sandbox.container_id, action: "stop", timeout: 10)
     sandbox.update!(status: "stopped")
     sandbox
-  rescue Docker::Error::NotFoundError
+  rescue IncusClient::NotFoundError
     sandbox.update!(status: "destroyed", container_id: nil)
-    raise Error, "Container not found"
+    raise Error, "Instance not found"
   end
 
   def status(sandbox:)
     return { state: "destroyed" } if sandbox.container_id.blank?
 
-    container = Docker::Container.get(sandbox.container_id)
-    info = container.json
+    state = incus.get_instance_state(sandbox.container_id)
     {
-      state: info.dig("State", "Status"),
-      running: info.dig("State", "Running"),
-      started_at: info.dig("State", "StartedAt"),
-      pid: info.dig("State", "Pid")
+      state: state["status"]&.downcase,
+      running: state["status"] == "Running",
+      pid: state["pid"]
     }
-  rescue Docker::Error::NotFoundError
+  rescue IncusClient::NotFoundError
     { state: "not_found" }
   end
 
   def snapshot(sandbox:, name: nil)
-    raise Error, "Sandbox has no running container" if sandbox.container_id.blank?
+    raise Error, "Sandbox has no running instance" if sandbox.container_id.blank?
 
     name ||= Date.today.iso8601
-    user = sandbox.user
-    repo = "sc-snap-#{user.name}"
 
-    container = Docker::Container.get(sandbox.container_id)
-    image = container.commit(
-      repo: repo,
-      tag: name,
-      comment: "sandbox:#{sandbox.name}"
-    )
+    incus.create_snapshot(sandbox.container_id, snapshot_name: name)
 
     {
       name: name,
-      image: "#{repo}:#{name}",
       sandbox: sandbox.name,
       created_at: Time.current
     }
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     raise Error, "Failed to create snapshot: #{e.message}"
   end
 
   def list_snapshots(user:)
-    repo_prefix = "sc-snap-#{user.name}"
-
-    Docker::Image.all.each_with_object([]) do |img, result|
-      repo_tags = img.info["RepoTags"] || []
-      repo_tags.each do |tag|
-        repo, tag_name = tag.split(":")
-        next unless repo == repo_prefix
-
-        result << {
-          name: tag_name,
-          image: tag,
-          size: img.info["Size"],
-          created_at: Time.at(img.info["Created"])
+    user.sandboxes.active.where.not(container_id: nil).flat_map do |sandbox|
+      snapshots = incus.list_snapshots(sandbox.container_id)
+      snapshots.map do |snap|
+        snap_name = snap["name"]
+        {
+          name: snap_name,
+          sandbox: sandbox.name,
+          created_at: snap["created_at"] ? Time.parse(snap["created_at"]) : nil
         }
       end
+    rescue IncusClient::NotFoundError
+      []
     end
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     raise Error, "Failed to list snapshots: #{e.message}"
   end
 
-  def destroy_snapshot(user:, name:)
-    image_ref = "sc-snap-#{user.name}:#{name}"
-    Docker::Image.get(image_ref).remove
-  rescue Docker::Error::NotFoundError
+  def destroy_snapshot(user:, name:, sandbox_name: nil)
+    target = find_snapshot_sandbox(user: user, snapshot_name: name, sandbox_name: sandbox_name)
+    incus.delete_snapshot(target[:sandbox].container_id, name)
+  rescue IncusClient::NotFoundError
     raise Error, "Snapshot '#{name}' not found"
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     raise Error, "Failed to destroy snapshot: #{e.message}"
   end
 
   def restore(sandbox:, snapshot_name:)
     user = sandbox.user
-    image_ref = "sc-snap-#{user.name}:#{snapshot_name}"
     was_tailscale = sandbox.tailscale?
+    instance_name = sandbox.container_id
 
-    Docker::Image.get(image_ref)
+    # Verify snapshot exists
+    incus.get_snapshot(instance_name, snapshot_name)
 
     if sandbox.tailscale?
       TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)
     end
 
-    if sandbox.container_id.present?
-      begin
-        old_container = Docker::Container.get(sandbox.container_id)
-        old_container.stop(t: 5) rescue nil
-        old_container.delete(force: true)
-      rescue Docker::Error::NotFoundError
-        # Already gone
-      end
+    # Stop the instance
+    begin
+      incus.change_state(instance_name, action: "stop", force: true)
+    rescue IncusClient::Error
+      # May already be stopped
     end
 
-    container = Docker::Container.create(
-      "name" => sandbox.full_name,
-      "Image" => image_ref,
-      "Hostname" => sandbox.full_name,
-      "Env" => [
-        "SANDCASTLE_USER=#{user.name}",
-        "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
-      ],
-      "HostConfig" => {
-        "Runtime" => "sysbox-runc",
-        "PortBindings" => {
-          "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
-        },
-        "Binds" => volume_binds(user, sandbox),
-        "RestartPolicy" => { "Name" => "unless-stopped" }
-      }
-    )
+    # Copy from snapshot to a temp instance
+    temp_name = "#{instance_name}-restore-#{SecureRandom.hex(4)}"
+    incus.copy_instance(instance_name, temp_name, snapshot_name: snapshot_name)
 
-    container.start
-    sandbox.update!(container_id: container.id, image: image_ref, status: "running")
+    # Delete original
+    incus.delete_instance(instance_name)
+
+    # Rename temp to original
+    incus.rename_instance(temp_name, instance_name)
+
+    # Re-attach devices (copy may not preserve instance-specific devices)
+    devices = build_devices(user: user, sandbox: sandbox)
+    incus.update_instance(instance_name, devices: devices)
+
+    # Start it
+    incus.change_state(instance_name, action: "start")
+    sandbox.update!(status: "running")
+
+    # Update SSH key in case it changed since snapshot
+    update_ssh_key(sandbox: sandbox)
 
     if was_tailscale && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
     end
 
     sandbox
-  rescue Docker::Error::NotFoundError
+  rescue IncusClient::NotFoundError
     raise Error, "Snapshot '#{snapshot_name}' not found"
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     raise Error, "Failed to restore snapshot: #{e.message}"
   end
 
@@ -239,13 +227,103 @@ class SandboxManager
 
   private
 
-  def volume_binds(user, sandbox)
-    binds = [
-      "#{DATA_DIR}/users/#{user.name}/home:/home/#{user.name}"
-    ]
+  def incus
+    @incus ||= IncusClient.new
+  end
+
+  def build_cloud_init(user:, sandbox:)
+    <<~CLOUD_INIT
+      #cloud-config
+      users:
+        - name: #{user.name}
+          groups: sudo, docker
+          shell: /bin/bash
+          sudo: ALL=(ALL) NOPASSWD:ALL
+          ssh_authorized_keys:
+            - #{user.ssh_public_key}
+
+      write_files:
+        - path: /home/#{user.name}/.ssh/authorized_keys
+          permissions: '0600'
+          owner: #{user.name}:#{user.name}
+          content: |
+            #{user.ssh_public_key}
+
+      runcmd:
+        - chown -R #{user.name}:#{user.name} /home/#{user.name}
+        - chown #{user.name}:#{user.name} /workspace 2>/dev/null || true
+        - ssh-keygen -A
+        - systemctl enable ssh
+        - systemctl start ssh
+        - systemctl enable docker
+        - systemctl start docker
+    CLOUD_INIT
+  end
+
+  def build_devices(user:, sandbox:)
+    devices = {
+      "ssh" => {
+        "type" => "proxy",
+        "listen" => "tcp:0.0.0.0:#{sandbox.ssh_port}",
+        "connect" => "tcp:127.0.0.1:22"
+      },
+      "home" => {
+        "type" => "disk",
+        "source" => "#{DATA_DIR}/users/#{user.name}/home",
+        "path" => "/home/#{user.name}"
+      }
+    }
+
     if sandbox.persistent_volume && sandbox.volume_path
-      binds << "#{sandbox.volume_path}:/workspace"
+      FileUtils.mkdir_p(sandbox.volume_path)
+      devices["workspace"] = {
+        "type" => "disk",
+        "source" => sandbox.volume_path,
+        "path" => "/workspace"
+      }
     end
-    binds
+
+    devices
+  end
+
+  def update_ssh_key(sandbox:)
+    user = sandbox.user
+    return unless user.ssh_public_key.present?
+
+    ssh_dir = "/home/#{user.name}/.ssh"
+    incus.exec(sandbox.container_id, command: [ "mkdir", "-p", ssh_dir ])
+    incus.push_file(
+      sandbox.container_id,
+      path: "#{ssh_dir}/authorized_keys",
+      content: user.ssh_public_key,
+      mode: "0600"
+    )
+    # Fix ownership — lookup UID inside container
+    incus.exec(sandbox.container_id, command: [
+      "chown", "-R", "#{user.name}:#{user.name}", ssh_dir
+    ])
+  rescue IncusClient::Error
+    # Non-fatal: cloud-init should have set this up
+  end
+
+  def find_snapshot_sandbox(user:, snapshot_name:, sandbox_name: nil)
+    sandboxes = user.sandboxes.active.where.not(container_id: nil)
+
+    if sandbox_name
+      sandbox = sandboxes.find_by!(name: sandbox_name)
+      return { sandbox: sandbox }
+    end
+
+    # Search all active sandboxes for this snapshot
+    sandboxes.each do |sandbox|
+      snapshots = incus.list_snapshots(sandbox.container_id)
+      if snapshots.any? { |s| s["name"] == snapshot_name }
+        return { sandbox: sandbox }
+      end
+    rescue IncusClient::NotFoundError
+      next
+    end
+
+    raise Error, "Snapshot '#{snapshot_name}' not found in any active sandbox"
   end
 end

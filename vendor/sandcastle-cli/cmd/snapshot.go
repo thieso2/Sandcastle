@@ -50,7 +50,6 @@ var snapshotCreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Snapshot %q created from sandbox %q\n", snap.Name, args[0])
-		fmt.Printf("Image: %s\n", snap.Image)
 		return nil
 	},
 }
@@ -76,12 +75,11 @@ var snapshotListCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tIMAGE\tSIZE\tCREATED")
+		fmt.Fprintln(w, "NAME\tSANDBOX\tCREATED")
 		for _, s := range snapshots {
-			fmt.Fprintf(w, "%s\t%s\t%d MB\t%s\n",
+			fmt.Fprintf(w, "%s\t%s\t%s\n",
 				s.Name,
-				s.Image,
-				s.Size/1024/1024,
+				s.Sandbox,
 				s.CreatedAt.Format("2006-01-02 15:04"),
 			)
 		}

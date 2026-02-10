@@ -14,25 +14,29 @@ class ContainerSyncJob < ApplicationJob
   private
 
   def sync_sandbox(sandbox)
-    container = Docker::Container.get(sandbox.container_id)
-    actual_status = container.json.dig("State", "Running") ? "running" : "stopped"
+    state = incus.get_instance_state(sandbox.container_id)
+    actual_status = state["status"] == "Running" ? "running" : "stopped"
 
     if sandbox.status != actual_status
       sandbox.update!(status: actual_status)
       Rails.logger.info("ContainerSyncJob: #{sandbox.full_name} status corrected to #{actual_status}")
     end
-  rescue Docker::Error::NotFoundError
+  rescue IncusClient::NotFoundError
     sandbox.update!(status: "destroyed", container_id: nil)
-    Rails.logger.warn("ContainerSyncJob: #{sandbox.full_name} container gone, marked destroyed")
+    Rails.logger.warn("ContainerSyncJob: #{sandbox.full_name} instance gone, marked destroyed")
   end
 
   def sync_tailscale_sidecar(user)
     return if user.tailscale_container_id.blank?
 
-    Docker::Container.get(user.tailscale_container_id)
-  rescue Docker::Error::NotFoundError
+    incus.get_instance(user.tailscale_container_id)
+  rescue IncusClient::NotFoundError
     user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
     user.sandboxes.active.where(tailscale: true).update_all(tailscale: false)
     Rails.logger.warn("ContainerSyncJob: Tailscale sidecar for #{user.name} gone, marked disabled")
+  end
+
+  def incus
+    @incus ||= IncusClient.new
   end
 end

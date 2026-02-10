@@ -1,6 +1,6 @@
 class TailscaleManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
-  TAILSCALE_IMAGE = "tailscale/tailscale:latest"
+  TAILSCALE_IMAGE = "sandcastle-tailscale"
   LOGIN_URL_PATTERN = %r{https://login\.tailscale\.com/\S+}
 
   class Error < StandardError; end
@@ -9,15 +9,15 @@ class TailscaleManager
   def enable(user:, auth_key:)
     raise Error, "Tailscale already active" if user.tailscale_enabled? || user.tailscale_pending?
 
-    network_name, container = create_and_start_sidecar(user: user, auth_key: auth_key)
+    network_name, instance_name = create_and_start_sidecar(user: user, auth_key: auth_key)
 
     user.update!(
       tailscale_state: "enabled",
-      tailscale_container_id: container.id,
+      tailscale_container_id: instance_name,
       tailscale_network: network_name
     )
     user
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     cleanup_on_failure(user)
     raise Error, "Failed to enable Tailscale: #{e.message}"
   end
@@ -30,27 +30,26 @@ class TailscaleManager
     cleanup_sidecar(user) if user.tailscale_pending?
 
     subnet = subnet_for(user)
-    network_name, container = create_and_start_sidecar(user: user, auth_key: nil)
+    network_name, instance_name = create_and_start_sidecar(user: user, auth_key: nil)
 
     user.update!(
       tailscale_state: "pending",
-      tailscale_container_id: container.id,
+      tailscale_container_id: instance_name,
       tailscale_network: network_name
     )
 
-    # Wait for tailscaled to be ready before calling tailscale up
+    # Wait for tailscaled to be ready
     sleep 3
 
-    login_url = fetch_login_url(container, subnet)
+    login_url = fetch_login_url(instance_name, subnet, user)
     unless login_url
-      # Retry once after another pause
       sleep 3
-      login_url = fetch_login_url(container, subnet)
+      login_url = fetch_login_url(instance_name, subnet, user)
     end
     raise Error, "Could not get login URL — tailscaled may not be ready yet" unless login_url
 
     { login_url: login_url }
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     cleanup_on_failure(user)
     raise Error, "Failed to start Tailscale login: #{e.message}"
   end
@@ -58,22 +57,21 @@ class TailscaleManager
   # Phase 2: check if the user has completed browser auth
   def check_login(user:)
     raise Error, "No pending login" unless user.tailscale_pending?
-    raise Error, "Sidecar container not found" if user.tailscale_container_id.blank?
+    raise Error, "Sidecar instance not found" if user.tailscale_container_id.blank?
 
-    container = Docker::Container.get(user.tailscale_container_id)
-    running = container.json.dig("State", "Running")
-    return { status: "pending" } unless running
+    state = incus.get_instance_state(user.tailscale_container_id)
+    return { status: "pending" } unless state["status"] == "Running"
 
-    status_out = container.exec([ "tailscale", "status", "--json" ])
-    if status_out.first.any?
-      ts_status = JSON.parse(status_out.first.join)
+    result = incus.exec(user.tailscale_container_id, command: [ "tailscale", "status", "--json" ])
+    if result[:stdout].present?
+      ts_status = JSON.parse(result[:stdout])
       if ts_status.dig("BackendState") == "Running"
         user.update!(tailscale_state: "enabled")
-        ip_out = container.exec([ "tailscale", "ip", "--4" ])
-        tailscale_ip = ip_out.first.first&.strip if ip_out.first.any?
+        ip_result = incus.exec(user.tailscale_container_id, command: [ "tailscale", "ip", "--4" ])
+        tailscale_ip = ip_result[:stdout]&.strip
         return {
           status: "authenticated",
-          tailscale_ip: tailscale_ip,
+          tailscale_ip: tailscale_ip.presence,
           hostname: ts_status.dig("Self", "HostName"),
           tailnet: ts_status.dig("MagicDNSSuffix")
         }
@@ -83,10 +81,10 @@ class TailscaleManager
     { status: "pending" }
   rescue JSON::ParserError
     { status: "pending" }
-  rescue Docker::Error::NotFoundError
+  rescue IncusClient::NotFoundError
     user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
-    raise Error, "Sidecar container disappeared"
-  rescue Docker::Error::DockerError => e
+    raise Error, "Sidecar instance disappeared"
+  rescue IncusClient::Error => e
     raise Error, "Failed to check login: #{e.message}"
   end
 
@@ -106,16 +104,16 @@ class TailscaleManager
       tailscale_network: nil
     )
     user
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     raise Error, "Failed to disable Tailscale: #{e.message}"
   end
 
   def status(user:)
     raise Error, "Tailscale not active" unless user.tailscale_enabled? || user.tailscale_pending?
-    raise Error, "Sidecar container not found" if user.tailscale_container_id.blank?
+    raise Error, "Sidecar instance not found" if user.tailscale_container_id.blank?
 
-    container = Docker::Container.get(user.tailscale_container_id)
-    running = container.json.dig("State", "Running")
+    state = incus.get_instance_state(user.tailscale_container_id)
+    running = state["status"] == "Running"
 
     ts_sandboxes = user.sandboxes.active.where(tailscale: true)
     sandbox_ips = ts_sandboxes.map do |sb|
@@ -125,20 +123,20 @@ class TailscaleManager
 
     result = {
       running: running,
-      container_id: user.tailscale_container_id[0..11],
+      container_id: user.tailscale_container_id,
       network: user.tailscale_network,
       connected_sandboxes: ts_sandboxes.count,
       sandboxes: sandbox_ips
     }
 
     if running
-      ip_out = container.exec([ "tailscale", "ip", "--4" ])
-      result[:tailscale_ip] = ip_out.first.first&.strip if ip_out.first.any?
+      ip_result = incus.exec(user.tailscale_container_id, command: [ "tailscale", "ip", "--4" ])
+      result[:tailscale_ip] = ip_result[:stdout]&.strip if ip_result[:stdout].present?
 
-      status_out = container.exec([ "tailscale", "status", "--json" ])
-      if status_out.first.any?
+      status_result = incus.exec(user.tailscale_container_id, command: [ "tailscale", "status", "--json" ])
+      if status_result[:stdout].present?
         begin
-          ts_status = JSON.parse(status_out.first.join)
+          ts_status = JSON.parse(status_result[:stdout])
           result[:hostname] = ts_status.dig("Self", "HostName")
           result[:tailnet] = ts_status.dig("MagicDNSSuffix")
           result[:online] = ts_status.dig("Self", "Online")
@@ -149,9 +147,9 @@ class TailscaleManager
     end
 
     result
-  rescue Docker::Error::NotFoundError
-    raise Error, "Sidecar container not found — try disabling and re-enabling Tailscale"
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::NotFoundError
+    raise Error, "Sidecar instance not found — try disabling and re-enabling Tailscale"
+  rescue IncusClient::Error => e
     raise Error, "Failed to get Tailscale status: #{e.message}"
   end
 
@@ -160,11 +158,13 @@ class TailscaleManager
     raise Error, "Tailscale not enabled for user" unless user.tailscale_enabled?
     raise Error, "Sandbox not running" unless sandbox.container_id.present?
 
-    network = Docker::Network.get(user.tailscale_network)
-    network.connect(sandbox.container_id)
+    incus.add_device(sandbox.container_id, "ts-nic", {
+      "type" => "nic",
+      "network" => user.tailscale_network
+    })
     sandbox.update!(tailscale: true)
     sandbox
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     raise Error, "Failed to connect sandbox to Tailscale: #{e.message}"
   end
 
@@ -174,16 +174,15 @@ class TailscaleManager
 
     if sandbox.container_id.present?
       begin
-        network = Docker::Network.get(user.tailscale_network)
-        network.disconnect(sandbox.container_id)
-      rescue Docker::Error::NotFoundError
-        # Network or container already gone
+        incus.remove_device(sandbox.container_id, "ts-nic")
+      rescue IncusClient::NotFoundError
+        # Instance or device already gone
       end
     end
 
     sandbox.update!(tailscale: false)
     sandbox
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     raise Error, "Failed to disconnect sandbox from Tailscale: #{e.message}"
   end
 
@@ -191,93 +190,109 @@ class TailscaleManager
     user = sandbox.user
     return nil unless sandbox.tailscale? && sandbox.container_id.present? && user.tailscale_network.present?
 
-    container = Docker::Container.get(sandbox.container_id)
-    container.json.dig("NetworkSettings", "Networks", user.tailscale_network, "IPAddress")
-  rescue Docker::Error::DockerError
+    state = incus.get_instance_state(sandbox.container_id)
+    # Look for the IP on the Tailscale network NIC (eth1 or the ts-nic device)
+    networks = state["network"] || {}
+    networks.each do |_iface, net_info|
+      addresses = net_info["addresses"] || []
+      addresses.each do |addr|
+        # Find non-link-local IPv4 address on the Tailscale bridge
+        next unless addr["family"] == "inet"
+        next if addr["address"].start_with?("127.")
+        ip = addr["address"]
+        # Match the user's Tailscale subnet
+        subnet_prefix = "172.#{100 + (user.id % 100)}."
+        return ip if ip.start_with?(subnet_prefix)
+      end
+    end
+    nil
+  rescue IncusClient::Error
     nil
   end
 
   private
 
+  def incus
+    @incus ||= IncusClient.new
+  end
+
   def create_and_start_sidecar(user:, auth_key:)
     network_name = "sc-ts-net-#{user.name}"
-    container_name = "sc-ts-#{user.name}"
+    instance_name = "sc-ts-#{user.name}"
     subnet = subnet_for(user)
 
-    pull_image
-    create_network(network_name, subnet)
-    container = create_sidecar(
-      name: container_name,
+    create_ts_network(network_name, subnet)
+    create_sidecar(
+      name: instance_name,
       user: user,
       network: network_name,
       subnet: subnet,
       auth_key: auth_key
     )
-    container.start
+    incus.change_state(instance_name, action: "start")
 
-    [ network_name, container ]
+    [ network_name, instance_name ]
   end
 
-  def fetch_login_url(container, subnet)
-    # tailscale up prints the login URL then blocks until auth completes or timeout.
-    # --reset avoids "requires mentioning all non-default flags" on subsequent calls.
-    out = container.exec([
+  def fetch_login_url(instance_name, subnet, user)
+    result = incus.exec(instance_name, command: [
       "tailscale", "up",
       "--reset",
       "--advertise-routes=#{subnet}",
       "--accept-routes",
-      "--hostname=#{container.json.dig("Config", "Hostname")}",
+      "--hostname=sc-#{user.name}",
       "--timeout=10s"
     ])
-    combined = (out[0].to_a + out[1].to_a).join("\n")
+    combined = "#{result[:stdout]}\n#{result[:stderr]}"
     match = combined.match(LOGIN_URL_PATTERN)
     match[0] if match
-  rescue Docker::Error::DockerError
+  rescue IncusClient::Error
     nil
   end
 
   def cleanup_sidecar(user)
     if user.tailscale_container_id.present?
       begin
-        container = Docker::Container.get(user.tailscale_container_id)
-        container.stop(t: 5) rescue nil
-        container.delete(force: true)
-      rescue Docker::Error::NotFoundError
+        incus.change_state(user.tailscale_container_id, action: "stop", force: true)
+      rescue IncusClient::NotFoundError, IncusClient::Error
+        # Already gone or stopped
+      end
+
+      begin
+        incus.delete_instance(user.tailscale_container_id)
+      rescue IncusClient::NotFoundError
         # Already gone
       end
     end
 
     if user.tailscale_network.present?
       begin
-        Docker::Network.get(user.tailscale_network).delete
-      rescue Docker::Error::NotFoundError
+        incus.delete_network(user.tailscale_network)
+      rescue IncusClient::NotFoundError
         # Already gone
       end
     end
   end
 
   def cleanup_on_failure(user)
-    container_name = "sc-ts-#{user.name}"
+    instance_name = "sc-ts-#{user.name}"
     network_name = "sc-ts-net-#{user.name}"
     begin
-      Docker::Container.get(container_name).delete(force: true)
+      incus.change_state(instance_name, action: "stop", force: true)
     rescue StandardError
       nil
     end
     begin
-      Docker::Network.get(network_name).delete
+      incus.delete_instance(instance_name)
+    rescue StandardError
+      nil
+    end
+    begin
+      incus.delete_network(network_name)
     rescue StandardError
       nil
     end
     user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
-  end
-
-  def pull_image
-    Docker::Image.get(TAILSCALE_IMAGE)
-  rescue Docker::Error::NotFoundError
-    Docker::Image.create("fromImage" => TAILSCALE_IMAGE)
-  rescue Docker::Error::DockerError
-    raise Error, "Failed to pull #{TAILSCALE_IMAGE} — check network connectivity"
   end
 
   def subnet_for(user)
@@ -285,50 +300,56 @@ class TailscaleManager
     "172.#{octet}.0.0/16"
   end
 
-  def create_network(name, subnet)
-    Docker::Network.create(
-      name,
-      "Driver" => "bridge",
-      "IPAM" => {
-        "Config" => [ { "Subnet" => subnet } ]
-      }
-    )
+  def create_ts_network(name, subnet)
+    ip_with_mask = subnet.sub(".0/16", ".1/16")
+    incus.create_network(name, config: {
+      "ipv4.address" => ip_with_mask,
+      "ipv4.nat" => "true",
+      "ipv6.address" => "none"
+    })
+  rescue IncusClient::Error => e
+    # Network may already exist from a previous attempt
+    raise unless e.message.include?("already exists")
   end
 
   def create_sidecar(name:, user:, network:, subnet:, auth_key:)
     state_dir = "#{DATA_DIR}/users/#{user.name}/tailscale"
 
-    config = {
-      "Image" => TAILSCALE_IMAGE,
-      "name" => name,
-      "Hostname" => "sc-#{user.name}",
-      "HostConfig" => {
-        "NetworkMode" => network,
-        "CapAdd" => [ "NET_ADMIN", "SYS_MODULE" ],
-        "Devices" => [
-          { "PathOnHost" => "/dev/net/tun", "PathInContainer" => "/dev/net/tun", "CgroupPermissions" => "rwm" }
-        ],
-        "Sysctls" => { "net.ipv4.ip_forward" => "1" },
-        "Binds" => [ "#{state_dir}:/var/lib/tailscale" ],
-        "RestartPolicy" => { "Name" => "unless-stopped" }
+    cloud_init = if auth_key.present?
+      <<~CLOUD_INIT
+        #cloud-config
+        runcmd:
+          - tailscale up --authkey=#{auth_key} --advertise-routes=#{subnet} --accept-routes --hostname=sc-#{user.name}
+      CLOUD_INIT
+    else
+      <<~CLOUD_INIT
+        #cloud-config
+        runcmd:
+          - systemctl start tailscaled
+      CLOUD_INIT
+    end
+
+    devices = {
+      "ts-net" => {
+        "type" => "nic",
+        "network" => network
+      },
+      "ts-state" => {
+        "type" => "disk",
+        "source" => state_dir,
+        "path" => "/var/lib/tailscale"
       }
     }
 
-    if auth_key.present?
-      # Use containerboot (default entrypoint) with auth key for automated flow
-      config["Env"] = [
-        "TS_STATE_DIR=/var/lib/tailscale",
-        "TS_HOSTNAME=sc-#{user.name}",
-        "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes",
-        "TS_AUTH_ONCE=true",
-        "TS_AUTHKEY=#{auth_key}"
-      ]
-    else
-      # Run tailscaled directly — we manage login via `tailscale up`
-      config["Entrypoint"] = [ "tailscaled", "--state=/var/lib/tailscale/tailscaled.state" ]
-      config["Cmd"] = []
-    end
-
-    Docker::Container.create(config)
+    incus.create_instance(
+      name: name,
+      source: { type: "image", alias: TAILSCALE_IMAGE },
+      config: {
+        "user.user-data" => cloud_init,
+        "security.nesting" => "true"
+      },
+      devices: devices,
+      profiles: [ "default" ]
+    )
   end
 end

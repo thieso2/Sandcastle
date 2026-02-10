@@ -7,18 +7,18 @@ ssh:
 servers:
   web:
     hosts:
-      - 100.106.185.92
+      - 100.79.246.119
     options:
-      group-add: 988
+      group-add: incus-admin
 
 volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
+  - /var/lib/incus/unix.socket:/var/lib/incus/unix.socket
   - /data:/data
   - sandcastle-storage:/rails/storage
 
 proxy:
   ssl: false
-  host: 100.106.185.92
+  host: 100.79.246.119
   app_port: 80
   response_timeout: 60
   healthcheck:
@@ -32,7 +32,7 @@ registry:
 
 env:
   clear:
-    SANDCASTLE_HOST: 100.106.185.92
+    SANDCASTLE_HOST: 100.79.246.119
     SANDCASTLE_DATA_DIR: /data
   secret:
     - SECRET_KEY_BASE

@@ -13,12 +13,12 @@
       <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">System Status</h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         <div>
-          <span class="text-gray-500">Docker</span>
-          <p class="font-mono font-medium"><%= @system_status.dig(:docker, :version) || "N/A" %></p>
+          <span class="text-gray-500">Incus</span>
+          <p class="font-mono font-medium"><%= @system_status.dig(:incus, :version) || "N/A" %></p>
         </div>
         <div>
-          <span class="text-gray-500">Containers</span>
-          <p class="font-mono font-medium"><%= @system_status.dig(:docker, :containers_running) || 0 %> running</p>
+          <span class="text-gray-500">Instances</span>
+          <p class="font-mono font-medium"><%= @system_status.dig(:incus, :instances) || 0 %></p>
         </div>
         <div>
           <span class="text-gray-500">Sandboxes</span>

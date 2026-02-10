@@ -1,7 +1,7 @@
 class SystemStatus
   def call
     {
-      docker: docker_info,
+      incus: incus_info,
       sandboxes: sandbox_counts,
       resources: resource_usage
     }
@@ -9,17 +9,25 @@ class SystemStatus
 
   private
 
-  def docker_info
-    info = Docker.info
+  def incus_info
+    info = incus.server_info
+    env = info["environment"] || {}
     {
-      version: Docker.version["Version"],
-      containers: info["Containers"],
-      containers_running: info["ContainersRunning"],
-      images: info["Images"],
-      runtimes: info["Runtimes"]&.keys
+      version: env["server_version"],
+      storage: env["storage"],
+      kernel: env["kernel_version"],
+      instances: count_instances
     }
-  rescue Docker::Error::DockerError => e
+  rescue IncusClient::Error => e
     { error: e.message }
+  end
+
+  def count_instances
+    # Get a rough count from the instance list
+    info = incus.server_info
+    info.dig("environment", "instance_count") || 0
+  rescue IncusClient::Error
+    0
   end
 
   def sandbox_counts
@@ -33,29 +41,21 @@ class SystemStatus
 
   def resource_usage
     running = Sandbox.running.where.not(container_id: nil)
-    return {} if running.empty?
+    return [] if running.empty?
 
     running.map do |sandbox|
-      container = Docker::Container.get(sandbox.container_id)
-      stats = container.stats(stream: false)
+      state = incus.get_instance_state(sandbox.container_id)
+      memory = state.dig("memory", "usage") || 0
       {
         sandbox: sandbox.full_name,
-        cpu_percent: calculate_cpu_percent(stats),
-        memory_mb: (stats.dig("memory_stats", "usage") || 0) / 1_048_576.0
+        memory_mb: memory / 1_048_576.0
       }
-    rescue Docker::Error::NotFoundError
+    rescue IncusClient::NotFoundError
       { sandbox: sandbox.full_name, error: "not_found" }
     end
   end
 
-  def calculate_cpu_percent(stats)
-    cpu_delta = stats.dig("cpu_stats", "cpu_usage", "total_usage").to_f -
-                stats.dig("precpu_stats", "cpu_usage", "total_usage").to_f
-    system_delta = stats.dig("cpu_stats", "system_cpu_usage").to_f -
-                   stats.dig("precpu_stats", "system_cpu_usage").to_f
-    num_cpus = stats.dig("cpu_stats", "online_cpus") || 1
-
-    return 0.0 if system_delta.zero?
-    ((cpu_delta / system_delta) * num_cpus * 100.0).round(2)
+  def incus
+    @incus ||= IncusClient.new
   end
 end

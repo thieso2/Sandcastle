@@ -6,7 +6,11 @@ module Api
     end
 
     def destroy
-      SandboxManager.new.destroy_snapshot(user: current_user, name: params[:name])
+      SandboxManager.new.destroy_snapshot(
+        user: current_user,
+        name: params[:name],
+        sandbox_name: params[:sandbox]
+      )
       render json: { status: "deleted" }
     end
   end

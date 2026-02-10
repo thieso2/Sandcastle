@@ -12,16 +12,10 @@ module Api
     end
 
     def create
-      image = if params[:snapshot].present?
-        "sc-snap-#{current_user.name}:#{params[:snapshot]}"
-      else
-        params[:image] || "sandcastle-sandbox:latest"
-      end
-
       sandbox = SandboxManager.new.create(
         user: current_user,
         name: params.require(:name),
-        image: image,
+        image: params[:image] || SandboxManager::SANDBOX_IMAGE,
         persistent: params[:persistent] || false,
         tailscale: params[:tailscale] || false
       )

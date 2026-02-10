@@ -1,0 +1,12 @@
+config:
+  security.nesting: "true"
+  security.syscalls.intercept.mknod: "true"
+  security.syscalls.intercept.setxattr: "true"
+description: Sandcastle sandbox profile — nested Docker, SSH access
+devices:
+  root:
+    path: /
+    pool: default
+    size: 50GB
+    type: disk
+name: sandcastle
