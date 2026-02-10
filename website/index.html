@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sandcastle - Shared Docker Sandboxes for Small Teams</title>
+  <meta name="description" content="Self-hosted shared Docker sandbox platform. Give every teammate their own isolated dev environment on a single root server.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏰</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sand: {
+              50: '#fefcf3',
+              100: '#fdf6de',
+              200: '#faeab8',
+              300: '#f6d886',
+              400: '#f0c14e',
+              500: '#e8a820',
+              600: '#cc8514',
+              700: '#a96313',
+              800: '#8a4f17',
+              900: '#724117',
+            },
+            ocean: {
+              50: '#eff8ff',
+              100: '#dbeffe',
+              200: '#bee3fe',
+              300: '#92d3fd',
+              400: '#5fb9fa',
+              500: '#3a9af6',
+              600: '#247ceb',
+              700: '#1c65d8',
+              800: '#1d52af',
+              900: '#1e478a',
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+
+    .gradient-bg {
+      background: linear-gradient(135deg, #1e478a 0%, #1c65d8 40%, #247ceb 70%, #3a9af6 100%);
+    }
+
+    .sand-gradient {
+      background: linear-gradient(135deg, #f6d886 0%, #f0c14e 50%, #e8a820 100%);
+    }
+
+    .feature-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+    }
+
+    .code-block {
+      background: #1a1b26;
+      color: #a9b1d6;
+    }
+    .code-block .prompt { color: #7aa2f7; }
+    .code-block .cmd { color: #9ece6a; }
+    .code-block .flag { color: #bb9af7; }
+    .code-block .comment { color: #565f89; }
+    .code-block .output { color: #73daca; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    .float-animation { animation: float 6s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+
+  <!-- Navigation -->
+  <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-lg border-b border-gray-100 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-3">
+        <svg width="36" height="36" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="120" height="120" rx="24" fill="url(#logo-gradient)"/>
+          <!-- Castle towers -->
+          <rect x="24" y="32" width="14" height="56" rx="2" fill="white" opacity="0.95"/>
+          <rect x="82" y="32" width="14" height="56" rx="2" fill="white" opacity="0.95"/>
+          <rect x="48" y="42" width="24" height="46" rx="2" fill="white" opacity="0.95"/>
+          <!-- Battlements -->
+          <rect x="22" y="26" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+          <rect x="34" y="26" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+          <rect x="80" y="26" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+          <rect x="92" y="26" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+          <rect x="46" y="36" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+          <rect x="56" y="36" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+          <rect x="68" y="36" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+          <!-- Gate -->
+          <path d="M54 88V72a6 6 0 0 1 12 0v16" fill="#1c65d8" opacity="0.6"/>
+          <!-- Sand base -->
+          <path d="M14 88 C14 88 30 84 60 84 C90 84 106 88 106 88 L106 96 C106 96 90 92 60 92 C30 92 14 96 14 96 Z" fill="#f0c14e" opacity="0.9"/>
+          <defs>
+            <linearGradient id="logo-gradient" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#1e478a"/>
+              <stop offset="1" stop-color="#3a9af6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="text-xl font-bold text-gray-900">Sandcastle</span>
+      </a>
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#features" class="text-sm text-gray-600 hover:text-ocean-700 transition-colors">Features</a>
+        <a href="#setup" class="text-sm text-gray-600 hover:text-ocean-700 transition-colors">Setup</a>
+        <a href="#architecture" class="text-sm text-gray-600 hover:text-ocean-700 transition-colors">How It Works</a>
+        <a href="https://github.com/sandcastle" class="inline-flex items-center gap-2 bg-gray-900 text-white text-sm font-medium px-5 py-2.5 rounded-lg hover:bg-gray-800 transition-colors">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="gradient-bg pt-32 pb-20 md:pt-40 md:pb-28 relative overflow-hidden">
+    <!-- Decorative elements -->
+    <div class="absolute inset-0 overflow-hidden">
+      <div class="absolute -top-24 -right-24 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-ocean-400/10 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-6 relative z-10">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white/90 text-sm font-medium px-4 py-2 rounded-full mb-8 border border-white/10">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+          Built for small, trusted teams
+        </div>
+        <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-6">
+          Shared Docker Sandboxes<br>
+          <span class="text-sand-300">on Your Own Server</span>
+        </h1>
+        <p class="text-lg md:text-xl text-white/80 leading-relaxed mb-10 max-w-2xl">
+          Give every teammate their own isolated dev environment with SSH access and a full Docker daemon &mdash; all running on a single root server. Self-hosted, simple, and built for teams who trust each other.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="#setup" class="inline-flex items-center justify-center gap-2 sand-gradient text-gray-900 font-semibold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity text-lg">
+            Get Started
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+          </a>
+          <a href="#architecture" class="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white font-semibold px-8 py-4 rounded-xl hover:bg-white/20 transition-colors text-lg border border-white/20">
+            How It Works
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust banner -->
+  <section class="bg-sand-50 border-b border-sand-200">
+    <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-center gap-4 text-center">
+      <svg class="w-6 h-6 text-sand-600 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"/></svg>
+      <p class="text-sand-800 font-medium">
+        Designed for small teams of 2&ndash;10 people sharing a dedicated root server &mdash; like a Hetzner dedicated box, OVH bare-metal, or any Linux host with Docker.
+      </p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-20 md:py-28 bg-white">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Everything Your Team Needs</h2>
+        <p class="text-lg text-gray-500 max-w-2xl mx-auto">Full isolation, full power. Each sandbox is a real Linux environment with root access and its own Docker daemon.</p>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Feature 1 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">True Container Isolation</h3>
+          <p class="text-gray-500 leading-relaxed">Each sandbox runs in a Sysbox container &mdash; real isolation with its own PID/network/mount namespaces. No stepping on each other's toes.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Docker Inside Docker</h3>
+          <p class="text-gray-500 leading-relaxed">Every sandbox includes a working Docker daemon. Build images, run compose stacks, test deployments &mdash; all inside your sandbox.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">SSH Access</h3>
+          <p class="text-gray-500 leading-relaxed">Connect via SSH with your own keys. Use VS Code Remote, JetBrains Gateway, or plain terminal. Each sandbox gets a unique port.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Persistent Storage</h3>
+          <p class="text-gray-500 leading-relaxed">User home directories and workspace volumes survive container restarts. Your dotfiles, repos, and data stay put.</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8.25V18a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 18V8.25m-18 0V6a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 6v2.25m-18 0h18M5.25 6h.008v.008H5.25V6zM7.5 6h.008v.008H7.5V6zm2.25 0h.008v.008H9.75V6z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Web Dashboard</h3>
+          <p class="text-gray-500 leading-relaxed">A clean Rails-powered admin UI to create, start, stop, and monitor sandboxes. See container stats and manage users at a glance.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">CLI Tool</h3>
+          <p class="text-gray-500 leading-relaxed">A fast Go CLI to manage everything from your terminal. Create sandboxes, SSH in, snapshot and restore &mdash; all in one command.</p>
+        </div>
+
+        <!-- Feature 7 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.348 14.651a3.75 3.75 0 010-5.303m5.304 0a3.75 3.75 0 010 5.303m-7.425 2.122a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.808-3.808-9.98 0-13.789m13.788 0c3.808 3.808 3.808 9.981 0 13.79M12 12.75h.008v.008H12v-.008z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Tailscale Networking</h3>
+          <p class="text-gray-500 leading-relaxed">Optional per-user Tailscale sidecar for private mesh networking. Access your sandbox from anywhere without exposing ports.</p>
+        </div>
+
+        <!-- Feature 8 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Snapshot &amp; Restore</h3>
+          <p class="text-gray-500 leading-relaxed">Save the state of any sandbox as a snapshot. Roll back to a known-good state or clone an environment in seconds.</p>
+        </div>
+
+        <!-- Feature 9 -->
+        <div class="feature-card bg-gray-50 rounded-2xl p-7 border border-gray-100">
+          <div class="w-12 h-12 rounded-xl bg-ocean-100 text-ocean-600 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Fully Self-Hosted</h3>
+          <p class="text-gray-500 leading-relaxed">No cloud dependency, no SaaS fees. Run on your own hardware. Your code stays on your server, period.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Sandcastle -->
+  <section class="py-20 md:py-28 bg-gray-50 border-y border-gray-100">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="grid lg:grid-cols-2 gap-16 items-center">
+        <div>
+          <h2 class="text-3xl md:text-4xl font-bold mb-6">Why Sandcastle?</h2>
+          <p class="text-lg text-gray-500 mb-8 leading-relaxed">
+            Cloud dev environments are great &mdash; until you see the bill. If your team already has a powerful dedicated server (or wants to rent one), Sandcastle turns it into a shared development platform in minutes.
+          </p>
+          <div class="space-y-5">
+            <div class="flex gap-4">
+              <div class="w-8 h-8 rounded-lg bg-ocean-100 text-ocean-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold mb-1">Fraction of the cost</h4>
+                <p class="text-gray-500 text-sm">A Hetzner AX102 (128 GB RAM, 2x 1TB NVMe) costs ~$130/mo. That's $13/person for a 10-person team with way more power than any cloud dev environment.</p>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="w-8 h-8 rounded-lg bg-ocean-100 text-ocean-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold mb-1">Full control</h4>
+                <p class="text-gray-500 text-sm">You own the server, you own the data. No vendor lock-in, no telemetry, no surprises. Customize the sandbox image to your exact needs.</p>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="w-8 h-8 rounded-lg bg-ocean-100 text-ocean-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold mb-1">Real Linux, real Docker</h4>
+                <p class="text-gray-500 text-sm">Not a stripped-down container or a browser IDE. You get a full Ubuntu environment with root, systemd, and a real Docker daemon. Use any editor, any tool.</p>
+              </div>
+            </div>
+            <div class="flex gap-4">
+              <div class="w-8 h-8 rounded-lg bg-ocean-100 text-ocean-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              </div>
+              <div>
+                <h4 class="font-semibold mb-1">Built for trust</h4>
+                <p class="text-gray-500 text-sm">Sandcastle assumes users are trusted teammates, not adversaries. This keeps the system simple and the overhead low. Perfect for co-founders, small startups, and dev collectives.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Illustration -->
+        <div class="float-animation">
+          <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+            <div class="bg-gray-800 px-4 py-3 flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-red-400"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+              <div class="w-3 h-3 rounded-full bg-green-400"></div>
+              <span class="text-gray-400 text-xs ml-2 font-mono">terminal</span>
+            </div>
+            <div class="code-block p-6 font-mono text-sm leading-relaxed">
+              <div><span class="comment"># Create a sandbox for a teammate</span></div>
+              <div><span class="prompt">$</span> <span class="cmd">sandcastle</span> create <span class="flag">--name</span> alice</div>
+              <div class="output">Creating sandbox "alice"...</div>
+              <div class="output">  SSH port: 2201</div>
+              <div class="output">  Volume: /workspace</div>
+              <div class="output">  Docker: ready</div>
+              <div class="output mt-1">Sandbox "alice" is running.</div>
+              <div class="mt-4"><span class="comment"># SSH in from anywhere</span></div>
+              <div><span class="prompt">$</span> <span class="cmd">sandcastle</span> ssh alice</div>
+              <div class="output">alice@sandbox-alice:~$</div>
+              <div class="mt-4"><span class="comment"># Snapshot before risky changes</span></div>
+              <div><span class="prompt">$</span> <span class="cmd">sandcastle</span> snapshot <span class="flag">--name</span> before-refactor</div>
+              <div class="output">Snapshot "before-refactor" saved.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Setup -->
+  <section id="setup" class="py-20 md:py-28 bg-white">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Up and Running in 5 Minutes</h2>
+        <p class="text-lg text-gray-500 max-w-2xl mx-auto">One bootstrap script installs everything. Three commands later, your team has sandboxes.</p>
+      </div>
+
+      <div class="max-w-3xl mx-auto">
+        <div class="space-y-8">
+          <!-- Step 1 -->
+          <div class="flex gap-6">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-ocean-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">1</div>
+              <div class="w-px h-full bg-ocean-200 mt-2"></div>
+            </div>
+            <div class="pb-8">
+              <h3 class="text-lg font-semibold mb-2">Bootstrap Your Server</h3>
+              <p class="text-gray-500 mb-4">SSH into your fresh Linux server and run the bootstrap script. It installs Docker, Sysbox, Caddy (for HTTPS), and configures the firewall.</p>
+              <div class="code-block rounded-xl p-5 font-mono text-sm">
+                <div><span class="prompt">root@server:~#</span> <span class="cmd">curl</span> -sSL https://get.sandcastle.rocks | <span class="cmd">bash</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="flex gap-6">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-ocean-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">2</div>
+              <div class="w-px h-full bg-ocean-200 mt-2"></div>
+            </div>
+            <div class="pb-8">
+              <h3 class="text-lg font-semibold mb-2">Deploy Sandcastle</h3>
+              <p class="text-gray-500 mb-4">Use Docker Compose or Kamal to deploy the Rails app. Set your domain and secret key, and you're live.</p>
+              <div class="code-block rounded-xl p-5 font-mono text-sm">
+                <div><span class="prompt">root@server:~#</span> <span class="cmd">docker compose</span> up <span class="flag">-d</span></div>
+                <div class="output mt-1">sandcastle-web   | Listening on 0.0.0.0:3000</div>
+                <div class="output">sandcastle-jobs  | SolidQueue started</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex gap-6">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-ocean-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">3</div>
+              <div class="w-px h-full bg-ocean-200 mt-2"></div>
+            </div>
+            <div class="pb-8">
+              <h3 class="text-lg font-semibold mb-2">Create Sandboxes</h3>
+              <p class="text-gray-500 mb-4">Use the web UI or CLI to create sandboxes for your team. Each person gets their own isolated environment with SSH access, a Docker daemon, and persistent storage.</p>
+              <div class="code-block rounded-xl p-5 font-mono text-sm">
+                <div><span class="prompt">$</span> <span class="cmd">sandcastle</span> create <span class="flag">--name</span> alice</div>
+                <div><span class="prompt">$</span> <span class="cmd">sandcastle</span> create <span class="flag">--name</span> bob</div>
+                <div><span class="prompt">$</span> <span class="cmd">sandcastle</span> list</div>
+                <div class="output mt-1">NAME    STATUS    SSH PORT    DOCKER</div>
+                <div class="output">alice   running   2201        ready</div>
+                <div class="output">bob     running   2202        ready</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="flex gap-6">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-lg font-semibold mb-2 text-green-700">Done! Start building.</h3>
+              <p class="text-gray-500">Your teammates can now SSH in, spin up Docker containers, and work in their own isolated environments. All on one server, for a fraction of the cloud cost.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section id="architecture" class="py-20 md:py-28 bg-gray-50 border-y border-gray-100">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
+        <p class="text-lg text-gray-500 max-w-2xl mx-auto">A simple, proven architecture built on Docker and Sysbox. No magic, no black boxes.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 md:p-12 max-w-4xl mx-auto">
+        <div class="grid md:grid-cols-3 gap-8 text-center">
+          <!-- User Layer -->
+          <div>
+            <div class="text-sm font-semibold text-ocean-600 uppercase tracking-wide mb-4">Users</div>
+            <div class="space-y-3">
+              <div class="bg-ocean-50 border border-ocean-200 rounded-xl p-4">
+                <div class="text-2xl mb-1">
+                  <svg class="w-8 h-8 mx-auto text-ocean-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"/></svg>
+                </div>
+                <div class="font-medium text-sm">CLI / SSH</div>
+              </div>
+              <div class="bg-ocean-50 border border-ocean-200 rounded-xl p-4">
+                <div class="text-2xl mb-1">
+                  <svg class="w-8 h-8 mx-auto text-ocean-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 003 12c0-1.605.42-3.113 1.157-4.418"/></svg>
+                </div>
+                <div class="font-medium text-sm">Web Dashboard</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Platform Layer -->
+          <div>
+            <div class="text-sm font-semibold text-sand-600 uppercase tracking-wide mb-4">Platform</div>
+            <div class="space-y-3">
+              <div class="bg-sand-50 border border-sand-200 rounded-xl p-4">
+                <div class="text-2xl mb-1">
+                  <svg class="w-8 h-8 mx-auto text-sand-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"/></svg>
+                </div>
+                <div class="font-medium text-sm">Rails API</div>
+                <div class="text-xs text-gray-400 mt-1">Auth, REST, Jobs</div>
+              </div>
+              <div class="bg-sand-50 border border-sand-200 rounded-xl p-4">
+                <div class="text-2xl mb-1">
+                  <svg class="w-8 h-8 mx-auto text-sand-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+                </div>
+                <div class="font-medium text-sm">SQLite</div>
+                <div class="text-xs text-gray-400 mt-1">DB, Queue, Cache</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sandbox Layer -->
+          <div>
+            <div class="text-sm font-semibold text-green-600 uppercase tracking-wide mb-4">Sandboxes</div>
+            <div class="space-y-3">
+              <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div class="text-2xl mb-1">
+                  <svg class="w-8 h-8 mx-auto text-green-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25"/></svg>
+                </div>
+                <div class="font-medium text-sm">Sysbox Containers</div>
+                <div class="text-xs text-gray-400 mt-1">SSH + Docker-in-Docker</div>
+              </div>
+              <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+                <div class="text-2xl mb-1">
+                  <svg class="w-8 h-8 mx-auto text-green-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg>
+                </div>
+                <div class="font-medium text-sm">Persistent Volumes</div>
+                <div class="text-xs text-gray-400 mt-1">Home + Workspace</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Arrows -->
+        <div class="hidden md:flex justify-center items-center gap-4 mt-8 text-gray-300">
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <span class="text-xs text-gray-400 font-medium">All running on a single Linux host</span>
+          <div class="flex-1 h-px bg-gray-200"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ideal for -->
+  <section class="py-20 md:py-28 bg-white">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Perfect For</h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-2xl bg-ocean-50 text-ocean-500 flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Small Startups</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">2-10 devs who want powerful remote dev environments without the cloud markup. Split a Hetzner box and save thousands per year.</p>
+        </div>
+
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-2xl bg-ocean-50 text-ocean-500 flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Teaching &amp; Workshops</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Give each student a pre-configured Linux environment with Docker. No more "works on my machine" or fighting with local installs.</p>
+        </div>
+
+        <div class="text-center">
+          <div class="w-16 h-16 rounded-2xl bg-ocean-50 text-ocean-500 flex items-center justify-center mx-auto mb-5">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>
+          </div>
+          <h3 class="text-lg font-semibold mb-2">Dev Collectives</h3>
+          <p class="text-gray-500 text-sm leading-relaxed">Friends or freelancers pooling resources on shared hardware. Everyone gets root in their sandbox, nobody steps on each other.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="gradient-bg py-20 md:py-28 relative overflow-hidden">
+    <div class="absolute inset-0 overflow-hidden">
+      <div class="absolute -top-24 -right-24 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+      <div class="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-ocean-400/10 rounded-full blur-3xl"></div>
+    </div>
+    <div class="max-w-3xl mx-auto px-6 text-center relative z-10">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Your Server. Your Sandboxes.<br>Your Rules.</h2>
+      <p class="text-lg text-white/80 mb-10 max-w-xl mx-auto">Open source, self-hosted, and free forever. Grab a dedicated server and give your team the dev environments they deserve.</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="https://github.com/sandcastle" class="inline-flex items-center justify-center gap-2 sand-gradient text-gray-900 font-semibold px-8 py-4 rounded-xl hover:opacity-90 transition-opacity text-lg">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          View on GitHub
+        </a>
+        <a href="#setup" class="inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm text-white font-semibold px-8 py-4 rounded-xl hover:bg-white/20 transition-colors text-lg border border-white/20">
+          Quick Start Guide
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-400 py-12">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div class="flex items-center gap-3">
+          <svg width="28" height="28" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="120" height="120" rx="24" fill="url(#logo-gradient-footer)"/>
+            <rect x="24" y="32" width="14" height="56" rx="2" fill="white" opacity="0.95"/>
+            <rect x="82" y="32" width="14" height="56" rx="2" fill="white" opacity="0.95"/>
+            <rect x="48" y="42" width="24" height="46" rx="2" fill="white" opacity="0.95"/>
+            <rect x="22" y="26" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+            <rect x="34" y="26" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+            <rect x="80" y="26" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+            <rect x="92" y="26" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+            <rect x="46" y="36" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+            <rect x="56" y="36" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+            <rect x="68" y="36" width="6" height="10" rx="1" fill="white" opacity="0.95"/>
+            <path d="M54 88V72a6 6 0 0 1 12 0v16" fill="#1c65d8" opacity="0.6"/>
+            <path d="M14 88 C14 88 30 84 60 84 C90 84 106 88 106 88 L106 96 C106 96 90 92 60 92 C30 92 14 96 14 96 Z" fill="#f0c14e" opacity="0.9"/>
+            <defs>
+              <linearGradient id="logo-gradient-footer" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#1e478a"/>
+                <stop offset="1" stop-color="#3a9af6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="text-white font-semibold">Sandcastle</span>
+        </div>
+        <div class="flex items-center gap-6 text-sm">
+          <a href="https://github.com/sandcastle" class="hover:text-white transition-colors">GitHub</a>
+          <a href="#features" class="hover:text-white transition-colors">Features</a>
+          <a href="#setup" class="hover:text-white transition-colors">Setup</a>
+          <a href="#architecture" class="hover:text-white transition-colors">Architecture</a>
+        </div>
+        <div class="text-sm">
+          Open source under MIT License
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

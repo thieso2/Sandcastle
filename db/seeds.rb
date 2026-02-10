@@ -1,4 +1,4 @@
-admin = User.find_or_create_by!(email_address: "admin@sandcastle.dev") do |u|
+admin = User.find_or_create_by!(email_address: "admin@sandcastle.rocks") do |u|
   u.name = "admin"
   u.password = "sandcastle"
   u.password_confirmation = "sandcastle"

@@ -57,7 +57,7 @@ mkdir -p /data/users
 mkdir -p /data/sandboxes
 
 # 6. Write Caddyfile (replace DOMAIN with your actual domain)
-DOMAIN="${SANDCASTLE_HOST:-sandcastle.example.com}"
+DOMAIN="${SANDCASTLE_HOST:-sandcastle.rocks}"
 cat > /etc/caddy/Caddyfile << EOF
 ${DOMAIN} {
     reverse_proxy localhost:3000
