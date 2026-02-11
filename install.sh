@@ -190,10 +190,6 @@ if [ "$FRESH_INSTALL" = true ]; then
   read -rp "Docker network subnet [$SUGGESTED_SUBNET]: " INPUT_SUBNET
   SANDCASTLE_SUBNET="${INPUT_SUBNET:-$SUGGESTED_SUBNET}"
 
-  # Tailscale (optional)
-  echo ""
-  read -rp "Set up Tailscale now? (auth key or leave empty to skip): " TS_AUTHKEY
-
   # Generate secrets
   SECRET_KEY_BASE=$(openssl rand -hex 64)
 
@@ -462,7 +458,9 @@ if [ "$FRESH_INSTALL" = true ]; then
     -e SANDCASTLE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
     web ./bin/rails db:seed
 
-  # Set up Tailscale if auth key was provided
+  # Tailscale (optional — asked now that the DB is ready)
+  echo ""
+  read -rp "Set up Tailscale? (paste auth key or leave empty to skip): " TS_AUTHKEY
   if [ -n "${TS_AUTHKEY:-}" ]; then
     info "Enabling Tailscale..."
     docker compose --env-file .env exec -T -e TS_AUTHKEY="$TS_AUTHKEY" web ./bin/rails runner \
