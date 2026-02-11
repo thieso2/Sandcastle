@@ -250,36 +250,26 @@ if [ "$RESET" = true ]; then
     docker network rm sandcastle-web 2>/dev/null || true
 
     # Uninstall Dockyard if present
-    if [ -S "${DOCKYARD_ROOT}/docker.sock" ] || systemctl list-unit-files "${DOCKYARD_DOCKER_PREFIX}dockerd.service" &>/dev/null; then
+    if [ -S "${DOCKYARD_ROOT}/docker.sock" ] || [ -f "${DOCKYARD_ROOT}/env.dockyard" ]; then
       info "Uninstalling Dockyard..."
-      DOCKYARD_TMP="/tmp/dockyard-uninstall"
-      rm -rf "$DOCKYARD_TMP"
-      mkdir -p "$DOCKYARD_TMP"
-      if wget -q "https://github.com/thieso2/dockyard/archive/refs/heads/master.tar.gz" -O /tmp/dockyard.tar.gz 2>/dev/null; then
-        tar -xzf /tmp/dockyard.tar.gz -C "$DOCKYARD_TMP"
-        rm /tmp/dockyard.tar.gz
-        export DOCKYARD_ROOT DOCKYARD_DOCKER_PREFIX DOCKYARD_BRIDGE_CIDR
-        export DOCKYARD_FIXED_CIDR DOCKYARD_POOL_BASE DOCKYARD_POOL_SIZE
-        DOCKYARD_SRC="$(ls -d "$DOCKYARD_TMP"/dockyard-*/)"
-        touch "$DOCKYARD_SRC/env.sandcastle"
-        cd "$DOCKYARD_SRC"
-        bash ./uninstall.sh sandcastle || true
-        cd /
+      if wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh 2>/dev/null; then
+        DOCKYARD_ENV="${DOCKYARD_ROOT}/env.dockyard" bash /tmp/dockyard.sh uninstall || true
+        rm -f /tmp/dockyard.sh
       else
         # Fallback: manual cleanup if download fails
-        systemctl stop "${DOCKYARD_DOCKER_PREFIX}dockerd" 2>/dev/null || true
-        systemctl disable "${DOCKYARD_DOCKER_PREFIX}dockerd" 2>/dev/null || true
-        rm -f "/etc/systemd/system/${DOCKYARD_DOCKER_PREFIX}dockerd.service"
+        systemctl stop "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
+        systemctl disable "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
+        rm -f "/etc/systemd/system/${DOCKYARD_DOCKER_PREFIX}docker.service"
         systemctl daemon-reload 2>/dev/null || true
+        rm -rf "${DOCKYARD_ROOT}"
       fi
-      rm -rf "$DOCKYARD_TMP"
       ok "Dockyard uninstalled"
     fi
 
     # Remove data directory
     rm -rf "$FOUND_HOME"
     # Also remove DOCKYARD_ROOT if it differs from FOUND_HOME
-    if [ "$DOCKYARD_ROOT" != "$FOUND_HOME" ]; then
+    if [ "$DOCKYARD_ROOT" != "$FOUND_HOME" ] && [ -d "$DOCKYARD_ROOT" ]; then
       rm -rf "$DOCKYARD_ROOT"
     fi
 
@@ -330,34 +320,24 @@ else
     ok "Dockyard already installed"
   else
     info "Installing Dockyard (isolated Docker + Sysbox)..."
-    DOCKYARD_TMP="/tmp/dockyard-install"
-    rm -rf "$DOCKYARD_TMP"
-    mkdir -p "$DOCKYARD_TMP"
-    wget -q "https://github.com/thieso2/dockyard/archive/refs/heads/master.tar.gz" -O /tmp/dockyard.tar.gz
-    tar -xzf /tmp/dockyard.tar.gz -C "$DOCKYARD_TMP"
-    rm /tmp/dockyard.tar.gz
+    wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh
 
-    # Export vars so dockyard's install.sh picks them up from the environment
-    export DOCKYARD_ROOT DOCKYARD_DOCKER_PREFIX DOCKYARD_BRIDGE_CIDR
-    export DOCKYARD_FIXED_CIDR DOCKYARD_POOL_BASE DOCKYARD_POOL_SIZE
+    # Write temp env file for dockyard
+    DOCKYARD_ENV_TMP=$(mktemp)
+    cat > "$DOCKYARD_ENV_TMP" <<DYEOF
+DOCKYARD_ROOT=${DOCKYARD_ROOT}
+DOCKYARD_DOCKER_PREFIX=${DOCKYARD_DOCKER_PREFIX}
+DOCKYARD_BRIDGE_CIDR=${DOCKYARD_BRIDGE_CIDR}
+DOCKYARD_FIXED_CIDR=${DOCKYARD_FIXED_CIDR}
+DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}
+DOCKYARD_POOL_SIZE=${DOCKYARD_POOL_SIZE}
+DYEOF
 
-    DOCKYARD_SRC="$(ls -d "$DOCKYARD_TMP"/dockyard-*/)"
-    touch "$DOCKYARD_SRC/env.sandcastle"
-    cd "$DOCKYARD_SRC"
-    bash ./install.sh sandcastle
-    cd /
-    rm -rf "$DOCKYARD_TMP"
+    DOCKYARD_ENV="$DOCKYARD_ENV_TMP" bash /tmp/dockyard.sh install
+    rm -f "$DOCKYARD_ENV_TMP" /tmp/dockyard.sh
 
-    # Wait for Dockyard socket to be ready
-    info "Waiting for Dockyard daemon..."
-    for i in $(seq 1 30); do
-      if [ -S "${DOCKYARD_ROOT}/docker.sock" ]; then
-        break
-      fi
-      sleep 1
-    done
     if [ ! -S "${DOCKYARD_ROOT}/docker.sock" ]; then
-      error "Dockyard socket not found at ${DOCKYARD_ROOT}/docker.sock after 30s"
+      error "Dockyard socket not found at ${DOCKYARD_ROOT}/docker.sock"
       exit 1
     fi
     ok "Dockyard installed"
