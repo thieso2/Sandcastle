@@ -59,9 +59,20 @@ try:
                 break
     cfg = json.load(urllib.request.urlopen(
         urllib.request.Request(f'https://ghcr.io/v2/thieso2/{repo}/blobs/{m[\"config\"][\"digest\"]}', headers=h)))
-    from datetime import datetime
-    dt = datetime.fromisoformat(cfg['created'].replace('Z', '+00:00'))
-    print(f'  ghcr.io/thieso2/{repo}:latest    built {dt.strftime(\"%Y-%m-%d %H:%M UTC\")}')
+    import re
+    from datetime import datetime, timezone
+    # Truncate nanoseconds to microseconds (Python handles max 6 digits)
+    ts = re.sub(r'(\.\d{6})\d+', r'\1', cfg['created']).replace('Z', '+00:00')
+    dt = datetime.fromisoformat(ts)
+    secs = int((datetime.now(timezone.utc) - dt).total_seconds())
+    if secs < 0: secs = 0
+    if secs >= 86400:
+        ago = f'{secs // 86400}d ago'
+    elif secs >= 3600:
+        ago = f'{secs // 3600}h ago'
+    else:
+        ago = f'{max(1, secs // 60)}m ago'
+    print(f'  ghcr.io/thieso2/{repo}:latest    built {dt.strftime(\"%Y-%m-%d %H:%M UTC\")} ({ago})')
 except Exception:
     print(f'  ghcr.io/thieso2/{repo}:latest    (unable to fetch build info)')
 " 2>/dev/null || echo "  ghcr.io/thieso2/${repo}:latest"
