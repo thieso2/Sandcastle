@@ -32,14 +32,14 @@ class User < ApplicationRecord
   end
 
   def tailscale_enabled?
-    tailscale_state == "enabled"
+    respond_to?(:tailscale_state) && tailscale_state == "enabled"
   end
 
   def tailscale_pending?
-    tailscale_state == "pending"
+    respond_to?(:tailscale_state) && tailscale_state == "pending"
   end
 
   def tailscale_disabled?
-    tailscale_state == "disabled"
+    !respond_to?(:tailscale_state) || tailscale_state == "disabled"
   end
 end

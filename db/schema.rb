@@ -94,6 +94,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_204820) do
     t.string "status", default: "active", null: false
     t.string "tailscale_auth_key"
     t.boolean "tailscale_auto_connect", default: false, null: false
+    t.string "tailscale_container_id"
+    t.string "tailscale_network"
+    t.string "tailscale_state", default: "disabled", null: false
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["name"], name: "index_users_on_name", unique: true
