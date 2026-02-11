@@ -1,0 +1,57 @@
+# Sandcastle install configuration
+# Source this file or pass via: install.sh --config install-defaults
+# Any value set here skips the corresponding interactive prompt.
+
+# ─── Sandcastle paths & images ───────────────────────────────────────────────
+
+# Home directory for Sandcastle (config, data, compose file)
+SANDCASTLE_HOME="/sandcastle"
+
+# Container images
+APP_IMAGE="ghcr.io/thieso2/sandcastle:latest"
+SANDBOX_IMAGE="ghcr.io/thieso2/sandcastle-sandbox:latest"
+
+# ─── System user ─────────────────────────────────────────────────────────────
+
+# Unix user/group that owns Sandcastle data directories
+SANDCASTLE_USER="sandcastle"
+SANDCASTLE_UID="220568"
+SANDCASTLE_GID="220568"
+
+# ─── Network & TLS ──────────────────────────────────────────────────────────
+
+# Domain name (leave empty for IP-only / self-signed mode)
+# SANDCASTLE_HOST="sandbox.example.com"
+
+# TLS mode: "letsencrypt" or "selfsigned" (auto-set based on SANDCASTLE_HOST)
+# SANDCASTLE_TLS_MODE="selfsigned"
+
+# Email for Let's Encrypt (required when TLS mode is letsencrypt)
+# ACME_EMAIL="admin@example.com"
+
+# Docker network subnet for the sandcastle-web bridge (auto-detected if empty)
+# SANDCASTLE_SUBNET="172.20.5.0/24"
+
+# ─── Admin account ──────────────────────────────────────────────────────────
+
+# Set all three to skip interactive prompts during install
+# SANDCASTLE_ADMIN_EMAIL="admin@example.com"
+# SANDCASTLE_ADMIN_PASSWORD="changeme"
+# SANDCASTLE_ADMIN_SSH_KEY="ssh-ed25519 AAAA..."
+
+# ─── Docker runtime ─────────────────────────────────────────────────────────
+
+# Set to "true" to use the system Docker daemon + Sysbox instead of Dockyard
+USE_SYSTEM_DOCKER="false"
+
+# Sysbox version (only used with USE_SYSTEM_DOCKER=true)
+SYSBOX_VERSION="0.6.6"
+
+# ─── Dockyard settings (only used with USE_SYSTEM_DOCKER=false) ─────────────
+
+DOCKYARD_ROOT="/sandcastle"
+DOCKYARD_DOCKER_PREFIX="sc_"
+DOCKYARD_BRIDGE_CIDR="172.42.89.1/24"
+DOCKYARD_FIXED_CIDR="172.89.91.0/24"
+DOCKYARD_POOL_BASE="172.89.0.0/16"
+DOCKYARD_POOL_SIZE="24"
