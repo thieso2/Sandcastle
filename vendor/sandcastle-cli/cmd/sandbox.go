@@ -290,24 +290,45 @@ var stopCmd = &cobra.Command{
 }
 
 var useCmd = &cobra.Command{
-	Use:   "use <name>",
-	Short: "Set active sandbox or switch server",
-	Long: `Set the active sandbox for the current directory, or switch the active server
-if the name matches a configured server alias or URL.
+	Use:   "use [name]",
+	Short: "Show or set active server/sandbox",
+	Long: `Without arguments, shows the current server and active sandbox.
+With an argument, switches the active server or sandbox.
 
 Examples:
-  sandcastle use my-sandbox     # Set active sandbox
-  sandcastle use prod            # Switch to server "prod" (if configured)`,
-	Args: cobra.ExactArgs(1),
+  sandcastle use                  # Show current server and sandbox
+  sandcastle use my-sandbox       # Set active sandbox
+  sandcastle use prod             # Switch to server "prod" (if configured)`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := args[0]
-
-		// Check if name matches a server alias or URL
 		cfg, err := config.Load()
 		if err != nil {
 			return err
 		}
 
+		// No args: list all servers, highlight active
+		if len(args) == 0 {
+			if len(cfg.Servers) == 0 {
+				fmt.Println("No servers configured — run: sandcastle login <url>")
+			} else {
+				fmt.Println("Servers:")
+				for alias, srv := range cfg.Servers {
+					if alias == cfg.CurrentServer {
+						fmt.Printf("  \033[1m* %s\033[0m (%s)\n", alias, srv.URL)
+					} else {
+						fmt.Printf("    %s (%s)\n", alias, srv.URL)
+					}
+				}
+			}
+			if active := config.ActiveSandbox(); active != "" {
+				fmt.Printf("\nSandbox: %s\n", active)
+			}
+			return nil
+		}
+
+		name := args[0]
+
+		// Check if name matches a server alias or URL
 		if _, ok := cfg.Servers[name]; ok {
 			cfg.CurrentServer = name
 			if err := config.Save(cfg); err != nil {

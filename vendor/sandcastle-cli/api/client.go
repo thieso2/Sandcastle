@@ -7,9 +7,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/sandcastle/cli/internal/config"
 )
+
+func verbose() bool {
+	v := strings.ToLower(os.Getenv("SANDCASTLE_VERBOSE"))
+	return v == "1" || v == "true"
+}
+
+func logVerbose(format string, args ...any) {
+	if verbose() {
+		fmt.Fprintf(os.Stderr, "\033[2m"+format+"\033[0m\n", args...)
+	}
+}
 
 type Client struct {
 	BaseURL    string
@@ -37,6 +50,7 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	logVerbose("server: %s (%s)", cfg.CurrentServer, srv.URL)
 	return &Client{
 		BaseURL:    srv.URL,
 		Token:      srv.Token,
@@ -54,12 +68,19 @@ func NewClientWithToken(baseURL, token string, insecure bool) *Client {
 
 func (c *Client) do(method, path string, body any, result any) error {
 	var bodyReader io.Reader
+	var reqData []byte
 	if body != nil {
-		data, err := json.Marshal(body)
+		var err error
+		reqData, err = json.Marshal(body)
 		if err != nil {
 			return fmt.Errorf("marshaling request: %w", err)
 		}
-		bodyReader = bytes.NewReader(data)
+		bodyReader = bytes.NewReader(reqData)
+	}
+
+	logVerbose("→ %s %s%s", method, c.BaseURL, path)
+	if len(reqData) > 0 {
+		logVerbose("  request: %s", string(reqData))
 	}
 
 	req, err := http.NewRequest(method, c.BaseURL+path, bodyReader)
@@ -83,6 +104,11 @@ func (c *Client) do(method, path string, body any, result any) error {
 		return fmt.Errorf("reading response: %w", err)
 	}
 
+	logVerbose("← %d (%d bytes)", resp.StatusCode, len(respBody))
+	if len(respBody) > 0 {
+		logVerbose("  response: %s", string(respBody))
+	}
+
 	if resp.StatusCode >= 400 {
 		var apiErr APIError
 		if json.Unmarshal(respBody, &apiErr) == nil && apiErr.Error != "" {
@@ -102,12 +128,19 @@ func (c *Client) do(method, path string, body any, result any) error {
 // doWithStatus is like do but returns the HTTP status code along with the response body.
 func (c *Client) doWithStatus(method, path string, body any) (int, []byte, error) {
 	var bodyReader io.Reader
+	var reqData []byte
 	if body != nil {
-		data, err := json.Marshal(body)
+		var err error
+		reqData, err = json.Marshal(body)
 		if err != nil {
 			return 0, nil, fmt.Errorf("marshaling request: %w", err)
 		}
-		bodyReader = bytes.NewReader(data)
+		bodyReader = bytes.NewReader(reqData)
+	}
+
+	logVerbose("→ %s %s%s", method, c.BaseURL, path)
+	if len(reqData) > 0 {
+		logVerbose("  request: %s", string(reqData))
 	}
 
 	req, err := http.NewRequest(method, c.BaseURL+path, bodyReader)
@@ -129,6 +162,11 @@ func (c *Client) doWithStatus(method, path string, body any) (int, []byte, error
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, nil, fmt.Errorf("reading response: %w", err)
+	}
+
+	logVerbose("← %d (%d bytes)", resp.StatusCode, len(respBody))
+	if len(respBody) > 0 {
+		logVerbose("  response: %s", string(respBody))
 	}
 
 	return resp.StatusCode, respBody, nil

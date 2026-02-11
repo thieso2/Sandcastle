@@ -22,6 +22,38 @@ ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 
+# ─── Helper: find a free private /16 ─────────────────────────────────────────
+
+find_free_subnet() {
+  # Collect used second octets from host routes and Docker networks (172.16-31.x)
+  local used
+  used=$(
+    { ip route 2>/dev/null || netstat -rn 2>/dev/null; } \
+      | grep -oE '172\.(1[6-9]|2[0-9]|3[01])\.' \
+      | sed 's/172\.\([0-9]*\)\./\1/' \
+      | sort -un
+    docker network ls -q 2>/dev/null | while read -r nid; do
+      docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' "$nid" 2>/dev/null
+    done | grep -oE '172\.(1[6-9]|2[0-9]|3[01])\.' \
+      | sed 's/172\.\([0-9]*\)\./\1/' \
+      | sort -un
+  )
+
+  # Pick a random free octet from 172.16-31
+  local candidates=()
+  for octet in $(shuf -i 16-31); do
+    if ! echo "$used" | grep -qx "$octet"; then
+      candidates+=("$octet")
+    fi
+  done
+
+  if [ ${#candidates[@]} -eq 0 ]; then
+    echo "172.20"  # fallback
+  else
+    echo "172.${candidates[0]}"
+  fi
+}
+
 # ─── Preflight ────────────────────────────────────────────────────────────────
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -85,7 +117,7 @@ fi
 
 mkdir -p "$DATA_DIR"/{users,sandboxes}
 mkdir -p "$DATA_DIR"/traefik/{dynamic,certs}
-chown 220568:220568 "$DATA_DIR"/users "$DATA_DIR"/sandboxes "$DATA_DIR"/traefik/dynamic
+chown -R 220568:220568 "$DATA_DIR"/users "$DATA_DIR"/sandboxes "$DATA_DIR"/traefik/dynamic
 mkdir -p "$SANDCASTLE_DIR"
 
 # ─── Detect fresh install vs upgrade ─────────────────────────────────────────
@@ -123,9 +155,40 @@ if [ "$FRESH_INSTALL" = true ]; then
     ACME_EMAIL=""
   fi
 
+  # Admin account
+  echo ""
+  read -rp "Admin email: " ADMIN_EMAIL
+  if [ -z "$ADMIN_EMAIL" ]; then
+    error "Admin email is required"
+    exit 1
+  fi
+  while true; do
+    read -rsp "Admin password: " ADMIN_PASSWORD
+    echo ""
+    read -rsp "Confirm password: " ADMIN_PASSWORD_CONFIRM
+    echo ""
+    if [ "$ADMIN_PASSWORD" = "$ADMIN_PASSWORD_CONFIRM" ]; then
+      break
+    fi
+    warn "Passwords do not match — try again"
+  done
+  if [ ${#ADMIN_PASSWORD} -lt 8 ]; then
+    error "Password must be at least 8 characters"
+    exit 1
+  fi
+
+  # Docker network subnet
+  echo ""
+  SUGGESTED_SUBNET=$(find_free_subnet)
+  read -rp "Docker network subnet [${SUGGESTED_SUBNET}.0.0/16]: " INPUT_SUBNET
+  SANDCASTLE_SUBNET="${INPUT_SUBNET:-${SUGGESTED_SUBNET}.0.0/16}"
+
+  # Tailscale (optional)
+  echo ""
+  read -rp "Set up Tailscale now? (auth key or leave empty to skip): " TS_AUTHKEY
+
   # Generate secrets
   SECRET_KEY_BASE=$(openssl rand -hex 64)
-  ADMIN_PASSWORD=$(openssl rand -base64 12 | tr -d '/+=' | head -c 16)
 
   # Detect Docker socket GID
   DOCKER_GID=$(stat -c '%g' /var/run/docker.sock 2>/dev/null || echo "988")
@@ -136,7 +199,9 @@ if [ "$FRESH_INSTALL" = true ]; then
 SANDCASTLE_HOST=$SANDCASTLE_HOST
 SANDCASTLE_TLS_MODE=$TLS_MODE
 SECRET_KEY_BASE=$SECRET_KEY_BASE
+SANDCASTLE_ADMIN_EMAIL=$ADMIN_EMAIL
 SANDCASTLE_ADMIN_PASSWORD=$ADMIN_PASSWORD
+SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET
 DOCKER_GID=$DOCKER_GID
 ACME_EMAIL=$ACME_EMAIL
 EOF
@@ -275,8 +340,10 @@ fi
 if docker network inspect sandcastle-web &>/dev/null; then
   ok "sandcastle-web network exists"
 else
-  docker network create sandcastle-web >/dev/null
-  ok "sandcastle-web network created"
+  # Use a /24 from the configured /16 for the web network
+  WEB_SUBNET=$(echo "$SANDCASTLE_SUBNET" | sed 's|\.0\.0/16|.0.0/24|')
+  docker network create --subnet "$WEB_SUBNET" sandcastle-web >/dev/null
+  ok "sandcastle-web network created ($WEB_SUBNET)"
 fi
 
 # ─── Pull images ─────────────────────────────────────────────────────────────
@@ -322,6 +389,8 @@ services:
       SANDCASTLE_HOST: ${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: ${SANDCASTLE_TLS_MODE:-letsencrypt}
+      SANDCASTLE_SUBNET: ${SANDCASTLE_SUBNET:-172.20.0.0/16}
+      SANDCASTLE_ADMIN_EMAIL: ${SANDCASTLE_ADMIN_EMAIL:-}
       SANDCASTLE_ADMIN_PASSWORD: ${SANDCASTLE_ADMIN_PASSWORD:-}
     restart: unless-stopped
     depends_on:
@@ -339,6 +408,7 @@ services:
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      SANDCASTLE_ADMIN_EMAIL: ${SANDCASTLE_ADMIN_EMAIL:-}
       SANDCASTLE_ADMIN_PASSWORD: ${SANDCASTLE_ADMIN_PASSWORD:-}
 
 volumes:
@@ -370,7 +440,19 @@ if [ "$FRESH_INSTALL" = true ]; then
   done
 
   info "Seeding database..."
-  docker compose --env-file .env exec -T -e SANDCASTLE_ADMIN_PASSWORD="$ADMIN_PASSWORD" web ./bin/rails db:seed
+  docker compose --env-file .env exec -T \
+    -e SANDCASTLE_ADMIN_EMAIL="$ADMIN_EMAIL" \
+    -e SANDCASTLE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+    web ./bin/rails db:seed
+
+  # Set up Tailscale if auth key was provided
+  if [ -n "${TS_AUTHKEY:-}" ]; then
+    info "Enabling Tailscale..."
+    docker compose --env-file .env exec -T -e TS_AUTHKEY="$TS_AUTHKEY" web ./bin/rails runner \
+      "TailscaleManager.new.enable(user: User.find_by!(admin: true), auth_key: ENV['TS_AUTHKEY'])" \
+      && ok "Tailscale enabled" \
+      || warn "Tailscale setup failed — you can enable it later from the dashboard"
+  fi
 fi
 
 # ─── Done ─────────────────────────────────────────────────────────────────────
@@ -390,10 +472,11 @@ fi
 if [ "$FRESH_INSTALL" = true ]; then
   echo ""
   echo -e "  Admin login:"
-  echo -e "    Email:     ${YELLOW}admin@sandcastle.rocks${NC}"
-  echo -e "    Password:  ${YELLOW}${ADMIN_PASSWORD}${NC}"
+  echo -e "    Email:     ${YELLOW}${ADMIN_EMAIL}${NC}"
   echo ""
-  echo -e "  ${RED}Save these credentials — they won't be shown again.${NC}"
+  if [ -n "${TS_AUTHKEY:-}" ]; then
+    echo -e "  Tailscale:   ${GREEN}enabled${NC}"
+  fi
 fi
 
 echo ""
