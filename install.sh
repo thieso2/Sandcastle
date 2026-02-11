@@ -25,33 +25,35 @@ error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 # ─── Helper: find a free private /16 ─────────────────────────────────────────
 
 find_free_subnet() {
-  # Collect used second octets from host routes and Docker networks (172.16-31.x)
-  local used
-  used=$(
-    { ip route 2>/dev/null || netstat -rn 2>/dev/null; } \
-      | grep -oE '172\.(1[6-9]|2[0-9]|3[01])\.' \
-      | sed 's/172\.\([0-9]*\)\./\1/' \
+  # Collect ALL used RFC 1918 subnets from routes, interfaces, and Docker networks
+  local used_subnets
+  used_subnets=$(
+    { ip route 2>/dev/null; ip addr 2>/dev/null; netstat -rn 2>/dev/null; } \
+      | grep -oE '(10|172|192)\.[0-9]+\.[0-9]+\.[0-9]+' \
       | sort -un
     docker network ls -q 2>/dev/null | while read -r nid; do
       docker network inspect --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' "$nid" 2>/dev/null
-    done | grep -oE '172\.(1[6-9]|2[0-9]|3[01])\.' \
-      | sed 's/172\.\([0-9]*\)\./\1/' \
+    done | grep -oE '(10|172|192)\.[0-9]+\.[0-9]+\.[0-9]+' \
       | sort -un
   )
 
-  # Pick a random free octet from 172.16-31
-  local candidates=()
+  # Try random octets from 172.16-31 (RFC 1918 172.16.0.0/12 range)
   for octet in $(shuf -i 16-31); do
-    if ! echo "$used" | grep -qx "$octet"; then
-      candidates+=("$octet")
+    if ! echo "$used_subnets" | grep -q "^172\.${octet}\."; then
+      echo "172.${octet}.0.0/16"
+      return
     fi
   done
 
-  if [ ${#candidates[@]} -eq 0 ]; then
-    echo "172.20"  # fallback
-  else
-    echo "172.${candidates[0]}"
-  fi
+  # All 172.16-31 in use — try 10.{random}.0.0/16
+  for octet in $(shuf -i 100-199); do
+    if ! echo "$used_subnets" | grep -q "^10\.${octet}\."; then
+      echo "10.${octet}.0.0/16"
+      return
+    fi
+  done
+
+  echo "172.20.0.0/16"  # last resort fallback
 }
 
 # ─── Preflight ────────────────────────────────────────────────────────────────
@@ -180,8 +182,8 @@ if [ "$FRESH_INSTALL" = true ]; then
   # Docker network subnet
   echo ""
   SUGGESTED_SUBNET=$(find_free_subnet)
-  read -rp "Docker network subnet [${SUGGESTED_SUBNET}.0.0/16]: " INPUT_SUBNET
-  SANDCASTLE_SUBNET="${INPUT_SUBNET:-${SUGGESTED_SUBNET}.0.0/16}"
+  read -rp "Docker network subnet [$SUGGESTED_SUBNET]: " INPUT_SUBNET
+  SANDCASTLE_SUBNET="${INPUT_SUBNET:-$SUGGESTED_SUBNET}"
 
   # Tailscale (optional)
   echo ""
@@ -215,7 +217,13 @@ fi
 source "$SANDCASTLE_DIR/.env"
 
 # Defaults for vars that may be missing in older .env files
-SANDCASTLE_SUBNET="${SANDCASTLE_SUBNET:-$(find_free_subnet).0.0/16}"
+if [ -z "${SANDCASTLE_SUBNET:-}" ]; then
+  SUGGESTED_SUBNET=$(find_free_subnet)
+  read -rp "Docker network subnet [$SUGGESTED_SUBNET]: " INPUT_SUBNET
+  SANDCASTLE_SUBNET="${INPUT_SUBNET:-$SUGGESTED_SUBNET}"
+  # Persist to .env for future upgrades
+  echo "SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET" >> "$SANDCASTLE_DIR/.env"
+fi
 
 # ─── Traefik config ──────────────────────────────────────────────────────────
 
