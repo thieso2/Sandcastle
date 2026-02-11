@@ -1,20 +1,34 @@
 #!/bin/bash
 # Sandcastle one-line installer
 # curl -fsSL https://install.sandcastle.rocks | sudo bash
-#
-# Options:
-#   --reset   Tear down existing install (containers, images, volumes) before reinstalling
 set -euo pipefail
 
 # ─── Parse flags ──────────────────────────────────────────────────────────────
 
 RESET=false
+UNINSTALL=false
 for arg in "$@"; do
   case "$arg" in
-    --reset) RESET=true ;;
-    *) echo "Unknown option: $arg"; exit 1 ;;
+    --reset)     RESET=true ;;
+    --uninstall) UNINSTALL=true ;;
+    -h|--help)
+      echo "Usage: install.sh [OPTIONS]"
+      echo ""
+      echo "Sandcastle installer — sets up Docker, Sysbox, and the Sandcastle platform."
+      echo ""
+      echo "Options:"
+      echo "  --reset       Tear down existing install before reinstalling"
+      echo "  --uninstall   Remove Sandcastle completely (same as --reset, then exit)"
+      echo "  -h, --help    Show this help message"
+      exit 0
+      ;;
+    *) echo "Unknown option: $arg (use --help for usage)"; exit 1 ;;
   esac
 done
+
+if [ "$UNINSTALL" = true ]; then
+  RESET=true
+fi
 
 SYSBOX_VERSION="0.6.6"
 APP_IMAGE="ghcr.io/thieso2/sandcastle:latest"
@@ -81,10 +95,12 @@ except Exception:
 echo ""
 echo -e "${BLUE}═══ Sandcastle Installer ═══${NC}"
 echo ""
-info "Available images (${ARCH}):"
-show_image_info "sandcastle"
-show_image_info "sandcastle-sandbox"
-echo ""
+if [ "$UNINSTALL" = false ]; then
+  info "Available images (${ARCH}):"
+  show_image_info "sandcastle"
+  show_image_info "sandcastle-sandbox"
+  echo ""
+fi
 
 # ─── Helper: find a free private subnet ──────────────────────────────────────
 
@@ -191,6 +207,12 @@ if [ "$RESET" = true ]; then
 
     # Remove data directory
     rm -rf "$FOUND_HOME"
+
+    if [ "$UNINSTALL" = true ]; then
+      ok "Sandcastle has been uninstalled"
+      exit 0
+    fi
+
     ok "Reset complete — running fresh install"
   else
     error "Aborted"
