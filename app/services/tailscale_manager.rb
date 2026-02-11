@@ -163,6 +163,8 @@ class TailscaleManager
           result[:hostname] = ts_status.dig("Self", "HostName")
           result[:tailnet] = ts_status.dig("MagicDNSSuffix")
           result[:online] = ts_status.dig("Self", "Online")
+          tags = ts_status.dig("Self", "Tags")
+          result[:tags] = tags if tags.present?
         rescue JSON::ParserError
           # Status not available yet
         end
@@ -255,9 +257,11 @@ class TailscaleManager
   end
 
   def cleanup_sidecar(user)
-    if user.tailscale_container_id.present?
+    # Try by stored container ID first, then by name as fallback
+    container_name = "sc-ts-#{user.name}"
+    [user.tailscale_container_id, container_name].compact.uniq.each do |ref|
       begin
-        container = Docker::Container.get(user.tailscale_container_id)
+        container = Docker::Container.get(ref)
         container.stop(t: 5) rescue nil
         container.delete(force: true)
       rescue Docker::Error::NotFoundError
@@ -265,9 +269,11 @@ class TailscaleManager
       end
     end
 
-    if user.tailscale_network.present?
+    # Clean up network by stored name, then by convention
+    network_name = "sc-ts-net-#{user.name}"
+    [user.tailscale_network, network_name].compact.uniq.each do |ref|
       begin
-        Docker::Network.get(user.tailscale_network).delete
+        Docker::Network.get(ref).delete
       rescue Docker::Error::NotFoundError
         # Already gone
       end

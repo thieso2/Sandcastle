@@ -50,6 +50,12 @@
             <span class="text-gray-500">Connected Sandboxes</span>
             <p class="font-mono font-medium"><%= @status[:connected_sandboxes] %></p>
           </div>
+          <% if @status[:tags].present? %>
+            <div>
+              <span class="text-gray-500">Tags</span>
+              <p class="font-mono font-medium"><%= @status[:tags].map { |t| t.delete_prefix("tag:") }.join(", ") %></p>
+            </div>
+          <% end %>
         </div>
 
         <% unless @status[:running] %>
@@ -99,40 +105,67 @@
 
   <% else %>
     <%# ── Setup state ── %>
-    <%= render "tailscale/route_approval" %>
-
     <div class="bg-white border border-gray-200 rounded-lg p-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-2">Enable Tailscale</h2>
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">Connect to Tailscale</h2>
       <p class="text-sm text-gray-600 mb-4">
-        Connect your sandboxes to your Tailscale network. A per-user sidecar container will advertise sandbox IPs as subnet routes,
-        making them reachable from any device on your tailnet via SSH.
+        A per-user sidecar container will advertise sandbox IPs as subnet routes,
+        making your sandboxes reachable from any device on your tailnet via SSH.
       </p>
 
-      <div class="space-y-6">
-        <%# ── Primary: browser login ── %>
+      <%= form_with url: login_tailscale_path, method: :post, class: "space-y-4" do |f| %>
         <div>
-          <h3 class="text-sm font-medium text-gray-700 mb-2">Log in with Tailscale</h3>
-          <p class="text-xs text-gray-500 mb-3">
-            Starts a sidecar container and gives you a link to authenticate with your Tailscale account.
-          </p>
-          <%= form_with url: login_tailscale_path, method: :post, class: "space-y-3" do |f| %>
-            <div>
-              <label class="text-xs text-gray-500">ACL tag (optional)</label>
-              <input type="text" name="tailscale_tag" placeholder="tag:sandcastle"
-                     value="<%= ENV.fetch('SANDCASTLE_TAILSCALE_TAG', '') %>"
-                     class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <p class="text-xs text-gray-400 mt-1">
-                Leave empty if you haven't set up <code class="bg-gray-100 px-1 rounded">tagOwners</code> in your ACL policy yet.
-              </p>
-            </div>
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                    data-turbo-submits-with="Starting sidecar...">
-              Connect to Tailscale
-            </button>
-          <% end %>
+          <input type="hidden" name="tailscale_tag" value="">
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox" name="tailscale_tag" value="tag:sandcastle"
+                   id="tailscale-tag-checkbox" checked
+                   onchange="document.getElementById('tag-warning').classList.toggle('hidden', !this.checked); document.getElementById('no-tag-warning').classList.toggle('hidden', this.checked)"
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            Advertise ACL tag <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">tag:sandcastle</code>
+          </label>
         </div>
 
-      </div>
+        <div id="tag-warning" class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+          <p class="font-medium mb-2">Before connecting, add this tag to your Tailscale ACL policy:</p>
+          <ol class="list-decimal list-inside space-y-1 text-xs mb-3">
+            <li>Open your <a href="https://login.tailscale.com/admin/acls/file" target="_blank" rel="noopener" class="underline font-medium hover:text-amber-950">ACL policy</a></li>
+            <li>Add <code class="bg-amber-100 px-1 rounded">"tag:sandcastle"</code> to <code class="bg-amber-100 px-1 rounded">tagOwners</code></li>
+            <li>Add <code class="bg-amber-100 px-1 rounded">"tag:sandcastle"</code> to <code class="bg-amber-100 px-1 rounded">autoApprovers.routes</code> for automatic subnet approval</li>
+          </ol>
+          <details class="group">
+            <summary class="text-xs font-medium text-amber-900 cursor-pointer hover:text-amber-950">Show example ACL snippet</summary>
+            <pre class="bg-amber-100 text-amber-900 text-xs rounded p-3 overflow-x-auto mt-2"><code>"tagOwners": {
+  "tag:sandcastle": ["autogroup:admin"]
+},
+"autoApprovers": {
+  "routes": {
+    "10.0.0.0/8":     ["tag:sandcastle"],
+    "172.16.0.0/12":  ["tag:sandcastle"],
+    "192.168.0.0/16": ["tag:sandcastle"]
+  }
+}</code></pre>
+          </details>
+          <p class="text-xs text-amber-700 mt-2">
+            If the tag doesn't exist in your ACL, the sidecar will fail to authenticate.
+            You can always disable Tailscale and reconnect without it.
+          </p>
+        </div>
+
+        <div id="no-tag-warning" class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800 hidden">
+          <p class="mb-2">
+            Without a tag, subnet routes must be <strong>approved manually</strong> before traffic can flow.
+          </p>
+          <ol class="list-decimal list-inside space-y-1 text-xs">
+            <li>Open the <a href="https://login.tailscale.com/admin/machines" target="_blank" rel="noopener" class="underline font-medium hover:text-amber-950">Tailscale admin console</a></li>
+            <li>Find the <code class="bg-amber-100 px-1 rounded">sc-<%= Current.user.name %></code> machine</li>
+            <li>Click <strong>Edit route settings</strong> and approve the advertised subnet</li>
+          </ol>
+        </div>
+
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                data-turbo-submits-with="Starting sidecar...">
+          Connect to Tailscale
+        </button>
+      <% end %>
     </div>
   <% end %>
   <% end %>
