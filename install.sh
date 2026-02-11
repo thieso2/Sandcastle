@@ -109,10 +109,35 @@ if [ "$RESET" = true ]; then
   if [ "$CONFIRM" = "yes" ]; then
     info "Tearing down Sandcastle..."
     cd /
+
+    # Stop and remove all Sandcastle-managed containers (sandboxes + Tailscale sidecars)
+    for container in $(docker ps -a --filter "name=^sc-ts-" --format '{{.Names}}' 2>/dev/null); do
+      info "Removing Tailscale sidecar: $container"
+      docker rm -f "$container" 2>/dev/null || true
+    done
+    for container in $(docker ps -a --filter "label=managed-by=sandcastle" --format '{{.Names}}' 2>/dev/null); do
+      info "Removing sandbox: $container"
+      docker rm -f "$container" 2>/dev/null || true
+    done
+    # Also catch sandbox containers by naming convention ({user}-{name})
+    for container in $(docker ps -a --filter "runtime=sysbox-runc" --format '{{.Names}}' 2>/dev/null); do
+      info "Removing sysbox container: $container"
+      docker rm -f "$container" 2>/dev/null || true
+    done
+
+    # Remove Tailscale bridge networks
+    for net in $(docker network ls --filter "name=^sc-ts-net-" --format '{{.Name}}' 2>/dev/null); do
+      info "Removing network: $net"
+      docker network rm "$net" 2>/dev/null || true
+    done
+
+    # Tear down compose stack
     if [ -f "$FOUND_HOME/docker-compose.yml" ]; then
       docker compose -f "$FOUND_HOME/docker-compose.yml" --env-file "$FOUND_HOME/.env" down --rmi all --volumes --remove-orphans 2>/dev/null || true
     fi
     docker network rm sandcastle-web 2>/dev/null || true
+
+    # Remove data directory
     rm -rf "$FOUND_HOME"
     ok "Reset complete — running fresh install"
   else
