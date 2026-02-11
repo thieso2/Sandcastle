@@ -71,15 +71,15 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Run and own only the runtime files as a non-root user for security
-RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
+RUN groupadd --system --gid 220568 sandcastle && \
+    useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/bash && \
     groupadd --system docker && \
-    usermod -aG docker rails
-USER 1000:1000
+    usermod -aG docker sandcastle
+USER 220568:220568
 
 # Copy built artifacts: gems, application
-COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
-COPY --chown=rails:rails --from=build /rails /rails
+COPY --chown=sandcastle:sandcastle --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
+COPY --chown=sandcastle:sandcastle --from=build /rails /rails
 
 # Build metadata for version footer
 ARG BUILD_GIT_SHA
