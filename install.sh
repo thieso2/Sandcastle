@@ -84,6 +84,7 @@ fi
 # ─── Create directories ─────────────────────────────────────────────────────
 
 mkdir -p "$DATA_DIR"/{users,sandboxes}
+chown 1000:1000 "$DATA_DIR"/users "$DATA_DIR"/sandboxes
 mkdir -p "$DATA_DIR"/traefik/{dynamic,certs}
 mkdir -p "$SANDCASTLE_DIR"
 
@@ -341,7 +342,7 @@ volumes:
 
 networks:
   sandcastle-web:
-    name: sandcastle-web
+    external: true
 COMPOSE
 
 ok "docker-compose.yml written"

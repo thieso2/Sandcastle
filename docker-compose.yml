@@ -52,4 +52,4 @@ volumes:
 
 networks:
   sandcastle-web:
-    name: sandcastle-web
+    external: true
