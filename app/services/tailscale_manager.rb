@@ -281,11 +281,13 @@ class TailscaleManager
   end
 
   def subnet_for(user)
-    base = ENV.fetch("SANDCASTLE_SUBNET", "172.20.0.0/16")
-    # Parse base: e.g. "172.23.0.0/16" → use 172.23.{user_offset}.0/24
-    parts = base.split("/").first.split(".")
-    third_octet = 1 + (user.id % 254) # 1-254, reserve .0 for the web network
-    "#{parts[0]}.#{parts[1]}.#{third_octet}.0/24"
+    base = ENV.fetch("SANDCASTLE_SUBNET", "172.30.99.0/24")
+    # Derive per-user /24 by offsetting the third octet from the base
+    # e.g. base 172.19.142.0/24, user_id 1 → 172.19.143.0/24
+    parts = base.split("/").first.split(".").map(&:to_i)
+    offset = 1 + (user.id % 100)
+    parts[2] = (parts[2] + offset) % 256
+    "#{parts[0]}.#{parts[1]}.#{parts[2]}.0/24"
   end
 
   def create_network(name, subnet)

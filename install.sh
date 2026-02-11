@@ -3,8 +3,6 @@
 # curl -fsSL https://install.sandcastle.rocks | sudo bash
 set -euo pipefail
 
-SANDCASTLE_DIR="/etc/sandcastle"
-DATA_DIR="/data"
 SYSBOX_VERSION="0.6.6"
 APP_IMAGE="ghcr.io/thieso2/sandcastle:latest"
 SANDBOX_IMAGE="ghcr.io/thieso2/sandcastle-sandbox:latest"
@@ -22,12 +20,12 @@ ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 
-# ─── Helper: find a free private /16 ─────────────────────────────────────────
+# ─── Helper: find a free private subnet ──────────────────────────────────────
 
 find_free_subnet() {
-  # Collect ALL used RFC 1918 subnets from routes, interfaces, and Docker networks
-  local used_subnets
-  used_subnets=$(
+  # Collect ALL used RFC 1918 IPs from routes, interfaces, and Docker networks
+  local used
+  used=$(
     { ip route 2>/dev/null; ip addr 2>/dev/null; netstat -rn 2>/dev/null; } \
       | grep -oE '(10|172|192)\.[0-9]+\.[0-9]+\.[0-9]+' \
       | sort -un
@@ -37,23 +35,27 @@ find_free_subnet() {
       | sort -un
   )
 
-  # Try random octets from 172.16-31 (RFC 1918 172.16.0.0/12 range)
-  for octet in $(shuf -i 16-31); do
-    if ! echo "$used_subnets" | grep -q "^172\.${octet}\."; then
-      echo "172.${octet}.0.0/16"
-      return
-    fi
+  # Try 172.{16-31}.{random}.0/24 — fully randomized
+  for b in $(shuf -i 16-31); do
+    for c in $(shuf -i 1-254 | head -5); do
+      if ! echo "$used" | grep -q "^172\.${b}\.${c}\."; then
+        echo "172.${b}.${c}.0/24"
+        return
+      fi
+    done
   done
 
-  # All 172.16-31 in use — try 10.{random}.0.0/16
-  for octet in $(shuf -i 100-199); do
-    if ! echo "$used_subnets" | grep -q "^10\.${octet}\."; then
-      echo "10.${octet}.0.0/16"
-      return
-    fi
+  # Fallback: 10.{random}.{random}.0/24
+  for b in $(shuf -i 1-254 | head -20); do
+    for c in $(shuf -i 1-254 | head -5); do
+      if ! echo "$used" | grep -q "^10\.${b}\.${c}\."; then
+        echo "10.${b}.${c}.0/24"
+        return
+      fi
+    done
   done
 
-  echo "172.20.0.0/16"  # last resort fallback
+  echo "172.30.99.0/24"  # last resort
 }
 
 # ─── Preflight ────────────────────────────────────────────────────────────────
@@ -115,17 +117,20 @@ else
   warn "UFW not found — skipping firewall setup"
 fi
 
-# ─── Create directories ─────────────────────────────────────────────────────
+# ─── Sandcastle home directory ────────────────────────────────────────────────
 
-mkdir -p "$DATA_DIR"/{users,sandboxes}
-mkdir -p "$DATA_DIR"/traefik/{dynamic,certs}
-chown -R 220568:220568 "$DATA_DIR"/users "$DATA_DIR"/sandboxes "$DATA_DIR"/traefik/dynamic
-mkdir -p "$SANDCASTLE_DIR"
+DEFAULT_HOME="/sandcastle"
+read -rp "Sandcastle home directory [$DEFAULT_HOME]: " INPUT_HOME
+SANDCASTLE_HOME="${INPUT_HOME:-$DEFAULT_HOME}"
+
+mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes}
+mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
+chown -R 220568:220568 "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
 
 # ─── Detect fresh install vs upgrade ─────────────────────────────────────────
 
 FRESH_INSTALL=false
-if [ ! -f "$SANDCASTLE_DIR/.env" ]; then
+if [ ! -f "$SANDCASTLE_HOME/.env" ]; then
   FRESH_INSTALL=true
 fi
 
@@ -196,8 +201,9 @@ if [ "$FRESH_INSTALL" = true ]; then
   DOCKER_GID=$(stat -c '%g' /var/run/docker.sock 2>/dev/null || echo "988")
 
   # Write .env
-  cat > "$SANDCASTLE_DIR/.env" <<EOF
+  cat > "$SANDCASTLE_HOME/.env" <<EOF
 # Sandcastle configuration — generated $(date -Iseconds)
+SANDCASTLE_HOME=$SANDCASTLE_HOME
 SANDCASTLE_HOST=$SANDCASTLE_HOST
 SANDCASTLE_TLS_MODE=$TLS_MODE
 SECRET_KEY_BASE=$SECRET_KEY_BASE
@@ -207,40 +213,40 @@ SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET
 DOCKER_GID=$DOCKER_GID
 ACME_EMAIL=$ACME_EMAIL
 EOF
-  chmod 600 "$SANDCASTLE_DIR/.env"
-  ok "Configuration written to $SANDCASTLE_DIR/.env"
+  chmod 600 "$SANDCASTLE_HOME/.env"
+  ok "Configuration written to $SANDCASTLE_HOME/.env"
 else
-  info "Existing install detected — loading $SANDCASTLE_DIR/.env"
+  info "Existing install detected — loading $SANDCASTLE_HOME/.env"
 fi
 
 # shellcheck source=/dev/null
-source "$SANDCASTLE_DIR/.env"
+source "$SANDCASTLE_HOME/.env"
 
 # Defaults for vars that may be missing in older .env files
 if [ -z "${SANDCASTLE_SUBNET:-}" ]; then
   SUGGESTED_SUBNET=$(find_free_subnet)
   read -rp "Docker network subnet [$SUGGESTED_SUBNET]: " INPUT_SUBNET
   SANDCASTLE_SUBNET="${INPUT_SUBNET:-$SUGGESTED_SUBNET}"
-  # Persist to .env for future upgrades
-  echo "SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET" >> "$SANDCASTLE_DIR/.env"
+  echo "SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET" >> "$SANDCASTLE_HOME/.env"
 fi
 
 # ─── Traefik config ──────────────────────────────────────────────────────────
 
+TRAEFIK_DIR="$SANDCASTLE_HOME/data/traefik"
+
 if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
   # Generate self-signed cert if missing
-  CERT_DIR="$DATA_DIR/traefik/certs"
-  if [ ! -f "$CERT_DIR/cert.pem" ]; then
+  if [ ! -f "$TRAEFIK_DIR/certs/cert.pem" ]; then
     info "Generating self-signed certificate..."
     openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-      -keyout "$CERT_DIR/key.pem" -out "$CERT_DIR/cert.pem" \
+      -keyout "$TRAEFIK_DIR/certs/key.pem" -out "$TRAEFIK_DIR/certs/cert.pem" \
       -subj "/CN=$SANDCASTLE_HOST" \
       -addext "subjectAltName=IP:$SANDCASTLE_HOST" 2>/dev/null
     ok "Self-signed certificate generated"
   fi
 
   # Traefik static config (self-signed)
-  cat > "$DATA_DIR/traefik/traefik.yml" <<'EOF'
+  cat > "$TRAEFIK_DIR/traefik.yml" <<'EOF'
 entryPoints:
   web:
     address: ":80"
@@ -271,7 +277,7 @@ EOF
 
 else
   # Traefik static config (Let's Encrypt)
-  cat > "$DATA_DIR/traefik/traefik.yml" <<EOF
+  cat > "$TRAEFIK_DIR/traefik.yml" <<EOF
 entryPoints:
   web:
     address: ":80"
@@ -305,14 +311,14 @@ EOF
 fi
 
 # ACME storage
-if [ ! -f "$DATA_DIR/traefik/acme.json" ]; then
-  touch "$DATA_DIR/traefik/acme.json"
-  chmod 600 "$DATA_DIR/traefik/acme.json"
+if [ ! -f "$TRAEFIK_DIR/acme.json" ]; then
+  touch "$TRAEFIK_DIR/acme.json"
+  chmod 600 "$TRAEFIK_DIR/acme.json"
 fi
 
 # Rails route config for Traefik
 if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
-  cat > "$DATA_DIR/traefik/dynamic/rails.yml" <<EOF
+  cat > "$TRAEFIK_DIR/dynamic/rails.yml" <<EOF
 http:
   routers:
     rails:
@@ -328,7 +334,7 @@ http:
           - url: "http://sandcastle-web:80"
 EOF
 else
-  cat > "$DATA_DIR/traefik/dynamic/rails.yml" <<EOF
+  cat > "$TRAEFIK_DIR/dynamic/rails.yml" <<EOF
 http:
   routers:
     rails:
@@ -351,10 +357,8 @@ fi
 if docker network inspect sandcastle-web &>/dev/null; then
   ok "sandcastle-web network exists"
 else
-  # Use a /24 from the configured /16 for the web network
-  WEB_SUBNET=$(echo "$SANDCASTLE_SUBNET" | sed 's|\.0\.0/16|.0.0/24|')
-  docker network create --subnet "$WEB_SUBNET" sandcastle-web >/dev/null
-  ok "sandcastle-web network created ($WEB_SUBNET)"
+  docker network create --subnet "$SANDCASTLE_SUBNET" sandcastle-web >/dev/null
+  ok "sandcastle-web network created ($SANDCASTLE_SUBNET)"
 fi
 
 # ─── Pull images ─────────────────────────────────────────────────────────────
@@ -368,7 +372,9 @@ ok "Images pulled"
 
 # ─── Write docker-compose.yml ────────────────────────────────────────────────
 
-cat > "$SANDCASTLE_DIR/docker-compose.yml" <<'COMPOSE'
+DATA_MOUNT="$SANDCASTLE_HOME/data"
+
+cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
 services:
   traefik:
     image: traefik:v3.3
@@ -377,10 +383,10 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - /data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - /data/traefik/dynamic:/data/dynamic:ro
-      - /data/traefik/acme.json:/data/acme.json
-      - /data/traefik/certs:/data/certs:ro
+      - ${DATA_MOUNT}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${DATA_MOUNT}/traefik/dynamic:/data/dynamic:ro
+      - ${DATA_MOUNT}/traefik/acme.json:/data/acme.json
+      - ${DATA_MOUNT}/traefik/certs:/data/certs:ro
     networks:
       - sandcastle-web
 
@@ -388,21 +394,21 @@ services:
     image: ghcr.io/thieso2/sandcastle:latest
     container_name: sandcastle-web
     group_add:
-      - "${DOCKER_GID:-988}"
+      - "\${DOCKER_GID:-988}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - sandcastle-db:/rails/db
       - sandcastle-storage:/rails/storage
-      - /data:/data
+      - ${DATA_MOUNT}:/data
     environment:
       RAILS_ENV: production
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      SANDCASTLE_HOST: ${SANDCASTLE_HOST}
+      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
+      SANDCASTLE_HOST: \${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: /data
-      SANDCASTLE_TLS_MODE: ${SANDCASTLE_TLS_MODE:-letsencrypt}
-      SANDCASTLE_SUBNET: ${SANDCASTLE_SUBNET:-172.20.0.0/16}
-      SANDCASTLE_ADMIN_EMAIL: ${SANDCASTLE_ADMIN_EMAIL:-}
-      SANDCASTLE_ADMIN_PASSWORD: ${SANDCASTLE_ADMIN_PASSWORD:-}
+      SANDCASTLE_TLS_MODE: \${SANDCASTLE_TLS_MODE:-letsencrypt}
+      SANDCASTLE_SUBNET: \${SANDCASTLE_SUBNET:-172.30.99.0/24}
+      SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
+      SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -418,9 +424,9 @@ services:
       - sandcastle-storage:/rails/storage
     environment:
       RAILS_ENV: production
-      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      SANDCASTLE_ADMIN_EMAIL: ${SANDCASTLE_ADMIN_EMAIL:-}
-      SANDCASTLE_ADMIN_PASSWORD: ${SANDCASTLE_ADMIN_PASSWORD:-}
+      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
+      SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
+      SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
 
 volumes:
   sandcastle-db:
@@ -436,7 +442,7 @@ ok "docker-compose.yml written"
 # ─── Start services ──────────────────────────────────────────────────────────
 
 info "Starting Sandcastle..."
-cd "$SANDCASTLE_DIR"
+cd "$SANDCASTLE_HOME"
 docker compose --env-file .env up -d
 
 # ─── Seed database on fresh install ──────────────────────────────────────────
@@ -491,9 +497,9 @@ if [ "$FRESH_INSTALL" = true ]; then
 fi
 
 echo ""
-echo -e "  Config:     $SANDCASTLE_DIR/.env"
-echo -e "  Data:       $DATA_DIR/"
-echo -e "  Logs:       docker compose -f $SANDCASTLE_DIR/docker-compose.yml logs -f"
+echo -e "  Home:       $SANDCASTLE_HOME"
+echo -e "  Config:     $SANDCASTLE_HOME/.env"
+echo -e "  Logs:       docker compose -f $SANDCASTLE_HOME/docker-compose.yml logs -f"
 echo ""
 echo -e "  To upgrade: re-run this installer"
 echo ""
