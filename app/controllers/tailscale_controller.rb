@@ -20,8 +20,9 @@ class TailscaleController < ApplicationController
       auth_key: params.require(:auth_key)
     )
     redirect_to tailscale_path, notice: "Tailscale enabled"
-  rescue TailscaleManager::Error => e
-    redirect_to tailscale_path, alert: e.message
+  rescue TailscaleManager::Error, Docker::Error::DockerError => e
+    flash[:alert] = e.message
+    redirect_to tailscale_path, status: :see_other
   end
 
   def login
@@ -31,8 +32,9 @@ class TailscaleController < ApplicationController
       format.turbo_stream
       format.html { redirect_to tailscale_path }
     end
-  rescue TailscaleManager::Error => e
-    redirect_to tailscale_path, alert: e.message
+  rescue TailscaleManager::Error, Docker::Error::DockerError => e
+    flash[:alert] = e.message
+    redirect_to tailscale_path, status: :see_other
   end
 
   def login_status

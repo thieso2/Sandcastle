@@ -299,6 +299,8 @@ class TailscaleManager
   end
 
   def create_network(name, subnet)
+    Docker::Network.get(name)
+  rescue Docker::Error::NotFoundError
     Docker::Network.create(
       name,
       "Driver" => "bridge",
