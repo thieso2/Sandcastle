@@ -1,6 +1,7 @@
 class TailscaleManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
   TAILSCALE_IMAGE = "tailscale/tailscale:latest"
+  TAILSCALE_TAG = ENV.fetch("SANDCASTLE_TAILSCALE_TAG", "").presence
   LOGIN_URL_PATTERN = %r{https://login\.tailscale\.com/\S+}
 
   class Error < StandardError; end
@@ -58,11 +59,12 @@ class TailscaleManager
     cache_key = "ts_login_started:#{user.id}"
     unless Rails.cache.read(cache_key)
       subnet = subnet_for(user)
+      tag_flag = TAILSCALE_TAG ? " --advertise-tags=#{TAILSCALE_TAG}" : ""
       container.exec([
         "sh", "-c",
         "tailscale up --reset" \
         " --advertise-routes=#{subnet}" \
-        " --advertise-tags=tag:sandcastle" \
+        "#{tag_flag}" \
         " --accept-routes" \
         " --hostname=#{container.json.dig("Config", "Hostname")}" \
         " --timeout=120s &"
@@ -242,24 +244,6 @@ class TailscaleManager
     [ network_name, container ]
   end
 
-  def fetch_login_url(container, subnet)
-    # tailscale up prints the login URL then blocks until auth completes or timeout.
-    # --reset avoids "requires mentioning all non-default flags" on subsequent calls.
-    out = container.exec([
-      "tailscale", "up",
-      "--reset",
-      "--advertise-routes=#{subnet}",
-      "--advertise-tags=tag:sandcastle",
-      "--accept-routes",
-      "--hostname=#{container.json.dig("Config", "Hostname")}",
-      "--timeout=10s"
-    ])
-    combined = (out[0].to_a + out[1].to_a).join("\n")
-    match = combined.match(LOGIN_URL_PATTERN)
-    match[0] if match
-  rescue Docker::Error::DockerError
-    nil
-  end
 
   def cleanup_sidecar(user)
     if user.tailscale_container_id.present?
@@ -351,7 +335,7 @@ class TailscaleManager
       config["Env"] = [
         "TS_STATE_DIR=/var/lib/tailscale",
         "TS_HOSTNAME=sc-#{user.name}",
-        "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes --advertise-tags=tag:sandcastle",
+        "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes#{TAILSCALE_TAG ? " --advertise-tags=#{TAILSCALE_TAG}" : ""}",
         "TS_AUTH_ONCE=true",
         "TS_AUTHKEY=#{auth_key}"
       ]

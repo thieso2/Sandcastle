@@ -94,13 +94,16 @@
 
       <details class="mt-3 group">
         <summary class="text-sm font-medium text-amber-900 cursor-pointer hover:text-amber-950">
-          Option B: Auto-approve via ACL (recommended)
+          Option B: Auto-approve via ACL (recommended for multi-user setups)
         </summary>
-        <p class="text-sm text-amber-800 mt-2 ml-2">
-          All Sandcastle sidecars register with the tag <code class="bg-amber-100 px-1 rounded">tag:sandcastle</code>.
-          Add the following to your <a href="https://login.tailscale.com/admin/acls/file" target="_blank" rel="noopener" class="underline font-medium hover:text-amber-950">Tailscale ACL policy</a> to auto-approve all routes:
-        </p>
-        <pre class="bg-amber-100 text-amber-900 text-xs rounded p-3 mt-2 ml-2 overflow-x-auto"><code>"tagOwners": {
+        <div class="mt-2 ml-2 space-y-3">
+          <p class="text-sm text-amber-800">
+            With two ACL changes and one env var, all Sandcastle subnet routes get approved automatically.
+          </p>
+
+          <div>
+            <p class="text-xs font-medium text-amber-900 mb-1">Step 1: Add to your <a href="https://login.tailscale.com/admin/acls/file" target="_blank" rel="noopener" class="underline hover:text-amber-950">Tailscale ACL policy</a></p>
+            <pre class="bg-amber-100 text-amber-900 text-xs rounded p-3 overflow-x-auto"><code>"tagOwners": {
   "tag:sandcastle": ["autogroup:admin"]
 },
 "autoApprovers": {
@@ -110,9 +113,21 @@
     "192.168.0.0/16": ["tag:sandcastle"]
   }
 }</code></pre>
-        <p class="text-xs text-amber-700 mt-2 ml-2">
-          This auto-approves any private subnet advertised by a Sandcastle sidecar. No manual approval needed for new users.
-        </p>
+          </div>
+
+          <div>
+            <p class="text-xs font-medium text-amber-900 mb-1">Step 2: Set the env var on your Sandcastle server</p>
+            <pre class="bg-amber-100 text-amber-900 text-xs rounded p-3 overflow-x-auto"><code>SANDCASTLE_TAILSCALE_TAG=tag:sandcastle</code></pre>
+            <p class="text-xs text-amber-700 mt-1">
+              Add this to your <code class="bg-amber-100 px-1 rounded">.env</code> file and restart.
+              Sidecars will then advertise this tag and routes are approved automatically.
+            </p>
+          </div>
+
+          <p class="text-xs text-amber-700">
+            Without the env var, no tag is advertised and routes must be approved manually (Option A).
+          </p>
+        </div>
       </details>
     </div>
 
