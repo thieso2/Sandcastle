@@ -188,6 +188,22 @@ else
   warn "UFW not found — skipping firewall setup"
 fi
 
+# ─── Create sandcastle system user ──────────────────────────────────────────
+
+if getent group sandcastle &>/dev/null; then
+  ok "Group 'sandcastle' already exists"
+else
+  groupadd --system --gid 220568 sandcastle
+  ok "Created group 'sandcastle' (GID 220568)"
+fi
+
+if id sandcastle &>/dev/null; then
+  ok "User 'sandcastle' already exists"
+else
+  useradd --system --uid 220568 --gid 220568 --no-create-home --shell /usr/sbin/nologin sandcastle
+  ok "Created user 'sandcastle' (UID 220568)"
+fi
+
 # ─── Sandcastle home directory ────────────────────────────────────────────────
 
 DEFAULT_HOME="/sandcastle"
@@ -196,7 +212,9 @@ SANDCASTLE_HOME="${INPUT_HOME:-$DEFAULT_HOME}"
 
 mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes}
 mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
-chown -R 220568:220568 "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
+chown sandcastle:sandcastle "$SANDCASTLE_HOME"
+chown -R sandcastle:sandcastle "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
+usermod -d "$SANDCASTLE_HOME" sandcastle 2>/dev/null || true
 
 # ─── Detect fresh install vs upgrade ─────────────────────────────────────────
 
@@ -446,7 +464,7 @@ EOF
 fi
 
 # Ensure dynamic config dir is writable by the app container
-chown -R 220568:220568 "$SANDCASTLE_HOME"/data/traefik/dynamic
+chown -R sandcastle:sandcastle "$SANDCASTLE_HOME"/data/traefik/dynamic
 
 # ─── Docker network ──────────────────────────────────────────────────────────
 
