@@ -51,6 +51,25 @@
             <p class="font-mono font-medium"><%= @status[:connected_sandboxes] %></p>
           </div>
         </div>
+
+        <% unless @status[:running] %>
+          <div class="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+            <h3 class="text-sm font-bold text-red-800 mb-1">Sidecar container is not running</h3>
+            <% if @status[:error_reason].present? %>
+              <p class="text-sm text-red-700 mb-2">Error: <code class="bg-red-100 px-1 rounded"><%= @status[:error_reason] %></code></p>
+            <% end %>
+            <% if @status[:exit_code] && @status[:exit_code] != 0 %>
+              <p class="text-sm text-red-700 mb-2">Exit code: <code class="bg-red-100 px-1 rounded"><%= @status[:exit_code] %></code></p>
+            <% end %>
+            <% if @status[:logs].present? %>
+              <details class="mt-2" open>
+                <summary class="text-xs font-medium text-red-700 cursor-pointer">Container logs</summary>
+                <pre class="mt-1 text-xs text-red-800 bg-red-100 rounded p-3 overflow-x-auto whitespace-pre-wrap"><%= @status[:logs] %></pre>
+              </details>
+            <% end %>
+            <p class="text-xs text-red-600 mt-3">Try disabling and re-enabling Tailscale to restart the sidecar.</p>
+          </div>
+        <% end %>
       <% end %>
     </div>
 
@@ -113,7 +132,8 @@
 
     <%= button_to "Disable Tailscale", disable_tailscale_path, method: :delete,
           class: "px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm",
-          data: { turbo_confirm: "This will disconnect all sandboxes from Tailscale and remove the sidecar. Continue?" } %>
+          data: { turbo_confirm: "This will disconnect all sandboxes from Tailscale and remove the sidecar. Continue?",
+                  turbo_submits_with: "Disabling..." } %>
 
   <% elsif Current.user.tailscale_pending? %>
     <%= render "tailscale/pending", login_url: nil %>
@@ -135,7 +155,8 @@
             Starts a sidecar container and gives you a link to authenticate with your Tailscale account.
           </p>
           <%= button_to "Connect to Tailscale", login_tailscale_path, method: :post,
-                class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm" %>
+                class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm",
+                data: { turbo_submits_with: "Starting sidecar..." } %>
         </div>
 
         <%# ── Alternative: auth key ── %>
@@ -154,7 +175,8 @@
                   The key is only used once to authenticate the sidecar and is not stored.
                 </p>
               </div>
-              <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm">
+              <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
+                      data-turbo-submits-with="Enabling Tailscale...">
                 Enable with Auth Key
               </button>
             <% end %>

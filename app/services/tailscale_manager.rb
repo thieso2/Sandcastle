@@ -147,6 +147,12 @@ class TailscaleManager
           # Status not available yet
         end
       end
+    else
+      # Grab last 20 lines of container logs for debugging
+      logs = container.logs(stdout: true, stderr: true, tail: 20)
+      result[:logs] = logs.encode("UTF-8", invalid: :replace, undef: :replace).strip if logs.present?
+      result[:exit_code] = container.json.dig("State", "ExitCode")
+      result[:error_reason] = container.json.dig("State", "Error")
     end
 
     result

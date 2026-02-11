@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"net/url"
 	"os"
@@ -34,12 +35,21 @@ Examples:
 		serverURL := strings.TrimRight(args[0], "/")
 		insecure, _ := cmd.Flags().GetBool("insecure")
 
-		// Derive alias from URL if not provided
+		// Derive alias from URL if not provided, prompt interactively
 		alias := ""
 		if len(args) > 1 {
 			alias = args[1]
 		} else {
-			alias = deriveAlias(serverURL)
+			suggested := deriveAlias(serverURL)
+			fmt.Printf("Server alias [%s]: ", suggested)
+			reader := bufio.NewReader(os.Stdin)
+			input, _ := reader.ReadString('\n')
+			input = strings.TrimSpace(input)
+			if input != "" {
+				alias = input
+			} else {
+				alias = suggested
+			}
 		}
 
 		// Get device code from server
