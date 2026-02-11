@@ -315,16 +315,13 @@ else
     tar -xzf /tmp/dockyard.tar.gz -C "$DOCKYARD_TMP"
     rm /tmp/dockyard.tar.gz
 
-    cat > "$DOCKYARD_TMP/dockyard-master/env.sandcastle" <<DYEOF
-DOCKYARD_ROOT=${DOCKYARD_ROOT}
-DOCKYARD_DOCKER_PREFIX=${DOCKYARD_DOCKER_PREFIX}
-DOCKYARD_BRIDGE_CIDR=${DOCKYARD_BRIDGE_CIDR}
-DOCKYARD_FIXED_CIDR=${DOCKYARD_FIXED_CIDR}
-DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}
-DOCKYARD_POOL_SIZE=${DOCKYARD_POOL_SIZE}
-DYEOF
+    # Export vars so dockyard's install.sh picks them up from the environment
+    export DOCKYARD_ROOT DOCKYARD_DOCKER_PREFIX DOCKYARD_BRIDGE_CIDR
+    export DOCKYARD_FIXED_CIDR DOCKYARD_POOL_BASE DOCKYARD_POOL_SIZE
 
-    cd "$DOCKYARD_TMP/dockyard-master"
+    DOCKYARD_SRC="$(ls -d "$DOCKYARD_TMP"/dockyard-*/)"
+    touch "$DOCKYARD_SRC/env.sandcastle"
+    cd "$DOCKYARD_SRC"
     bash ./install.sh sandcastle
     cd /
     rm -rf "$DOCKYARD_TMP"
