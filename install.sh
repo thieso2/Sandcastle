@@ -179,8 +179,8 @@ if [ "$FRESH_INSTALL" = true ]; then
     fi
     warn "Passwords do not match — try again"
   done
-  if [ ${#ADMIN_PASSWORD} -lt 8 ]; then
-    error "Password must be at least 8 characters"
+  if [ ${#ADMIN_PASSWORD} -lt 6 ]; then
+    error "Password must be at least 6 characters"
     exit 1
   fi
 
@@ -347,6 +347,9 @@ http:
           - url: "http://sandcastle-web:80"
 EOF
 fi
+
+# Ensure dynamic config dir is writable by the app container
+chown -R 220568:220568 "$SANDCASTLE_HOME"/data/traefik/dynamic
 
 # ─── Docker network ──────────────────────────────────────────────────────────
 
