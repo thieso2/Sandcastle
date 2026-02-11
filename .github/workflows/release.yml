@@ -235,3 +235,28 @@ jobs:
 
       - name: Inspect image
         run: docker buildx imagetools inspect ${{ env.REGISTRY }}/thieso2/sandcastle-sandbox:latest
+
+  # ── CLI binaries: build and attach to GitHub release ───────────────────
+  cli-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: vendor/sandcastle-cli/go.mod
+
+      - name: Build all platforms
+        working-directory: vendor/sandcastle-cli
+        run: make build-all VERSION=${{ github.ref_name }}
+
+      - name: Upload CLI binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: vendor/sandcastle-cli/dist/*
