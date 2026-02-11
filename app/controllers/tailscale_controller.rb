@@ -4,11 +4,6 @@ class TailscaleController < ApplicationController
       @status = TailscaleManager.new.status(user: Current.user)
     elsif Current.user.tailscale_pending?
       @pending = true
-      result = TailscaleManager.new.check_login(user: Current.user)
-      if result[:status] == "authenticated"
-        redirect_to tailscale_path, notice: "Tailscale connected"
-        return
-      end
     end
   rescue TailscaleManager::Error => e
     @error = e.message
@@ -26,12 +21,8 @@ class TailscaleController < ApplicationController
   end
 
   def login
-    result = TailscaleManager.new.start_login(user: Current.user)
-    @login_url = result[:login_url]
-    respond_to do |format|
-      format.turbo_stream
-      format.html { redirect_to tailscale_path }
-    end
+    TailscaleManager.new.start_login(user: Current.user)
+    redirect_to tailscale_path, status: :see_other
   rescue TailscaleManager::Error, Docker::Error::DockerError => e
     flash[:alert] = e.message
     redirect_to tailscale_path, status: :see_other

@@ -136,7 +136,7 @@
                   turbo_submits_with: "Disabling..." } %>
 
   <% elsif Current.user.tailscale_pending? %>
-    <%= render "tailscale/pending", login_url: nil %>
+    <%= render "tailscale/pending" %>
 
   <% else %>
     <%# ── Setup state ── %>

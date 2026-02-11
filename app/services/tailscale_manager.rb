@@ -23,14 +23,13 @@ class TailscaleManager
     raise Error, "Failed to enable Tailscale: #{e.message}"
   end
 
-  # Phase 1: start sidecar without auth key, return login URL
+  # Phase 1: create and start sidecar, return immediately
   def start_login(user:)
     raise Error, "Tailscale already active" if user.tailscale_enabled?
 
     # If pending, clean up the old attempt first
     cleanup_sidecar(user) if user.tailscale_pending?
 
-    subnet = subnet_for(user)
     network_name, container = create_and_start_sidecar(user: user, auth_key: nil)
 
     user.update!(
@@ -39,36 +38,46 @@ class TailscaleManager
       tailscale_network: network_name
     )
 
-    # Wait for tailscaled to be ready before calling tailscale up
-    sleep 3
-
-    login_url = fetch_login_url(container, subnet)
-    unless login_url
-      # Retry once after another pause
-      sleep 3
-      login_url = fetch_login_url(container, subnet)
-    end
-    raise Error, "Could not get login URL — tailscaled may not be ready yet" unless login_url
-
-    { login_url: login_url }
+    { status: "starting" }
   rescue Docker::Error::DockerError => e
     cleanup_on_failure(user)
     raise Error, "Failed to start Tailscale login: #{e.message}"
   end
 
-  # Phase 2: check if the user has completed browser auth
+  # Phase 2: progressive login status check
+  # Returns: { status: "starting" | "waiting_for_url" | "login_ready" | "authenticated" | "error" }
   def check_login(user:)
     raise Error, "No pending login" unless user.tailscale_pending?
     raise Error, "Sidecar container not found" if user.tailscale_container_id.blank?
 
     container = Docker::Container.get(user.tailscale_container_id)
     running = container.json.dig("State", "Running")
-    return { status: "pending" } unless running
+    return { status: "starting", message: "Starting sidecar container..." } unless running
 
+    # Kick off `tailscale up` in the background if not already done
+    cache_key = "ts_login_started:#{user.id}"
+    unless Rails.cache.read(cache_key)
+      subnet = subnet_for(user)
+      container.exec([
+        "sh", "-c",
+        "tailscale up --reset" \
+        " --advertise-routes=#{subnet}" \
+        " --advertise-tags=tag:sandcastle" \
+        " --accept-routes" \
+        " --hostname=#{container.json.dig("Config", "Hostname")}" \
+        " --timeout=120s &"
+      ])
+      Rails.cache.write(cache_key, true, expires_in: 5.minutes)
+      return { status: "waiting_for_url", message: "Waiting for login URL..." }
+    end
+
+    # Check tailscale status for auth progress
     status_out = container.exec([ "tailscale", "status", "--json" ])
     if status_out.first.any?
       ts_status = JSON.parse(status_out.first.join)
-      if ts_status.dig("BackendState") == "Running"
+      case ts_status["BackendState"]
+      when "Running"
+        Rails.cache.delete(cache_key)
         user.update!(tailscale_state: "enabled", tailscale_auto_connect: true)
         ip_out = container.exec([ "tailscale", "ip", "--4" ])
         tailscale_ip = ip_out.first.first&.strip if ip_out.first.any?
@@ -78,13 +87,19 @@ class TailscaleManager
           hostname: ts_status.dig("Self", "HostName"),
           tailnet: ts_status.dig("MagicDNSSuffix")
         }
+      when "NeedsLogin"
+        auth_url = ts_status["AuthURL"]
+        if auth_url.present?
+          return { status: "login_ready", login_url: auth_url, message: "Click the link to authenticate" }
+        end
       end
     end
 
-    { status: "pending" }
+    { status: "waiting_for_url", message: "Waiting for login URL..." }
   rescue JSON::ParserError
-    { status: "pending" }
+    { status: "waiting_for_url", message: "Waiting for login URL..." }
   rescue Docker::Error::NotFoundError
+    Rails.cache.delete("ts_login_started:#{user.id}")
     user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
     raise Error, "Sidecar container disappeared"
   rescue Docker::Error::DockerError => e
@@ -93,6 +108,8 @@ class TailscaleManager
 
   def disable(user:)
     raise Error, "Tailscale not active" if user.tailscale_disabled?
+
+    Rails.cache.delete("ts_login_started:#{user.id}")
 
     # Disconnect all sandboxes first
     user.sandboxes.active.where(tailscale: true).find_each do |sandbox|

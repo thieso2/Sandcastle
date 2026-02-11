@@ -1,48 +1,115 @@
 <%# ── Waiting for login ── %>
 <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
   <div class="flex items-center gap-2 mb-4">
-    <span class="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
-    <h2 class="text-lg font-semibold text-gray-900">Waiting for Login</h2>
+    <span id="status-dot" class="inline-block w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+    <h2 class="text-lg font-semibold text-gray-900">Connecting to Tailscale</h2>
   </div>
 
-  <p class="text-sm text-gray-600 mb-4">
-    A Tailscale sidecar has been started. Log in with your Tailscale account to connect it to your tailnet.
-  </p>
+  <%# ── Progress steps ── %>
+  <div class="space-y-3 mb-6">
+    <div id="step-starting" class="flex items-center gap-3 text-sm">
+      <span class="step-icon w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+        <svg class="w-3 h-3 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+      </span>
+      <span class="step-text text-gray-700 font-medium">Starting sidecar container...</span>
+    </div>
 
-  <% if login_url.present? %>
-    <a href="<%= login_url %>" target="_blank" rel="noopener"
-       class="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm mb-4">
+    <div id="step-url" class="flex items-center gap-3 text-sm">
+      <span class="step-icon w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+      </span>
+      <span class="step-text text-gray-400">Waiting for login URL...</span>
+    </div>
+
+    <div id="step-auth" class="flex items-center gap-3 text-sm">
+      <span class="step-icon w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+      </span>
+      <span class="step-text text-gray-400">Authenticate with Tailscale</span>
+    </div>
+  </div>
+
+  <%# ── Login link (hidden until ready) ── %>
+  <div id="login-link" class="hidden mb-4">
+    <a id="login-url" href="#" target="_blank" rel="noopener"
+       class="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
       Open Tailscale Login
     </a>
-  <% end %>
+  </div>
 
-  <div id="login-status" class="text-sm text-gray-500 mb-4">Waiting for login...</div>
+  <%# ── Error display ── %>
+  <div id="login-error" class="hidden mb-4">
+    <p class="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-3"></p>
+  </div>
 
   <div class="flex gap-3">
     <%= button_to "Cancel", disable_tailscale_path, method: :delete,
-          class: "px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm" %>
+          class: "px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm",
+          data: { turbo_submits_with: "Cancelling..." } %>
   </div>
 </div>
 
 <script>
   (function() {
+    var currentStatus = "starting";
+
+    function setStepActive(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.querySelector(".step-icon").className = "step-icon w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center";
+      el.querySelector(".step-icon").innerHTML = '<svg class="w-3 h-3 text-white animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+      el.querySelector(".step-text").className = "step-text text-gray-700 font-medium";
+    }
+
+    function setStepDone(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.querySelector(".step-icon").className = "step-icon w-5 h-5 rounded-full bg-green-500 flex items-center justify-center";
+      el.querySelector(".step-icon").innerHTML = '<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>';
+      el.querySelector(".step-text").className = "step-text text-green-700 font-medium";
+    }
+
+    function updateUI(data) {
+      if (data.status === "starting") {
+        setStepActive("step-starting");
+      } else if (data.status === "waiting_for_url") {
+        setStepDone("step-starting");
+        setStepActive("step-url");
+      } else if (data.status === "login_ready") {
+        setStepDone("step-starting");
+        setStepDone("step-url");
+        setStepActive("step-auth");
+        var linkDiv = document.getElementById("login-link");
+        var linkEl = document.getElementById("login-url");
+        if (linkDiv && linkEl && data.login_url) {
+          linkEl.href = data.login_url;
+          linkDiv.classList.remove("hidden");
+        }
+      } else if (data.status === "authenticated") {
+        setStepDone("step-starting");
+        setStepDone("step-url");
+        setStepDone("step-auth");
+        clearInterval(poll);
+        window.location.reload();
+      } else if (data.status === "error") {
+        clearInterval(poll);
+        var errDiv = document.getElementById("login-error");
+        if (errDiv) {
+          errDiv.querySelector("p").textContent = data.error;
+          errDiv.classList.remove("hidden");
+        }
+      }
+      currentStatus = data.status;
+    }
+
     var poll = setInterval(function() {
       fetch("<%= login_status_tailscale_path %>", { headers: { "Accept": "application/json" } })
         .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.status === "authenticated") {
-            clearInterval(poll);
-            window.location.reload();
-          } else if (data.status === "error") {
-            document.getElementById("login-status").textContent = "Error: " + data.error;
-            clearInterval(poll);
-          } else {
-            document.getElementById("login-status").textContent = "Waiting for login...";
-          }
-        })
-        .catch(function() {
-          document.getElementById("login-status").textContent = "Connection error, retrying...";
-        });
-    }, 3000);
+        .then(updateUI)
+        .catch(function() {});
+    }, 2000);
   })();
 </script>
