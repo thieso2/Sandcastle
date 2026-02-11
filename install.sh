@@ -106,8 +106,11 @@ if [ "$FRESH_INSTALL" = true ]; then
   read -rp "Domain name (leave empty for IP-only mode): " DOMAIN
   if [ -n "$DOMAIN" ]; then
     TLS_MODE="letsencrypt"
-    read -rp "Email for Let's Encrypt [$DOMAIN admin]: " ACME_EMAIL
-    ACME_EMAIL="${ACME_EMAIL:-admin@$DOMAIN}"
+    read -rp "Email for Let's Encrypt: " ACME_EMAIL
+    if [ -z "$ACME_EMAIL" ]; then
+      error "Email is required for Let's Encrypt certificates"
+      exit 1
+    fi
     SANDCASTLE_HOST="$DOMAIN"
   else
     TLS_MODE="selfsigned"
@@ -319,6 +322,7 @@ services:
       SANDCASTLE_HOST: ${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: ${SANDCASTLE_TLS_MODE:-letsencrypt}
+      SANDCASTLE_ADMIN_PASSWORD: ${SANDCASTLE_ADMIN_PASSWORD:-}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -335,6 +339,7 @@ services:
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      SANDCASTLE_ADMIN_PASSWORD: ${SANDCASTLE_ADMIN_PASSWORD:-}
 
 volumes:
   sandcastle-db:
