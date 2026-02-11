@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -119,9 +120,6 @@ Flags explicitly passed on the command line take precedence over environment var
 			return nil
 		}
 
-		// Auto-connect: set as active, wait for SSH, attach tmux
-		_ = config.SetActiveSandbox(sandbox.Name)
-
 		info, err := client.ConnectInfo(sandbox.ID)
 		if err != nil {
 			return err
@@ -172,8 +170,6 @@ var listCmd = &cobra.Command{
 			return nil
 		}
 
-		active := config.ActiveSandbox()
-
 		hasRoute := false
 		for _, s := range sandboxes {
 			if s.RouteURL != "" {
@@ -190,9 +186,6 @@ var listCmd = &cobra.Command{
 		}
 		for _, s := range sandboxes {
 			name := s.Name
-			if s.Name == active {
-				name += " *"
-			}
 			if s.Temporary {
 				name += " (temp)"
 			}
@@ -310,19 +303,24 @@ Examples:
 		if len(args) == 0 {
 			if len(cfg.Servers) == 0 {
 				fmt.Println("No servers configured — run: sandcastle login <url>")
-			} else {
-				fmt.Println("Servers:")
-				for alias, srv := range cfg.Servers {
-					if alias == cfg.CurrentServer {
-						fmt.Printf("  \033[1m* %s\033[0m (%s)\n", alias, srv.URL)
-					} else {
-						fmt.Printf("    %s (%s)\n", alias, srv.URL)
-					}
+				return nil
+			}
+
+			aliases := make([]string, 0, len(cfg.Servers))
+			for alias := range cfg.Servers {
+				aliases = append(aliases, alias)
+			}
+			sort.Strings(aliases)
+
+			for _, alias := range aliases {
+				srv := cfg.Servers[alias]
+				if alias == cfg.CurrentServer {
+					fmt.Printf("  \033[1m* %-16s\033[0m %s\n", alias, srv.URL)
+				} else {
+					fmt.Printf("    %-16s %s\n", alias, srv.URL)
 				}
 			}
-			if active := config.ActiveSandbox(); active != "" {
-				fmt.Printf("\nSandbox: %s\n", active)
-			}
+
 			return nil
 		}
 
@@ -350,12 +348,7 @@ Examples:
 			}
 		}
 
-		// Otherwise set active sandbox
-		if err := config.SetActiveSandbox(name); err != nil {
-			return err
-		}
-		fmt.Printf("Active sandbox set to %q\n", name)
-		return nil
+		return fmt.Errorf("server %q not found — run: sandcastle use", name)
 	},
 }
 

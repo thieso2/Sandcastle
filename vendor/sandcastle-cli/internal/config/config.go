@@ -104,16 +104,3 @@ func (c *Config) SetServer(alias, url, token string, insecure bool) {
 	c.CurrentServer = alias
 }
 
-// ActiveSandbox reads .sandcastle file in current directory for the active sandbox name.
-func ActiveSandbox() string {
-	data, err := os.ReadFile(".sandcastle")
-	if err != nil {
-		return ""
-	}
-	return string(data)
-}
-
-// SetActiveSandbox writes .sandcastle file in current directory.
-func SetActiveSandbox(name string) error {
-	return os.WriteFile(".sandcastle", []byte(name), 0o644)
-}

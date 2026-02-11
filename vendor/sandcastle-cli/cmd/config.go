@@ -165,3 +165,4 @@ var serverRemoveCmd = &cobra.Command{
 		return nil
 	},
 }
+

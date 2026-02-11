@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/sandcastle/cli/api"
-	"github.com/sandcastle/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +20,6 @@ var execCmd = &cobra.Command{
 		name := args[0]
 		remoteCmd := strings.Join(args[1:], " ")
 
-		// If first arg looks like it could be a command (no sandbox found), try active sandbox
 		client, err := api.NewClient()
 		if err != nil {
 			return err
@@ -29,16 +27,7 @@ var execCmd = &cobra.Command{
 
 		sandbox, err := findSandboxByName(client, name)
 		if err != nil {
-			// Maybe the name is actually part of the command, use active sandbox
-			active := config.ActiveSandbox()
-			if active == "" {
-				return fmt.Errorf("sandbox %q not found and no active sandbox set", name)
-			}
-			sandbox, err = findSandboxByName(client, active)
-			if err != nil {
-				return err
-			}
-			remoteCmd = strings.Join(args, " ")
+			return fmt.Errorf("sandbox %q not found", name)
 		}
 
 		info, err := client.ConnectInfo(sandbox.ID)

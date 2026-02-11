@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"os/exec"
@@ -114,11 +115,17 @@ func deriveAlias(serverURL string) string {
 	}
 	host := u.Hostname()
 
-	// Use first subdomain or "local" for localhost
+	// Use "local" for localhost
 	if host == "localhost" || host == "127.0.0.1" {
 		return "local"
 	}
 
+	// For IP addresses, use the full IP as suggestion
+	if net.ParseIP(host) != nil {
+		return host
+	}
+
+	// For domains, use the first subdomain
 	parts := strings.Split(host, ".")
 	if len(parts) > 0 {
 		return parts[0]

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/sandcastle/cli/api"
-	"github.com/sandcastle/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -98,7 +97,7 @@ func resolveSandboxName(args []string) string {
 	if len(args) > 0 {
 		return args[0]
 	}
-	return config.ActiveSandbox()
+	return ""
 }
 
 func waitForSSH(host string, port int) error {
