@@ -461,16 +461,6 @@ if [ "$FRESH_INSTALL" = true ]; then
     -e SANDCASTLE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
     web ./bin/rails db:seed
 
-  # Tailscale (optional — asked now that the DB is ready)
-  echo ""
-  read -rp "Set up Tailscale? (paste auth key or leave empty to skip): " TS_AUTHKEY
-  if [ -n "${TS_AUTHKEY:-}" ]; then
-    info "Enabling Tailscale..."
-    docker compose --env-file .env exec -T -e TS_AUTHKEY="$TS_AUTHKEY" web ./bin/rails runner \
-      "TailscaleManager.new.enable(user: User.find_by!(admin: true), auth_key: ENV['TS_AUTHKEY'])" \
-      && ok "Tailscale enabled" \
-      || warn "Tailscale setup failed — you can enable it later from the dashboard"
-  fi
 fi
 
 # ─── Done ─────────────────────────────────────────────────────────────────────
@@ -492,9 +482,7 @@ if [ "$FRESH_INSTALL" = true ]; then
   echo -e "  Admin login:"
   echo -e "    Email:     ${YELLOW}${ADMIN_EMAIL}${NC}"
   echo ""
-  if [ -n "${TS_AUTHKEY:-}" ]; then
-    echo -e "  Tailscale:   ${GREEN}enabled${NC}"
-  fi
+  echo -e "  Tailscale:   ${BLUE}https://${SANDCASTLE_HOST}/tailscale${NC}"
 fi
 
 echo ""

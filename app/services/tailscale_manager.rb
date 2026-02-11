@@ -13,6 +13,7 @@ class TailscaleManager
 
     user.update!(
       tailscale_state: "enabled",
+      tailscale_auto_connect: true,
       tailscale_container_id: container.id,
       tailscale_network: network_name
     )
@@ -68,7 +69,7 @@ class TailscaleManager
     if status_out.first.any?
       ts_status = JSON.parse(status_out.first.join)
       if ts_status.dig("BackendState") == "Running"
-        user.update!(tailscale_state: "enabled")
+        user.update!(tailscale_state: "enabled", tailscale_auto_connect: true)
         ip_out = container.exec([ "tailscale", "ip", "--4" ])
         tailscale_ip = ip_out.first.first&.strip if ip_out.first.any?
         return {
