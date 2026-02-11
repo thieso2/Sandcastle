@@ -26,8 +26,11 @@ class TailscaleController < ApplicationController
 
   def login
     result = TailscaleManager.new.start_login(user: Current.user)
-    flash[:login_url] = result[:login_url]
-    redirect_to tailscale_path, notice: "Open the Tailscale login link to authenticate."
+    @login_url = result[:login_url]
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to tailscale_path }
+    end
   rescue TailscaleManager::Error => e
     redirect_to tailscale_path, alert: e.message
   end
