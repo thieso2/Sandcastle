@@ -263,11 +263,13 @@ jobs:
         working-directory: vendor/sandcastle-cli
         run: make build-all VERSION=${{ github.ref_name }}
 
-      - name: Upload CLI binaries to release
+      - name: Upload CLI binaries and installer to release
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: softprops/action-gh-release@v2
         with:
-          files: vendor/sandcastle-cli/dist/*
+          files: |
+            vendor/sandcastle-cli/dist/*
+            install.sh
 
       - name: Upload CLI binaries as artifacts
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}

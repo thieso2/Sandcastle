@@ -230,6 +230,31 @@ if [ "$FRESH_INSTALL" = true ]; then
     exit 1
   fi
 
+  # SSH public key
+  echo ""
+  DEFAULT_KEY=""
+  for keyfile in "$HOME/.ssh/id_ed25519.pub" "$HOME/.ssh/id_rsa.pub" "$HOME/.ssh/id_ecdsa.pub"; do
+    if [ -f "$keyfile" ]; then
+      DEFAULT_KEY=$(cat "$keyfile")
+      break
+    fi
+  done
+  if [ -n "$DEFAULT_KEY" ]; then
+    SHORT_KEY="${DEFAULT_KEY:0:40}..."
+    echo -e "Found SSH key: ${YELLOW}${SHORT_KEY}${NC}"
+    read -rp "Use this key? [Y/n]: " USE_DEFAULT
+    if [ -z "$USE_DEFAULT" ] || [[ "$USE_DEFAULT" =~ ^[Yy] ]]; then
+      ADMIN_SSH_KEY="$DEFAULT_KEY"
+    else
+      read -rp "Paste your SSH public key: " ADMIN_SSH_KEY
+    fi
+  else
+    read -rp "SSH public key (e.g. ssh-ed25519 AAAA...): " ADMIN_SSH_KEY
+  fi
+  if [ -z "$ADMIN_SSH_KEY" ]; then
+    warn "No SSH key provided — you can add one later in the web UI"
+  fi
+
   # Docker network subnet
   echo ""
   SUGGESTED_SUBNET=$(find_free_subnet)
@@ -252,6 +277,7 @@ SECRET_KEY_BASE=$SECRET_KEY_BASE
 SANDCASTLE_ADMIN_EMAIL=$ADMIN_EMAIL
 SANDCASTLE_ADMIN_PASSWORD=$ADMIN_PASSWORD
 SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET
+SANDCASTLE_ADMIN_SSH_KEY=$ADMIN_SSH_KEY
 DOCKER_GID=$DOCKER_GID
 ACME_EMAIL=$ACME_EMAIL
 EOF
@@ -454,6 +480,7 @@ services:
       SANDCASTLE_SUBNET: \${SANDCASTLE_SUBNET:-172.30.99.0/24}
       SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
       SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
+      SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -472,6 +499,7 @@ services:
       SECRET_KEY_BASE: \${SECRET_KEY_BASE}
       SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
       SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
+      SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
 
 volumes:
   sandcastle-db:
@@ -505,6 +533,7 @@ if [ "$FRESH_INSTALL" = true ]; then
   docker compose --env-file .env exec -T \
     -e SANDCASTLE_ADMIN_EMAIL="$ADMIN_EMAIL" \
     -e SANDCASTLE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+    -e SANDCASTLE_ADMIN_SSH_KEY="${ADMIN_SSH_KEY:-}" \
     web ./bin/rails db:seed
 
 fi

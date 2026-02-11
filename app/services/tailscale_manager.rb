@@ -226,6 +226,7 @@ class TailscaleManager
       "tailscale", "up",
       "--reset",
       "--advertise-routes=#{subnet}",
+      "--advertise-tags=tag:sandcastle",
       "--accept-routes",
       "--hostname=#{container.json.dig("Config", "Hostname")}",
       "--timeout=10s"
@@ -325,7 +326,7 @@ class TailscaleManager
       config["Env"] = [
         "TS_STATE_DIR=/var/lib/tailscale",
         "TS_HOSTNAME=sc-#{user.name}",
-        "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes",
+        "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes --advertise-tags=tag:sandcastle",
         "TS_AUTH_ONCE=true",
         "TS_AUTHKEY=#{auth_key}"
       ]
