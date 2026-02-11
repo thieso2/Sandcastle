@@ -115,34 +115,23 @@
           <p class="text-xs text-gray-500 mb-3">
             Starts a sidecar container and gives you a link to authenticate with your Tailscale account.
           </p>
-          <%= button_to "Connect to Tailscale", login_tailscale_path, method: :post,
-                class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm",
-                data: { turbo_submits_with: "Starting sidecar..." } %>
+          <%= form_with url: login_tailscale_path, method: :post, class: "space-y-3" do |f| %>
+            <div>
+              <label class="text-xs text-gray-500">ACL tag (optional)</label>
+              <input type="text" name="tailscale_tag" placeholder="tag:sandcastle"
+                     value="<%= ENV.fetch('SANDCASTLE_TAILSCALE_TAG', '') %>"
+                     class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <p class="text-xs text-gray-400 mt-1">
+                Leave empty if you haven't set up <code class="bg-gray-100 px-1 rounded">tagOwners</code> in your ACL policy yet.
+              </p>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                    data-turbo-submits-with="Starting sidecar...">
+              Connect to Tailscale
+            </button>
+          <% end %>
         </div>
 
-        <%# ── Alternative: auth key ── %>
-        <details class="group">
-          <summary class="text-sm text-gray-500 cursor-pointer hover:text-gray-700">
-            Or use an auth key
-          </summary>
-          <div class="mt-3">
-            <%= form_with url: enable_tailscale_path, method: :post, class: "space-y-4" do |f| %>
-              <div>
-                <input type="password" name="auth_key" required placeholder="tskey-auth-..."
-                       class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <p class="text-xs text-gray-500 mt-1">
-                  Generate a reusable auth key at
-                  <code class="bg-gray-100 px-1 rounded">Tailscale Admin &rarr; Settings &rarr; Keys</code>.
-                  The key is only used once to authenticate the sidecar and is not stored.
-                </p>
-              </div>
-              <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
-                      data-turbo-submits-with="Enabling Tailscale...">
-                Enable with Auth Key
-              </button>
-            <% end %>
-          </div>
-        </details>
       </div>
     </div>
   <% end %>

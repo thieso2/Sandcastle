@@ -59,7 +59,8 @@ class TailscaleManager
     cache_key = "ts_login_started:#{user.id}"
     unless Rails.cache.read(cache_key)
       subnet = subnet_for(user)
-      tag_flag = TAILSCALE_TAG ? " --advertise-tags=#{TAILSCALE_TAG}" : ""
+      tag = Rails.cache.read("ts_tag:#{user.id}") || TAILSCALE_TAG
+      tag_flag = tag ? " --advertise-tags=#{tag}" : ""
       container.exec([
         "sh", "-c",
         "tailscale up --reset" \

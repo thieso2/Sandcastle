@@ -9,18 +9,9 @@ class TailscaleController < ApplicationController
     @error = e.message
   end
 
-  def enable
-    TailscaleManager.new.enable(
-      user: Current.user,
-      auth_key: params.require(:auth_key)
-    )
-    redirect_to tailscale_path, notice: "Tailscale enabled"
-  rescue TailscaleManager::Error, Docker::Error::DockerError => e
-    flash[:alert] = e.message
-    redirect_to tailscale_path, status: :see_other
-  end
-
   def login
+    tag = params[:tailscale_tag].presence
+    Rails.cache.write("ts_tag:#{Current.user.id}", tag, expires_in: 10.minutes) if tag
     TailscaleManager.new.start_login(user: Current.user)
     redirect_to tailscale_path, status: :see_other
   rescue TailscaleManager::Error, Docker::Error::DockerError => e

@@ -25,7 +25,6 @@ Rails.application.routes.draw do
 
   resource :tailscale, only: [], controller: "tailscale" do
     get :show
-    post :enable
     post :login
     get :login_status
     patch :update_settings
