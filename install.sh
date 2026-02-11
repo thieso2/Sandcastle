@@ -214,6 +214,9 @@ fi
 # shellcheck source=/dev/null
 source "$SANDCASTLE_DIR/.env"
 
+# Defaults for vars that may be missing in older .env files
+SANDCASTLE_SUBNET="${SANDCASTLE_SUBNET:-$(find_free_subnet).0.0/16}"
+
 # ─── Traefik config ──────────────────────────────────────────────────────────
 
 if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
