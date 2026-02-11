@@ -233,6 +233,7 @@ class TailscaleManager
 
     pull_image
     create_network(network_name, subnet)
+    remove_existing_container(container_name)
     container = create_sidecar(
       name: container_name,
       user: user,
@@ -245,6 +246,13 @@ class TailscaleManager
     [ network_name, container ]
   end
 
+  def remove_existing_container(name)
+    container = Docker::Container.get(name)
+    container.stop(t: 5) rescue nil
+    container.delete(force: true)
+  rescue Docker::Error::NotFoundError
+    # No existing container
+  end
 
   def cleanup_sidecar(user)
     if user.tailscale_container_id.present?
