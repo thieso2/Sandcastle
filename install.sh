@@ -249,17 +249,39 @@ if [ "$RESET" = true ]; then
     fi
     docker network rm sandcastle-web 2>/dev/null || true
 
-    # Stop Dockyard systemd service if present
-    if systemctl is-active --quiet "${DOCKYARD_DOCKER_PREFIX}dockerd" 2>/dev/null; then
-      info "Stopping Dockyard..."
-      systemctl stop "${DOCKYARD_DOCKER_PREFIX}dockerd" 2>/dev/null || true
-      systemctl disable "${DOCKYARD_DOCKER_PREFIX}dockerd" 2>/dev/null || true
-      rm -f "/etc/systemd/system/${DOCKYARD_DOCKER_PREFIX}dockerd.service"
-      systemctl daemon-reload 2>/dev/null || true
+    # Uninstall Dockyard if present
+    if [ -S "${DOCKYARD_ROOT}/docker.sock" ] || systemctl list-unit-files "${DOCKYARD_DOCKER_PREFIX}dockerd.service" &>/dev/null; then
+      info "Uninstalling Dockyard..."
+      DOCKYARD_TMP="/tmp/dockyard-uninstall"
+      rm -rf "$DOCKYARD_TMP"
+      mkdir -p "$DOCKYARD_TMP"
+      if wget -q "https://github.com/thieso2/dockyard/archive/refs/heads/master.tar.gz" -O /tmp/dockyard.tar.gz 2>/dev/null; then
+        tar -xzf /tmp/dockyard.tar.gz -C "$DOCKYARD_TMP"
+        rm /tmp/dockyard.tar.gz
+        export DOCKYARD_ROOT DOCKYARD_DOCKER_PREFIX DOCKYARD_BRIDGE_CIDR
+        export DOCKYARD_FIXED_CIDR DOCKYARD_POOL_BASE DOCKYARD_POOL_SIZE
+        DOCKYARD_SRC="$(ls -d "$DOCKYARD_TMP"/dockyard-*/)"
+        touch "$DOCKYARD_SRC/env.sandcastle"
+        cd "$DOCKYARD_SRC"
+        bash ./uninstall.sh sandcastle || true
+        cd /
+      else
+        # Fallback: manual cleanup if download fails
+        systemctl stop "${DOCKYARD_DOCKER_PREFIX}dockerd" 2>/dev/null || true
+        systemctl disable "${DOCKYARD_DOCKER_PREFIX}dockerd" 2>/dev/null || true
+        rm -f "/etc/systemd/system/${DOCKYARD_DOCKER_PREFIX}dockerd.service"
+        systemctl daemon-reload 2>/dev/null || true
+      fi
+      rm -rf "$DOCKYARD_TMP"
+      ok "Dockyard uninstalled"
     fi
 
     # Remove data directory
     rm -rf "$FOUND_HOME"
+    # Also remove DOCKYARD_ROOT if it differs from FOUND_HOME
+    if [ "$DOCKYARD_ROOT" != "$FOUND_HOME" ]; then
+      rm -rf "$DOCKYARD_ROOT"
+    fi
 
     # Clear DOCKER_HOST for fresh install
     unset DOCKER_HOST 2>/dev/null || true
