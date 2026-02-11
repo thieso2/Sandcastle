@@ -54,6 +54,7 @@ DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
 
 # ─── Load config file ────────────────────────────────────────────────────────
 
+NON_INTERACTIVE=false
 if [ -n "$CONFIG_FILE" ]; then
   if [ ! -f "$CONFIG_FILE" ]; then
     echo "Config file not found: $CONFIG_FILE" >&2
@@ -63,6 +64,7 @@ if [ -n "$CONFIG_FILE" ]; then
   set -a
   source "$CONFIG_FILE"
   set +a
+  NON_INTERACTIVE=true
 fi
 
 ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
@@ -203,21 +205,24 @@ if [ "$RESET" = true ]; then
     export DOCKER_HOST="unix://${DOCKYARD_ROOT}/docker.sock"
   fi
 
-  # Find existing install: check common locations and .env files
+  # Find existing install: check common locations for docker-compose.yml or .env
   FOUND_HOME=""
   for candidate in "$SANDCASTLE_HOME" /sandcastle /etc/sandcastle; do
-    if [ -f "$candidate/docker-compose.yml" ]; then
+    if [ -f "$candidate/docker-compose.yml" ] || [ -f "$candidate/.env" ] || [ -f "$candidate/env.dockyard" ]; then
       FOUND_HOME="$candidate"
       break
     fi
   done
 
-  if [ -z "$FOUND_HOME" ]; then
-    read -rp "Sandcastle home directory to reset: " FOUND_HOME
-  fi
+  # Default to SANDCASTLE_HOME if nothing found (dockyard service may still exist)
+  FOUND_HOME="${FOUND_HOME:-$SANDCASTLE_HOME}"
 
   warn "This will destroy ALL data in $FOUND_HOME (containers, volumes, user data, config)"
-  read -rp "Are you sure? (yes to confirm): " CONFIRM
+  if [ "$NON_INTERACTIVE" = true ]; then
+    CONFIRM="yes"
+  else
+    read -rp "Are you sure? (yes to confirm): " CONFIRM
+  fi
   if [ "$CONFIRM" = "yes" ]; then
     info "Tearing down Sandcastle..."
     cd /
@@ -249,19 +254,20 @@ if [ "$RESET" = true ]; then
     fi
     docker network rm sandcastle-web 2>/dev/null || true
 
-    # Uninstall Dockyard if present
-    if [ -S "${DOCKYARD_ROOT}/docker.sock" ] || [ -f "${DOCKYARD_ROOT}/env.dockyard" ]; then
+    # Uninstall Dockyard if present (check socket, env file, or systemd service)
+    if [ -S "${DOCKYARD_ROOT}/docker.sock" ] || [ -f "${DOCKYARD_ROOT}/env.dockyard" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
       info "Uninstalling Dockyard..."
-      if wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh 2>/dev/null; then
-        DOCKYARD_ENV="${DOCKYARD_ROOT}/env.dockyard" bash /tmp/dockyard.sh uninstall || true
+      if [ -f "${DOCKYARD_ROOT}/env.dockyard" ] && wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh 2>/dev/null; then
+        echo "y" | DOCKYARD_ENV="${DOCKYARD_ROOT}/env.dockyard" bash /tmp/dockyard.sh uninstall || true
         rm -f /tmp/dockyard.sh
       else
-        # Fallback: manual cleanup if download fails
+        # Manual cleanup: env.dockyard missing or download failed
         systemctl stop "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
         systemctl disable "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
         rm -f "/etc/systemd/system/${DOCKYARD_DOCKER_PREFIX}docker.service"
         systemctl daemon-reload 2>/dev/null || true
-        rm -rf "${DOCKYARD_ROOT}"
+        rm -rf "${DOCKYARD_ROOT}" "/run/${DOCKYARD_DOCKER_PREFIX}docker"
+        ip link delete "${DOCKYARD_DOCKER_PREFIX}docker0" 2>/dev/null || true
       fi
       ok "Dockyard uninstalled"
     fi
@@ -336,8 +342,15 @@ DYEOF
     DOCKYARD_ENV="$DOCKYARD_ENV_TMP" bash /tmp/dockyard.sh install
     rm -f "$DOCKYARD_ENV_TMP" /tmp/dockyard.sh
 
+    # Wait for Dockyard socket to be ready
+    for i in $(seq 1 30); do
+      if [ -S "${DOCKYARD_ROOT}/docker.sock" ]; then
+        break
+      fi
+      sleep 1
+    done
     if [ ! -S "${DOCKYARD_ROOT}/docker.sock" ]; then
-      error "Dockyard socket not found at ${DOCKYARD_ROOT}/docker.sock"
+      error "Dockyard socket not found at ${DOCKYARD_ROOT}/docker.sock after 30s"
       exit 1
     fi
     ok "Dockyard installed"
@@ -381,7 +394,7 @@ fi
 
 # ─── Sandcastle home directory ────────────────────────────────────────────────
 
-if [ -z "${SANDCASTLE_HOME_CONFIRMED:-}" ]; then
+if [ "$NON_INTERACTIVE" != true ]; then
   read -rp "Sandcastle home directory [$SANDCASTLE_HOME]: " INPUT_HOME
   SANDCASTLE_HOME="${INPUT_HOME:-$SANDCASTLE_HOME}"
 fi
@@ -533,8 +546,12 @@ source "$SANDCASTLE_HOME/.env"
 # Defaults for vars that may be missing in older .env files
 if [ -z "${SANDCASTLE_SUBNET:-}" ]; then
   SUGGESTED_SUBNET=$(find_free_subnet)
-  read -rp "Docker network subnet [$SUGGESTED_SUBNET]: " INPUT_SUBNET
-  SANDCASTLE_SUBNET="${INPUT_SUBNET:-$SUGGESTED_SUBNET}"
+  if [ "$NON_INTERACTIVE" = true ]; then
+    SANDCASTLE_SUBNET="$SUGGESTED_SUBNET"
+  else
+    read -rp "Docker network subnet [$SUGGESTED_SUBNET]: " INPUT_SUBNET
+    SANDCASTLE_SUBNET="${INPUT_SUBNET:-$SUGGESTED_SUBNET}"
+  fi
   echo "SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET" >> "$SANDCASTLE_HOME/.env"
 fi
 
