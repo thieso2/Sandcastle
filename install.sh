@@ -105,15 +105,15 @@ if [ "$RESET" = true ]; then
   fi
 
   if [ -f "$FOUND_HOME/docker-compose.yml" ]; then
-    warn "This will destroy all containers, images, and volumes in $FOUND_HOME"
+    warn "This will destroy ALL data in $FOUND_HOME (containers, volumes, user data, config)"
     read -rp "Are you sure? (yes to confirm): " CONFIRM
     if [ "$CONFIRM" = "yes" ]; then
       info "Tearing down Sandcastle in $FOUND_HOME..."
-      cd "$FOUND_HOME"
-      docker compose --env-file .env down --rmi all --volumes --remove-orphans 2>/dev/null || true
+      cd /
+      docker compose -f "$FOUND_HOME/docker-compose.yml" --env-file "$FOUND_HOME/.env" down --rmi all --volumes --remove-orphans 2>/dev/null || true
       docker network rm sandcastle-web 2>/dev/null || true
-      rm -f "$FOUND_HOME/docker-compose.yml" "$FOUND_HOME/.env"
-      ok "Reset complete — running fresh install"
+      rm -rf "$FOUND_HOME"
+      ok "Reset complete — $FOUND_HOME removed, running fresh install"
     else
       error "Aborted"
       exit 1
