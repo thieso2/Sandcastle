@@ -27,10 +27,10 @@ jobs:
         id: platforms
         run: |
           MSG=$(git log -1 --format=%B)
-          if echo "$MSG" | grep -qi '\[amd64-only\]'; then
-            echo 'value=["linux/amd64"]' >> "$GITHUB_OUTPUT"
-          else
+          if echo "$MSG" | grep -qi '\[multi-arch\]'; then
             echo 'value=["linux/amd64","linux/arm64"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'value=["linux/amd64"]' >> "$GITHUB_OUTPUT"
           fi
 
   # ── App image: build per platform (parallel) ──────────────────────────────

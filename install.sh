@@ -19,6 +19,7 @@ done
 SYSBOX_VERSION="0.6.6"
 APP_IMAGE="ghcr.io/thieso2/sandcastle:latest"
 SANDBOX_IMAGE="ghcr.io/thieso2/sandcastle-sandbox:latest"
+ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 
 # ─── Colors ───────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,47 @@ info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
 ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+
+# ─── Show available images ──────────────────────────────────────────────────
+
+show_image_info() {
+  local repo="$1"
+  python3 -c "
+import urllib.request, json, sys
+repo, arch = '${repo}', '${ARCH}'
+try:
+    r = urllib.request.urlopen(f'https://ghcr.io/token?scope=repository:thieso2/{repo}:pull')
+    token = json.load(r)['token']
+    h = {'Authorization': f'Bearer {token}'}
+    req = urllib.request.Request(
+        f'https://ghcr.io/v2/thieso2/{repo}/manifests/latest',
+        headers={**h, 'Accept': 'application/vnd.oci.image.index.v1+json,application/vnd.oci.image.manifest.v1+json'})
+    m = json.load(urllib.request.urlopen(req))
+    if 'manifests' in m:
+        for p in m['manifests']:
+            if p.get('platform', {}).get('architecture') == arch:
+                req = urllib.request.Request(
+                    f'https://ghcr.io/v2/thieso2/{repo}/manifests/{p[\"digest\"]}',
+                    headers={**h, 'Accept': 'application/vnd.oci.image.manifest.v1+json'})
+                m = json.load(urllib.request.urlopen(req))
+                break
+    cfg = json.load(urllib.request.urlopen(
+        urllib.request.Request(f'https://ghcr.io/v2/thieso2/{repo}/blobs/{m[\"config\"][\"digest\"]}', headers=h)))
+    from datetime import datetime
+    dt = datetime.fromisoformat(cfg['created'].replace('Z', '+00:00'))
+    print(f'  ghcr.io/thieso2/{repo}:latest    built {dt.strftime(\"%Y-%m-%d %H:%M UTC\")}')
+except Exception:
+    print(f'  ghcr.io/thieso2/{repo}:latest    (unable to fetch build info)')
+" 2>/dev/null || echo "  ghcr.io/thieso2/${repo}:latest"
+}
+
+echo ""
+echo -e "${BLUE}═══ Sandcastle Installer ═══${NC}"
+echo ""
+info "Available images (${ARCH}):"
+show_image_info "sandcastle"
+show_image_info "sandcastle-sandbox"
+echo ""
 
 # ─── Helper: find a free private subnet ──────────────────────────────────────
 
@@ -82,7 +124,6 @@ if ! grep -qi ubuntu /etc/os-release 2>/dev/null; then
   warn "This script is tested on Ubuntu 24.04. Other distros may work but are unsupported."
 fi
 
-ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
   error "Sandcastle requires amd64 or arm64 architecture (got: $ARCH)"
   exit 1
