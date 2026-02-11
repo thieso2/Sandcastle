@@ -84,8 +84,8 @@ fi
 # ─── Create directories ─────────────────────────────────────────────────────
 
 mkdir -p "$DATA_DIR"/{users,sandboxes}
-chown 1000:1000 "$DATA_DIR"/users "$DATA_DIR"/sandboxes
 mkdir -p "$DATA_DIR"/traefik/{dynamic,certs}
+chown 220568:220568 "$DATA_DIR"/users "$DATA_DIR"/sandboxes "$DATA_DIR"/traefik/dynamic
 mkdir -p "$SANDCASTLE_DIR"
 
 # ─── Detect fresh install vs upgrade ─────────────────────────────────────────
@@ -111,10 +111,10 @@ if [ "$FRESH_INSTALL" = true ]; then
     SANDCASTLE_HOST="$DOMAIN"
   else
     TLS_MODE="selfsigned"
-    # Auto-detect public IP
-    PUBLIC_IP=$(curl -fsSL --max-time 5 https://ifconfig.me 2>/dev/null || \
-                curl -fsSL --max-time 5 https://api.ipify.org 2>/dev/null || \
-                hostname -I | awk '{print $1}')
+    # Auto-detect IPv4 address (prefer local, fall back to public)
+    PUBLIC_IP=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.' | head -1)
+    PUBLIC_IP="${PUBLIC_IP:-$(curl -4fsSL --max-time 5 https://ifconfig.me 2>/dev/null)}"
+    PUBLIC_IP="${PUBLIC_IP:-$(curl -4fsSL --max-time 5 https://api.ipify.org 2>/dev/null)}"
     read -rp "Server IP [$PUBLIC_IP]: " INPUT_IP
     SANDCASTLE_HOST="${INPUT_IP:-$PUBLIC_IP}"
     ACME_EMAIL=""
