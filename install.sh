@@ -311,9 +311,9 @@ else
     DOCKYARD_TMP="/tmp/dockyard-install"
     rm -rf "$DOCKYARD_TMP"
     mkdir -p "$DOCKYARD_TMP"
-    wget -q "https://github.com/thieso2/dockyard/archive/refs/heads/master.zip" -O /tmp/dockyard.zip
-    unzip -q /tmp/dockyard.zip -d "$DOCKYARD_TMP"
-    rm /tmp/dockyard.zip
+    wget -q "https://github.com/thieso2/dockyard/archive/refs/heads/master.tar.gz" -O /tmp/dockyard.tar.gz
+    tar -xzf /tmp/dockyard.tar.gz -C "$DOCKYARD_TMP"
+    rm /tmp/dockyard.tar.gz
 
     cat > "$DOCKYARD_TMP/dockyard-master/env.sandcastle" <<DYEOF
 DOCKYARD_ROOT=${DOCKYARD_ROOT}
