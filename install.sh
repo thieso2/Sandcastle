@@ -1,7 +1,20 @@
 #!/bin/bash
 # Sandcastle one-line installer
 # curl -fsSL https://install.sandcastle.rocks | sudo bash
+#
+# Options:
+#   --reset   Tear down existing install (containers, images, volumes) before reinstalling
 set -euo pipefail
+
+# ─── Parse flags ──────────────────────────────────────────────────────────────
+
+RESET=false
+for arg in "$@"; do
+  case "$arg" in
+    --reset) RESET=true ;;
+    *) echo "Unknown option: $arg"; exit 1 ;;
+  esac
+done
 
 SYSBOX_VERSION="0.6.6"
 APP_IMAGE="ghcr.io/thieso2/sandcastle:latest"
@@ -73,6 +86,42 @@ ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
   error "Sandcastle requires amd64 or arm64 architecture (got: $ARCH)"
   exit 1
+fi
+
+# ─── Reset (--reset flag) ────────────────────────────────────────────────────
+
+if [ "$RESET" = true ]; then
+  # Find existing install: check common locations and .env files
+  FOUND_HOME=""
+  for candidate in /sandcastle /etc/sandcastle; do
+    if [ -f "$candidate/docker-compose.yml" ]; then
+      FOUND_HOME="$candidate"
+      break
+    fi
+  done
+
+  if [ -z "$FOUND_HOME" ]; then
+    read -rp "Sandcastle home directory to reset: " FOUND_HOME
+  fi
+
+  if [ -f "$FOUND_HOME/docker-compose.yml" ]; then
+    warn "This will destroy all containers, images, and volumes in $FOUND_HOME"
+    read -rp "Are you sure? (yes to confirm): " CONFIRM
+    if [ "$CONFIRM" = "yes" ]; then
+      info "Tearing down Sandcastle in $FOUND_HOME..."
+      cd "$FOUND_HOME"
+      docker compose --env-file .env down --rmi all --volumes --remove-orphans 2>/dev/null || true
+      docker network rm sandcastle-web 2>/dev/null || true
+      rm -f "$FOUND_HOME/docker-compose.yml" "$FOUND_HOME/.env"
+      ok "Reset complete — running fresh install"
+    else
+      error "Aborted"
+      exit 1
+    fi
+  else
+    error "No docker-compose.yml found in $FOUND_HOME"
+    exit 1
+  fi
 fi
 
 # ─── Install Docker ──────────────────────────────────────────────────────────
