@@ -104,22 +104,19 @@ if [ "$RESET" = true ]; then
     read -rp "Sandcastle home directory to reset: " FOUND_HOME
   fi
 
-  if [ -f "$FOUND_HOME/docker-compose.yml" ]; then
-    warn "This will destroy ALL data in $FOUND_HOME (containers, volumes, user data, config)"
-    read -rp "Are you sure? (yes to confirm): " CONFIRM
-    if [ "$CONFIRM" = "yes" ]; then
-      info "Tearing down Sandcastle in $FOUND_HOME..."
-      cd /
+  warn "This will destroy ALL data in $FOUND_HOME (containers, volumes, user data, config)"
+  read -rp "Are you sure? (yes to confirm): " CONFIRM
+  if [ "$CONFIRM" = "yes" ]; then
+    info "Tearing down Sandcastle..."
+    cd /
+    if [ -f "$FOUND_HOME/docker-compose.yml" ]; then
       docker compose -f "$FOUND_HOME/docker-compose.yml" --env-file "$FOUND_HOME/.env" down --rmi all --volumes --remove-orphans 2>/dev/null || true
-      docker network rm sandcastle-web 2>/dev/null || true
-      rm -rf "$FOUND_HOME"
-      ok "Reset complete — $FOUND_HOME removed, running fresh install"
-    else
-      error "Aborted"
-      exit 1
     fi
+    docker network rm sandcastle-web 2>/dev/null || true
+    rm -rf "$FOUND_HOME"
+    ok "Reset complete — running fresh install"
   else
-    error "No docker-compose.yml found in $FOUND_HOME"
+    error "Aborted"
     exit 1
   fi
 fi
