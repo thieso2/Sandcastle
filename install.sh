@@ -728,6 +728,7 @@ cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
 services:
   traefik:
     image: traefik:v3.3
+    runtime: runc
     restart: unless-stopped
     ports:
       - "80:80"
@@ -742,6 +743,7 @@ services:
 
   web:
     image: ${APP_IMAGE}
+    runtime: runc
     container_name: sandcastle-web
     group_add:
       - "\${DOCKER_GID:-988}"
@@ -769,6 +771,7 @@ services:
 
   migrate:
     image: ${APP_IMAGE}
+    runtime: runc
     command: ["./bin/rails", "db:prepare"]
     volumes:
       - sandcastle-db:/rails/db
