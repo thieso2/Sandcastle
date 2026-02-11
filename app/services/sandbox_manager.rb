@@ -43,6 +43,8 @@ class SandboxManager
     )
 
     container.start
+    container.refresh!
+    raise Error, "Container failed to start (state: #{container.json.dig("State", "Status")})" unless container.json.dig("State", "Running")
     sandbox.update!(container_id: container.id, status: "running")
 
     if (tailscale || user.tailscale_auto_connect?) && user.tailscale_enabled?
@@ -243,7 +245,7 @@ class SandboxManager
 
     if sandbox.tailscale?
       ts_ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
-      if ts_ip
+      if ts_ip.present?
         info[:host] = ts_ip
         info[:port] = 22
         info[:command] = "ssh #{user}@#{ts_ip}"
