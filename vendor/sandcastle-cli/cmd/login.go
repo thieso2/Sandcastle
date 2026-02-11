@@ -15,6 +15,7 @@ import (
 )
 
 func init() {
+	loginCmd.Flags().BoolP("insecure", "k", false, "Skip TLS certificate verification (for self-signed certs)")
 	rootCmd.AddCommand(loginCmd)
 }
 
@@ -31,6 +32,7 @@ Examples:
 	Args: cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		serverURL := strings.TrimRight(args[0], "/")
+		insecure, _ := cmd.Flags().GetBool("insecure")
 
 		// Derive alias from URL if not provided
 		alias := ""
@@ -42,7 +44,7 @@ Examples:
 
 		// Get device code from server
 		hostname, _ := os.Hostname()
-		client := api.NewClientWithToken(serverURL, "")
+		client := api.NewClientWithToken(serverURL, "", insecure)
 		deviceCode, err := client.RequestDeviceCode(fmt.Sprintf("cli-%s", hostname))
 		if err != nil {
 			return fmt.Errorf("requesting device code: %w", err)
@@ -82,7 +84,7 @@ Examples:
 				return fmt.Errorf("loading config: %w", err)
 			}
 
-			cfg.SetServer(alias, serverURL, token)
+			cfg.SetServer(alias, serverURL, token, insecure)
 			if err := config.Save(cfg); err != nil {
 				return fmt.Errorf("saving config: %w", err)
 			}

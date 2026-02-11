@@ -16,6 +16,7 @@ func init() {
 	serverCmd.AddCommand(serverListCmd)
 	serverCmd.AddCommand(serverUseCmd)
 	serverCmd.AddCommand(serverRemoveCmd)
+
 }
 
 var configCmd = &cobra.Command{

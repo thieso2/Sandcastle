@@ -9,8 +9,9 @@ import (
 )
 
 type ServerConfig struct {
-	URL   string `yaml:"url"`
-	Token string `yaml:"token"`
+	URL      string `yaml:"url"`
+	Token    string `yaml:"token"`
+	Insecure bool   `yaml:"insecure,omitempty"`
 }
 
 type Config struct {
@@ -95,11 +96,11 @@ func (c *Config) CurrentServerConfig() (ServerConfig, error) {
 }
 
 // SetServer adds or updates a server and sets it as current.
-func (c *Config) SetServer(alias, url, token string) {
+func (c *Config) SetServer(alias, url, token string, insecure bool) {
 	if c.Servers == nil {
 		c.Servers = make(map[string]ServerConfig)
 	}
-	c.Servers[alias] = ServerConfig{URL: url, Token: token}
+	c.Servers[alias] = ServerConfig{URL: url, Token: token, Insecure: insecure}
 	c.CurrentServer = alias
 }
 

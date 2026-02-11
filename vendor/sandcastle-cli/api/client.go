@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +17,17 @@ type Client struct {
 	HTTPClient *http.Client
 }
 
+func newHTTPClient(insecure bool) *http.Client {
+	if insecure {
+		return &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	}
+	return &http.Client{}
+}
+
 func NewClient() (*Client, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -28,15 +40,15 @@ func NewClient() (*Client, error) {
 	return &Client{
 		BaseURL:    srv.URL,
 		Token:      srv.Token,
-		HTTPClient: &http.Client{},
+		HTTPClient: newHTTPClient(srv.Insecure),
 	}, nil
 }
 
-func NewClientWithToken(baseURL, token string) *Client {
+func NewClientWithToken(baseURL, token string, insecure bool) *Client {
 	return &Client{
 		BaseURL:    baseURL,
 		Token:      token,
-		HTTPClient: &http.Client{},
+		HTTPClient: newHTTPClient(insecure),
 	}
 }
 

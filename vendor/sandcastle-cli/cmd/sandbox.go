@@ -291,13 +291,49 @@ var stopCmd = &cobra.Command{
 
 var useCmd = &cobra.Command{
 	Use:   "use <name>",
-	Short: "Set active sandbox for current directory",
-	Args:  cobra.ExactArgs(1),
+	Short: "Set active sandbox or switch server",
+	Long: `Set the active sandbox for the current directory, or switch the active server
+if the name matches a configured server alias or URL.
+
+Examples:
+  sandcastle use my-sandbox     # Set active sandbox
+  sandcastle use prod            # Switch to server "prod" (if configured)`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := config.SetActiveSandbox(args[0]); err != nil {
+		name := args[0]
+
+		// Check if name matches a server alias or URL
+		cfg, err := config.Load()
+		if err != nil {
 			return err
 		}
-		fmt.Printf("Active sandbox set to %q\n", args[0])
+
+		if _, ok := cfg.Servers[name]; ok {
+			cfg.CurrentServer = name
+			if err := config.Save(cfg); err != nil {
+				return err
+			}
+			fmt.Printf("Switched to server %s (%s)\n", name, cfg.Servers[name].URL)
+			return nil
+		}
+
+		// Try matching by URL
+		for alias, srv := range cfg.Servers {
+			if srv.URL == strings.TrimRight(name, "/") {
+				cfg.CurrentServer = alias
+				if err := config.Save(cfg); err != nil {
+					return err
+				}
+				fmt.Printf("Switched to server %s (%s)\n", alias, srv.URL)
+				return nil
+			}
+		}
+
+		// Otherwise set active sandbox
+		if err := config.SetActiveSandbox(name); err != nil {
+			return err
+		}
+		fmt.Printf("Active sandbox set to %q\n", name)
 		return nil
 	},
 }
