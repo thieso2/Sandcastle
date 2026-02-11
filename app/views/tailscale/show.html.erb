@@ -73,63 +73,7 @@
       <% end %>
     </div>
 
-    <div class="bg-amber-50 border border-amber-300 rounded-lg p-5 mb-6">
-      <h3 class="text-sm font-bold text-amber-900 mb-2">Subnet route approval required</h3>
-      <p class="text-sm text-amber-800 mb-3">
-        For your machine to reach sandboxes, traffic flows:
-        <strong>your device &rarr; Tailscale &rarr; sidecar &rarr; bridge network &rarr; sandbox</strong>.
-        The sidecar advertises the bridge subnet as a route, but it must be approved before traffic can flow.
-      </p>
-
-      <details class="mt-3 group">
-        <summary class="text-sm font-medium text-amber-900 cursor-pointer hover:text-amber-950">
-          Option A: Approve manually (one-time)
-        </summary>
-        <ol class="text-sm text-amber-800 list-decimal list-inside space-y-1 mt-2 ml-2">
-          <li>Open the <a href="https://login.tailscale.com/admin/machines" target="_blank" rel="noopener" class="underline font-medium hover:text-amber-950">Tailscale admin console</a></li>
-          <li>Find the <code class="bg-amber-100 px-1 rounded">sc-<%= Current.user.name %></code> machine</li>
-          <li>Click <strong>Edit route settings</strong> and approve the advertised subnet</li>
-        </ol>
-      </details>
-
-      <details class="mt-3 group">
-        <summary class="text-sm font-medium text-amber-900 cursor-pointer hover:text-amber-950">
-          Option B: Auto-approve via ACL (recommended for multi-user setups)
-        </summary>
-        <div class="mt-2 ml-2 space-y-3">
-          <p class="text-sm text-amber-800">
-            With two ACL changes and one env var, all Sandcastle subnet routes get approved automatically.
-          </p>
-
-          <div>
-            <p class="text-xs font-medium text-amber-900 mb-1">Step 1: Add to your <a href="https://login.tailscale.com/admin/acls/file" target="_blank" rel="noopener" class="underline hover:text-amber-950">Tailscale ACL policy</a></p>
-            <pre class="bg-amber-100 text-amber-900 text-xs rounded p-3 overflow-x-auto"><code>"tagOwners": {
-  "tag:sandcastle": ["autogroup:admin"]
-},
-"autoApprovers": {
-  "routes": {
-    "10.0.0.0/8":     ["tag:sandcastle"],
-    "172.16.0.0/12":  ["tag:sandcastle"],
-    "192.168.0.0/16": ["tag:sandcastle"]
-  }
-}</code></pre>
-          </div>
-
-          <div>
-            <p class="text-xs font-medium text-amber-900 mb-1">Step 2: Set the env var on your Sandcastle server</p>
-            <pre class="bg-amber-100 text-amber-900 text-xs rounded p-3 overflow-x-auto"><code>SANDCASTLE_TAILSCALE_TAG=tag:sandcastle</code></pre>
-            <p class="text-xs text-amber-700 mt-1">
-              Add this to your <code class="bg-amber-100 px-1 rounded">.env</code> file and restart.
-              Sidecars will then advertise this tag and routes are approved automatically.
-            </p>
-          </div>
-
-          <p class="text-xs text-amber-700">
-            Without the env var, no tag is advertised and routes must be approved manually (Option A).
-          </p>
-        </div>
-      </details>
-    </div>
+    <%= render "tailscale/route_approval" %>
 
     <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
       <h3 class="text-sm font-medium text-gray-700 mb-2">Settings</h3>
@@ -155,6 +99,8 @@
 
   <% else %>
     <%# ── Setup state ── %>
+    <%= render "tailscale/route_approval" %>
+
     <div class="bg-white border border-gray-200 rounded-lg p-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-2">Enable Tailscale</h2>
       <p class="text-sm text-gray-600 mb-4">
