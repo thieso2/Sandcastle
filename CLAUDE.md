@@ -38,6 +38,21 @@ Go module path is `github.com/sandcastle/cli`. When adding a new feature: add ty
 bin/ci    # Runs rubocop → brakeman → bundler-audit → importmap audit → tests → system tests
 ```
 
+### Releasing
+
+```bash
+mise run release          # Bump patch (v0.1.14 → v0.1.15), tag, push
+mise run release:minor    # Bump minor (v0.1.14 → v0.2.0), tag, push
+mise run release:major    # Bump major (v0.1.14 → v1.0.0), tag, push
+```
+
+Pushing a tag triggers the GitHub Actions `release.yml` workflow which:
+1. Builds CLI binaries via GoReleaser (cross-compiled for linux/darwin × amd64/arm64)
+2. Creates a GitHub release with signed/notarized archives
+3. Auto-updates the Homebrew formula in `thieso2/homebrew-tap` (requires `HOMEBREW_TAP_GITHUB_TOKEN` secret)
+
+CLI version is injected at build time via ldflags (`-X github.com/sandcastle/cli/cmd.Version`).
+
 ## Architecture
 
 ### Two Auth Systems
