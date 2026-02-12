@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "9c91f2d24873",
+  "session_id": "d05b859c-3975-4c63-8b93-c8df2e9658d9",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T16:24:08.907911Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/workflows/release.yml",
+    "Dockerfile",
+    "config/initializers/version.rb",
+    "docker-compose.local.yml",
+    "mise.toml",
+    "vendor/sandcastle-cli/.goreleaser.yaml",
+    "vendor/sandcastle-cli/cmd/root.go"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "f301ef20-81e0-49c2-a44c-e758972ef8cf",
+  "token_usage": {
+    "input_tokens": 34,
+    "cache_creation_tokens": 42361,
+    "cache_read_tokens": 1267888,
+    "output_tokens": 3546,
+    "api_call_count": 26
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T16:24:08.881496Z",
+    "agent_lines": 26,
+    "human_added": 36,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 63,
+    "agent_percentage": 41.269841269841265
+  }
+}

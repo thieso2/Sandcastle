@@ -1,0 +1,13 @@
+how does the relase of mise release get into sandcastle -v and the footer?
+
+---
+
+reserch best proctises for a version number in the bianry and footer.
+
+---
+
+yes
+
+---
+
+commit this
