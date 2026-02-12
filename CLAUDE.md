@@ -105,12 +105,20 @@ Per-user Tailscale sidecars connect sandbox containers to a user's own tailnet. 
 
 ### Background Jobs
 
-Solid Queue (SQLite-backed) with recurring schedule in `config/recurring.yml`:
+Solid Queue with recurring schedule in `config/recurring.yml`:
 - `ContainerSyncJob` — every 5 min, reconciles DB sandbox status with actual Docker container state and Tailscale sidecar health
 
 ### Database
 
-SQLite for everything (primary, cache, queue, cable). Schema has 4 app tables: `users`, `sandboxes`, `api_tokens`, `sessions`. Key constraints:
+PostgreSQL with 4 separate databases in production (`config/database.yml`):
+- `sandcastle_production` — primary (users, sandboxes, api_tokens, sessions)
+- `sandcastle_production_cache` — Solid Cache
+- `sandcastle_production_queue` — Solid Queue
+- `sandcastle_production_cable` — Solid Cable
+
+The primary database is created by PostgreSQL's `POSTGRES_DB` env var. The other 3 are created by a PostgreSQL init script (`docker/postgres/init-databases.sh`, mounted into `/docker-entrypoint-initdb.d/`). The installer writes this script to `$SANDCASTLE_HOME/etc/postgres/init-databases.sh`. When adding or removing Solid* databases, update both the init script and `database.yml`.
+
+Key constraints:
 - Sandbox names and SSH ports are unique only among non-destroyed sandboxes (partial unique indexes: `WHERE status != 'destroyed'`)
 - SSH port auto-assigned from 2201–2299 on create
 

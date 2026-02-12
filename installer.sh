@@ -714,6 +714,22 @@ NATEOF
   wait
   ok "Images pulled"
 
+  # ── Write PostgreSQL init script ──────────────────────────────────────────
+
+  mkdir -p "$SANDCASTLE_HOME/etc/postgres"
+  cat > "$SANDCASTLE_HOME/etc/postgres/init-databases.sh" <<'INITDB'
+#!/bin/bash
+set -e
+for db in sandcastle_production_cache sandcastle_production_queue sandcastle_production_cable; do
+  echo "Creating database: $db"
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    SELECT 'CREATE DATABASE $db OWNER $POSTGRES_USER'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db')\gexec
+EOSQL
+done
+INITDB
+  chmod +x "$SANDCASTLE_HOME/etc/postgres/init-databases.sh"
+
   # ── Write docker-compose.yml ──────────────────────────────────────────────
 
   DATA_MOUNT="$SANDCASTLE_HOME/data"
@@ -741,6 +757,7 @@ services:
     restart: unless-stopped
     volumes:
       - ${SANDCASTLE_HOME}/pgdata:/var/lib/postgresql
+      - ${SANDCASTLE_HOME}/etc/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
     environment:
       POSTGRES_USER: sandcastle
       POSTGRES_PASSWORD: \${DB_PASSWORD}
