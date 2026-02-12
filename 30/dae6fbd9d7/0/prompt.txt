@@ -1,0 +1,34 @@
+how does the relase of mise release get into sandcastle -v and the footer?
+
+---
+
+reserch best proctises for a version number in the bianry and footer.
+
+---
+
+yes
+
+---
+
+commit this
+
+---
+
+commit installer
+
+---
+
+push it
+
+---
+
+sandcastle create should log on what host the sandcasle was created:
+Sandbox "sandcastle-dev" created.
+  Server:    https://demo.sandcastle.rocks/
+  Home:      mounted (~/ persisted)
+  Data:      mounted (user data root → /data)
+  Tailscale: enabled
+
+---
+
+commit this and push
