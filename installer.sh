@@ -473,6 +473,7 @@ DYEOF
     fi
 
     SECRET_KEY_BASE=$(openssl rand -hex 64)
+    DB_PASSWORD=$(openssl rand -hex 32)
     DOCKER_GID=$(stat -c '%g' "$DOCKER_SOCK" 2>/dev/null || echo "988")
 
     cat > "$SANDCASTLE_HOME/.env" <<EOF
@@ -481,6 +482,7 @@ SANDCASTLE_HOME="${SANDCASTLE_HOME}"
 SANDCASTLE_HOST="${SANDCASTLE_HOST}"
 SANDCASTLE_TLS_MODE="${SANDCASTLE_TLS_MODE}"
 SECRET_KEY_BASE="${SECRET_KEY_BASE}"
+DB_PASSWORD="${DB_PASSWORD}"
 SANDCASTLE_ADMIN_EMAIL="${SANDCASTLE_ADMIN_EMAIL}"
 SANDCASTLE_ADMIN_PASSWORD="${SANDCASTLE_ADMIN_PASSWORD}"
 SANDCASTLE_SUBNET="${SANDCASTLE_SUBNET}"
@@ -733,6 +735,24 @@ services:
     networks:
       - sandcastle-web
 
+  postgres:
+    image: postgres:18
+    runtime: runc
+    restart: unless-stopped
+    volumes:
+      - ${SANDCASTLE_HOME}/pgdata:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: sandcastle
+      POSTGRES_PASSWORD: \${DB_PASSWORD}
+      POSTGRES_DB: sandcastle_production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sandcastle -d sandcastle_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sandcastle-web
+
   web:
     image: ${APP_IMAGE}
     runtime: runc
@@ -741,8 +761,6 @@ services:
       - "\${DOCKER_GID:-988}"
     volumes:
       - \${DOCKER_SOCK}:/var/run/docker.sock
-      - sandcastle-db:/rails/db
-      - sandcastle-storage:/rails/storage
       - ${DATA_MOUNT}:/data
     environment:
       RAILS_ENV: production
@@ -754,6 +772,9 @@ services:
       SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
       SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
       SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: \${DB_PASSWORD}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -765,19 +786,20 @@ services:
     image: ${APP_IMAGE}
     runtime: runc
     command: ["./bin/rails", "db:prepare"]
-    volumes:
-      - sandcastle-db:/rails/db
-      - sandcastle-storage:/rails/storage
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: \${SECRET_KEY_BASE}
       SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
       SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
       SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
-
-volumes:
-  sandcastle-db:
-  sandcastle-storage:
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: \${DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sandcastle-web
 
 networks:
   sandcastle-web:

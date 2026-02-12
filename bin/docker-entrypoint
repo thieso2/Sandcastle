@@ -1,5 +1,16 @@
 #!/bin/bash -e
 
+# Wait for PostgreSQL to be ready (belt-and-suspenders with compose health check)
+if [ -n "$DB_HOST" ]; then
+  echo "Waiting for PostgreSQL at $DB_HOST..."
+  for i in $(seq 1 30); do
+    if pg_isready -h "$DB_HOST" -U "${DB_USER:-sandcastle}" -q 2>/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+fi
+
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare

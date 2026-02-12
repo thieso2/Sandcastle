@@ -46,6 +46,13 @@ SANDCASTLE_HTTPS_PORT="443"
 # SANDCASTLE_ADMIN_PASSWORD_FILE="/path/to/password-file"  # alternative to inline password
 # SANDCASTLE_ADMIN_SSH_KEY="ssh-ed25519 AAAA..."
 
+# ─── PostgreSQL ────────────────────────────────────────────────────────────────
+
+# Database user (password is auto-generated during install)
+DB_USER="sandcastle"
+DB_NAME="sandcastle_production"
+# DB_PASSWORD is auto-generated during install
+
 # ─── Dockyard (Docker + Sysbox) ─────────────────────────────────────────────
 
 DOCKYARD_ROOT="/sandcastle"

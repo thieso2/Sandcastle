@@ -13,6 +13,23 @@ services:
     networks:
       - sandcastle-web
 
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: sandcastle
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sandcastle}
+      POSTGRES_DB: sandcastle_production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sandcastle -d sandcastle_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sandcastle-web
+
   web:
     image: ghcr.io/thieso2/sandcastle:latest
     container_name: sandcastle-web
@@ -20,8 +37,6 @@ services:
       - "${DOCKER_GID:-988}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - sandcastle-db:/rails/db
-      - sandcastle-storage:/rails/storage
       - /data:/data
     environment:
       RAILS_ENV: production
@@ -29,6 +44,9 @@ services:
       SANDCASTLE_HOST: ${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: ${SANDCASTLE_TLS_MODE:-letsencrypt}
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -39,16 +57,20 @@ services:
   migrate:
     image: ghcr.io/thieso2/sandcastle:latest
     command: ["./bin/rails", "db:prepare"]
-    volumes:
-      - sandcastle-db:/rails/db
-      - sandcastle-storage:/rails/storage
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sandcastle-web
 
 volumes:
-  sandcastle-db:
-  sandcastle-storage:
+  pgdata:
 
 networks:
   sandcastle-web:

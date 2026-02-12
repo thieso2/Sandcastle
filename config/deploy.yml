@@ -15,7 +15,6 @@ servers:
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
   - /data:/data
-  - sandcastle-storage:/rails/storage
 
 proxy:
   host: demo.sandcastle.rocks
@@ -36,9 +35,12 @@ env:
   clear:
     SANDCASTLE_HOST: demo.sandcastle.rocks
     SANDCASTLE_DATA_DIR: /data
+    DB_HOST: sandcastle-postgres
+    DB_USER: sandcastle
   secret:
     - SECRET_KEY_BASE
     - RAILS_MASTER_KEY
+    - DB_PASSWORD
     - GITHUB_CLIENT_ID
     - GITHUB_CLIENT_SECRET
 
@@ -46,6 +48,24 @@ builder:
   arch: amd64
 
 accessories:
+  postgres:
+    image: postgres:18
+    host: 100.65.155.100
+    volumes:
+      - /data/pgdata:/var/lib/postgresql
+    env:
+      clear:
+        POSTGRES_USER: sandcastle
+        POSTGRES_DB: sandcastle_production
+      secret:
+        - POSTGRES_PASSWORD
+    options:
+      network: sandcastle-web
+      health-cmd: "pg_isready -U sandcastle -d sandcastle_production"
+      health-interval: 5s
+      health-timeout: 5s
+      health-retries: "5"
+
   traefik:
     image: traefik:v3.3
     host: 100.65.155.100

@@ -5,7 +5,7 @@ class AddTailscaleStateToUsers < ActiveRecord::Migration[8.1]
     reversible do |dir|
       dir.up do
         execute <<~SQL
-          UPDATE users SET tailscale_state = 'enabled' WHERE tailscale_enabled = 1
+          UPDATE users SET tailscale_state = 'enabled' WHERE tailscale_enabled = true
         SQL
       end
     end
