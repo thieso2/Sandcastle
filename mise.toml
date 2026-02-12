@@ -1,0 +1,73 @@
+[tasks."release"]
+alias = "release:patch"
+description = "Bump patch version, tag, push, and wait for CI to build the release"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Get the latest tag
+latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+echo "Current version: $latest"
+
+# Parse and bump patch
+IFS='.' read -r major minor patch <<< "${latest#v}"
+new_version="v${major}.${minor}.$((patch + 1))"
+echo "New version:     $new_version"
+
+# Confirm
+read -rp "Release $new_version? [y/N] " confirm
+[[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+
+# Tag and push
+git tag "$new_version"
+git push origin "$new_version"
+echo ""
+echo "Tag $new_version pushed. GitHub Actions will build the release."
+echo "https://github.com/thieso2/Sandcastle/actions"
+"""
+
+[tasks."release:minor"]
+description = "Bump minor version, tag, push, and wait for CI to build the release"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+echo "Current version: $latest"
+
+IFS='.' read -r major minor patch <<< "${latest#v}"
+new_version="v${major}.$((minor + 1)).0"
+echo "New version:     $new_version"
+
+read -rp "Release $new_version? [y/N] " confirm
+[[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+
+git tag "$new_version"
+git push origin "$new_version"
+echo ""
+echo "Tag $new_version pushed. GitHub Actions will build the release."
+echo "https://github.com/thieso2/Sandcastle/actions"
+"""
+
+[tasks."release:major"]
+description = "Bump major version, tag, push, and wait for CI to build the release"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+echo "Current version: $latest"
+
+IFS='.' read -r major minor patch <<< "${latest#v}"
+new_version="v$((major + 1)).0.0"
+echo "New version:     $new_version"
+
+read -rp "Release $new_version? [y/N] " confirm
+[[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
+
+git tag "$new_version"
+git push origin "$new_version"
+echo ""
+echo "Tag $new_version pushed. GitHub Actions will build the release."
+echo "https://github.com/thieso2/Sandcastle/actions"
+"""

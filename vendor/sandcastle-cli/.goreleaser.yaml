@@ -32,6 +32,18 @@ notarize:
         key_id: "{{ .Env.MACOS_NOTARY_KEY_ID }}"
         key: "{{ .Env.MACOS_NOTARY_KEY }}"
 
+brews:
+  - repository:
+      owner: thieso2
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/thieso2/Sandcastle"
+    description: "CLI for Sandcastle, a self-hosted shared Docker sandbox platform"
+    license: "MIT"
+    test: |
+      system "#{bin}/sandcastle", "version"
+
 changelog:
   sort: asc
   filters:
