@@ -40,8 +40,8 @@ chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.local"
 # Generate SSH host keys if missing
 ssh-keygen -A
 
-# Start Docker daemon in background (Sysbox provides isolated /var/lib/docker)
-if command -v dockerd &>/dev/null; then
+# Start Docker daemon in background (requires Sysbox runtime for isolated /var/lib/docker)
+if command -v dockerd &>/dev/null && [ -e /dev/fuse ]; then
     # Match inner Docker bridge MTU to container's eth0 to avoid packet fragmentation
     ETH0_MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
     dockerd --storage-driver=overlay2 --mtu="$ETH0_MTU" &>/var/log/dockerd.log &
@@ -52,6 +52,8 @@ if command -v dockerd &>/dev/null; then
         fi
         sleep 1
     done
+else
+    echo "Note: Docker-in-Docker not available (requires sysbox-runc runtime)" >&2
 fi
 
 # Start SSH daemon in foreground
