@@ -66,5 +66,7 @@ Rails.application.routes.draw do
     end
   end
 
+  get "guide", to: "pages#guide"
+
   get "up" => "rails/health#show", as: :rails_health_check
 end

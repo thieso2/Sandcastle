@@ -1,0 +1,114 @@
+<% content_for(:title) { "Getting Started — Sandcastle" } %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 mb-2">Getting Started</h1>
+  <p class="text-gray-500 mb-8">Everything you need to go from zero to a running sandbox.</p>
+
+  <% host = ENV.fetch("SANDCASTLE_HOST", "sandcastle.example.com") %>
+
+  <%# ── Install ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">1. Install the CLI</h2>
+    <p class="text-gray-700 mb-3">
+      Download the latest release from
+      <%= link_to "GitHub Releases", "https://github.com/thieso2/Sandcastle/releases/latest", target: "_blank", class: "text-blue-600 hover:text-blue-800 underline" %>,
+      then extract it:
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>tar xzf sandcastle_*.tar.gz
+sudo mv sandcastle /usr/local/bin/</code></pre>
+  </section>
+
+  <%# ── Login ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">2. Log in</h2>
+    <p class="text-gray-700 mb-3">Point the CLI at this server and authenticate via your browser:</p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle login https://<%= host %></code></pre>
+  </section>
+
+  <%# ── Tailscale ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">3. Enable Tailscale <span class="text-sm font-normal text-gray-500">(recommended)</span></h2>
+    <p class="text-gray-700 mb-3">
+      Each sandbox gets its own Tailscale IP so you can reach services directly — no port forwarding needed.
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Interactive login — opens a browser URL to authenticate
+sandcastle tailscale enable
+
+# Or use an auth key for headless setups
+sandcastle tailscale enable --auth-key tskey-auth-...</code></pre>
+    <p class="text-gray-500 text-sm mt-2">After authenticating, approve the advertised subnet routes in the Tailscale admin console.</p>
+  </section>
+
+  <%# ── Create ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">4. Create a sandbox</h2>
+
+    <p class="text-gray-700 mb-3"><strong>Quick throwaway sandbox</strong> — deleted when you disconnect:</p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle create scratch --rm</code></pre>
+
+    <p class="text-gray-700 mb-3 mt-4"><strong>Persistent sandbox</strong> — keeps your home directory and data across restarts:</p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle create my-dev --home --data</code></pre>
+
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-sm text-blue-800">
+      <strong>Tip:</strong> Set environment variables to make flags the default:<br>
+      <code class="bg-blue-100 px-1 rounded">export SANDCASTLE_HOME=1 SANDCASTLE_DATA=. SANDCASTLE_RM=1</code>
+    </div>
+  </section>
+
+  <%# ── Connect ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">5. Connect</h2>
+    <p class="text-gray-700 mb-3">Two ways to get a shell:</p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># tmux session (reconnectable, auto-starts stopped sandboxes)
+sandcastle connect my-dev
+
+# Plain SSH
+sandcastle ssh my-dev</code></pre>
+  </section>
+
+  <%# ── Manage ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">6. Manage sandboxes</h2>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle list              # Show all your sandboxes
+sandcastle stop my-dev       # Stop a running sandbox
+sandcastle start my-dev      # Start a stopped sandbox
+sandcastle delete my-dev     # Permanently remove a sandbox</code></pre>
+  </section>
+
+  <%# ── Routes ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Custom domain routes</h2>
+    <p class="text-gray-700 mb-3">
+      Expose a service running inside your sandbox on a custom domain with automatic TLS:
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Route app.example.com → port 8080 (default) in sandbox "myapp"
+sandcastle route set myapp app.example.com
+
+# Custom port
+sandcastle route set myapp app.example.com 3000
+
+# Remove a route
+sandcastle route delete myapp</code></pre>
+    <p class="text-gray-500 text-sm mt-2">Point a DNS A/CNAME record at <code class="bg-gray-100 px-1 rounded"><%= host %></code> before setting the route. TLS certificates are provisioned automatically via Let's Encrypt.</p>
+  </section>
+
+  <%# ── Snapshots ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Snapshots</h2>
+    <p class="text-gray-700 mb-3">Save and restore the full state of a sandbox:</p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Create a snapshot
+sandcastle snapshot create my-dev my-checkpoint
+
+# List snapshots
+sandcastle snapshot list
+
+# Restore into a new sandbox
+sandcastle create my-dev-v2 --snapshot my-checkpoint</code></pre>
+  </section>
+
+  <div class="border-t border-gray-200 pt-6 text-center">
+    <p class="text-sm text-gray-500">
+      Run <code class="bg-gray-100 px-1.5 py-0.5 rounded">sandcastle --help</code> for the full command reference.
+    </p>
+  </div>
+</div>
