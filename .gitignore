@@ -50,3 +50,4 @@ service-account.json
 
 # CLI binary
 vendor/sandcastle-cli/sandcastle
+.entire
