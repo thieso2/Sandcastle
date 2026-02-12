@@ -1,0 +1,43 @@
+version: 2
+
+builds:
+  - binary: sandcastle
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/sandcastle/cli/cmd.Version={{ .Version }}
+
+archives:
+  - formats: [binary]
+    name_template: sandcastle-{{ .Os }}-{{ .Arch }}
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+notarize:
+  macos:
+    - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
+      sign:
+        certificate: "{{ .Env.MACOS_SIGN_P12 }}"
+        password: "{{ .Env.MACOS_SIGN_PASSWORD }}"
+      notarize:
+        issuer_id: "{{ .Env.MACOS_NOTARY_ISSUER_ID }}"
+        key_id: "{{ .Env.MACOS_NOTARY_KEY_ID }}"
+        key: "{{ .Env.MACOS_NOTARY_KEY }}"
+
+release:
+  extra_files:
+    - glob: ../../installer.sh
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^Merge"

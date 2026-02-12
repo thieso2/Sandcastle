@@ -243,7 +243,7 @@ jobs:
       - name: Inspect image
         run: docker buildx imagetools inspect ${{ env.REGISTRY }}/thieso2/sandcastle-sandbox:latest
 
-  # ── CLI binaries: build and attach to GitHub release ───────────────────
+  # ── CLI binaries: build, sign, notarize, and attach to GitHub release ──
   cli-build:
     runs-on: ubuntu-latest
     permissions:
@@ -259,22 +259,37 @@ jobs:
         with:
           go-version-file: vendor/sandcastle-cli/go.mod
 
-      - name: Build all platforms
-        working-directory: vendor/sandcastle-cli
-        run: make build-all VERSION=${{ github.ref_name }}
-
-      - name: Upload CLI binaries and installer to release
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        uses: softprops/action-gh-release@v2
+      - name: Run GoReleaser (release)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: goreleaser/goreleaser-action@v6
         with:
-          files: |
-            vendor/sandcastle-cli/dist/*
-            install.sh
+          version: '~> v2'
+          args: release --clean
+          workdir: vendor/sandcastle-cli
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
+          MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
+          MACOS_NOTARY_ISSUER_ID: ${{ secrets.MACOS_NOTARY_ISSUER_ID }}
+          MACOS_NOTARY_KEY_ID: ${{ secrets.MACOS_NOTARY_KEY_ID }}
+          MACOS_NOTARY_KEY: ${{ secrets.MACOS_NOTARY_KEY }}
+
+      - name: Run GoReleaser (snapshot)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --snapshot --clean
+          workdir: vendor/sandcastle-cli
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload CLI binaries as artifacts
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: actions/upload-artifact@v4
         with:
           name: sandcastle-cli
-          path: vendor/sandcastle-cli/dist/*
+          path: |
+            vendor/sandcastle-cli/dist/Sandcastle_*/sandcastle
+            vendor/sandcastle-cli/dist/checksums.txt
           retention-days: 7
