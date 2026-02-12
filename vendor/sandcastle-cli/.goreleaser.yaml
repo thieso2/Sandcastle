@@ -1,5 +1,8 @@
 version: 2
 
+release:
+  replace_existing_artifacts: true
+
 builds:
   - binary: sandcastle
     env:
