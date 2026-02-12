@@ -825,6 +825,15 @@ COMPOSE
 
   ok "docker-compose.yml written"
 
+  # ── Write helper scripts ─────────────────────────────────────────────────
+
+  cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
+#!/bin/bash
+exec ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml --env-file ${SANDCASTLE_HOME}/.env logs -f "\$@"
+LOGS
+  chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  ok "docker-logs helper written"
+
   # ── Start services ────────────────────────────────────────────────────────
 
   info "Starting Sandcastle..."
