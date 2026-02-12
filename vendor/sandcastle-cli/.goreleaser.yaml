@@ -14,7 +14,7 @@ builds:
       - -s -w -X github.com/sandcastle/cli/cmd.Version={{ .Version }}
 
 archives:
-  - formats: [binary]
+  - formats: [tar.gz]
     name_template: sandcastle-{{ .Os }}-{{ .Arch }}
 
 checksum:
