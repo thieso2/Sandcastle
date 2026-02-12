@@ -1,0 +1,5 @@
+add VERBOSE=1 to sandcastle ssh and connect that outputs the ssh command started.
+
+---
+
+commit and push
