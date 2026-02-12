@@ -33,7 +33,7 @@ class SandboxManager
         "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
       ],
       "HostConfig" => {
-        "Runtime" => "sysbox-runc",
+        "Runtime" => container_runtime,
         "PortBindings" => {
           "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
         },
@@ -210,7 +210,7 @@ class SandboxManager
         "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
       ],
       "HostConfig" => {
-        "Runtime" => "sysbox-runc",
+        "Runtime" => container_runtime,
         "PortBindings" => {
           "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
         },
@@ -257,6 +257,18 @@ class SandboxManager
   end
 
   private
+
+  def container_runtime
+    @container_runtime ||= begin
+      runtimes = Docker.info["Runtimes"] || {}
+      if runtimes.key?("sysbox-runc")
+        "sysbox-runc"
+      else
+        Rails.logger.warn("SandboxManager: sysbox-runc not available, falling back to runc (Docker-in-Docker will not work inside sandboxes)")
+        "runc"
+      end
+    end
+  end
 
   def ensure_image(image)
     Docker::Image.create("fromImage" => image)
