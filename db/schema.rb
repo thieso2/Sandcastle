@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_204820) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_131016) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -88,6 +88,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_204820) do
     t.boolean "admin", default: false, null: false
     t.datetime "created_at", null: false
     t.string "email_address", null: false
+    t.boolean "must_change_password", default: false, null: false
     t.string "name", null: false
     t.string "password_digest", null: false
     t.text "ssh_public_key"

@@ -7,6 +7,7 @@ admin = User.find_or_create_by!(email_address: email) do |u|
   u.password_confirmation = password
   u.admin = true
   u.ssh_public_key = ENV.fetch("SANDCASTLE_ADMIN_SSH_KEY", "")
+  u.must_change_password = true
 end
 
 puts "Admin user created: #{admin.email_address}"

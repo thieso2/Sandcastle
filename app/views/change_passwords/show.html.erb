@@ -3,12 +3,20 @@
     <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= alert %></p>
   <% end %>
 
+  <% if Current.user.must_change_password? %>
+    <div class="py-3 px-4 bg-amber-50 border border-amber-200 mb-5 text-amber-800 rounded-lg">
+      Your password was set by an administrator. Please choose a new password to continue.
+    </div>
+  <% end %>
+
   <h1 class="font-bold text-4xl">Change password</h1>
 
   <%= form_with url: change_password_path, method: :patch, class: "contents" do |form| %>
-    <div class="my-5">
-      <%= form.password_field :current_password, required: true, autocomplete: "current-password", placeholder: "Current password", maxlength: 72, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
-    </div>
+    <% unless Current.user.must_change_password? %>
+      <div class="my-5">
+        <%= form.password_field :current_password, required: true, autocomplete: "current-password", placeholder: "Current password", maxlength: 72, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+      </div>
+    <% end %>
 
     <div class="my-5">
       <%= form.password_field :password, required: true, autocomplete: "new-password", placeholder: "New password", maxlength: 72, class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
@@ -23,9 +31,11 @@
         <%= form.submit "Update password", class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white inline-block font-medium cursor-pointer" %>
       </div>
 
-      <div class="mt-4 text-sm text-gray-500 sm:mt-0">
-        <%= link_to "Cancel", root_path, class: "text-gray-700 underline hover:no-underline" %>
-      </div>
+      <% unless Current.user.must_change_password? %>
+        <div class="mt-4 text-sm text-gray-500 sm:mt-0">
+          <%= link_to "Cancel", root_path, class: "text-gray-700 underline hover:no-underline" %>
+        </div>
+      <% end %>
     </div>
   <% end %>
 </div>

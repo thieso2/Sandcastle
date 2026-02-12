@@ -3,6 +3,7 @@ module Authentication
 
   included do
     before_action :require_authentication
+    before_action :require_password_change
     helper_method :authenticated?
   end
 
@@ -43,6 +44,11 @@ module Authentication
         Current.session = session
         cookies.signed.permanent[:session_id] = { value: session.id, httponly: true, same_site: :lax }
       end
+    end
+
+    def require_password_change
+      return unless Current.user&.must_change_password?
+      redirect_to change_password_path, alert: "You must change your password before continuing."
     end
 
     def require_admin!
