@@ -10,19 +10,19 @@ module Admin
       authorize @setting
 
       if @setting.update(setting_params)
-        redirect_to edit_admin_settings_path, notice: "Settings saved."
+        if params[:test_email].present?
+          send_test_email
+        else
+          redirect_to edit_admin_settings_path, notice: "Settings saved."
+        end
       else
         render :edit, status: :unprocessable_entity
       end
     end
 
-    def test_email
-      @setting = Setting.instance
-      authorize @setting, :update?
+    private
 
-      # Save form values first so the test uses the latest config
-      @setting.update(setting_params)
-
+    def send_test_email
       if Setting.smtp_configured?
         begin
           TestMailer.test(Current.user).deliver_now
@@ -31,11 +31,9 @@ module Admin
           redirect_to edit_admin_settings_path, alert: "Settings saved, but failed to send test email: #{e.message}"
         end
       else
-        redirect_to edit_admin_settings_path, alert: "Settings saved, but SMTP is not configured. Please fill in at least the SMTP address."
+        redirect_to edit_admin_settings_path, alert: "Settings saved, but SMTP is not configured. Fill in at least the SMTP address."
       end
     end
-
-    private
 
     def setting_params
       params.expect(setting: [

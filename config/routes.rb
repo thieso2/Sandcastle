@@ -34,9 +34,7 @@ Rails.application.routes.draw do
   namespace :admin do
     get "/", to: "dashboard#index", as: :dashboard
     get "system_status", to: "dashboard#system_status"
-    resource :settings, only: [ :edit, :update ] do
-      post :test_email
-    end
+    resource :settings, only: [ :edit, :update ]
     resources :users do
       post :invite, on: :collection
     end
