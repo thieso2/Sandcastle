@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "440c78b41d18",
+  "session_id": "551bb262-3222-49c1-b813-176b13f58554",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T16:54:47.69869Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "installer.sh"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "e1d5a1da-a591-41b7-b2e3-7d67079e7219",
+  "checkpoint_transcript_start": 115,
+  "transcript_lines_at_start": 115,
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 2252,
+    "cache_read_tokens": 327551,
+    "output_tokens": 770,
+    "api_call_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T16:54:47.669114Z",
+    "agent_lines": 10,
+    "human_added": 84,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 94,
+    "agent_percentage": 10.638297872340425
+  }
+}
