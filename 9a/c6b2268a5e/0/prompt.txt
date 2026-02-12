@@ -1,0 +1,13 @@
+https://demo.sandcastle.rocks is missing the login with Github button - why?
+
+---
+
+hwop to setup the app on GH?
+
+---
+
+the GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET need to be trandferred from sanmcastle.env to .env on inbstall - also add then the the empty env on gen-env
+
+---
+
+commit this
