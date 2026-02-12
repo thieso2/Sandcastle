@@ -192,6 +192,107 @@ find_free_subnet() {
   echo "172.30.99.0/24"
 }
 
+# ═══ write_compose ══════════════════════════════════════════════════════════
+
+write_compose() {
+  local DATA_MOUNT="$SANDCASTLE_HOME/data"
+
+  cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
+services:
+  traefik:
+    image: traefik:v3.3
+    runtime: runc
+    restart: unless-stopped
+    ports:
+      - "${SANDCASTLE_HTTP_PORT}:80"
+      - "${SANDCASTLE_HTTPS_PORT}:443"
+    volumes:
+      - ${DATA_MOUNT}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${DATA_MOUNT}/traefik/dynamic:/data/dynamic:ro
+      - ${DATA_MOUNT}/traefik/acme.json:/data/acme.json
+      - ${DATA_MOUNT}/traefik/certs:/data/certs:ro
+    networks:
+      - sandcastle-web
+
+  postgres:
+    image: postgres:18
+    runtime: runc
+    restart: unless-stopped
+    volumes:
+      - ${SANDCASTLE_HOME}/pgdata:/var/lib/postgresql
+      - ${SANDCASTLE_HOME}/etc/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    environment:
+      POSTGRES_USER: sandcastle
+      POSTGRES_PASSWORD: \${DB_PASSWORD}
+      POSTGRES_DB: sandcastle_production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sandcastle -d sandcastle_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sandcastle-web
+
+  web:
+    image: ${APP_IMAGE}
+    runtime: runc
+    container_name: sandcastle-web
+    group_add:
+      - "\${DOCKER_GID:-988}"
+    volumes:
+      - \${DOCKER_SOCK}:/var/run/docker.sock
+      - ${DATA_MOUNT}:/data
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
+      SANDCASTLE_HOST: \${SANDCASTLE_HOST}
+      SANDCASTLE_DATA_DIR: /data
+      SANDCASTLE_TLS_MODE: \${SANDCASTLE_TLS_MODE:-letsencrypt}
+      SANDCASTLE_SUBNET: \${SANDCASTLE_SUBNET:-172.30.99.0/24}
+      SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
+      SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
+      SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: \${DB_PASSWORD}
+      GITHUB_CLIENT_ID: \${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: \${GITHUB_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: \${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: \${GOOGLE_CLIENT_SECRET:-}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - sandcastle-web
+
+  migrate:
+    image: ${APP_IMAGE}
+    runtime: runc
+    command: ["./bin/rails", "db:prepare"]
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
+      SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
+      SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
+      SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: \${DB_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sandcastle-web
+
+networks:
+  sandcastle-web:
+    external: true
+COMPOSE
+
+  ok "docker-compose.yml written"
+}
+
 # ═══ cmd_gen_env ═════════════════════════════════════════════════════════════
 
 cmd_gen_env() {
@@ -754,104 +855,7 @@ done
 INITDB
   chmod +x "$SANDCASTLE_HOME/etc/postgres/init-databases.sh"
 
-  # ── Write docker-compose.yml ──────────────────────────────────────────────
-
-  DATA_MOUNT="$SANDCASTLE_HOME/data"
-
-  cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
-services:
-  traefik:
-    image: traefik:v3.3
-    runtime: runc
-    restart: unless-stopped
-    ports:
-      - "${SANDCASTLE_HTTP_PORT}:80"
-      - "${SANDCASTLE_HTTPS_PORT}:443"
-    volumes:
-      - ${DATA_MOUNT}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ${DATA_MOUNT}/traefik/dynamic:/data/dynamic:ro
-      - ${DATA_MOUNT}/traefik/acme.json:/data/acme.json
-      - ${DATA_MOUNT}/traefik/certs:/data/certs:ro
-    networks:
-      - sandcastle-web
-
-  postgres:
-    image: postgres:18
-    runtime: runc
-    restart: unless-stopped
-    volumes:
-      - ${SANDCASTLE_HOME}/pgdata:/var/lib/postgresql
-      - ${SANDCASTLE_HOME}/etc/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
-    environment:
-      POSTGRES_USER: sandcastle
-      POSTGRES_PASSWORD: \${DB_PASSWORD}
-      POSTGRES_DB: sandcastle_production
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sandcastle -d sandcastle_production"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - sandcastle-web
-
-  web:
-    image: ${APP_IMAGE}
-    runtime: runc
-    container_name: sandcastle-web
-    group_add:
-      - "\${DOCKER_GID:-988}"
-    volumes:
-      - \${DOCKER_SOCK}:/var/run/docker.sock
-      - ${DATA_MOUNT}:/data
-    environment:
-      RAILS_ENV: production
-      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
-      SANDCASTLE_HOST: \${SANDCASTLE_HOST}
-      SANDCASTLE_DATA_DIR: /data
-      SANDCASTLE_TLS_MODE: \${SANDCASTLE_TLS_MODE:-letsencrypt}
-      SANDCASTLE_SUBNET: \${SANDCASTLE_SUBNET:-172.30.99.0/24}
-      SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
-      SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
-      SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
-      DB_HOST: postgres
-      DB_USER: sandcastle
-      DB_PASSWORD: \${DB_PASSWORD}
-      GITHUB_CLIENT_ID: \${GITHUB_CLIENT_ID:-}
-      GITHUB_CLIENT_SECRET: \${GITHUB_CLIENT_SECRET:-}
-      GOOGLE_CLIENT_ID: \${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: \${GOOGLE_CLIENT_SECRET:-}
-    restart: unless-stopped
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    networks:
-      - sandcastle-web
-
-  migrate:
-    image: ${APP_IMAGE}
-    runtime: runc
-    command: ["./bin/rails", "db:prepare"]
-    environment:
-      RAILS_ENV: production
-      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
-      SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
-      SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
-      SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
-      DB_HOST: postgres
-      DB_USER: sandcastle
-      DB_PASSWORD: \${DB_PASSWORD}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - sandcastle-web
-
-networks:
-  sandcastle-web:
-    external: true
-COMPOSE
-
-  ok "docker-compose.yml written"
+  write_compose
 
   # ── Write helper scripts ─────────────────────────────────────────────────
 
@@ -955,6 +959,8 @@ cmd_update() {
   $DOCKER pull "$SANDBOX_IMAGE" &
   wait
   ok "Images pulled"
+
+  write_compose
 
   info "Restarting services..."
   cd "$SANDCASTLE_HOME"
