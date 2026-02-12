@@ -27,7 +27,7 @@ COMMAND="${1:-install}"
 shift 2>/dev/null || true
 
 case "$COMMAND" in
-  gen-env|install|reset|uninstall) ;;
+  gen-env|install|update|reset|uninstall) ;;
   help|-h|--help) COMMAND="help" ;;
   *) die "Unknown command: $COMMAND (use 'help' for usage)" ;;
 esac
@@ -44,6 +44,7 @@ Sandcastle platform.
 Commands:
   gen-env      Generate sandcastle.env config file (default: ./sandcastle.env)
   install      Install or upgrade Sandcastle (default)
+  update       Pull latest images and restart services
   reset        Tear down existing install, then reinstall
   uninstall    Remove Sandcastle completely
   help         Show this help message
@@ -890,7 +891,41 @@ LOGS
   echo -e "  Home:       $SANDCASTLE_HOME"
   echo -e "  Config:     $SANDCASTLE_HOME/etc/sandcastle.env"
   echo -e "  Docker:     $DOCKER"
-  echo -e "  Logs:       $DOCKER compose -f $SANDCASTLE_HOME/docker-compose.yml logs -f"
+  echo -e "  Logs:       ${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  echo ""
+}
+
+# ═══ cmd_update ═══════════════════════════════════════════════════════════════
+
+cmd_update() {
+  require_root
+
+  [ ! -f "$SANDCASTLE_HOME/.env" ] && die "No existing install found at $SANDCASTLE_HOME — run 'install' first"
+
+  # shellcheck source=/dev/null
+  source "$SANDCASTLE_HOME/.env"
+
+  echo ""
+  echo -e "${BLUE}═══ Sandcastle Update ═══${NC}"
+  echo ""
+  info "Available images (${ARCH}):"
+  show_image_info "sandcastle"
+  show_image_info "sandcastle-sandbox"
+  echo ""
+
+  info "Pulling images..."
+  $DOCKER pull "$APP_IMAGE" &
+  $DOCKER pull "$SANDBOX_IMAGE" &
+  wait
+  ok "Images pulled"
+
+  info "Restarting services..."
+  cd "$SANDCASTLE_HOME"
+  $DOCKER compose --env-file .env up -d
+  ok "Services restarted"
+
+  echo ""
+  echo -e "${GREEN}  Sandcastle updated!${NC}"
   echo ""
 }
 
@@ -899,6 +934,7 @@ LOGS
 case "$COMMAND" in
   gen-env)    cmd_gen_env ;;
   install)    load_env; derive_vars; cmd_install ;;
+  update)     load_env; derive_vars; cmd_update ;;
   reset)      load_env; derive_vars; cmd_destroy true; cmd_install ;;
   uninstall)  load_env; derive_vars; cmd_destroy ;;
 esac
