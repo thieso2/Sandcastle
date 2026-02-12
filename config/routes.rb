@@ -1,6 +1,5 @@
 Rails.application.routes.draw do
   root "dashboard#index"
-  get "system_status", to: "dashboard#system_status"
 
   resource :session
   resources :passwords, param: :token
@@ -32,7 +31,16 @@ Rails.application.routes.draw do
   end
 
   namespace :admin do
+    get "/", to: "dashboard#index", as: :dashboard
+    get "system_status", to: "dashboard#system_status"
     resources :users
+    resources :sandboxes, only: :destroy do
+      member do
+        post :start
+        post :stop
+        get :stats
+      end
+    end
   end
 
   namespace :api do

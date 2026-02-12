@@ -1,24 +1,11 @@
 class DashboardController < ApplicationController
   def index
-    if Current.user.admin?
-      @sandboxes = Sandbox.active.includes(:user, :routes).order(:name)
-      @users = User.includes(:sandboxes).order(:name)
-    else
-      @sandboxes = Current.user.sandboxes.active.includes(:routes).order(:name)
-    end
-  end
-
-  def system_status
-    @system_status = SystemStatus.new.call
-    render partial: "system_status"
+    @sandboxes = policy_scope(Sandbox).includes(:user, :routes).order(:name)
   end
 
   def stats
-    sandbox = if Current.user.admin?
-      Sandbox.active.find(params[:id])
-    else
-      Current.user.sandboxes.active.find(params[:id])
-    end
+    sandbox = policy_scope(Sandbox).find(params[:id])
+    authorize sandbox, :stats?
 
     if sandbox.status == "running" && sandbox.container_id.present?
       container = Docker::Container.get(sandbox.container_id)

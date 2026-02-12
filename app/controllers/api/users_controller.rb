@@ -1,9 +1,9 @@
 module Api
   class UsersController < BaseController
-    before_action :require_admin!
     before_action :set_user, only: %i[show update destroy]
 
     def index
+      authorize User
       users = User.all
       render json: users.map { |u| user_json(u) }
     end
@@ -13,6 +13,7 @@ module Api
     end
 
     def create
+      authorize User
       user = User.create!(user_params)
       render json: user_json(user), status: :created
     end
@@ -34,6 +35,7 @@ module Api
 
     def set_user
       @user = User.find(params[:id])
+      authorize @user
     end
 
     def user_params

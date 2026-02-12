@@ -3,26 +3,23 @@ class SandboxesController < ApplicationController
 
   def destroy
     SandboxManager.new.destroy(sandbox: @sandbox)
-    redirect_to root_path, notice: "Sandbox #{@sandbox.name} destroyed"
+    redirect_to root_path, notice: "Sandcastle #{@sandbox.name} destroyed"
   end
 
   def start
     SandboxManager.new.start(sandbox: @sandbox)
-    redirect_to root_path, notice: "Sandbox #{@sandbox.name} started"
+    redirect_to root_path, notice: "Sandcastle #{@sandbox.name} started"
   end
 
   def stop
     SandboxManager.new.stop(sandbox: @sandbox)
-    redirect_to root_path, notice: "Sandbox #{@sandbox.name} stopped"
+    redirect_to root_path, notice: "Sandcastle #{@sandbox.name} stopped"
   end
 
   private
 
   def set_sandbox
-    @sandbox = if Current.user.admin?
-      Sandbox.active.find(params[:id])
-    else
-      Current.user.sandboxes.active.find(params[:id])
-    end
+    @sandbox = policy_scope(Sandbox).find(params[:id])
+    authorize @sandbox
   end
 end

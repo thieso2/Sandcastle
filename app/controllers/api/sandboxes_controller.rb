@@ -3,7 +3,8 @@ module Api
     before_action :set_sandbox, only: %i[show update destroy start stop connect snapshot restore tailscale_connect tailscale_disconnect]
 
     def index
-      sandboxes = current_user.sandboxes.active
+      authorize Sandbox
+      sandboxes = policy_scope(Sandbox)
       render json: sandboxes.map { |s| sandbox_json(s) }
     end
 
@@ -12,6 +13,7 @@ module Api
     end
 
     def create
+      authorize Sandbox
       image = if params[:snapshot].present?
         "sc-snap-#{current_user.name}:#{params[:snapshot]}"
       else
@@ -82,7 +84,8 @@ module Api
     private
 
     def set_sandbox
-      @sandbox = current_user.sandboxes.active.find(params[:id])
+      @sandbox = policy_scope(Sandbox).find(params[:id])
+      authorize @sandbox
     end
 
     def sandbox_json(sandbox)

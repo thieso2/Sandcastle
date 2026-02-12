@@ -20,10 +20,4 @@ module ApiAuthentication
   def current_user
     @current_api_token&.user
   end
-
-  def require_admin!
-    unless current_user&.admin?
-      render json: { error: "Forbidden" }, status: :forbidden
-    end
-  end
 end

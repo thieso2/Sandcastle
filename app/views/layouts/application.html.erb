@@ -24,7 +24,11 @@
   </head>
 
   <body>
-    <main class="container mx-auto mt-28 px-5 flex">
+    <% if authenticated? %>
+      <%= render "shared/navbar" %>
+    <% end %>
+
+    <main class="container mx-auto px-5 flex <%= authenticated? ? 'pt-20' : 'mt-28' %>">
       <%= yield %>
     </main>
 

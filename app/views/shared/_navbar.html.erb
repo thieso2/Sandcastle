@@ -1,0 +1,41 @@
+<nav class="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+  <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+    <%# Brand %>
+    <%= link_to root_path, class: "flex items-center gap-2 group" do %>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-amber-500 group-hover:text-amber-600 transition-colors">
+        <path d="M19.006 3.705a.75.75 0 1 0-.512-1.41L6 6.838V3a.75.75 0 0 0-.75-.75h-1.5A.75.75 0 0 0 3 3v4.93l-1.006.365a.75.75 0 0 0 .512 1.41l16.5-6A.75.75 0 0 0 19.006 3.705Z" />
+        <path fill-rule="evenodd" d="M3.019 11.114 18 5.667V9.56l4.759 1.653a.75.75 0 0 1-.518 1.407l-.241-.084v8.214a.75.75 0 0 1-.75.75H2.75a.75.75 0 0 1-.75-.75v-9.636Zm12.75 8.136v-3.75h-3v3.75h3Zm-4.5 0v-3.75h-3v3.75h3ZM6.269 12v7.25h-.769v-6.5l8.769-3.052V12H6.27Z" clip-rule="evenodd" />
+      </svg>
+      <span class="text-lg font-bold text-gray-900 group-hover:text-gray-700 transition-colors">Sandcastle</span>
+    <% end %>
+
+    <%# Navigation links %>
+    <div class="flex items-center gap-1">
+      <% nav_items = [
+        { label: "Dashboard", path: root_path, active: controller_name == "dashboard" && !controller_path.start_with?("admin") },
+        { label: "Guide", path: guide_path, active: controller_name == "pages" },
+        { label: "Tailscale", path: tailscale_path, active: controller_name == "tailscale" && !controller_path.start_with?("api") },
+      ] %>
+      <% if policy(:user).index? %>
+        <% nav_items << { label: "Admin", path: admin_dashboard_path, active: controller_path.start_with?("admin") } %>
+      <% end %>
+
+      <% nav_items.each do |item| %>
+        <%= link_to item[:label], item[:path],
+              class: "px-3 py-1.5 rounded-md text-sm font-medium transition-colors #{
+                item[:active] ?
+                  'bg-gray-900 text-white' :
+                  'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }" %>
+      <% end %>
+
+      <span class="mx-2 h-5 w-px bg-gray-200"></span>
+
+      <span class="text-sm text-gray-500"><%= Current.user.name %></span>
+      <%= link_to "Password", change_password_path,
+            class: "text-sm text-gray-400 hover:text-gray-600 transition-colors" %>
+      <%= button_to "Log out", session_path, method: :delete,
+            class: "text-sm text-gray-400 hover:text-gray-600 transition-colors" %>
+    </div>
+  </div>
+</nav>

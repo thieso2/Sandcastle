@@ -11,7 +11,7 @@
         <p class="font-mono font-medium"><%= @system_status.dig(:docker, :containers_running) || 0 %> running</p>
       </div>
       <div>
-        <span class="text-gray-500">Sandboxes</span>
+        <span class="text-gray-500">Sandcastles</span>
         <p class="font-mono font-medium"><%= @system_status.dig(:sandboxes, :total) || 0 %> total</p>
       </div>
       <div>

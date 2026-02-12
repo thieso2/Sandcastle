@@ -51,10 +51,6 @@ module Authentication
       redirect_to change_password_path, alert: "You must change your password before continuing."
     end
 
-    def require_admin!
-      redirect_to root_path, alert: "Not authorized" unless Current.user&.admin?
-    end
-
     def terminate_session
       Current.session.destroy
       cookies.delete(:session_id)

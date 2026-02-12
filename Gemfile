@@ -26,6 +26,8 @@ gem "bcrypt", "~> 3.1.7"
 gem "docker-api", "~> 2.4"
 # SSH key validation
 gem "sshkey", "~> 3.0"
+# Authorization
+gem "pundit", "~> 2.4"
 # OAuth authentication
 gem "omniauth", "~> 2.1"
 gem "omniauth-github", "~> 2.0"
