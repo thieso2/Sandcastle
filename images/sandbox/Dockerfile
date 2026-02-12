@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     openssh-server sudo curl git tmux vim neovim \
     build-essential \
-    jq ripgrep fd-find htop wget unzip ca-certificates net-tools \
+    jq ripgrep fd-find htop wget unzip ca-certificates net-tools iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # Prefer IPv4 to avoid slow/broken IPv6 connections
