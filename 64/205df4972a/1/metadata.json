@@ -1,7 +1,9 @@
 {
   "cli_version": "0.4.2",
   "checkpoint_id": "64205df4972a",
+  "session_id": "056b673a-1152-473c-94f9-46b813f79bbf",
   "strategy": "manual-commit",
+  "created_at": "2026-02-12T18:40:39.361204Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
@@ -28,33 +30,24 @@
     "config/initializers/smtp.rb",
     "config/routes.rb",
     "db/migrate/20260212183349_create_settings.rb",
-    "docker-compose.yml",
-    "install-defaults",
-    "installer.sh",
     "test/controllers/admin/settings_controller_test.rb",
     "test/models/setting_test.rb"
   ],
-  "sessions": [
-    {
-      "metadata": "/64/205df4972a/0/metadata.json",
-      "transcript": "/64/205df4972a/0/full.jsonl",
-      "context": "/64/205df4972a/0/context.md",
-      "content_hash": "/64/205df4972a/0/content_hash.txt",
-      "prompt": "/64/205df4972a/0/prompt.txt"
-    },
-    {
-      "metadata": "/64/205df4972a/1/metadata.json",
-      "transcript": "/64/205df4972a/1/full.jsonl",
-      "context": "/64/205df4972a/1/context.md",
-      "content_hash": "/64/205df4972a/1/content_hash.txt",
-      "prompt": "/64/205df4972a/1/prompt.txt"
-    }
-  ],
+  "agent": "Claude Code",
   "token_usage": {
-    "input_tokens": 93,
-    "cache_creation_tokens": 141732,
-    "cache_read_tokens": 5217917,
-    "output_tokens": 11902,
-    "api_call_count": 83
+    "input_tokens": 81,
+    "cache_creation_tokens": 67612,
+    "cache_read_tokens": 4801103,
+    "output_tokens": 8317,
+    "api_call_count": 77
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T18:40:39.32713Z",
+    "agent_lines": 632,
+    "human_added": 22,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 654,
+    "agent_percentage": 96.63608562691131
   }
 }
