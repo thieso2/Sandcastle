@@ -2,26 +2,25 @@ module Api
   class RoutesController < BaseController
     before_action :set_sandbox
 
-    def show
-      if @sandbox.routed?
-        render json: route_json(@sandbox)
-      else
-        render json: { error: "No route configured" }, status: :not_found
-      end
+    def index
+      render json: @sandbox.routes.map { |r| route_json(r) }
     end
 
     def create
-      RouteManager.new.add_route(
+      route = RouteManager.new.add_route(
         sandbox: @sandbox,
         domain: params.require(:domain),
         port: params.fetch(:port, 8080).to_i
       )
-      render json: route_json(@sandbox.reload), status: :created
+      render json: route_json(route), status: :created
     end
 
     def destroy
-      RouteManager.new.remove_route(sandbox: @sandbox)
+      route = @sandbox.routes.find_by!(domain: params[:domain])
+      RouteManager.new.remove_route(route: route)
       render json: { status: "removed" }
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: "Route not found" }, status: :not_found
     end
 
     private
@@ -30,13 +29,14 @@ module Api
       @sandbox = current_user.sandboxes.active.find(params[:sandbox_id])
     end
 
-    def route_json(sandbox)
+    def route_json(route)
       {
-        sandbox_id: sandbox.id,
-        sandbox_name: sandbox.name,
-        domain: sandbox.route_domain,
-        port: sandbox.route_port,
-        url: sandbox.route_url
+        id: route.id,
+        sandbox_id: route.sandbox_id,
+        sandbox_name: route.sandbox.name,
+        domain: route.domain,
+        port: route.port,
+        url: route.url
       }
     end
   end

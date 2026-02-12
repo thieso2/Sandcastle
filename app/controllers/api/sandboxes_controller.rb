@@ -98,9 +98,7 @@ module Api
         data_path: sandbox.data_path,
         temporary: sandbox.temporary,
         tailscale: sandbox.tailscale,
-        route_domain: sandbox.route_domain,
-        route_port: sandbox.route_port,
-        route_url: sandbox.route_url,
+        routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
         created_at: sandbox.created_at,
         connect_command: sandbox.connect_command
       }

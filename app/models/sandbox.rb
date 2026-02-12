@@ -1,5 +1,6 @@
 class Sandbox < ApplicationRecord
   belongs_to :user
+  has_many :routes, dependent: :destroy
 
   SSH_PORT_RANGE = (2201..2299)
 
@@ -11,15 +12,9 @@ class Sandbox < ApplicationRecord
     inclusion: { in: SSH_PORT_RANGE }
   validates :status, inclusion: { in: %w[pending running stopped destroyed] }
   validates :image, presence: true
-  validates :route_domain,
-    uniqueness: { conditions: -> { where.not(status: "destroyed").where.not(route_domain: nil) } },
-    format: { with: /\A[a-z0-9]([a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}\z/i, message: "must be a valid domain" },
-    allow_nil: true
-  validates :route_port, inclusion: { in: 1..65535 }, allow_nil: true
 
   scope :active, -> { where.not(status: "destroyed") }
   scope :running, -> { where(status: "running") }
-  scope :routed, -> { where.not(route_domain: nil) }
 
   before_validation :assign_ssh_port, on: :create
 
@@ -32,11 +27,7 @@ class Sandbox < ApplicationRecord
   end
 
   def routed?
-    route_domain.present?
-  end
-
-  def route_url
-    "https://#{route_domain}" if routed?
+    routes.loaded? ? routes.any? : routes.exists?
   end
 
   def temp?

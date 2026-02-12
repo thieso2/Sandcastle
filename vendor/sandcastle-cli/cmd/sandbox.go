@@ -172,7 +172,7 @@ var listCmd = &cobra.Command{
 
 		hasRoute := false
 		for _, s := range sandboxes {
-			if s.RouteURL != "" {
+			if len(s.Routes) > 0 {
 				hasRoute = true
 				break
 			}
@@ -195,8 +195,12 @@ var listCmd = &cobra.Command{
 			}
 			if hasRoute {
 				route := ""
-				if s.RouteURL != "" {
-					route = fmt.Sprintf("%s (:%d)", s.RouteURL, s.RoutePort)
+				if len(s.Routes) > 0 {
+					parts := make([]string, len(s.Routes))
+					for i, r := range s.Routes {
+						parts[i] = fmt.Sprintf("%s (:%d)", r.URL, r.Port)
+					}
+					route = strings.Join(parts, ", ")
 				}
 				fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\t%s\n", name, s.Status, s.SSHPort, route, tsIP, s.Image)
 			} else {

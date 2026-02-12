@@ -1,10 +1,10 @@
 class DashboardController < ApplicationController
   def index
     if Current.user.admin?
-      @sandboxes = Sandbox.active.includes(:user).order(:name)
+      @sandboxes = Sandbox.active.includes(:user, :routes).order(:name)
       @users = User.includes(:sandboxes).order(:name)
     else
-      @sandboxes = Current.user.sandboxes.active.order(:name)
+      @sandboxes = Current.user.sandboxes.active.includes(:routes).order(:name)
     end
   end
 

@@ -58,7 +58,7 @@ class SandboxManager
   end
 
   def destroy(sandbox:, keep_volume: false)
-    RouteManager.new.remove_route(sandbox: sandbox) if sandbox.routed?
+    RouteManager.new.remove_all_routes(sandbox: sandbox) if sandbox.routed?
 
     if sandbox.tailscale?
       TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)
@@ -89,7 +89,7 @@ class SandboxManager
     container.start
     sandbox.update!(status: "running")
 
-    RouteManager.new.reconnect_route(sandbox: sandbox) if sandbox.routed?
+    RouteManager.new.reconnect_routes(sandbox: sandbox) if sandbox.routed?
 
     sandbox
   rescue Docker::Error::NotFoundError
@@ -100,7 +100,7 @@ class SandboxManager
   def stop(sandbox:)
     return sandbox if sandbox.status == "stopped"
 
-    RouteManager.new.suspend_route(sandbox: sandbox) if sandbox.routed?
+    RouteManager.new.suspend_routes(sandbox: sandbox) if sandbox.routed?
 
     container = Docker::Container.get(sandbox.container_id)
     container.stop(t: 10)

@@ -79,17 +79,21 @@ sandcastle delete my-dev     # Permanently remove a sandbox</code></pre>
   <section class="mb-10">
     <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Custom domain routes</h2>
     <p class="text-gray-700 mb-3">
-      Expose a service running inside your sandbox on a custom domain with automatic TLS:
+      Expose services running inside your sandbox on custom domains with automatic TLS.
+      Each sandbox can have multiple routes pointing to different ports:
     </p>
-    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Route app.example.com → port 8080 (default) in sandbox "myapp"
-sandcastle route set myapp app.example.com
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Add a route — app.example.com → port 8080 (default) in sandbox "myapp"
+sandcastle route add myapp app.example.com
 
-# Custom port
-sandcastle route set myapp app.example.com 3000
+# Add another route on a custom port
+sandcastle route add myapp api.example.com 3000
 
-# Remove a route
-sandcastle route delete myapp</code></pre>
-    <p class="text-gray-500 text-sm mt-2">Point a DNS A/CNAME record at <code class="bg-gray-100 px-1 rounded"><%= host %></code> before setting the route. TLS certificates are provisioned automatically via Let's Encrypt.</p>
+# List all routes for a sandbox
+sandcastle route list myapp
+
+# Remove a specific route
+sandcastle route delete myapp app.example.com</code></pre>
+    <p class="text-gray-500 text-sm mt-2">Point a DNS A/CNAME record at <code class="bg-gray-100 px-1 rounded"><%= host %></code> before adding the route. TLS certificates are provisioned automatically via Let's Encrypt.</p>
   </section>
 
   <%# ── Snapshots ── %>

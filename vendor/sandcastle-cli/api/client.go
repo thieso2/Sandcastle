@@ -256,18 +256,18 @@ func (c *Client) ConnectInfo(id int) (*ConnectInfo, error) {
 
 func (c *Client) AddRoute(sandboxID int, req RouteRequest) (*RouteResponse, error) {
 	var r RouteResponse
-	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/route", sandboxID), req, &r)
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/routes", sandboxID), req, &r)
 	return &r, err
 }
 
-func (c *Client) GetRoute(sandboxID int) (*RouteResponse, error) {
-	var r RouteResponse
-	err := c.do("GET", fmt.Sprintf("/api/sandboxes/%d/route", sandboxID), nil, &r)
-	return &r, err
+func (c *Client) ListRoutes(sandboxID int) ([]RouteResponse, error) {
+	var routes []RouteResponse
+	err := c.do("GET", fmt.Sprintf("/api/sandboxes/%d/routes", sandboxID), nil, &routes)
+	return routes, err
 }
 
-func (c *Client) RemoveRoute(sandboxID int) error {
-	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/route", sandboxID), nil, nil)
+func (c *Client) RemoveRoute(sandboxID int, domain string) error {
+	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/routes/%s", sandboxID, domain), nil, nil)
 }
 
 // Snapshots

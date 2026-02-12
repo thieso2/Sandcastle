@@ -8,40 +8,45 @@ class RouteManager
   def add_route(sandbox:, domain:, port: 8080)
     raise Error, "Sandbox is not running" unless sandbox.status == "running"
 
-    # If domain or port changed, remove old config first
-    if sandbox.routed? && (sandbox.route_domain != domain || sandbox.route_port != port)
-      delete_config(sandbox)
-    end
-
-    sandbox.update!(route_domain: domain, route_port: port)
+    route = sandbox.routes.create!(domain: domain, port: port)
 
     ensure_network
     connect_to_network(sandbox)
     write_config(sandbox)
 
-    sandbox
+    route
   rescue ActiveRecord::RecordInvalid => e
     raise Error, e.message
   end
 
-  def remove_route(sandbox:)
-    return sandbox unless sandbox.routed?
+  def remove_route(route:)
+    sandbox = route.sandbox
+    route.destroy!
 
-    delete_config(sandbox)
-    disconnect_from_network(sandbox)
-    sandbox.update!(route_domain: nil, route_port: 8080)
-
-    sandbox
+    if sandbox.routes.reload.any?
+      write_config(sandbox)
+    else
+      delete_config(sandbox)
+      disconnect_from_network(sandbox)
+    end
   end
 
-  def suspend_route(sandbox:)
+  def remove_all_routes(sandbox:)
+    return unless sandbox.routed?
+
+    sandbox.routes.destroy_all
+    delete_config(sandbox)
+    disconnect_from_network(sandbox)
+  end
+
+  def suspend_routes(sandbox:)
     return unless sandbox.routed?
 
     delete_config(sandbox)
     disconnect_from_network(sandbox)
   end
 
-  def reconnect_route(sandbox:)
+  def reconnect_routes(sandbox:)
     return unless sandbox.routed?
 
     ensure_network
@@ -52,7 +57,7 @@ class RouteManager
   def sync_all_configs
     FileUtils.mkdir_p(DYNAMIC_DIR)
 
-    active_ids = Sandbox.active.running.routed.pluck(:id).to_set
+    active_ids = Sandbox.active.running.joins(:routes).distinct.pluck(:id).to_set
 
     # Remove stale config files
     Dir.glob(File.join(DYNAMIC_DIR, "sandbox-*.yml")).each do |path|
@@ -64,7 +69,7 @@ class RouteManager
     end
 
     # Regenerate configs for active routed sandboxes
-    Sandbox.active.running.routed.includes(:user).find_each do |sandbox|
+    Sandbox.active.running.joins(:routes).distinct.includes(:user, :routes).find_each do |sandbox|
       ensure_network
       connect_to_network(sandbox)
       write_config(sandbox)
@@ -112,27 +117,26 @@ class RouteManager
   def write_config(sandbox)
     FileUtils.mkdir_p(DYNAMIC_DIR)
 
-    router_name = "sandbox-#{sandbox.id}"
-    config = {
-      "http" => {
-        "routers" => {
-          router_name => {
-            "rule" => "Host(`#{sandbox.route_domain}`)",
-            "service" => router_name,
-            "entryPoints" => [ "websecure" ],
-            "tls" => tls_config
-          }
-        },
-        "services" => {
-          router_name => {
-            "loadBalancer" => {
-              "servers" => [ { "url" => "http://#{sandbox.full_name}:#{sandbox.route_port}" } ]
-            }
-          }
+    routes = sandbox.routes.reload
+    routers = {}
+    services = {}
+
+    routes.each do |route|
+      key = "sandbox-#{sandbox.id}-r#{route.id}"
+      routers[key] = {
+        "rule" => "Host(`#{route.domain}`)",
+        "service" => key,
+        "entryPoints" => [ "websecure" ],
+        "tls" => tls_config
+      }
+      services[key] = {
+        "loadBalancer" => {
+          "servers" => [ { "url" => "http://#{sandbox.full_name}:#{route.port}" } ]
         }
       }
-    }
+    end
 
+    config = { "http" => { "routers" => routers, "services" => services } }
     File.write(config_path(sandbox), config.to_yaml)
   end
 

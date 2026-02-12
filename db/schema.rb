@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_12_131016) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_144346) do
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -51,6 +51,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_131016) do
     t.index ["user_id"], name: "index_oauth_identities_on_user_id"
   end
 
+  create_table "routes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "domain", null: false
+    t.integer "port", default: 8080, null: false
+    t.integer "sandbox_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["domain"], name: "index_routes_on_domain", unique: true
+    t.index ["sandbox_id"], name: "index_routes_on_sandbox_id"
+  end
+
   create_table "sandboxes", force: :cascade do |t|
     t.string "container_id"
     t.datetime "created_at", null: false
@@ -59,8 +69,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_131016) do
     t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
     t.boolean "persistent_volume", default: false, null: false
-    t.string "route_domain"
-    t.integer "route_port", default: 8080
     t.integer "ssh_port", null: false
     t.string "status", default: "pending", null: false
     t.boolean "tailscale", default: false, null: false
@@ -69,7 +77,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_131016) do
     t.integer "user_id", null: false
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
-    t.index ["route_domain"], name: "index_sandboxes_on_route_domain_unique_active", unique: true, where: "route_domain IS NOT NULL AND status != 'destroyed'"
     t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "status != 'destroyed'"
     t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "status != 'destroyed'"
     t.index ["user_id"], name: "index_sandboxes_on_user_id"
@@ -107,6 +114,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_131016) do
   add_foreign_key "device_codes", "api_tokens"
   add_foreign_key "device_codes", "users"
   add_foreign_key "oauth_identities", "users"
+  add_foreign_key "routes", "sandboxes"
   add_foreign_key "sandboxes", "users"
   add_foreign_key "sessions", "users"
 end

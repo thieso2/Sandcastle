@@ -112,3 +112,7 @@ ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No
 - **Env vars**: `SECRET_KEY_BASE`, `RAILS_MASTER_KEY`, `SANDCASTLE_HOST`, `SANDCASTLE_DATA_DIR` (default `/data`)
 - **Proxy**: kamal-proxy with `response_timeout: 60` (needed for Tailscale login flow which blocks ~13s)
 - The Kamal app container needs `group-add: 988` for Docker socket access
+
+## Conventions
+
+- When features are changed or added, update the guide page at `app/views/pages/guide.html.erb` to reflect the new CLI commands and usage.
