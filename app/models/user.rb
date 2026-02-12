@@ -13,6 +13,10 @@ class User < ApplicationRecord
   validates :email_address, presence: true, uniqueness: true
   validates :status, inclusion: { in: %w[active suspended pending_approval] }
 
+  generates_token_for :invite, expires_in: 72.hours do
+    password_salt&.last(10)
+  end
+
   scope :active, -> { where(status: "active") }
 
   def admin?

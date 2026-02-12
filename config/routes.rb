@@ -3,6 +3,7 @@ Rails.application.routes.draw do
 
   resource :session
   resources :passwords, param: :token
+  resource :invite, only: [ :edit, :update ], path_names: { edit: "" }
 
   get  "auth/:provider/callback", to: "oauth_callbacks#create"
   post "auth/:provider/callback", to: "oauth_callbacks#create"
@@ -33,7 +34,12 @@ Rails.application.routes.draw do
   namespace :admin do
     get "/", to: "dashboard#index", as: :dashboard
     get "system_status", to: "dashboard#system_status"
-    resources :users
+    resource :settings, only: [ :edit, :update ] do
+      post :test_email
+    end
+    resources :users do
+      post :invite, on: :collection
+    end
     resources :sandboxes, only: :destroy do
       member do
         post :start

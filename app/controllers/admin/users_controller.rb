@@ -44,6 +44,21 @@ module Admin
       redirect_to admin_users_path, notice: "User #{@user.name} was deleted."
     end
 
+    def invite
+      authorize User, :create?
+      @user = User.new(invite_params.merge(
+        password: SecureRandom.base64(32),
+        status: "pending_approval"
+      ))
+
+      if @user.save
+        InviteMailer.invite(@user).deliver_later
+        redirect_to admin_users_path, notice: "Invite sent to #{@user.email_address}."
+      else
+        redirect_to admin_users_path, alert: "Could not invite user: #{@user.errors.full_messages.join(', ')}"
+      end
+    end
+
     private
 
     def set_user
@@ -52,6 +67,10 @@ module Admin
 
     def user_params
       params.expect(user: [ :name, :email_address, :password, :password_confirmation, :ssh_public_key, :admin, :status ])
+    end
+
+    def invite_params
+      params.permit(:name, :email_address)
     end
   end
 end

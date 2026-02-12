@@ -10,7 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_12_144346) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_183349) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
+
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "expires_at"
@@ -77,8 +80,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_144346) do
     t.integer "user_id", null: false
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
-    t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "status != 'destroyed'"
-    t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "status != 'destroyed'"
+    t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "((status)::text <> 'destroyed'::text)"
+    t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "((status)::text <> 'destroyed'::text)"
     t.index ["user_id"], name: "index_sandboxes_on_user_id"
   end
 
@@ -89,6 +92,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_144346) do
     t.string "user_agent"
     t.integer "user_id", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "settings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "github_client_id"
+    t.text "github_client_secret"
+    t.string "google_client_id"
+    t.text "google_client_secret"
+    t.string "smtp_address"
+    t.string "smtp_authentication", default: "plain"
+    t.string "smtp_from_address"
+    t.text "smtp_password"
+    t.integer "smtp_port", default: 587
+    t.boolean "smtp_starttls", default: true
+    t.string "smtp_username"
+    t.datetime "updated_at", null: false
   end
 
   create_table "users", force: :cascade do |t|
