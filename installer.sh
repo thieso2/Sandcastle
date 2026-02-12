@@ -816,6 +816,10 @@ services:
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: \${DB_PASSWORD}
+      GITHUB_CLIENT_ID: \${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: \${GITHUB_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: \${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: \${GOOGLE_CLIENT_SECRET:-}
     restart: unless-stopped
     depends_on:
       migrate:
