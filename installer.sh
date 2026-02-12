@@ -451,7 +451,7 @@ DYEOF
   mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes}
   mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
-  chown -R 1000:1000 "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
+  chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
   usermod -d "$SANDCASTLE_HOME" "$SANDCASTLE_USER" 2>/dev/null || true
 
   # ── Detect fresh install vs upgrade ─────────────────────────────────────
@@ -658,7 +658,7 @@ http:
 TEOF
   fi
 
-  chown -R 1000:1000 "$SANDCASTLE_HOME"/data/traefik/dynamic
+  chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$SANDCASTLE_HOME"/data/traefik/dynamic
 
   # ── Docker network ────────────────────────────────────────────────────────
 
