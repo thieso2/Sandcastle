@@ -255,6 +255,12 @@ SANDCASTLE_ADMIN_EMAIL=${admin_email}
 #SANDCASTLE_ADMIN_PASSWORD_FILE=/path/to/password-file
 #SANDCASTLE_ADMIN_SSH_KEY=ssh-ed25519 AAAA...
 
+# ─── OAuth (optional — enables "Sign in with …" buttons) ──────────────────
+#GITHUB_CLIENT_ID=
+#GITHUB_CLIENT_SECRET=
+#GOOGLE_CLIENT_ID=
+#GOOGLE_CLIENT_SECRET=
+
 # ─── Dockyard (Docker + Sysbox) ─────────────────────────────────────────────
 DOCKYARD_ROOT=${dy_root}
 DOCKYARD_DOCKER_PREFIX=${dy_prefix}
@@ -491,6 +497,10 @@ SANDCASTLE_ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-}"
 DOCKER_GID="${DOCKER_GID}"
 DOCKER_SOCK="${DOCKER_SOCK}"
 ACME_EMAIL="${ACME_EMAIL:-}"
+GITHUB_CLIENT_ID="${GITHUB_CLIENT_ID:-}"
+GITHUB_CLIENT_SECRET="${GITHUB_CLIENT_SECRET:-}"
+GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
+GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
 EOF
     chmod 600 "$SANDCASTLE_HOME/.env"
     ok "Runtime env written to $SANDCASTLE_HOME/.env"
@@ -510,6 +520,15 @@ EOF
     DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
     echo "DOCKER_SOCK=$DOCKER_SOCK" >> "$SANDCASTLE_HOME/.env"
   fi
+  # Backfill OAuth vars from sandcastle.env into .env
+  grep -q '^GITHUB_CLIENT_ID=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
+  grep -q '^GITHUB_CLIENT_SECRET=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}" >> "$SANDCASTLE_HOME/.env"
+  grep -q '^GOOGLE_CLIENT_ID=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
+  grep -q '^GOOGLE_CLIENT_SECRET=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}" >> "$SANDCASTLE_HOME/.env"
 
   # ── Write installed sandcastle.env ────────────────────────────────────────
 
@@ -538,6 +557,10 @@ DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE}"
 DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE}"
 DOCKER_SOCK="${DOCKER_SOCK}"
 DOCKER_GID="${DOCKER_GID:-988}"
+GITHUB_CLIENT_ID="${GITHUB_CLIENT_ID:-}"
+GITHUB_CLIENT_SECRET="${GITHUB_CLIENT_SECRET:-}"
+GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
+GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
 CREATED_USER="${CREATED_USER}"
 CREATED_GROUP="${CREATED_GROUP}"
 EOF

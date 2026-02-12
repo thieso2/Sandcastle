@@ -53,6 +53,17 @@ DB_USER="sandcastle"
 DB_NAME="sandcastle_production"
 # DB_PASSWORD is auto-generated during install
 
+# ─── OAuth (optional — enables "Sign in with …" buttons) ──────────────────
+# Create a GitHub OAuth App: Settings → Developer settings → OAuth Apps
+# Callback URL: https://<SANDCASTLE_HOST>/auth/github/callback
+#GITHUB_CLIENT_ID=
+#GITHUB_CLIENT_SECRET=
+
+# Create a Google OAuth client: https://console.cloud.google.com/apis/credentials
+# Callback URL: https://<SANDCASTLE_HOST>/auth/google/callback
+#GOOGLE_CLIENT_ID=
+#GOOGLE_CLIENT_SECRET=
+
 # ─── Dockyard (Docker + Sysbox) ─────────────────────────────────────────────
 
 DOCKYARD_ROOT="/sandcastle"
