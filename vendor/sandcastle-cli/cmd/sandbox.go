@@ -92,6 +92,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		fmt.Printf("Sandbox %q created.\n", sandbox.Name)
+		fmt.Printf("  Server:    %s\n", client.BaseURL)
 
 		// Print active options (use local flags — they reflect what was actually requested)
 		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove {
