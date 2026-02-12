@@ -1,0 +1,199 @@
+Implement the following plan:
+
+# Plan: Pundit Authorization + Dashboard Restructure + UI Rename
+
+## Context
+
+Currently the dashboard shows everything (sandboxes, users, system status) on one page, with admin-only sections guarded by inline `Current.user.admin?` checks and `require_admin!` before_actions. This plan:
+
+1. Splits the dashboard so regular users see only **their own sandcastles**, Tailscale link, and preferences
+2. Moves admin content (all sandboxes, user list, system status) to a dedicated **admin sub-page** (`/admin`)
+3. Replaces inline admin checks with **Pundit policies**
+4. Renames **"Sandbox" → "Sandcastle"** in all UI display text (not code/models/DB)
+
+## 1. Install Pundit
+
+- Add `gem "pundit", "~> 2.4"` to `Gemfile`
+- `bundle install`
+
+## 2. Pundit Setup
+
+### `app/controllers/application_controller.rb`
+- Add `include Pundit::Authorization`
+- Override `pundit_user` → `Current.user`
+- Rescue `Pundit::NotAuthorizedError` → redirect to root with alert
+
+### `app/controllers/api/base_controller.rb`
+- Add `include Pundit::Authorization`
+- Override `pundit_user` → `current_user` (from ApiAuthentication)
+- Rescue `Pundit::NotAuthorizedError` → render JSON 403
+
+**No `verify_authorized` afteractions** — the app is small enough to just add `authorize` calls where needed.
+
+## 3. Policies (new files in `app/policies/`)
+
+### `application_policy.rb`
+- Default deny all actions
+- Helper `admin?` method
+- Base `Scope` class
+
+### `sandbox_policy.rb`
+- `show?`, `start?`, `stop?`, `destroy?`, `stats?`, `connect?`, `snapshot?`, `restore?`, `tailscale_connect?`, `tailscale_disconnect?` → owner or admin
+- `create?`, `update?` → any authenticated user
+- `Scope#resolve` → admin: `scope.active`; user: `scope.where(user:).active`
+
+### `user_policy.rb`
+- `index?`, `show?`, `create?`, `update?` → admin only
+- `destroy?` → admin only AND not self-delete
+- `Scope#resolve` → admin: `scope.all`; user: `scope.where(id: user.id)`
+
+## 4. Controller Changes
+
+### `DashboardController` (`app/controllers/dashboard_controller.rb`)
+- `index`: Use `policy_scope(Sandbox)` (returns only user's sandboxes for non-admins, all for admins — but view always shows "My Sandcastles")
+- Remove admin branching (`@users`, all-sandboxes query)
+- Remove `system_status` action (moves to admin)
+- `stats`: Use `policy_scope(Sandbox).find(id)`, `authorize sandbox, :stats?`
+
+### New `Admin::DashboardController` (`app/controllers/admin/dashboard_controller.rb`)
+- `index`: Authorize via `authorize :user, :index?` (reuse UserPolicy as admin gate). Load `@sandboxes = Sandbox.active.includes(:user, :routes)`, `@users = User.includes(:sandboxes)`
+- `system_status`: Same authorize, render `_system_status` partial
+
+### New `Admin::SandboxesController` (`app/controllers/admin/sandboxes_controller.rb`)
+- `set_sandbox`: `Sandbox.active.find(id)` (no user scope — admin sees all)
+- `destroy`, `start`, `stop`: `authorize @sandbox`, delegate to SandboxManager, redirect to `admin_dashboard_path`
+- `stats`: Same logic as dashboard stats, authorize sandbox
+
+### `SandboxesController` (`app/controllers/sandboxes_controller.rb`)
+- `set_sandbox`: Use `policy_scope(Sandbox).find(id)` + `authorize @sandbox`
+- Flash messages: "Sandcastle X destroyed/started/stopped"
+
+### `Admin::UsersController` (`app/controllers/admin/users_controller.rb`)
+- Remove `before_action :require_admin!`
+- Add `authorize @user` (or `authorize User`) in each action
+- Flash messages: "Sandcastle" terminology
+
+### `TailscaleController` — no changes (already user-scoped, no admin concern)
+
+### `Api::SandboxesController`
+- `index`: `authorize Sandbox` + `policy_scope(Sandbox)`
+- Per-action: `authorize @sandbox`
+
+### `Api::UsersController`
+- Remove `before_action :require_admin!`
+- Per-action: `authorize User` or `authorize @user`
+
+### `Api::StatusController`, `Api::SnapshotsController`, `Api::TokensController`, `Api::RoutesController`
+- Already properly scoped to current user. No Pundit changes needed (these don't have authorization concerns beyond authentication).
+
+### Skip Pundit for unauthenticated controllers
+- `Api::AuthController` — inherits from `ActionController::API` directly, no Pundit involvement
+
+## 5. Route Changes (`config/routes.rb`)
+
+```ruby
+# Remove top-level system_status route
+# (was: get "system_status", to: "dashboard#system_status")
+
+namespace :admin do
+  get "/", to: "dashboard#index", as: :dashboard
+  get "system_status", to: "dashboard#system_status"
+  resources :users
+  resources :sandboxes, only: :destroy do
+    member do
+      post :start
+      post :stop
+      get :stats
+    end
+  end
+end
+```
+
+Keep the existing top-level `resources :sandboxes` for user's own sandbox actions.
+
+## 6. View Changes
+
+### `app/views/dashboard/index.html.erb`
+- Remove system status turbo frame
+- Remove users table section
+- Remove all `Current.user.admin?` conditionals
+- Header: Always "My Sandcastles"
+- Add "Admin" nav link (visible only to admins via `policy(:user).index?`)
+- Rename "Sandbox" → "Sandcastle" in display text
+- Empty state: "No sandcastles yet" / `sandcastle create my-dev`
+
+### `app/views/dashboard/_sandbox.html.erb`
+- Remove `if Current.user.admin?` owner badge (user dashboard never shows other users' sandboxes)
+- Rename confirm text: "Destroy sandcastle X?"
+- "Remove sandcastle" for temp
+
+### New `app/views/admin/dashboard/index.html.erb`
+- Admin page header with "Back to Dashboard" link
+- System status turbo frame (src: `admin_system_status_path`)
+- "All Sandcastles" section with `@sandboxes`
+- Users table (moved from dashboard/index)
+
+### New `app/views/admin/dashboard/_sandbox.html.erb`
+- Copy of `dashboard/_sandbox.html.erb` but:
+  - Always shows owner badge
+  - Action buttons point to `admin_sandbox_path` routes
+  - Stats turbo frame points to `stats_admin_sandbox_path`
+
+### Move `app/views/dashboard/_system_status.html.erb` → `app/views/admin/dashboard/_system_status.html.erb`
+- Rename "Sandboxes" → "Sandcastles" in labels
+
+### `app/views/admin/users/index.html.erb`
+- Column "Sandboxes" → "Sandcastles"
+
+## 7. Cleanup
+
+- Remove `require_admin!` from `app/controllers/concerns/authentication.rb`
+- Remove `require_admin!` from `app/controllers/concerns/api_authentication.rb`
+
+## Files Modified/Created
+
+| Action | File |
+|--------|------|
+| Modify | `Gemfile` |
+| Modify | `app/controllers/application_controller.rb` |
+| Modify | `app/controllers/api/base_controller.rb` |
+| Create | `app/policies/application_policy.rb` |
+| Create | `app/policies/sandbox_policy.rb` |
+| Create | `app/policies/user_policy.rb` |
+| Modify | `app/controllers/dashboard_controller.rb` |
+| Create | `app/controllers/admin/dashboard_controller.rb` |
+| Create | `app/controllers/admin/sandboxes_controller.rb` |
+| Modify | `app/controllers/sandboxes_controller.rb` |
+| Modify | `app/controllers/admin/users_controller.rb` |
+| Modify | `app/controllers/api/sandboxes_controller.rb` |
+| Modify | `app/controllers/api/users_controller.rb` |
+| Modify | `config/routes.rb` |
+| Modify | `app/views/dashboard/index.html.erb` |
+| Modify | `app/views/dashboard/_sandbox.html.erb` |
+| Create | `app/views/admin/dashboard/index.html.erb` |
+| Create | `app/views/admin/dashboard/_sandbox.html.erb` |
+| Move   | `app/views/dashboard/_system_status.html.erb` → `app/views/admin/dashboard/_system_status.html.erb` |
+| Modify | `app/views/admin/users/index.html.erb` |
+| Modify | `app/controllers/concerns/authentication.rb` |
+| Modify | `app/controllers/concerns/api_authentication.rb` |
+
+## Verification
+
+1. `bundle install` — Pundit gem installs
+2. `bin/rails test` — all existing tests pass
+3. Manual: Log in as regular user → dashboard shows only "My Sandcastles", no admin link, no users table
+4. Manual: Log in as admin → dashboard shows "My Sandcastles" + "Admin" link → admin page shows system status, all sandcastles, users table
+5. Manual: Regular user cannot access `/admin` (redirected with "Not authorized")
+6. Manual: Admin can start/stop/destroy any sandcastle from admin page
+7. `bin/rubocop` — no new violations
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+set a fixed width - don't want teh layout to wiggle when turbo data arrives. make tht toplevel navigation beautiful!
+
+---
+
+commit and push

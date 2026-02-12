@@ -1,0 +1,52 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "135a87c7f46f",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "Gemfile",
+    "app/controllers/admin/dashboard_controller.rb",
+    "app/controllers/admin/sandboxes_controller.rb",
+    "app/controllers/admin/users_controller.rb",
+    "app/controllers/api/base_controller.rb",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/api/users_controller.rb",
+    "app/controllers/application_controller.rb",
+    "app/controllers/concerns/api_authentication.rb",
+    "app/controllers/concerns/authentication.rb",
+    "app/controllers/dashboard_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/policies/application_policy.rb",
+    "app/policies/sandbox_policy.rb",
+    "app/policies/user_policy.rb",
+    "app/views/admin/dashboard/_sandbox.html.erb",
+    "app/views/admin/dashboard/_sandbox_stats.html.erb",
+    "app/views/admin/dashboard/_system_status.html.erb",
+    "app/views/admin/dashboard/index.html.erb",
+    "app/views/admin/users/index.html.erb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/_system_status.html.erb",
+    "app/views/dashboard/index.html.erb",
+    "app/views/layouts/application.html.erb",
+    "app/views/shared/_navbar.html.erb",
+    "app/views/tailscale/show.html.erb",
+    "config/routes.rb"
+  ],
+  "sessions": [
+    {
+      "metadata": "/13/5a87c7f46f/0/metadata.json",
+      "transcript": "/13/5a87c7f46f/0/full.jsonl",
+      "context": "/13/5a87c7f46f/0/context.md",
+      "content_hash": "/13/5a87c7f46f/0/content_hash.txt",
+      "prompt": "/13/5a87c7f46f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 83,
+    "cache_creation_tokens": 90447,
+    "cache_read_tokens": 5970607,
+    "output_tokens": 12223,
+    "api_call_count": 77
+  }
+}
