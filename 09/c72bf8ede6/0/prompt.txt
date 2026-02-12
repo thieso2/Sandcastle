@@ -1,0 +1,51 @@
+on productiomn (mnew install) 
+migrate-1       | Created database 'sandcastle_production_cable'
+migrate-1       | Admin user created: thieso@gmail.com
+postgres-1      | waiting for server to start....2026-02-12 15:47:18.400 UTC [51] LOG:  starting PostgreSQL 18.1 (Debian 18.1-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+postgres-1      | 2026-02-12 15:47:18.403 UTC [51] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1      | 2026-02-12 15:47:18.415 UTC [57] LOG:  database system was shut down at 2026-02-12 15:47:18 UTC
+postgres-1      | 2026-02-12 15:47:18.421 UTC [51] LOG:  database system is ready to accept connections
+postgres-1      |  done
+postgres-1      | server started
+postgres-1      | CREATE DATABASE
+postgres-1      |
+postgres-1      |
+postgres-1      | /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+postgres-1      |
+postgres-1      | 2026-02-12 15:47:18.598 UTC [51] LOG:  received fast shutdown request
+postgres-1      | waiting for server to shut down....2026-02-12 15:47:18.601 UTC [51] LOG:  aborting any active transactions
+postgres-1      | 2026-02-12 15:47:18.603 UTC [51] LOG:  background worker "logical replication launcher" (PID 60) exited with exit code 1
+postgres-1      | 2026-02-12 15:47:18.604 UTC [55] LOG:  shutting down
+postgres-1      | 2026-02-12 15:47:18.607 UTC [55] LOG:  checkpoint starting: shutdown immediate
+postgres-1      | 2026-02-12 15:47:18.687 UTC [55] LOG:  checkpoint complete: wrote 943 buffers (5.8%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.036 s, sync=0.031 s, total=0.083 s; sync files=303, longest=0.004 s, average=0.001 s; distance=4352 kB, estimate=4352 kB; lsn=0/1B9FBB8, redo lsn=0/1B9FBB8
+postgres-1      | 2026-02-12 15:47:18.709 UTC [51] LOG:  database system is shut down
+postgres-1      |  done
+postgres-1      | server stopped
+postgres-1      |
+postgres-1      | PostgreSQL init process complete; ready for start up.
+postgres-1      |
+postgres-1      | 2026-02-12 15:47:18.841 UTC [1] LOG:  starting PostgreSQL 18.1 (Debian 18.1-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+postgres-1      | 2026-02-12 15:47:18.841 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+postgres-1      | 2026-02-12 15:47:18.841 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+postgres-1      | 2026-02-12 15:47:18.848 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+postgres-1      | 2026-02-12 15:47:18.859 UTC [73] LOG:  database system was shut down at 2026-02-12 15:47:18 UTC
+postgres-1      | 2026-02-12 15:47:18.865 UTC [1] LOG:  database system is ready to accept connections
+postgres-1      | 2026-02-12 15:47:24.613 UTC [87] FATAL:  database "sandcastle_production_cache" does not exist
+postgres-1      | 2026-02-12 15:47:24.891 UTC [90] FATAL:  database "sandcastle_production_queue" does not exist
+postgres-1      | 2026-02-12 15:47:25.162 UTC [93] FATAL:  database "sandcastle_production_cable" does not exist
+
+---
+
+do in need to build new images?
+
+---
+
+i installed via cual installer.sh - is all included in the installer?
+
+---
+
+lead a not in CLAUDE.md about this!
+
+---
+
+commit and push
