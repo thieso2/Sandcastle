@@ -1,8 +1,11 @@
-# Sandcastle install configuration
-# Source this file or pass via: installer.sh --config install-defaults
-# Any value set here skips the corresponding interactive prompt.
+# Sandcastle configuration reference
+# Generate your own config with: installer.sh gen-env
+# Then edit and install:          sudo installer.sh install
+#
+# Config file search order (override with SANDCASTLE_ENV):
+#   ./sandcastle.env → <script_dir>/sandcastle.env → $SANDCASTLE_HOME/etc/sandcastle.env
 
-# ─── Sandcastle paths & images ───────────────────────────────────────────────
+# ─── Paths & images ─────────────────────────────────────────────────────────
 
 # Home directory for Sandcastle (config, data, compose file)
 SANDCASTLE_HOME="/sandcastle"
@@ -11,10 +14,8 @@ SANDCASTLE_HOME="/sandcastle"
 APP_IMAGE="ghcr.io/thieso2/sandcastle:latest"
 SANDBOX_IMAGE="ghcr.io/thieso2/sandcastle-sandbox:latest"
 
-# ─── System user ─────────────────────────────────────────────────────────────
+# ─── System user (home=SANDCASTLE_HOME, shell=/bin/bash) ────────────────────
 
-# Unix user/group that owns Sandcastle data directories
-# Home is set to SANDCASTLE_HOME, shell to /bin/bash
 SANDCASTLE_USER="sandcastle"
 SANDCASTLE_GROUP="sandcastle"  # defaults to SANDCASTLE_USER
 SANDCASTLE_UID="220568"
@@ -22,11 +23,11 @@ SANDCASTLE_GID="220568"
 
 # ─── Network & TLS ──────────────────────────────────────────────────────────
 
-# Domain name (leave empty for IP-only / self-signed mode)
+# Host IP or domain name (auto-detected by gen-env)
 # SANDCASTLE_HOST="sandbox.example.com"
 
-# TLS mode: "letsencrypt" or "selfsigned" (auto-set based on SANDCASTLE_HOST)
-# SANDCASTLE_TLS_MODE="selfsigned"
+# TLS mode: "letsencrypt" or "selfsigned"
+SANDCASTLE_TLS_MODE="selfsigned"
 
 # Email for Let's Encrypt (required when TLS mode is letsencrypt)
 # ACME_EMAIL="admin@example.com"
@@ -38,15 +39,14 @@ SANDCASTLE_HTTPS_PORT="443"
 # Docker network subnet for the sandcastle-web bridge (auto-detected if empty)
 # SANDCASTLE_SUBNET="172.20.5.0/24"
 
-# ─── Admin account ──────────────────────────────────────────────────────────
+# ─── Admin account (required for fresh install) ─────────────────────────────
 
-# Set all three to skip interactive prompts during install
 # SANDCASTLE_ADMIN_EMAIL="admin@example.com"
 # SANDCASTLE_ADMIN_PASSWORD="changeme"
 # SANDCASTLE_ADMIN_PASSWORD_FILE="/path/to/password-file"  # alternative to inline password
 # SANDCASTLE_ADMIN_SSH_KEY="ssh-ed25519 AAAA..."
 
-# ─── Dockyard (Docker + Sysbox runtime) ───────────────────────────────────────
+# ─── Dockyard (Docker + Sysbox) ─────────────────────────────────────────────
 
 DOCKYARD_ROOT="/sandcastle"
 DOCKYARD_DOCKER_PREFIX="sc_"
