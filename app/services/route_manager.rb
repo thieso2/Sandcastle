@@ -74,11 +74,17 @@ class RouteManager
   def write_rails_config(host:)
     FileUtils.mkdir_p(DYNAMIC_DIR)
 
+    rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+      "HostRegexp(`.+`)"
+    else
+      "Host(`#{host}`)"
+    end
+
     config = {
       "http" => {
         "routers" => {
           "rails" => {
-            "rule" => "Host(`#{host}`)",
+            "rule" => rule,
             "service" => "rails",
             "entryPoints" => [ "websecure" ],
             "tls" => tls_config
