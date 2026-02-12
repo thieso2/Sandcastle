@@ -32,10 +32,6 @@ notarize:
         key_id: "{{ .Env.MACOS_NOTARY_KEY_ID }}"
         key: "{{ .Env.MACOS_NOTARY_KEY }}"
 
-release:
-  extra_files:
-    - glob: "{{ .Env.GITHUB_WORKSPACE }}/installer.sh"
-
 changelog:
   sort: asc
   filters:
