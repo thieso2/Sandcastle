@@ -1,0 +1,873 @@
+#!/bin/bash
+# Sandcastle installer
+# curl -fsSL https://install.sandcastle.rocks | sudo bash
+set -euo pipefail
+
+# ─── Parse arguments ─────────────────────────────────────────────────────────
+
+COMMAND="install"
+RESET=false
+UNINSTALL=false
+CONFIG_FILE=""
+for arg in "$@"; do
+  case "$arg" in
+    install)              COMMAND="install" ;;
+    reset)                COMMAND="reset" ;;
+    uninstall)            COMMAND="uninstall" ;;
+    --config=*)           CONFIG_FILE="${arg#*=}" ;;
+    help|-h|--help)
+      echo "Usage: installer.sh [COMMAND] [OPTIONS]"
+      echo ""
+      echo "Sandcastle installer — sets up Docker, Sysbox, and the Sandcastle platform."
+      echo ""
+      echo "Commands:"
+      echo "  install              Install Sandcastle (default)"
+      echo "  reset                Tear down existing install, then reinstall"
+      echo "  uninstall            Remove Sandcastle completely"
+      echo ""
+      echo "Options:"
+      echo "  --config=<file>      Load install config from file (see install-defaults)"
+      echo "  -h, --help           Show this help message"
+      exit 0
+      ;;
+    *) echo "Unknown argument: $arg (use --help for usage)"; exit 1 ;;
+  esac
+done
+
+case "$COMMAND" in
+  reset)     RESET=true; UNINSTALL=false ;;
+  uninstall) RESET=true; UNINSTALL=true ;;
+  install)   RESET=false; UNINSTALL=false ;;
+esac
+
+# ─── Defaults (overridable via --config file) ────────────────────────────────
+
+SANDCASTLE_HOME="${SANDCASTLE_HOME:-/sandcastle}"
+APP_IMAGE="${APP_IMAGE:-ghcr.io/thieso2/sandcastle:latest}"
+SANDBOX_IMAGE="${SANDBOX_IMAGE:-ghcr.io/thieso2/sandcastle-sandbox:latest}"
+SANDCASTLE_USER="${SANDCASTLE_USER:-sandcastle}"
+SANDCASTLE_GROUP="${SANDCASTLE_GROUP:-$SANDCASTLE_USER}"
+SANDCASTLE_UID="${SANDCASTLE_UID:-220568}"
+SANDCASTLE_GID="${SANDCASTLE_GID:-220568}"
+SANDCASTLE_HTTP_PORT="${SANDCASTLE_HTTP_PORT:-80}"
+SANDCASTLE_HTTPS_PORT="${SANDCASTLE_HTTPS_PORT:-443}"
+DOCKYARD_ROOT="${DOCKYARD_ROOT:-/sandcastle}"
+DOCKYARD_DOCKER_PREFIX="${DOCKYARD_DOCKER_PREFIX:-sc_}"
+DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR:-172.42.89.1/24}"
+DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-172.42.89.0/24}"
+DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-172.89.0.0/16}"
+DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
+
+# ─── Load config file ────────────────────────────────────────────────────────
+
+if [ -n "$CONFIG_FILE" ]; then
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Config file not found: $CONFIG_FILE" >&2
+    exit 1
+  fi
+  # shellcheck source=/dev/null
+  set -a
+  source "$CONFIG_FILE"
+  set +a
+fi
+
+# Check if a variable was explicitly set in the config file
+config_has() { [ -n "$CONFIG_FILE" ] && grep -qE "^\s*$1=" "$CONFIG_FILE" 2>/dev/null; }
+
+# Prompt for a value unless it was set in the config file
+# Usage: ask VAR_NAME "Prompt text"
+ask() {
+  local var="$1" prompt="$2"
+  if ! config_has "$var"; then
+    local current="${!var}"
+    local input
+    read -rp "$prompt [$current]: " input
+    if [ -n "$input" ]; then
+      eval "$var=\"\$input\""
+    fi
+  fi
+}
+
+ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
+
+# Dockyard docker binary and socket
+DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
+DOCKER="${DOCKYARD_ROOT}/docker-runtime/bin/docker"
+
+# ─── Colors ───────────────────────────────────────────────────────────────────
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
+ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
+warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
+error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+
+# ─── Show available images ──────────────────────────────────────────────────
+
+show_image_info() {
+  local repo="$1"
+  python3 -c "
+import urllib.request, json, sys
+repo, arch = '${repo}', '${ARCH}'
+try:
+    r = urllib.request.urlopen(f'https://ghcr.io/token?scope=repository:thieso2/{repo}:pull')
+    token = json.load(r)['token']
+    h = {'Authorization': f'Bearer {token}'}
+    req = urllib.request.Request(
+        f'https://ghcr.io/v2/thieso2/{repo}/manifests/latest',
+        headers={**h, 'Accept': 'application/vnd.oci.image.index.v1+json,application/vnd.oci.image.manifest.v1+json'})
+    m = json.load(urllib.request.urlopen(req))
+    if 'manifests' in m:
+        for p in m['manifests']:
+            if p.get('platform', {}).get('architecture') == arch:
+                req = urllib.request.Request(
+                    f'https://ghcr.io/v2/thieso2/{repo}/manifests/{p[\"digest\"]}',
+                    headers={**h, 'Accept': 'application/vnd.oci.image.manifest.v1+json'})
+                m = json.load(urllib.request.urlopen(req))
+                break
+    cfg = json.load(urllib.request.urlopen(
+        urllib.request.Request(f'https://ghcr.io/v2/thieso2/{repo}/blobs/{m[\"config\"][\"digest\"]}', headers=h)))
+    import re
+    from datetime import datetime, timezone
+    # Truncate nanoseconds to microseconds (Python handles max 6 digits)
+    ts = re.sub(r'(\.\d{6})\d+', r'\1', cfg['created']).replace('Z', '+00:00')
+    dt = datetime.fromisoformat(ts)
+    secs = int((datetime.now(timezone.utc) - dt).total_seconds())
+    if secs < 0: secs = 0
+    if secs >= 86400:
+        ago = f'{secs // 86400}d ago'
+    elif secs >= 3600:
+        ago = f'{secs // 3600}h ago'
+    else:
+        ago = f'{max(1, secs // 60)}m ago'
+    print(f'  ghcr.io/thieso2/{repo}:latest    built {dt.strftime(\"%Y-%m-%d %H:%M UTC\")} ({ago})')
+except Exception:
+    print(f'  ghcr.io/thieso2/{repo}:latest    (unable to fetch build info)')
+" 2>/dev/null || echo "  ghcr.io/thieso2/${repo}:latest"
+}
+
+echo ""
+echo -e "${BLUE}═══ Sandcastle Installer ═══${NC}"
+echo ""
+if [ "$UNINSTALL" = false ]; then
+  info "Available images (${ARCH}):"
+  show_image_info "sandcastle"
+  show_image_info "sandcastle-sandbox"
+  echo ""
+fi
+
+# ─── Helper: find a free private subnet ──────────────────────────────────────
+
+find_free_subnet() {
+  # Collect ALL used RFC 1918 IPs from routes, interfaces, and Docker networks
+  local used
+  used=$(
+    { ip route 2>/dev/null; ip addr 2>/dev/null; netstat -rn 2>/dev/null; } \
+      | grep -oE '(10|172|192)\.[0-9]+\.[0-9]+\.[0-9]+' \
+      | sort -un
+    $DOCKER network ls -q 2>/dev/null | while read -r nid; do
+      $DOCKER network inspect --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' "$nid" 2>/dev/null
+    done | grep -oE '(10|172|192)\.[0-9]+\.[0-9]+\.[0-9]+' \
+      | sort -un
+  )
+
+  # Try 172.{16-31}.{random}.0/24 — fully randomized
+  for b in $(shuf -i 16-31); do
+    for c in $(shuf -i 1-254 | head -5); do
+      if ! echo "$used" | grep -q "^172\.${b}\.${c}\."; then
+        echo "172.${b}.${c}.0/24"
+        return
+      fi
+    done
+  done
+
+  # Fallback: 10.{random}.{random}.0/24
+  for b in $(shuf -i 1-254 | head -20); do
+    for c in $(shuf -i 1-254 | head -5); do
+      if ! echo "$used" | grep -q "^10\.${b}\.${c}\."; then
+        echo "10.${b}.${c}.0/24"
+        return
+      fi
+    done
+  done
+
+  echo "172.30.99.0/24"  # last resort
+}
+
+# ─── Preflight ────────────────────────────────────────────────────────────────
+
+if [ "$(id -u)" -ne 0 ]; then
+  error "This script must be run as root (use sudo)"
+  exit 1
+fi
+
+if ! grep -qi ubuntu /etc/os-release 2>/dev/null; then
+  warn "This script is tested on Ubuntu 24.04. Other distros may work but are unsupported."
+fi
+
+if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
+  error "Sandcastle requires amd64 or arm64 architecture (got: $ARCH)"
+  exit 1
+fi
+
+# ─── Reset (--reset flag) ────────────────────────────────────────────────────
+
+if [ "$RESET" = true ]; then
+  # Load installed env to get CREATED_USER/CREATED_GROUP flags
+  if [ -f "$SANDCASTLE_HOME/etc/sandcastle.env" ]; then
+    source "$SANDCASTLE_HOME/etc/sandcastle.env"
+  fi
+
+  warn "This will destroy ALL data in $SANDCASTLE_HOME (containers, volumes, user data, config)"
+  if [ -n "$CONFIG_FILE" ]; then
+    CONFIRM="yes"
+  else
+    read -rp "Are you sure? (yes to confirm): " CONFIRM
+  fi
+  if [ "$CONFIRM" = "yes" ]; then
+    info "Tearing down Sandcastle..."
+    cd /
+
+    # Stop and remove all containers via dockyard docker
+    if [ -x "$DOCKER" ]; then
+      for container in $($DOCKER ps -a --filter "name=^sc-ts-" --format '{{.Names}}' 2>/dev/null); do
+        info "Removing Tailscale sidecar: $container"
+        $DOCKER rm -f "$container" 2>/dev/null || true
+      done
+      for container in $($DOCKER ps -a --filter "runtime=sysbox-runc" --format '{{.Names}}' 2>/dev/null); do
+        info "Removing container: $container"
+        $DOCKER rm -f "$container" 2>/dev/null || true
+      done
+      for net in $($DOCKER network ls --filter "name=^sc-ts-net-" --format '{{.Name}}' 2>/dev/null); do
+        info "Removing network: $net"
+        $DOCKER network rm "$net" 2>/dev/null || true
+      done
+
+      # Tear down compose stack
+      if [ -f "$SANDCASTLE_HOME/docker-compose.yml" ]; then
+        $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" --env-file "$SANDCASTLE_HOME/.env" down --rmi all --volumes --remove-orphans 2>/dev/null || true
+      fi
+      $DOCKER network rm sandcastle-web 2>/dev/null || true
+    fi
+
+    # Destroy Dockyard
+    DOCKYARD_ENV_FILE="$SANDCASTLE_HOME/etc/dockyard.env"
+    if [ -f "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
+      info "Destroying Dockyard..."
+      if [ -f "$DOCKYARD_ENV_FILE" ] && wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh 2>/dev/null; then
+        echo "y" | DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy || true
+        rm -f /tmp/dockyard.sh
+      else
+        # Manual cleanup: download failed
+        systemctl stop "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
+        systemctl disable "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
+        rm -f "/etc/systemd/system/${DOCKYARD_DOCKER_PREFIX}docker.service"
+        systemctl daemon-reload 2>/dev/null || true
+        ip link delete "${DOCKYARD_DOCKER_PREFIX}docker0" 2>/dev/null || true
+      fi
+      ok "Dockyard destroyed"
+    fi
+
+    # Remove user and group if we created them
+    if [ "${CREATED_USER:-}" = true ] && id "$SANDCASTLE_USER" &>/dev/null; then
+      userdel "$SANDCASTLE_USER" 2>/dev/null || true
+      ok "Removed user '${SANDCASTLE_USER}'"
+    fi
+    if [ "${CREATED_GROUP:-}" = true ] && getent group "$SANDCASTLE_GROUP" &>/dev/null; then
+      groupdel "$SANDCASTLE_GROUP" 2>/dev/null || true
+      ok "Removed group '${SANDCASTLE_GROUP}'"
+    fi
+
+    # Remove data directories
+    rm -rf "$SANDCASTLE_HOME"
+    if [ "$DOCKYARD_ROOT" != "$SANDCASTLE_HOME" ] && [ -d "$DOCKYARD_ROOT" ]; then
+      rm -rf "$DOCKYARD_ROOT"
+    fi
+    rm -rf "/run/${DOCKYARD_DOCKER_PREFIX}docker"
+
+    if [ "$UNINSTALL" = true ]; then
+      ok "Sandcastle has been uninstalled"
+      exit 0
+    fi
+
+    ok "Reset complete — running fresh install"
+  else
+    error "Aborted"
+    exit 1
+  fi
+fi
+
+# ─── Install Dockyard (Docker + Sysbox) ──────────────────────────────────────
+
+if [ -S "${DOCKYARD_ROOT}/docker.sock" ]; then
+  ok "Dockyard already installed"
+else
+  info "Installing Dockyard (Docker + Sysbox)..."
+  wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh
+
+  # Write dockyard env to etc/
+  mkdir -p "$SANDCASTLE_HOME/etc"
+  cat > "$SANDCASTLE_HOME/etc/dockyard.env" <<DYEOF
+DOCKYARD_ROOT=${DOCKYARD_ROOT}
+DOCKYARD_DOCKER_PREFIX=${DOCKYARD_DOCKER_PREFIX}
+DOCKYARD_BRIDGE_CIDR=${DOCKYARD_BRIDGE_CIDR}
+DOCKYARD_FIXED_CIDR=${DOCKYARD_FIXED_CIDR}
+DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}
+DOCKYARD_POOL_SIZE=${DOCKYARD_POOL_SIZE}
+DYEOF
+
+  DOCKYARD_ENV="$SANDCASTLE_HOME/etc/dockyard.env" bash /tmp/dockyard.sh create
+  rm -f /tmp/dockyard.sh
+
+  # Wait for Dockyard socket to be ready
+  for i in $(seq 1 30); do
+    if [ -S "${DOCKYARD_ROOT}/docker.sock" ]; then
+      break
+    fi
+    sleep 1
+  done
+  if [ ! -S "${DOCKYARD_ROOT}/docker.sock" ]; then
+    error "Dockyard socket not found at ${DOCKYARD_ROOT}/docker.sock after 30s"
+    exit 1
+  fi
+  ok "Dockyard installed"
+fi
+
+# ─── Configure UFW ───────────────────────────────────────────────────────────
+
+if command -v ufw &>/dev/null; then
+  info "Configuring firewall..."
+  ufw --force reset >/dev/null 2>&1
+  ufw default deny incoming >/dev/null 2>&1
+  ufw default allow outgoing >/dev/null 2>&1
+  ufw allow 22/tcp >/dev/null 2>&1
+  ufw allow 80/tcp >/dev/null 2>&1
+  ufw allow 443/tcp >/dev/null 2>&1
+  ufw allow 2201:2299/tcp >/dev/null 2>&1
+  ufw --force enable >/dev/null 2>&1
+  ok "Firewall configured (22, 80, 443, 2201-2299)"
+else
+  warn "UFW not found — skipping firewall setup"
+fi
+
+# ─── Create sandcastle system user ──────────────────────────────────────────
+
+CREATED_GROUP=false
+CREATED_USER=false
+
+if getent group "$SANDCASTLE_GROUP" &>/dev/null; then
+  ok "Group '${SANDCASTLE_GROUP}' already exists"
+else
+  groupadd --system --gid "$SANDCASTLE_GID" "$SANDCASTLE_GROUP"
+  CREATED_GROUP=true
+  ok "Created group '${SANDCASTLE_GROUP}' (GID ${SANDCASTLE_GID})"
+fi
+
+if id "$SANDCASTLE_USER" &>/dev/null; then
+  ok "User '${SANDCASTLE_USER}' already exists"
+else
+  useradd --system --uid "$SANDCASTLE_UID" --gid "$SANDCASTLE_GID" --home-dir "$SANDCASTLE_HOME" --shell /bin/bash "$SANDCASTLE_USER"
+  CREATED_USER=true
+  ok "Created user '${SANDCASTLE_USER}' (UID ${SANDCASTLE_UID})"
+fi
+
+# ─── Interactive prompts for values not set via config ────────────────────────
+
+ask SANDCASTLE_HOME    "Sandcastle home directory"
+ask SANDCASTLE_USER    "System user"
+SANDCASTLE_GROUP="${SANDCASTLE_GROUP:-$SANDCASTLE_USER}"
+ask SANDCASTLE_GROUP   "System group"
+ask SANDCASTLE_UID     "User UID"
+ask SANDCASTLE_GID     "Group GID"
+ask APP_IMAGE          "App image"
+ask SANDBOX_IMAGE      "Sandbox image"
+ask SANDCASTLE_HTTP_PORT  "HTTP port"
+ask SANDCASTLE_HTTPS_PORT "HTTPS port"
+
+mkdir -p "$SANDCASTLE_HOME"/etc
+mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes}
+mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
+chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
+# Data dirs owned by container uid (rails:1000), not host sandcastle user
+chown -R 1000:1000 "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
+usermod -d "$SANDCASTLE_HOME" "$SANDCASTLE_USER" 2>/dev/null || true
+
+# ─── Detect fresh install vs upgrade ─────────────────────────────────────────
+
+FRESH_INSTALL=false
+if [ ! -f "$SANDCASTLE_HOME/.env" ]; then
+  FRESH_INSTALL=true
+fi
+
+# ─── Configuration ───────────────────────────────────────────────────────────
+
+if [ "$FRESH_INSTALL" = true ]; then
+  echo ""
+  echo -e "${BLUE}═══ Sandcastle Setup ═══${NC}"
+  echo ""
+
+  # Domain or IP — skip prompt if SANDCASTLE_HOST is already set
+  if [ -z "${SANDCASTLE_HOST:-}" ]; then
+    read -rp "Domain name (leave empty for IP-only mode): " DOMAIN
+    if [ -n "$DOMAIN" ]; then
+      TLS_MODE="letsencrypt"
+      if [ -z "${ACME_EMAIL:-}" ]; then
+        read -rp "Email for Let's Encrypt: " ACME_EMAIL
+      fi
+      if [ -z "$ACME_EMAIL" ]; then
+        error "Email is required for Let's Encrypt certificates"
+        exit 1
+      fi
+      SANDCASTLE_HOST="$DOMAIN"
+    else
+      TLS_MODE="selfsigned"
+      # Auto-detect IPv4 address (prefer local, fall back to public)
+      PUBLIC_IP=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.' | head -1)
+      PUBLIC_IP="${PUBLIC_IP:-$(curl -4fsSL --max-time 5 https://ifconfig.me 2>/dev/null)}"
+      PUBLIC_IP="${PUBLIC_IP:-$(curl -4fsSL --max-time 5 https://api.ipify.org 2>/dev/null)}"
+      read -rp "Server IP [$PUBLIC_IP]: " INPUT_IP
+      SANDCASTLE_HOST="${INPUT_IP:-$PUBLIC_IP}"
+      ACME_EMAIL=""
+    fi
+  else
+    # Host set via config — derive TLS mode
+    TLS_MODE="${SANDCASTLE_TLS_MODE:-selfsigned}"
+    ACME_EMAIL="${ACME_EMAIL:-}"
+  fi
+
+  # Admin account — skip prompts if already set via config
+  if [ -z "${SANDCASTLE_ADMIN_EMAIL:-}" ]; then
+    echo ""
+    read -rp "Admin email: " SANDCASTLE_ADMIN_EMAIL
+    if [ -z "$SANDCASTLE_ADMIN_EMAIL" ]; then
+      error "Admin email is required"
+      exit 1
+    fi
+  fi
+  ADMIN_EMAIL="$SANDCASTLE_ADMIN_EMAIL"
+
+  if [ -z "${SANDCASTLE_ADMIN_PASSWORD:-}" ] && [ -n "${SANDCASTLE_ADMIN_PASSWORD_FILE:-}" ]; then
+    if [ ! -f "$SANDCASTLE_ADMIN_PASSWORD_FILE" ]; then
+      error "Password file not found: $SANDCASTLE_ADMIN_PASSWORD_FILE"
+      exit 1
+    fi
+    SANDCASTLE_ADMIN_PASSWORD="$(cat "$SANDCASTLE_ADMIN_PASSWORD_FILE")"
+  fi
+  if [ -z "${SANDCASTLE_ADMIN_PASSWORD:-}" ]; then
+    while true; do
+      read -rsp "Admin password: " SANDCASTLE_ADMIN_PASSWORD
+      echo ""
+      read -rsp "Confirm password: " ADMIN_PASSWORD_CONFIRM
+      echo ""
+      if [ "$SANDCASTLE_ADMIN_PASSWORD" = "$ADMIN_PASSWORD_CONFIRM" ]; then
+        break
+      fi
+      warn "Passwords do not match — try again"
+    done
+  fi
+  ADMIN_PASSWORD="$SANDCASTLE_ADMIN_PASSWORD"
+  if [ ${#ADMIN_PASSWORD} -lt 6 ]; then
+    error "Password must be at least 6 characters"
+    exit 1
+  fi
+
+  # SSH public key — skip prompt if already set via config
+  if [ -z "${SANDCASTLE_ADMIN_SSH_KEY:-}" ]; then
+    echo ""
+    DEFAULT_KEY=""
+    for keyfile in "$HOME/.ssh/id_ed25519.pub" "$HOME/.ssh/id_rsa.pub" "$HOME/.ssh/id_ecdsa.pub"; do
+      if [ -f "$keyfile" ]; then
+        DEFAULT_KEY=$(cat "$keyfile")
+        break
+      fi
+    done
+    if [ -n "$DEFAULT_KEY" ]; then
+      SHORT_KEY="${DEFAULT_KEY:0:40}..."
+      echo -e "Found SSH key: ${YELLOW}${SHORT_KEY}${NC}"
+      read -rp "Use this key? [Y/n]: " USE_DEFAULT
+      if [ -z "$USE_DEFAULT" ] || [[ "$USE_DEFAULT" =~ ^[Yy] ]]; then
+        SANDCASTLE_ADMIN_SSH_KEY="$DEFAULT_KEY"
+      else
+        read -rp "Paste your SSH public key: " SANDCASTLE_ADMIN_SSH_KEY
+      fi
+    else
+      read -rp "SSH public key (e.g. ssh-ed25519 AAAA...): " SANDCASTLE_ADMIN_SSH_KEY
+    fi
+  fi
+  ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-}"
+  if [ -z "$ADMIN_SSH_KEY" ]; then
+    warn "No SSH key provided — you can add one later in the web UI"
+  fi
+
+  # Docker network subnet — skip prompt if already set via config
+  if [ -z "${SANDCASTLE_SUBNET:-}" ]; then
+    echo ""
+    SUGGESTED_SUBNET=$(find_free_subnet)
+    read -rp "Docker network subnet [$SUGGESTED_SUBNET]: " INPUT_SUBNET
+    SANDCASTLE_SUBNET="${INPUT_SUBNET:-$SUGGESTED_SUBNET}"
+  fi
+
+  # Generate secrets
+  SECRET_KEY_BASE=$(openssl rand -hex 64)
+
+  # Detect Docker socket GID
+  DOCKER_GID=$(stat -c '%g' "$DOCKER_SOCK" 2>/dev/null || echo "988")
+
+  # Write .env
+  cat > "$SANDCASTLE_HOME/.env" <<EOF
+# Sandcastle configuration — generated $(date -Iseconds)
+SANDCASTLE_HOME="$SANDCASTLE_HOME"
+SANDCASTLE_HOST="$SANDCASTLE_HOST"
+SANDCASTLE_TLS_MODE="$TLS_MODE"
+SECRET_KEY_BASE="$SECRET_KEY_BASE"
+SANDCASTLE_ADMIN_EMAIL="$ADMIN_EMAIL"
+SANDCASTLE_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+SANDCASTLE_SUBNET="$SANDCASTLE_SUBNET"
+SANDCASTLE_ADMIN_SSH_KEY="$ADMIN_SSH_KEY"
+DOCKER_GID="$DOCKER_GID"
+DOCKER_SOCK="$DOCKER_SOCK"
+ACME_EMAIL="$ACME_EMAIL"
+EOF
+  chmod 600 "$SANDCASTLE_HOME/.env"
+  ok "Configuration written to $SANDCASTLE_HOME/.env"
+else
+  info "Existing install detected — loading $SANDCASTLE_HOME/.env"
+fi
+
+# shellcheck source=/dev/null
+source "$SANDCASTLE_HOME/.env"
+
+# Defaults for vars that may be missing in older .env files
+if [ -z "${SANDCASTLE_SUBNET:-}" ]; then
+  SUGGESTED_SUBNET=$(find_free_subnet)
+  if config_has SANDCASTLE_SUBNET; then
+    SANDCASTLE_SUBNET="$SUGGESTED_SUBNET"
+  else
+    read -rp "Docker network subnet [$SUGGESTED_SUBNET]: " INPUT_SUBNET
+    SANDCASTLE_SUBNET="${INPUT_SUBNET:-$SUGGESTED_SUBNET}"
+  fi
+  echo "SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET" >> "$SANDCASTLE_HOME/.env"
+fi
+
+if [ -z "${DOCKER_SOCK:-}" ]; then
+  echo "DOCKER_SOCK=$DOCKER_SOCK" >> "$SANDCASTLE_HOME/.env"
+fi
+
+# ─── Write installed env (for reference / re-install) ────────────────────────
+
+cat > "$SANDCASTLE_HOME/etc/sandcastle.env" <<EOF
+# Sandcastle installed configuration — generated $(date -Iseconds)
+# Use with: installer.sh --config=$SANDCASTLE_HOME/etc/sandcastle.env
+
+SANDCASTLE_HOME="$SANDCASTLE_HOME"
+SANDCASTLE_HOST="${SANDCASTLE_HOST}"
+SANDCASTLE_HTTP_PORT="${SANDCASTLE_HTTP_PORT}"
+SANDCASTLE_HTTPS_PORT="${SANDCASTLE_HTTPS_PORT}"
+SANDCASTLE_TLS_MODE="${SANDCASTLE_TLS_MODE:-$TLS_MODE}"
+SANDCASTLE_SUBNET="${SANDCASTLE_SUBNET}"
+SANDCASTLE_ADMIN_EMAIL="${SANDCASTLE_ADMIN_EMAIL:-$ADMIN_EMAIL}"
+SANDCASTLE_ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-$ADMIN_SSH_KEY}"
+ACME_EMAIL="${ACME_EMAIL}"
+
+SANDCASTLE_USER="${SANDCASTLE_USER}"
+SANDCASTLE_GROUP="${SANDCASTLE_GROUP}"
+SANDCASTLE_UID="${SANDCASTLE_UID}"
+SANDCASTLE_GID="${SANDCASTLE_GID}"
+
+APP_IMAGE="${APP_IMAGE}"
+SANDBOX_IMAGE="${SANDBOX_IMAGE}"
+
+DOCKYARD_ROOT="${DOCKYARD_ROOT}"
+DOCKYARD_DOCKER_PREFIX="${DOCKYARD_DOCKER_PREFIX}"
+DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR}"
+DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR}"
+DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE}"
+DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE}"
+
+DOCKER_SOCK="${DOCKER_SOCK}"
+DOCKER_GID="${DOCKER_GID}"
+
+CREATED_USER="${CREATED_USER}"
+CREATED_GROUP="${CREATED_GROUP}"
+EOF
+chmod 600 "$SANDCASTLE_HOME/etc/sandcastle.env"
+ok "Installed env written to $SANDCASTLE_HOME/etc/sandcastle.env"
+
+# ─── Traefik config ──────────────────────────────────────────────────────────
+
+TRAEFIK_DIR="$SANDCASTLE_HOME/data/traefik"
+
+if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
+  # Generate self-signed cert if missing
+  if [ ! -f "$TRAEFIK_DIR/certs/cert.pem" ]; then
+    info "Generating self-signed certificate..."
+    openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+      -keyout "$TRAEFIK_DIR/certs/key.pem" -out "$TRAEFIK_DIR/certs/cert.pem" \
+      -subj "/CN=$SANDCASTLE_HOST" \
+      -addext "subjectAltName=IP:$SANDCASTLE_HOST" 2>/dev/null
+    ok "Self-signed certificate generated"
+  fi
+
+  # Traefik static config (self-signed)
+  cat > "$TRAEFIK_DIR/traefik.yml" <<'EOF'
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+providers:
+  file:
+    directory: /data/dynamic
+    watch: true
+
+tls:
+  certificates:
+    - certFile: /data/certs/cert.pem
+      keyFile: /data/certs/key.pem
+
+log:
+  level: INFO
+
+api:
+  dashboard: false
+EOF
+
+else
+  # Traefik static config (Let's Encrypt)
+  cat > "$TRAEFIK_DIR/traefik.yml" <<EOF
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "${ACME_EMAIL}"
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  file:
+    directory: /data/dynamic
+    watch: true
+
+log:
+  level: INFO
+
+api:
+  dashboard: false
+EOF
+fi
+
+# ACME storage
+if [ ! -f "$TRAEFIK_DIR/acme.json" ]; then
+  touch "$TRAEFIK_DIR/acme.json"
+  chmod 600 "$TRAEFIK_DIR/acme.json"
+fi
+
+# Rails route config for Traefik
+if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
+  cat > "$TRAEFIK_DIR/dynamic/rails.yml" <<EOF
+http:
+  routers:
+    rails:
+      rule: "HostRegexp(\`.+\`)"
+      service: rails
+      entryPoints:
+        - websecure
+      tls: {}
+  services:
+    rails:
+      loadBalancer:
+        servers:
+          - url: "http://sandcastle-web:80"
+EOF
+else
+  cat > "$TRAEFIK_DIR/dynamic/rails.yml" <<EOF
+http:
+  routers:
+    rails:
+      rule: "Host(\`${SANDCASTLE_HOST}\`)"
+      service: rails
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+  services:
+    rails:
+      loadBalancer:
+        servers:
+          - url: "http://sandcastle-web:80"
+EOF
+fi
+
+# Ensure dynamic config dir is writable by the app container (uid 1000 = rails inside container)
+chown -R 1000:1000 "$SANDCASTLE_HOME"/data/traefik/dynamic
+
+# ─── Docker network ──────────────────────────────────────────────────────────
+
+if $DOCKER network inspect sandcastle-web &>/dev/null; then
+  ok "sandcastle-web network exists"
+else
+  $DOCKER network create --subnet "$SANDCASTLE_SUBNET" sandcastle-web >/dev/null
+  ok "sandcastle-web network created ($SANDCASTLE_SUBNET)"
+fi
+
+# ─── Pull images ─────────────────────────────────────────────────────────────
+
+info "Pulling images..."
+$DOCKER pull "$APP_IMAGE" &
+$DOCKER pull "$SANDBOX_IMAGE" &
+$DOCKER pull traefik:v3.3 &
+wait
+ok "Images pulled"
+
+# ─── Write docker-compose.yml ────────────────────────────────────────────────
+
+DATA_MOUNT="$SANDCASTLE_HOME/data"
+
+cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
+services:
+  traefik:
+    image: traefik:v3.3
+    runtime: runc
+    restart: unless-stopped
+    ports:
+      - "${SANDCASTLE_HTTP_PORT}:80"
+      - "${SANDCASTLE_HTTPS_PORT}:443"
+    volumes:
+      - ${DATA_MOUNT}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${DATA_MOUNT}/traefik/dynamic:/data/dynamic:ro
+      - ${DATA_MOUNT}/traefik/acme.json:/data/acme.json
+      - ${DATA_MOUNT}/traefik/certs:/data/certs:ro
+    networks:
+      - sandcastle-web
+
+  web:
+    image: ${APP_IMAGE}
+    runtime: runc
+    container_name: sandcastle-web
+    group_add:
+      - "\${DOCKER_GID:-988}"
+    volumes:
+      - ${DOCKER_SOCK}:/var/run/docker.sock
+      - sandcastle-db:/rails/db
+      - sandcastle-storage:/rails/storage
+      - ${DATA_MOUNT}:/data
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
+      SANDCASTLE_HOST: \${SANDCASTLE_HOST}
+      SANDCASTLE_DATA_DIR: /data
+      SANDCASTLE_TLS_MODE: \${SANDCASTLE_TLS_MODE:-letsencrypt}
+      SANDCASTLE_SUBNET: \${SANDCASTLE_SUBNET:-172.30.99.0/24}
+      SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
+      SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
+      SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - sandcastle-web
+
+  migrate:
+    image: ${APP_IMAGE}
+    runtime: runc
+    command: ["./bin/rails", "db:prepare"]
+    volumes:
+      - sandcastle-db:/rails/db
+      - sandcastle-storage:/rails/storage
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
+      SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
+      SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
+      SANDCASTLE_ADMIN_SSH_KEY: \${SANDCASTLE_ADMIN_SSH_KEY:-}
+
+volumes:
+  sandcastle-db:
+  sandcastle-storage:
+
+networks:
+  sandcastle-web:
+    external: true
+COMPOSE
+
+ok "docker-compose.yml written"
+
+# ─── Start services ──────────────────────────────────────────────────────────
+
+info "Starting Sandcastle..."
+cd "$SANDCASTLE_HOME"
+$DOCKER compose --env-file .env up -d
+
+# ─── Seed database on fresh install ──────────────────────────────────────────
+
+if [ "$FRESH_INSTALL" = true ]; then
+  info "Waiting for app to be ready..."
+  for i in $(seq 1 30); do
+    if $DOCKER compose --env-file .env exec -T web curl -sf http://localhost/up >/dev/null 2>&1; then
+      break
+    fi
+    sleep 2
+  done
+
+  info "Seeding database..."
+  $DOCKER compose --env-file .env exec -T \
+    -e SANDCASTLE_ADMIN_EMAIL="$ADMIN_EMAIL" \
+    -e SANDCASTLE_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+    -e SANDCASTLE_ADMIN_SSH_KEY="${ADMIN_SSH_KEY:-}" \
+    web ./bin/rails db:seed
+
+fi
+
+# ─── Done ─────────────────────────────────────────────────────────────────────
+
+echo ""
+echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
+echo -e "${GREEN}  Sandcastle is running!${NC}"
+echo -e "${GREEN}═══════════════════════════════════════════════════${NC}"
+echo ""
+
+if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
+  echo -e "  Dashboard:  ${BLUE}https://${SANDCASTLE_HOST}${NC} (self-signed cert)"
+else
+  echo -e "  Dashboard:  ${BLUE}https://${SANDCASTLE_HOST}${NC}"
+fi
+
+if [ "$FRESH_INSTALL" = true ]; then
+  echo ""
+  echo -e "  Admin login:"
+  echo -e "    Email:     ${YELLOW}${ADMIN_EMAIL}${NC}"
+  echo ""
+  echo -e "  Tailscale:   ${BLUE}https://${SANDCASTLE_HOST}/tailscale${NC}"
+fi
+
+echo ""
+echo -e "  Home:       $SANDCASTLE_HOME"
+echo -e "  Config:     $SANDCASTLE_HOME/etc/sandcastle.env"
+echo -e "  Docker:     $DOCKER"
+echo -e "  Logs:       $DOCKER compose -f $SANDCASTLE_HOME/docker-compose.yml logs -f"
+echo ""
+echo -e "  To upgrade: re-run this installer"
+echo ""
