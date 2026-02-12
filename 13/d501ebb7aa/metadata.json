@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "13d501ebb7aa",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".github/workflows/release.yml",
+    "CLAUDE.md",
+    "mise.toml",
+    "vendor/sandcastle-cli/.goreleaser.yaml",
+    "vendor/sandcastle-cli/cmd/root.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/13/d501ebb7aa/0/metadata.json",
+      "transcript": "/13/d501ebb7aa/0/full.jsonl",
+      "context": "/13/d501ebb7aa/0/context.md",
+      "content_hash": "/13/d501ebb7aa/0/content_hash.txt",
+      "prompt": "/13/d501ebb7aa/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 244,
+    "cache_creation_tokens": 48441,
+    "cache_read_tokens": 2162371,
+    "output_tokens": 4600,
+    "api_call_count": 47
+  }
+}

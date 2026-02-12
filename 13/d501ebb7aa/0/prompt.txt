@@ -1,0 +1,13 @@
+add sandcastle go cli (vendor/sandcastle-cli) to my homebrew-tap repo so i can install it using brew install thieso2/tap/sandcastle
+
+---
+
+add -v --version to the cli to print the version (currently v0.1.14 - should be auto-generated)
+
+---
+
+hwo is the version updated? my suggestion would be to create a mise task release or release:patch
+
+---
+
+commit
