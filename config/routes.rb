@@ -46,7 +46,7 @@ Rails.application.routes.draw do
         post :tailscale_connect
         delete :tailscale_disconnect
       end
-      resources :routes, only: [ :index, :create, :destroy ], param: :domain
+      resources :routes, only: [ :index, :create, :destroy ], param: :domain, constraints: { domain: %r{[^/]+} }
     end
     resources :snapshots, only: [ :index, :destroy ], param: :name
     resources :users
