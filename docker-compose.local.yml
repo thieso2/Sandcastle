@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql
+    environment:
+      POSTGRES_USER: sandcastle
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sandcastle}
+      POSTGRES_DB: sandcastle_production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sandcastle -d sandcastle_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  init-data:
+    image: busybox
+    volumes:
+      - sandcastle-data:/data
+    command: sh -c "mkdir -p /data/users /data/sandboxes && chown -R 220568:220568 /data"
+
+  web:
+    image: sandcastle:local
+    build:
+      context: .
+      args:
+        BUILD_GIT_SHA: "${BUILD_GIT_SHA}"
+        BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY}"
+        BUILD_DATE: "${BUILD_DATE}"
+    container_name: sandcastle-web
+    group_add:
+      - "${DOCKER_GID:-0}"
+    ports:
+      - "${PORT:-3000}:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - sandcastle-data:/data
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      SANDCASTLE_HOST: ${SANDCASTLE_HOST:-localhost}
+      SANDCASTLE_DATA_DIR: /data
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+    restart: unless-stopped
+    depends_on:
+      init-data:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    image: sandcastle:local
+    command: ["./bin/rails", "db:prepare"]
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  sandcastle-data:

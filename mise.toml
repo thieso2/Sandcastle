@@ -1,3 +1,41 @@
+[tasks.dev]
+description = "Create/migrate DB if needed, then start the dev server"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+bin/rails db:prepare
+bin/dev
+"""
+
+[tasks."deploy:local"]
+description = "Build image and deploy locally via docker-compose.local.yml"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+export BUILD_GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+export BUILD_GIT_DIRTY=$([ -z "$(git status --porcelain 2>/dev/null)" ] && echo "" || echo "-dirty")
+export BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+echo "Building sandcastle:local (${BUILD_GIT_SHA}${BUILD_GIT_DIRTY})..."
+docker compose -f docker-compose.local.yml build
+
+echo "Starting services..."
+docker compose -f docker-compose.local.yml up -d
+
+echo ""
+echo "Sandcastle running at http://localhost:${PORT:-3000}"
+echo "Logs: docker compose -f docker-compose.local.yml logs -f"
+"""
+
+[tasks."deploy:local:down"]
+description = "Stop local docker-compose deployment"
+run = "docker compose -f docker-compose.local.yml down"
+
+[tasks."deploy:local:logs"]
+description = "Tail logs from local docker-compose deployment"
+run = "docker compose -f docker-compose.local.yml logs -f"
+
 [tasks."release"]
 alias = "release:patch"
 description = "Bump patch version, tag, push, and wait for CI to build the release"
