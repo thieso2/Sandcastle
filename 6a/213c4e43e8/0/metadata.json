@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "6a213c4e43e8",
+  "session_id": "056b673a-1152-473c-94f9-46b813f79bbf",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T18:54:19.584284Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/controllers/admin/base_controller.rb",
+    "app/controllers/admin/dashboard_controller.rb",
+    "app/controllers/admin/sandboxes_controller.rb",
+    "app/controllers/admin/settings_controller.rb",
+    "app/controllers/admin/users_controller.rb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "5383ef76-0913-44a9-812d-b4310a6ebadb",
+  "checkpoint_transcript_start": 443,
+  "transcript_lines_at_start": 443,
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 5821,
+    "cache_read_tokens": 711089,
+    "output_tokens": 652,
+    "api_call_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T18:54:19.542877Z",
+    "agent_lines": 9,
+    "human_added": 84,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 93,
+    "agent_percentage": 9.67741935483871
+  }
+}

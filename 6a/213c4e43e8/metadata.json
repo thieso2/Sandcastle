@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "6a213c4e43e8",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/controllers/admin/base_controller.rb",
+    "app/controllers/admin/dashboard_controller.rb",
+    "app/controllers/admin/sandboxes_controller.rb",
+    "app/controllers/admin/settings_controller.rb",
+    "app/controllers/admin/users_controller.rb"
+  ],
+  "sessions": [
+    {
+      "metadata": "/6a/213c4e43e8/0/metadata.json",
+      "transcript": "/6a/213c4e43e8/0/full.jsonl",
+      "context": "/6a/213c4e43e8/0/context.md",
+      "content_hash": "/6a/213c4e43e8/0/content_hash.txt",
+      "prompt": "/6a/213c4e43e8/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 9,
+    "cache_creation_tokens": 5821,
+    "cache_read_tokens": 711089,
+    "output_tokens": 652,
+    "api_call_count": 7
+  }
+}
