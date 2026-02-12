@@ -1,5 +1,5 @@
 module Admin
-  class DashboardController < ApplicationController
+  class DashboardController < BaseController
     def index
       authorize :user, :index?
       @sandboxes = Sandbox.active.includes(:user, :routes).order(:name)

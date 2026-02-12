@@ -1,5 +1,5 @@
 module Admin
-  class SandboxesController < ApplicationController
+  class SandboxesController < BaseController
     before_action :set_sandbox
 
     def destroy
