@@ -928,6 +928,16 @@ cmd_update() {
   # shellcheck source=/dev/null
   source "$SANDCASTLE_HOME/.env"
 
+  # Backfill vars that may be missing in older .env files
+  grep -q '^GITHUB_CLIENT_ID=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
+  grep -q '^GITHUB_CLIENT_SECRET=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}" >> "$SANDCASTLE_HOME/.env"
+  grep -q '^GOOGLE_CLIENT_ID=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
+  grep -q '^GOOGLE_CLIENT_SECRET=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}" >> "$SANDCASTLE_HOME/.env"
+
   echo ""
   echo -e "${BLUE}═══ Sandcastle Update ═══${NC}"
   echo ""
