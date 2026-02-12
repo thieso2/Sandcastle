@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/sandcastle/cli/api"
@@ -143,6 +144,10 @@ func sshExec(host string, port int, user string, remoteCmd string) error {
 		return fmt.Errorf("ssh not found: %w", err)
 	}
 
+	if os.Getenv("VERBOSE") == "1" {
+		fmt.Fprintf(os.Stderr, "→ ssh %s\n", shellJoin(sshArgs))
+	}
+
 	proc := &os.ProcAttr{
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
 	}
@@ -159,4 +164,16 @@ func sshExec(host string, port int, user string, remoteCmd string) error {
 		os.Exit(state.ExitCode())
 	}
 	return nil
+}
+
+func shellJoin(args []string) string {
+	quoted := make([]string, len(args))
+	for i, a := range args {
+		if strings.ContainsAny(a, " \t\n\"'\\") {
+			quoted[i] = fmt.Sprintf("%q", a)
+		} else {
+			quoted[i] = a
+		}
+	}
+	return strings.Join(quoted, " ")
 }
