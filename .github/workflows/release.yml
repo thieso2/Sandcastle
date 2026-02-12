@@ -77,6 +77,7 @@ jobs:
           cache-to: type=gha,scope=app-${{ matrix.platform }},mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/thieso2/sandcastle,push-by-digest=true,name-canonical=true,push=true
           build-args: |
+            BUILD_VERSION=${{ github.ref_name }}
             BUILD_GIT_SHA=${{ github.sha }}
             BUILD_GIT_DIRTY=
             BUILD_DATE=${{ github.event.head_commit.timestamp }}

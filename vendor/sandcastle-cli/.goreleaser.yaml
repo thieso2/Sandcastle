@@ -14,7 +14,7 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X github.com/sandcastle/cli/cmd.Version={{ .Version }}
+      - -s -w -X github.com/sandcastle/cli/cmd.Version={{ .Version }} -X github.com/sandcastle/cli/cmd.Commit={{ .ShortCommit }} -X github.com/sandcastle/cli/cmd.Date={{ .CommitDate }}
 
 archives:
   - formats: [tar.gz]

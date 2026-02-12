@@ -26,6 +26,7 @@ services:
     build:
       context: .
       args:
+        BUILD_VERSION: "${BUILD_VERSION}"
         BUILD_GIT_SHA: "${BUILD_GIT_SHA}"
         BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY}"
         BUILD_DATE: "${BUILD_DATE}"

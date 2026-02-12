@@ -13,11 +13,12 @@ run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
+export BUILD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
 export BUILD_GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 export BUILD_GIT_DIRTY=$([ -z "$(git status --porcelain 2>/dev/null)" ] && echo "" || echo "-dirty")
 export BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-echo "Building sandcastle:local (${BUILD_GIT_SHA}${BUILD_GIT_DIRTY})..."
+echo "Building sandcastle:local ${BUILD_VERSION} (${BUILD_GIT_SHA}${BUILD_GIT_DIRTY})..."
 docker compose -f docker-compose.local.yml build
 
 echo "Starting services..."

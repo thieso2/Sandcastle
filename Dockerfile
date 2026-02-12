@@ -82,10 +82,12 @@ COPY --chown=sandcastle:sandcastle --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}
 COPY --chown=sandcastle:sandcastle --from=build /rails /rails
 
 # Build metadata for version footer
+ARG BUILD_VERSION
 ARG BUILD_GIT_SHA
 ARG BUILD_GIT_DIRTY
 ARG BUILD_DATE
-ENV BUILD_GIT_SHA=${BUILD_GIT_SHA} \
+ENV BUILD_VERSION=${BUILD_VERSION} \
+    BUILD_GIT_SHA=${BUILD_GIT_SHA} \
     BUILD_GIT_DIRTY=${BUILD_GIT_DIRTY} \
     BUILD_DATE=${BUILD_DATE}
 

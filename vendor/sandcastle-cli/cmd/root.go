@@ -7,7 +7,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Version = "dev"
+var (
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+)
 
 var rootCmd = &cobra.Command{
 	Use:           "sandcastle",
@@ -33,6 +37,10 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("sandcastle", Version)
+		if Commit != "none" && Date != "unknown" {
+			fmt.Printf("sandcastle %s (%s) built %s\n", Version, Commit, Date)
+		} else {
+			fmt.Println("sandcastle", Version)
+		}
 	},
 }
