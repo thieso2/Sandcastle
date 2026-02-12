@@ -37,6 +37,7 @@ SANDCASTLE_GID="220568"
 # Set all three to skip interactive prompts during install
 # SANDCASTLE_ADMIN_EMAIL="admin@example.com"
 # SANDCASTLE_ADMIN_PASSWORD="changeme"
+# SANDCASTLE_ADMIN_PASSWORD_FILE="/path/to/password-file"  # alternative to inline password
 # SANDCASTLE_ADMIN_SSH_KEY="ssh-ed25519 AAAA..."
 
 # ─── Docker runtime ─────────────────────────────────────────────────────────
@@ -52,6 +53,6 @@ SYSBOX_VERSION="0.6.6"
 DOCKYARD_ROOT="/sandcastle"
 DOCKYARD_DOCKER_PREFIX="sc_"
 DOCKYARD_BRIDGE_CIDR="172.42.89.1/24"
-DOCKYARD_FIXED_CIDR="172.89.91.0/24"
+DOCKYARD_FIXED_CIDR="172.42.89.0/24"
 DOCKYARD_POOL_BASE="172.89.0.0/16"
 DOCKYARD_POOL_SIZE="24"

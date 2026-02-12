@@ -48,7 +48,7 @@ SYSBOX_VERSION="${SYSBOX_VERSION:-0.6.6}"
 DOCKYARD_ROOT="${DOCKYARD_ROOT:-/sandcastle}"
 DOCKYARD_DOCKER_PREFIX="${DOCKYARD_DOCKER_PREFIX:-sc_}"
 DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR:-172.42.89.1/24}"
-DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-172.89.91.0/24}"
+DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-172.42.89.0/24}"
 DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-172.89.0.0/16}"
 DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
 
@@ -402,7 +402,8 @@ fi
 mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes}
 mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
 chown "${SANDCASTLE_USER}:${SANDCASTLE_USER}" "$SANDCASTLE_HOME"
-chown -R "${SANDCASTLE_USER}:${SANDCASTLE_USER}" "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
+# Data dirs owned by container uid (rails:1000), not host sandcastle user
+chown -R 1000:1000 "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
 usermod -d "$SANDCASTLE_HOME" "$SANDCASTLE_USER" 2>/dev/null || true
 
 # ─── Detect fresh install vs upgrade ─────────────────────────────────────────
@@ -459,6 +460,13 @@ if [ "$FRESH_INSTALL" = true ]; then
   fi
   ADMIN_EMAIL="$SANDCASTLE_ADMIN_EMAIL"
 
+  if [ -z "${SANDCASTLE_ADMIN_PASSWORD:-}" ] && [ -n "${SANDCASTLE_ADMIN_PASSWORD_FILE:-}" ]; then
+    if [ ! -f "$SANDCASTLE_ADMIN_PASSWORD_FILE" ]; then
+      error "Password file not found: $SANDCASTLE_ADMIN_PASSWORD_FILE"
+      exit 1
+    fi
+    SANDCASTLE_ADMIN_PASSWORD="$(cat "$SANDCASTLE_ADMIN_PASSWORD_FILE")"
+  fi
   if [ -z "${SANDCASTLE_ADMIN_PASSWORD:-}" ]; then
     while true; do
       read -rsp "Admin password: " SANDCASTLE_ADMIN_PASSWORD
@@ -718,8 +726,8 @@ http:
 EOF
 fi
 
-# Ensure dynamic config dir is writable by the app container
-chown -R "${SANDCASTLE_USER}:${SANDCASTLE_USER}" "$SANDCASTLE_HOME"/data/traefik/dynamic
+# Ensure dynamic config dir is writable by the app container (uid 1000 = rails inside container)
+chown -R 1000:1000 "$SANDCASTLE_HOME"/data/traefik/dynamic
 
 # ─── Docker network ──────────────────────────────────────────────────────────
 
