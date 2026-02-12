@@ -34,7 +34,7 @@ notarize:
 
 release:
   extra_files:
-    - glob: ../../installer.sh
+    - glob: "{{ .Env.GITHUB_WORKSPACE }}/installer.sh"
 
 changelog:
   sort: asc
