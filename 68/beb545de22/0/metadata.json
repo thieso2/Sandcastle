@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "68beb545de22",
+  "session_id": "e8d3a73e-71d2-4387-9016-57ac1daeea00",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T16:12:24.808578Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "config/routes.rb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "b4d3ae21-9332-4197-a7b3-5a3b7cc2bb60",
+  "token_usage": {
+    "input_tokens": 14,
+    "cache_creation_tokens": 30356,
+    "cache_read_tokens": 390717,
+    "output_tokens": 652,
+    "api_call_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T16:12:24.787799Z",
+    "agent_lines": 1,
+    "human_added": 84,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 85,
+    "agent_percentage": 1.1764705882352942
+  }
+}
