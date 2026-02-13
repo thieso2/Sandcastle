@@ -1,0 +1,12 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+create md file SANDMAN.md (add to gitigjnore) - contains infos about our demo demo.sandcastle.rocks system:
+ssh sandman
+docker command is in /sandcastle/docker-runtime/bin/docker
+$SANDCASTLE_HOME is /sandcastle
+you have sudo
+

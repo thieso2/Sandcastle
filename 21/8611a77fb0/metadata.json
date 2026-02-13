@@ -2,9 +2,11 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "218611a77fb0",
   "strategy": "manual-commit",
-  "branch": "claude/issue-13-20260213-1425",
-  "checkpoints_count": 2,
+  "branch": "main",
+  "checkpoints_count": 3,
   "files_touched": [
+    ".gitignore",
+    "SANDMAN.md",
     "app/views/sandboxes/new.html.erb",
     "config/deploy.yml",
     "installer.sh"
@@ -23,13 +25,20 @@
       "context": "/21/8611a77fb0/1/context.md",
       "content_hash": "/21/8611a77fb0/1/content_hash.txt",
       "prompt": "/21/8611a77fb0/1/prompt.txt"
+    },
+    {
+      "metadata": "/21/8611a77fb0/2/metadata.json",
+      "transcript": "/21/8611a77fb0/2/full.jsonl",
+      "context": "/21/8611a77fb0/2/context.md",
+      "content_hash": "/21/8611a77fb0/2/content_hash.txt",
+      "prompt": "/21/8611a77fb0/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 118,
-    "cache_creation_tokens": 8272,
-    "cache_read_tokens": 1270622,
-    "output_tokens": 864,
-    "api_call_count": 14
+    "input_tokens": 144,
+    "cache_creation_tokens": 32566,
+    "cache_read_tokens": 1358487,
+    "output_tokens": 1072,
+    "api_call_count": 17
   }
 }

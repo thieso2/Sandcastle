@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "218611a77fb0",
+  "session_id": "3f395c1e-7882-4f2c-a7b8-5d6c9813f2da",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-13T15:40:15.652531Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".gitignore",
+    "SANDMAN.md"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 24294,
+    "cache_read_tokens": 87865,
+    "output_tokens": 208,
+    "api_call_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-13T15:40:15.64323Z",
+    "agent_lines": 0,
+    "human_added": 81,
+    "human_modified": 3,
+    "human_removed": 0,
+    "total_committed": 84,
+    "agent_percentage": 0
+  }
+}
