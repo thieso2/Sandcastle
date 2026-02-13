@@ -3,7 +3,7 @@
   "checkpoint_id": "456005c768b3",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 1,
   "files_touched": [
     "images/sandbox/Dockerfile",
     "images/sandbox/gitconfig",
@@ -33,10 +33,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 56,
-    "cache_creation_tokens": 68103,
-    "cache_read_tokens": 2899869,
-    "output_tokens": 5149,
-    "api_call_count": 48
+    "input_tokens": 49,
+    "cache_creation_tokens": 71046,
+    "cache_read_tokens": 2525855,
+    "output_tokens": 5261,
+    "api_call_count": 44
   }
 }

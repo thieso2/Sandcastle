@@ -30,3 +30,14 @@ extract a .gitconfig from https://snyk.io/blog/10-git-aliases-for-faster-and-pro
 
 yes
 
+### Prompt 8
+
+add "Full Name" to the user-record. when starting a container add USER_EMAIL and USER_FULLNAME to the env. in the sandbox startup if those vars are set update /etc/gitconfig with
+[user]
+        name = $USER_FULLNAME
+        email = $USER_EMAIL
+
+### Prompt 9
+
+[Request interrupted by user for tool use]
+
