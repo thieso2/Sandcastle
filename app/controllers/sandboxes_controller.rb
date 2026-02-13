@@ -3,20 +3,20 @@ class SandboxesController < ApplicationController
 
   def new
     authorize Sandbox
-    @snapshots = SandboxManager.new.list_snapshots(user: current_user)
+    @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
   end
 
   def create
     authorize Sandbox
 
     image = if params[:snapshot].present?
-      "sc-snap-#{current_user.name}:#{params[:snapshot]}"
+      "sc-snap-#{Current.user.name}:#{params[:snapshot]}"
     else
       params[:image].presence || SandboxManager::DEFAULT_IMAGE
     end
 
     sandbox = SandboxManager.new.create(
-      user: current_user,
+      user: Current.user,
       name: params.require(:name),
       image: image,
       persistent: params[:persistent] == "1",
@@ -28,11 +28,11 @@ class SandboxesController < ApplicationController
 
     redirect_to root_path, notice: "Sandcastle #{sandbox.name} created successfully"
   rescue ActiveRecord::RecordInvalid => e
-    @snapshots = SandboxManager.new.list_snapshots(user: current_user)
+    @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     flash.now[:alert] = "Failed to create sandbox: #{e.record.errors.full_messages.join(', ')}"
     render :new, status: :unprocessable_entity
   rescue SandboxManager::Error => e
-    @snapshots = SandboxManager.new.list_snapshots(user: current_user)
+    @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     flash.now[:alert] = "Failed to create sandbox: #{e.message}"
     render :new, status: :unprocessable_entity
   end
