@@ -43,6 +43,15 @@ for tool in mise claude; do
 done
 chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.local"
 
+# Configure git identity system-wide if provided
+if [ -n "$USER_FULLNAME" ] || [ -n "$USER_EMAIL" ]; then
+    {
+        echo "[user]"
+        [ -n "$USER_FULLNAME" ] && echo "    name = $USER_FULLNAME"
+        [ -n "$USER_EMAIL" ] && echo "    email = $USER_EMAIL"
+    } >> /etc/gitconfig
+fi
+
 # Generate SSH host keys if missing
 ssh-keygen -A
 

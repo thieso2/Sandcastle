@@ -28,10 +28,7 @@ class SandboxManager
       "name" => sandbox.full_name,
       "Image" => image,
       "Hostname" => sandbox.full_name,
-      "Env" => [
-        "SANDCASTLE_USER=#{user.name}",
-        "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
-      ],
+      "Env" => container_env(user),
       "HostConfig" => {
         "Runtime" => container_runtime,
         "PortBindings" => {
@@ -223,10 +220,7 @@ class SandboxManager
       "name" => sandbox.full_name,
       "Image" => image_ref,
       "Hostname" => sandbox.full_name,
-      "Env" => [
-        "SANDCASTLE_USER=#{user.name}",
-        "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
-      ],
+      "Env" => container_env(user),
       "HostConfig" => {
         "Runtime" => container_runtime,
         "PortBindings" => {
@@ -275,6 +269,16 @@ class SandboxManager
   end
 
   private
+
+  def container_env(user)
+    env = [
+      "SANDCASTLE_USER=#{user.name}",
+      "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
+    ]
+    env << "USER_EMAIL=#{user.email_address}" if user.email_address.present?
+    env << "USER_FULLNAME=#{user.full_name}" if user.full_name.present?
+    env
+  end
 
   def container_runtime
     @container_runtime ||= begin

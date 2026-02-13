@@ -39,7 +39,7 @@ module Api
     end
 
     def user_params
-      params.permit(:name, :email_address, :password, :password_confirmation, :ssh_public_key, :admin, :status)
+      params.permit(:name, :full_name, :email_address, :password, :password_confirmation, :ssh_public_key, :admin, :status)
     end
 
     def user_json(user, include_sandboxes: false)

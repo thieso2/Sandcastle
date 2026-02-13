@@ -16,6 +16,12 @@
   </div>
 
   <div class="my-5">
+    <%= form.label :full_name, class: "block text-sm font-medium text-gray-700" %>
+    <%= form.text_field :full_name, placeholder: "John Doe",
+          class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>
+  </div>
+
+  <div class="my-5">
     <%= form.label :email_address, class: "block text-sm font-medium text-gray-700" %>
     <%= form.email_field :email_address, required: true, placeholder: "user@example.com",
           class: "block shadow-sm rounded-md border border-gray-400 focus:outline-blue-600 px-3 py-2 mt-2 w-full" %>

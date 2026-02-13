@@ -66,7 +66,7 @@ module Admin
     end
 
     def user_params
-      params.expect(user: [ :name, :email_address, :password, :password_confirmation, :ssh_public_key, :admin, :status ])
+      params.expect(user: [ :name, :full_name, :email_address, :password, :password_confirmation, :ssh_public_key, :admin, :status ])
     end
 
     def invite_params
