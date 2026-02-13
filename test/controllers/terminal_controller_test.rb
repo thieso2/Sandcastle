@@ -21,9 +21,24 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
-  test "auth returns 401 without session cookie" do
-    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/wetty/" }
-    assert_response :unauthorized
+  test "auth redirects to login without session cookie" do
+    get terminal_auth_path, headers: {
+      "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/wetty/",
+      "X-Forwarded-Proto" => "https",
+      "X-Forwarded-Host" => "sandbox.example.com"
+    }
+    assert_response :redirect
+    assert_redirected_to new_session_url
+  end
+
+  test "auth stores return_to URL from forwarded headers" do
+    get terminal_auth_path, headers: {
+      "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/wetty/",
+      "X-Forwarded-Proto" => "https",
+      "X-Forwarded-Host" => "sandbox.example.com"
+    }
+    assert_equal "https://sandbox.example.com/terminal/#{@alice_sandbox.id}/wetty/",
+                 session[:return_to_after_authenticating]
   end
 
   test "auth returns 200 for sandbox owner" do

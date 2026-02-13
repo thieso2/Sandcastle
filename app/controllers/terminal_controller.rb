@@ -40,14 +40,24 @@ class TerminalController < ApplicationController
 
   public
 
-  # Called by Traefik forwardAuth — returns status code only, no body/redirect
+  # Called by Traefik forwardAuth. Returns 200 to allow, or redirects to
+  # login (which Traefik passes through to the browser).
   def auth
     forwarded_uri = request.headers["X-Forwarded-Uri"] || ""
     match = forwarded_uri.match(%r{/terminal/(\d+)/wetty})
     head(:unauthorized) and return unless match
 
     session_record = find_session_by_cookie
-    head(:unauthorized) and return unless session_record
+    unless session_record
+      # Build the original terminal URL from Traefik's forwarded headers
+      # so the user returns here after logging in.
+      proto = request.headers["X-Forwarded-Proto"] || "https"
+      host  = request.headers["X-Forwarded-Host"] || request.host_with_port
+      original_url = "#{proto}://#{host}#{forwarded_uri}"
+      session[:return_to_after_authenticating] = original_url
+      redirect_to new_session_url, allow_other_host: true
+      return
+    end
 
     user = session_record.user
     sandbox = Sandbox.active.find_by(id: match[1].to_i)
