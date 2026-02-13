@@ -1,0 +1,210 @@
+Implement the following plan:
+
+# Plan: Admin Settings (OAuth + SMTP) & User Invites
+
+## Context
+
+The login page hides OAuth buttons when credentials aren't in ENV vars. Admins need a web UI to configure OAuth and SMTP without touching env files. Additionally, admins should be able to invite users via email link instead of manually setting passwords.
+
+## 1. Settings Model (singleton, single table)
+
+**Create `db/migrate/..._create_settings.rb`:**
+
+```ruby
+create_table :settings do |t|
+  # OAuth
+  t.string :github_client_id
+  t.text   :github_client_secret    # encrypted
+  t.string :google_client_id
+  t.text   :google_client_secret    # encrypted
+  # SMTP
+  t.string  :smtp_address
+  t.integer :smtp_port, default: 587
+  t.string  :smtp_username
+  t.text    :smtp_password           # encrypted
+  t.string  :smtp_authentication, default: "plain"
+  t.boolean :smtp_starttls, default: true
+  t.string  :smtp_from_address
+  t.timestamps
+end
+```
+
+**Create `app/models/setting.rb`:**
+- Singleton pattern: `Setting.instance` → `find_or_create_by(id: 1)`
+- `encrypts :github_client_secret, :google_client_secret, :smtp_password`
+- Class-level accessors with ENV fallback: `Setting.github_client_id` returns DB value or `ENV["GITHUB_CLIENT_ID"]`
+- `github_configured?` / `google_configured?` / `smtp_configured?` helpers
+- Secret setters skip blank values (leave-blank-to-keep pattern)
+- `smtp_settings` method returns hash for ActionMailer config
+
+## 2. Admin OAuth Settings Page
+
+**Create `app/controllers/admin/settings_controller.rb`:**
+- `edit` and `update` actions, Pundit-authorized
+- Singular `resource :settings, only: [:edit, :update]` in admin routes
+
+**Create `app/policies/setting_policy.rb`:**
+- `def edit? = admin?` / `def update? = admin?`
+
+**Create `app/views/admin/settings/edit.html.erb`:**
+- Two card sections: GitHub OAuth, Google OAuth
+- Client ID: text field showing current value
+- Client Secret: password field, placeholder "Secret is set" or "Enter secret"
+- Leave blank = keep current secret
+
+**Modify `config/initializers/omniauth.rb`:**
+- Use `setup:` lambda to read credentials from `Setting` at request time (not boot time)
+
+**Modify `app/views/sessions/new.html.erb`:**
+- Replace `ENV["GITHUB_CLIENT_ID"].present?` with `Setting.github_configured?`
+
+## 3. Admin SMTP Settings (same page, below OAuth)
+
+**Add to `app/views/admin/settings/edit.html.erb`:**
+- SMTP section: address, port, username, password (password field), authentication (select), STARTTLS (checkbox), from address
+- "Send Test Email" button (Turbo/fetch POST to `test_email` action)
+
+**Add `test_email` action to `Admin::SettingsController`:**
+- Route: `post "settings/test_email"` in admin namespace
+- Saves current form params first, then sends test email to current admin's address
+- Returns turbo_stream or JSON with success/failure message
+
+**Create `app/mailers/test_mailer.rb`:**
+- Simple mailer that sends "SMTP configuration works!" to the admin
+
+**Modify `config/environments/production.rb`:**
+- Configure ActionMailer to read SMTP settings from `Setting` dynamically
+- Use `ActionMailer::Base.smtp_settings` override in an initializer or before_action
+
+**Create `config/initializers/smtp.rb`:**
+- Set `ActionMailer::Base.delivery_method = :smtp`
+- Use a lazy settings loader or `Mail::SMTP` with dynamic config
+
+## 4. User Invites
+
+**Add to User model (`app/models/user.rb`):**
+- `generates_token_for :invite, expires_in: 72.hours` (follows password_reset_token pattern)
+- Invite creates user with `status: "pending_approval"`, random secure password
+
+**Create `app/mailers/invite_mailer.rb`:**
+- `invite(user)` method, sends link with invite token
+- HTML + text templates following `passwords_mailer/reset` pattern
+
+**Create `app/controllers/invites_controller.rb`:**
+- `edit` — shows "Set your password" form (finds user by invite token)
+- `update` — sets password, activates user (`status: "active"`), signs them in
+- Route: `resource :invite, only: [:edit, :update]`
+
+**Modify `app/controllers/admin/users_controller.rb`:**
+- Add `invite` action (POST) that creates user + sends invite email
+- Or: add "Send Invite" button to user form / users index
+
+**Modify admin users view:**
+- Add "Invite User" button/modal (email + name fields)
+- Show invite status on users index
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `db/migrate/..._create_settings.rb` | Settings table |
+| `app/models/setting.rb` | Singleton model with encryption + ENV fallback |
+| `app/policies/setting_policy.rb` | Pundit admin-only policy |
+| `app/controllers/admin/settings_controller.rb` | Admin CRUD for settings |
+| `app/views/admin/settings/edit.html.erb` | OAuth + SMTP settings form |
+| `config/initializers/smtp.rb` | Dynamic SMTP config from Setting |
+| `app/mailers/test_mailer.rb` | SMTP test email |
+| `app/views/test_mailer/test.html.erb` | Test email template |
+| `app/views/test_mailer/test.text.erb` | Test email text template |
+| `app/mailers/invite_mailer.rb` | Invite email |
+| `app/views/invite_mailer/invite.html.erb` | Invite email HTML |
+| `app/views/invite_mailer/invite.text.erb` | Invite email text |
+| `app/controllers/invites_controller.rb` | Accept invite flow |
+| `app/views/invites/edit.html.erb` | "Set your password" form |
+| `test/models/setting_test.rb` | Model tests |
+| `test/controllers/admin/settings_controller_test.rb` | Controller tests |
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `config/routes.rb` | Add settings + invite routes |
+| `config/initializers/omniauth.rb` | Dynamic setup lambda |
+| `app/views/sessions/new.html.erb` | Use `Setting.github_configured?` |
+| `app/models/user.rb` | Add `generates_token_for :invite` |
+| `app/controllers/admin/users_controller.rb` | Add invite action |
+| `app/views/admin/users/index.html.erb` | Add invite button |
+| `app/views/admin/dashboard/index.html.erb` | Add Settings link |
+| `app/views/shared/_navbar.html.erb` | (optional) Add Settings nav item |
+| `config/environments/production.rb` | Update mailer default_url_options |
+| `app/mailers/application_mailer.rb` | Dynamic from address |
+
+## Verification
+
+1. `bin/rails db:migrate`
+2. `bin/rails test` — all tests pass
+3. As admin: visit `/admin/settings/edit`, set GitHub OAuth credentials, save
+4. Log out → login page shows GitHub button
+5. Set SMTP settings, click "Send Test Email" → receive email
+6. From admin users page, invite a user by email
+7. Check email for invite link, click it, set password, log in
+8. As non-admin: verify `/admin/settings/edit` is forbidden
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+commit
+
+---
+
+create a sub-nav for admin (users/sandcasles/settings) make ot look good
+
+---
+
+there's no sub-van on the admin page.
+
+---
+
+sendig a test email does nothing (save the page?)
+
+---
+
+i get no mail - can i see a log of the delivery?
+
+---
+
+i have a read smtp server setup in settings. maybe it's not being used?
+
+---
+
+but will the smtp server be configured when i hit save in the admin?
+
+---
+
+no mail - add detailled logging
+
+---
+
+do a full click thru of the app
+
+---
+
+[Request interrupted by user]
+
+---
+
+use thieso@gmail.com:hamburg as credentials
+
+---
+
+[Request interrupted by user]
+
+---
+
+add butlerx/wetty i want to have a little terminal icon netxt to my sandcastle that opens wetty. in a prfect world we would create a new ssh-key inject the pub into the sandcasle (we ca see it's filesystem) and the private key into the wetty session somehow. for the websocket com add a new container to the compose if needed. explore and research
+
+---
+
+[Request interrupted by user]
