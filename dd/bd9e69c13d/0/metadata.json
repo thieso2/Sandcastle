@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "ddbd9e69c13d",
+  "session_id": "8bbe5e59-333c-4dd6-9b21-339d8497f6f9",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-13T19:51:17.122385Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "TESTING_RESULTS.md",
+    "app/controllers/dashboard_controller.rb",
+    "app/services/route_manager.rb",
+    "config/initializers/mission_control.rb",
+    "config/initializers/mission_control_jobs.rb",
+    "docker-compose.local.yml"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "18743ee0-5828-4658-be32-cbd3ef36379d",
+  "token_usage": {
+    "input_tokens": 632,
+    "cache_creation_tokens": 74981,
+    "cache_read_tokens": 5304422,
+    "output_tokens": 5819,
+    "api_call_count": 78
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-13T19:51:17.051698Z",
+    "agent_lines": 0,
+    "human_added": 176,
+    "human_modified": 25,
+    "human_removed": 0,
+    "total_committed": 179,
+    "agent_percentage": 0
+  }
+}

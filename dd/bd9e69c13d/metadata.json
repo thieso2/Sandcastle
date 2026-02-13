@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "ddbd9e69c13d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "TESTING_RESULTS.md",
+    "app/controllers/dashboard_controller.rb",
+    "app/services/route_manager.rb",
+    "config/initializers/mission_control.rb",
+    "config/initializers/mission_control_jobs.rb",
+    "docker-compose.local.yml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/dd/bd9e69c13d/0/metadata.json",
+      "transcript": "/dd/bd9e69c13d/0/full.jsonl",
+      "context": "/dd/bd9e69c13d/0/context.md",
+      "content_hash": "/dd/bd9e69c13d/0/content_hash.txt",
+      "prompt": "/dd/bd9e69c13d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 632,
+    "cache_creation_tokens": 74981,
+    "cache_read_tokens": 5304422,
+    "output_tokens": 5819,
+    "api_call_count": 78
+  }
+}
