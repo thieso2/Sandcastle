@@ -7,8 +7,8 @@ Rails.application.configure do
       skip_before_action :authenticate_by_http_basic, raise: false
 
       include Authentication
-      before_action :require_authentication!
-      before_action :require_admin!
+      before_action :require_authentication
+      before_action :require_admin
 
       private
 
