@@ -1,0 +1,798 @@
+Implement the following plan:
+
+# WeTTY Web Terminal Integration
+
+## Context
+
+Users currently need an SSH client to access their sandboxes (`ssh -p 2201 user@host`). Adding WeTTY (butlerx/wetty) provides browser-based terminal access — click a terminal icon on the dashboard and get a shell in a new tab. No client needed.
+
+**Key idea:** Generate an ephemeral SSH keypair per terminal session. Inject the public key into the sandbox's `authorized_keys`. Mount the private key into a WeTTY sidecar container. WeTTY auto-connects via SSH — user gets a shell instantly.
+
+## Architecture
+
+```
+Browser ──HTTPS──▶ Traefik ──forwardAuth──▶ Rails /terminal/auth (session check)
+                      │                         │
+                      │◀── 200 OK ──────────────┘
+                      │
+                      ▼
+               WeTTY container ──SSH──▶ Sandbox container
+           (sc-wetty-{full_name})     ({full_name}:22)
+              on sandcastle-web        on sandcastle-web
+```
+
+- **One WeTTY sidecar per sandbox**, created on-demand when user clicks "Terminal"
+- **Ephemeral ED25519 keypair** — pubkey appended to sandbox `authorized_keys` via `docker exec`, privkey mounted into WeTTY
+- **Traefik forwardAuth** — every request to `/terminal/{id}/wetty/*` validated by Rails (session cookie + sandbox ownership)
+- **No database changes** — terminal state is purely ephemeral (container exists or not)
+
+### Why forwardAuth?
+
+WeTTY has no built-in auth. Once you reach it, you get a shell. Traefik's forwardAuth middleware calls a Rails endpoint on every HTTP request (including WebSocket upgrade). Rails checks the session cookie and sandbox ownership. If invalid → 401, Traefik blocks. This reuses the existing session auth with zero custom token plumbing.
+
+### Network
+
+Both WeTTY and the sandbox must be on `sandcastle-web` Docker network so WeTTY can reach `{sandbox.full_name}:22` via Docker DNS. `RouteManager` already has `connect_to_network` for this — we reuse the same pattern.
+
+## Implementation
+
+### Step 1: Create `TerminalManager` service
+
+**New file:** `app/services/terminal_manager.rb`
+
+Follows the `TailscaleManager` / `RouteManager` patterns.
+
+```ruby
+class TerminalManager
+  DATA_DIR  = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
+  WETTY_IMAGE  = "wettyoss/wetty:latest"
+  NETWORK_NAME = "sandcastle-web"
+  DYNAMIC_DIR  = File.join(DATA_DIR, "traefik", "dynamic")
+
+  class Error < StandardError; end
+
+  # Returns the terminal URL path
+  def open(sandbox:)
+  def close(sandbox:)
+  def active?(sandbox:)
+  def cleanup_orphaned
+end
+```
+
+**`open(sandbox:)`:**
+1. Guard: sandbox must be `running`
+2. If WeTTY container already running → return URL (idempotent)
+3. Pull `wettyoss/wetty:latest` if not present
+4. Connect sandbox to `sandcastle-web` network (reuse `RouteManager#connect_to_network` pattern)
+5. Generate ED25519 keypair via `ssh-keygen` (add `openssh-client` to Dockerfile):
+   - `key_dir = "#{DATA_DIR}/wetty/#{sandbox.full_name}"`
+   - Shell: `ssh-keygen -t ed25519 -f #{key_dir}/key -N "" -q -C "wetty-#{sandbox.full_name}"`
+   - Keys end up at `#{key_dir}/key` (private) and `#{key_dir}/key.pub` (public)
+6. Inject pubkey into sandbox via `docker exec`:
+   ```ruby
+   container.exec(["sh", "-c", "echo '#{pubkey}' >> /home/#{username}/.ssh/authorized_keys"])
+   ```
+7. Create WeTTY container:
+   - Name: `sc-wetty-#{sandbox.full_name}`
+   - Network: `sandcastle-web`
+   - Env: `SSHHOST=#{sandbox.full_name}`, `SSHPORT=22`, `SSHUSER=#{user.name}`, `SSHKEY=/etc/wetty/key`, `SSHAUTH=publickey`, `BASE=/terminal/#{sandbox.id}/wetty`
+   - Bind: `#{key_dir}/key:/etc/wetty/key:ro`
+   - RestartPolicy: `no` (ephemeral)
+   - Labels: `{ "sandcastle.sandbox_id" => sandbox.id.to_s }` (for orphan cleanup)
+   - Memory limit: 128MB
+8. Write Traefik dynamic config (see below)
+9. Return `/terminal/#{sandbox.id}/wetty`
+
+**`close(sandbox:)`:**
+1. Stop + delete WeTTY container (rescue `NotFoundError`)
+2. Delete Traefik config file
+3. Delete key directory (`FileUtils.rm_rf`)
+4. Best-effort: remove pubkey from sandbox `authorized_keys` via `docker exec` + `sed` (only if sandbox container exists)
+
+**Traefik dynamic config** (`terminal-{sandbox.id}.yml`):
+```yaml
+http:
+  routers:
+    terminal-{id}:
+      rule: "Host(`{host}`) && PathPrefix(`/terminal/{id}/wetty`)"
+      service: terminal-{id}
+      entryPoints: [websecure]
+      tls: {certResolver: letsencrypt}
+      middlewares: [terminal-auth-{id}]
+  middlewares:
+    terminal-auth-{id}:
+      forwardAuth:
+        address: "http://sandcastle-web:80/terminal/auth"
+        trustForwardHeader: true
+  services:
+    terminal-{id}:
+      loadBalancer:
+        servers:
+          - url: "http://sc-wetty-{full_name}:3000"
+```
+
+Follows `RouteManager#write_config` and `#tls_config` patterns exactly.
+
+### Step 2: Create `TerminalController`
+
+**New file:** `app/controllers/terminal_controller.rb`
+
+```ruby
+class TerminalController < ApplicationController
+  allow_unauthenticated_access only: :auth
+  skip_before_action :require_password_change, only: :auth
+
+  def open
+    sandbox = if Current.user.admin?
+      Sandbox.active.find(params[:id])
+    else
+      Current.user.sandboxes.active.find(params[:id])
+    end
+
+    url = TerminalManager.new.open(sandbox: sandbox)
+    redirect_to url, allow_other_host: false
+  rescue TerminalManager::Error => e
+    redirect_to root_path, alert: e.message
+  end
+
+  def close
+    sandbox = Current.user.sandboxes.active.find(params[:id])
+    TerminalManager.new.close(sandbox: sandbox)
+    redirect_to root_path, notice: "Terminal closed"
+  rescue TerminalManager::Error => e
+    redirect_to root_path, alert: e.message
+  end
+
+  def auth
+    # Called by Traefik forwardAuth — must return status code only
+    forwarded_uri = request.headers["X-Forwarded-Uri"] || ""
+    match = forwarded_uri.match(%r{/terminal/(\d+)/wetty})
+    head(:unauthorized) and return unless match
+
+    session_record = find_session_by_cookie
+    head(:unauthorized) and return unless session_record
+
+    user = session_record.user
+    sandbox = Sandbox.active.find_by(id: match[1].to_i)
+    head(:forbidden) and return unless sandbox && (sandbox.user_id == user.id || user.admin?)
+
+    head :ok
+  end
+end
+```
+
+Key detail: `auth` uses `allow_unauthenticated_access` so Rails doesn't redirect to login. It manually calls `find_session_by_cookie` (from `Authentication` concern) and returns pure HTTP status codes.
+
+### Step 3: Update routes
+
+**File:** `config/routes.rb`
+
+```ruby
+resources :sandboxes, only: :destroy do
+  member do
+    post :start
+    post :stop
+    get :stats, controller: "dashboard", action: "stats"
+    get :terminal, controller: "terminal", action: "open"      # NEW
+    delete :terminal, controller: "terminal", action: "close"   # NEW
+  end
+end
+
+get "terminal/auth", to: "terminal#auth"   # NEW — Traefik forwardAuth endpoint
+```
+
+Using GET for `terminal` makes it easy to open in a new tab via `link_to ... target: "_blank"`.
+
+### Step 4: Update dashboard UI
+
+**File:** `app/views/dashboard/_sandbox.html.erb`
+
+Add terminal icon link inside the action buttons `div` (line 35), only when sandbox is running. Place it before the Stop/Destroy buttons:
+
+```erb
+<% if sandbox.status == "running" %>
+  <%= link_to terminal_sandbox_path(sandbox), target: "_blank", rel: "noopener",
+        class: "text-xs px-2 py-1 bg-gray-700 text-white rounded hover:bg-gray-800 inline-flex items-center gap-1",
+        data: { turbo: false } do %>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+      <path fill-rule="evenodd" d="M3.25 3A2.25 2.25 0 0 0 1 5.25v9.5A2.25 2.25 0 0 0 3.25 17h13.5A2.25 2.25 0 0 0 19 14.75v-9.5A2.25 2.25 0 0 0 16.75 3H3.25Zm.943 8.752a.75.75 0 0 1 .055-1.06L6.128 9l-1.88-1.693a.75.75 0 1 1 1.004-1.114l2.5 2.25a.75.75 0 0 1 0 1.114l-2.5 2.25a.75.75 0 0 1-1.06-.055ZM9.75 10.25a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z" clip-rule="evenodd" />
+    </svg>
+    Terminal
+  <% end %>
+<% end %>
+```
+
+Heroicons `command-line` icon. Opens WeTTY in new tab.
+
+### Step 5: Integrate with SandboxManager lifecycle
+
+**File:** `app/services/sandbox_manager.rb`
+
+Add `TerminalManager.new.close(sandbox: sandbox)` in three places:
+
+- **`stop(sandbox:)`** — before `container.stop` (line ~103)
+- **`destroy(sandbox:, ...)`** — at the top, before route removal (line ~61)
+- **`restore(sandbox:, ...)`** — before old container deletion (line ~194)
+
+`close` is a no-op if no terminal exists (rescues `NotFoundError` internally).
+
+### Step 6: Update ContainerSyncJob
+
+**File:** `app/jobs/container_sync_job.rb`
+
+Add to `perform`:
+```ruby
+begin
+  TerminalManager.new.cleanup_orphaned
+rescue => e
+  Rails.logger.error("ContainerSyncJob: terminal cleanup failed: #{e.message}")
+end
+```
+
+In `sync_sandbox`, when sandbox status changes to stopped/destroyed, close its terminal:
+```ruby
+TerminalManager.new.close(sandbox: sandbox) rescue nil
+```
+
+### Step 7: Update guide page
+
+**File:** `app/views/pages/guide.html.erb`
+
+Add section documenting the web terminal: click Terminal on a running sandbox to open a browser-based shell. No SSH client needed.
+
+## Security (Devil's Advocate Responses)
+
+| Concern | Mitigation |
+|---------|------------|
+| **URL tampering** (`/terminal/42/wetty`) | forwardAuth checks session + sandbox ownership on every request |
+| **Private key exposure** | Key stored on host filesystem, mounted read-only into WeTTY container, deleted on close |
+| **Stale keys in authorized_keys** | Best-effort cleanup via `sed`; entrypoint.sh overwrites on container restart anyway; key is useless without private key |
+| **WebSocket hijacking** | forwardAuth validates the WS upgrade request; TLS via Traefik |
+| **CSRF** | `open` is GET (idempotent), `auth` returns only status codes (no mutation) |
+| **Resource abuse** | WeTTY containers get 128MB memory limit, 0.5 CPU; no RestartPolicy |
+| **Sandbox ID enumeration** | forwardAuth returns 401 for unauthenticated, 403 for unauthorized — same response for "doesn't exist" |
+| **Idle WebSocket timeout** | Traefik handles long-lived WS natively; no special config needed |
+| **Sandbox stopped while terminal open** | `SandboxManager#stop` calls `TerminalManager#close` first |
+| **Container name conflicts** | Names include `full_name` which is unique among active sandboxes |
+
+## Files Summary
+
+### New
+| File | Purpose |
+|------|---------|
+| `app/services/terminal_manager.rb` | WeTTY lifecycle, SSH keys, Traefik config |
+| `app/controllers/terminal_controller.rb` | open / close / forwardAuth endpoints |
+
+### Modified
+| File | Change |
+|------|--------|
+| `config/routes.rb` | Add terminal routes + forwardAuth endpoint |
+| `app/views/dashboard/_sandbox.html.erb` | Terminal icon button |
+| `app/services/sandbox_manager.rb` | Call `TerminalManager.close` in stop/destroy/restore |
+| `app/jobs/container_sync_job.rb` | Orphan cleanup + close on state change |
+| `app/views/pages/guide.html.erb` | Document web terminal |
+
+### Also Modified (admin)
+| File | Change |
+|------|--------|
+| `app/views/admin/dashboard/_sandbox.html.erb` | Terminal icon button (same as user dashboard) |
+
+| `Dockerfile` | Add `openssh-client` to base packages (for `ssh-keygen`) |
+
+### No Changes Needed
+- No database migration (terminal state is ephemeral)
+- No Gemfile changes (uses existing `docker-api` gem + `ssh-keygen`)
+- No Traefik static config changes (dynamic provider already watches `/data/dynamic/`)
+
+## Verification
+
+1. Start a sandbox → verify Terminal link appears on running sandbox card
+2. Click Terminal → verify WeTTY opens in new tab, auto-connects, shows shell prompt
+3. Run `whoami` in terminal → verify it returns the sandbox username
+4. Open dashboard in another browser (not logged in) → try to access `/terminal/{id}/wetty` → verify 401
+5. Log in as different user → try same URL → verify 403
+6. Stop sandbox → verify WeTTY container is removed (`docker ps | grep sc-wetty`)
+7. Destroy sandbox → verify WeTTY container + key files cleaned up
+8. Run `bin/rails test` → verify no regressions
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+<task-notification>
+<task-id>bb936ed</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Start local Rails dev server on port 3001" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>ba79084</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Start Rails server on port 3001" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+as deveild advocate use chrome and really rtest and inspect everything use sub-agenst to defend and restructure
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me go through the conversation chronologically to capture all important details.
+
+1. The user provided a detailed plan for WeTTY Web Terminal Integration in their Sandcastle project.
+
+2. I created task items and began implementing:
+   - Task 1: Create TerminalManager service
+   - Task 2: Create TerminalController
+   - Task 3: Add terminal routes
+   - Task 4: Update dashboard UI with terminal button
+   - Task 5: Integrate TerminalManager with SandboxManager lifecycle
+   - Task 6: Update ContainerSyncJob for terminal cleanup
+   - Task 7: Update guide page and Dockerfile
+   - Task 8: Test in browser via Chrome
+
+3. User sent: "remember to use chrome to test everything!" during task creation.
+
+4. I read existing files to understand patterns: sandbox_manager.rb, route_manager.rb, tailscale_manager.rb, routes.rb, container_sync_job.rb, dashboard/_sandbox.html.erb, application_controller.rb, authentication.rb, Dockerfile, guide.html.erb, admin/dashboard/_sandbox.html.erb
+
+5. Implementation phase - created/modified files:
+   - Created app/services/terminal_manager.rb
+   - Created app/controllers/terminal_controller.rb
+   - Modified config/routes.rb (added terminal routes)
+   - Modified app/views/dashboard/_sandbox.html.erb (added Terminal button)
+   - Modified app/views/admin/dashboard/_sandbox.html.erb (added Terminal button)
+   - Modified app/services/sandbox_manager.rb (added TerminalManager.close calls)
+   - Modified app/jobs/container_sync_job.rb (added cleanup)
+   - Modified app/views/pages/guide.html.erb (added web terminal section)
+   - Modified Dockerfile (added openssh-client)
+
+6. Tests passed (41 tests, 0 failures)
+
+7. Chrome testing revealed the app was running in Docker container (sandcastle-web), not locally. Local file changes weren't reflected. Started local dev server on port 3001.
+
+8. Had to handle admin user's must_change_password flag, create test sandbox record, then verified Terminal button renders correctly on localhost:3001.
+
+9. User then said: "as deveild advocate use chrome and really rtest and inspect everything use sub-agensts to defend and restructure"
+
+10. Launched 3 sub-agents in parallel:
+    - Security audit specialist
+    - Code refactoring architect  
+    - QA test engineer
+
+11. Sub-agent findings led to creation of tasks 9, 10, 11:
+    - Task 9: Fix shell injection in inject_pubkey and remove_pubkey
+    - Task 10: Fix GET→POST, add close button, harden error handling
+    - Task 11: Write tests
+
+12. Fixes applied:
+    - Shell injection in inject_pubkey: Changed from `echo '#{pubkey}'` to discrete exec commands
+    - Shell injection in remove_pubkey: Changed from sed to `grep -vF`
+    - Path traversal in cleanup_orphaned: Added format validation and path expansion check
+    - GET→POST for terminal open route
+    - link_to → button_to in both dashboard partials
+    - Added `status: :see_other` for POST redirect
+    - Changed auth endpoint to return 401 (not 403) for unauthorized to prevent enumeration
+    - Added `rescue SystemCallError` for ssh-keygen failures
+    - Added top-level rescue to `close` method
+    - Made WETTY_IMAGE configurable via env var
+    - Added `mode: 0o700` to key directory creation
+    - Pull image failure handling improved
+    - Narrowed bare `rescue nil` to `rescue TerminalManager::Error, Docker::Error::DockerError`
+
+13. Test writing:
+    - Created test/fixtures/sandboxes.yml
+    - Created test/controllers/terminal_controller_test.rb
+    - Encountered errors with Minitest::Mock (not available in Minitest 6.0.1 on Ruby 4.0)
+    - Used plain Ruby method overriding instead (define_singleton_method pattern)
+    - 21 tests pass covering auth, open, close actions
+
+14. Full test suite was started but the TaskOutput timed out - still running when summary was requested.
+
+Let me now document all the specific file contents and changes.
+
+Summary:
+1. Primary Request and Intent:
+   The user asked to implement a WeTTY Web Terminal Integration based on a detailed plan they provided. The plan specified: one WeTTY sidecar container per sandbox, ephemeral ED25519 SSH keypairs, Traefik forwardAuth for session-based authorization, no database changes (ephemeral state). After initial implementation, the user explicitly requested: "as deveild advocate use chrome and really rtest and inspect everything use sub-agensts to defend and restructure" — meaning thorough security/architecture review using sub-agents, Chrome-based testing, and fixing all issues found.
+
+2. Key Technical Concepts:
+   - WeTTY (wettyoss/wetty) — browser-based terminal via SSH
+   - Traefik forwardAuth — reverse proxy authentication middleware
+   - Ephemeral ED25519 SSH keypairs via `ssh-keygen`
+   - Docker API via `docker-api` gem — container lifecycle management
+   - Rails 8.1 (Ruby 4.0), PostgreSQL, Minitest 6.0.1
+   - Sysbox containers with Docker-in-Docker
+   - `sandcastle-web` Docker network for inter-container communication
+   - CSRF protection via POST + CSRF token (button_to)
+   - Shell injection prevention in docker exec commands
+   - Path traversal prevention in cleanup methods
+   - Sandbox ID enumeration prevention (uniform 401 responses)
+
+3. Files and Code Sections:
+
+   - **app/services/terminal_manager.rb** (CREATED, then REWRITTEN for security fixes)
+     - Core service managing WeTTY container lifecycle
+     - Methods: `open`, `close`, `active?`, `cleanup_orphaned`
+     - Security fixes applied: shell injection in inject_pubkey/remove_pubkey, path traversal in cleanup_orphaned
+     - Final version key changes:
+       ```ruby
+       WETTY_IMAGE = ENV.fetch("SANDCASTLE_WETTY_IMAGE", "wettyoss/wetty:latest")
+       ```
+       ```ruby
+       def open(sandbox:)
+         # ... 
+       rescue Docker::Error::DockerError => e
+         raise Error, "Failed to open terminal: #{e.message}"
+       rescue SystemCallError => e
+         raise Error, "Failed to open terminal: #{e.message}"
+       end
+       ```
+       ```ruby
+       def close(sandbox:)
+         # ...
+       rescue Docker::Error::DockerError => e
+         Rails.logger.error("TerminalManager: close failed for #{sandbox.full_name}: #{e.message}")
+       end
+       ```
+       ```ruby
+       def inject_pubkey(sandbox, key_dir)
+         pubkey = File.read(File.join(key_dir, "key.pub")).strip
+         username = sandbox.user.name
+         container = Docker::Container.get(sandbox.container_id)
+         # Use discrete exec commands to avoid shell injection
+         container.exec([ "mkdir", "-p", "/home/#{username}/.ssh" ])
+         container.exec([ "sh", "-c", "cat >> /home/#{username}/.ssh/authorized_keys" ], stdin: StringIO.new("#{pubkey}\n"))
+         container.exec([ "chown", "-R", "#{username}:#{username}", "/home/#{username}/.ssh" ])
+         container.exec([ "chmod", "600", "/home/#{username}/.ssh/authorized_keys" ])
+       end
+       ```
+       ```ruby
+       def remove_pubkey(sandbox)
+         return unless sandbox.container_id.present?
+         begin
+           container = Docker::Container.get(sandbox.container_id)
+           username = sandbox.user.name
+           marker = "wetty-#{sandbox.full_name}"
+           container.exec([
+             "sh", "-c",
+             "grep -vF '#{marker}' /home/#{username}/.ssh/authorized_keys > /tmp/ak_clean && " \
+             "mv /tmp/ak_clean /home/#{username}/.ssh/authorized_keys || true"
+           ])
+         rescue Docker::Error::NotFoundError, Docker::Error::DockerError
+         end
+       end
+       ```
+       ```ruby
+       def cleanup_orphaned
+         # ... inside the loop:
+         full_name = name.delete_prefix("sc-wetty-")
+         unless full_name.match?(/\A[a-z][a-z0-9_-]+-[a-z][a-z0-9_-]*\z/)
+           Rails.logger.warn("TerminalManager: skipping suspicious container name: #{name}")
+           next
+         end
+         key_dir = File.join(DATA_DIR, "wetty", full_name)
+         expected_parent = File.join(DATA_DIR, "wetty")
+         unless File.expand_path(key_dir).start_with?("#{File.expand_path(expected_parent)}/")
+           Rails.logger.warn("TerminalManager: path traversal attempt detected: #{key_dir}")
+           next
+         end
+         # ...
+       end
+       ```
+       ```ruby
+       def generate_keypair(sandbox)
+         key_dir = key_dir_path(sandbox)
+         FileUtils.mkdir_p(key_dir, mode: 0o700)
+         # ...
+       end
+       ```
+
+   - **app/controllers/terminal_controller.rb** (CREATED, then REWRITTEN)
+     - Three actions: `open`, `close`, `auth`
+     - Auth returns uniform 401 for all failures (prevents enumeration)
+     - Open uses `status: :see_other` for POST→redirect
+     ```ruby
+     class TerminalController < ApplicationController
+       allow_unauthenticated_access only: :auth
+       skip_before_action :require_password_change, only: :auth
+
+       def open
+         sandbox = if Current.user.admin?
+           Sandbox.active.find(params[:id])
+         else
+           Current.user.sandboxes.active.find(params[:id])
+         end
+         url = TerminalManager.new.open(sandbox: sandbox)
+         redirect_to url, allow_other_host: false, status: :see_other
+       rescue TerminalManager::Error => e
+         redirect_to root_path, alert: e.message
+       end
+
+       def close
+         sandbox = if Current.user.admin?
+           Sandbox.active.find(params[:id])
+         else
+           Current.user.sandboxes.active.find(params[:id])
+         end
+         TerminalManager.new.close(sandbox: sandbox)
+         redirect_to root_path, notice: "Terminal closed"
+       rescue TerminalManager::Error => e
+         redirect_to root_path, alert: e.message
+       end
+
+       def auth
+         forwarded_uri = request.headers["X-Forwarded-Uri"] || ""
+         match = forwarded_uri.match(%r{/terminal/(\d+)/wetty})
+         head(:unauthorized) and return unless match
+         session_record = find_session_by_cookie
+         head(:unauthorized) and return unless session_record
+         user = session_record.user
+         sandbox = Sandbox.active.find_by(id: match[1].to_i)
+         head(:unauthorized) and return unless sandbox && (sandbox.user_id == user.id || user.admin?)
+         head :ok
+       end
+     end
+     ```
+
+   - **config/routes.rb** (MODIFIED)
+     - Changed from `get :terminal` to `post :terminal` for CSRF protection
+     ```ruby
+     resources :sandboxes, only: :destroy do
+       member do
+         post :start
+         post :stop
+         get :stats, controller: "dashboard", action: "stats"
+         post :terminal, controller: "terminal", action: "open"
+         delete :terminal, controller: "terminal", action: "close"
+       end
+     end
+     get "terminal/auth", to: "terminal#auth"
+     ```
+
+   - **app/views/dashboard/_sandbox.html.erb** (MODIFIED)
+     - Changed from `link_to` to `button_to` with `form: { target: "_blank" }` for CSRF safety
+     ```erb
+     <%= button_to terminal_sandbox_path(sandbox), method: :post,
+           form: { target: "_blank" },
+           class: "text-xs px-2 py-1 bg-gray-700 text-white rounded hover:bg-gray-800 inline-flex items-center gap-1",
+           data: { turbo: false } do %>
+       <svg ...>Terminal icon</svg>
+       Terminal
+     <% end %>
+     ```
+
+   - **app/views/admin/dashboard/_sandbox.html.erb** (MODIFIED)
+     - Same button_to change as user dashboard partial
+
+   - **app/services/sandbox_manager.rb** (MODIFIED)
+     - Added `TerminalManager.new.close` in `destroy`, `stop`, `restore` methods
+     - Narrowed rescue from `rescue nil` to `rescue TerminalManager::Error, Docker::Error::DockerError`
+     ```ruby
+     begin TerminalManager.new.close(sandbox: sandbox) rescue TerminalManager::Error, Docker::Error::DockerError; end
+     ```
+
+   - **app/jobs/container_sync_job.rb** (MODIFIED)
+     - Added `TerminalManager.new.cleanup_orphaned` in `perform`
+     - Added terminal close on status corrections (stopped/destroyed)
+     - Same narrowed rescue pattern
+
+   - **app/views/pages/guide.html.erb** (MODIFIED)
+     - Added "6. Web terminal" section, renumbered subsequent sections (7→8→9)
+
+   - **Dockerfile** (MODIFIED)
+     - Added `openssh-client` to base stage packages
+
+   - **test/fixtures/sandboxes.yml** (CREATED)
+     ```yaml
+     alice_running:
+       name: devbox
+       user: one
+       status: running
+       image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+       ssh_port: 2201
+       container_id: "abc123def456"
+     bob_running:
+       name: workbox
+       user: two
+       status: running
+       image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+       ssh_port: 2202
+       container_id: "def456ghi789"
+     alice_stopped:
+       name: stopped-box
+       user: one
+       status: stopped
+       image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+       ssh_port: 2203
+       container_id: "stopped123"
+     alice_destroyed:
+       name: old-box
+       user: one
+       status: destroyed
+       image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+       ssh_port: 2204
+     ```
+
+   - **test/controllers/terminal_controller_test.rb** (CREATED)
+     - 21 tests covering auth (11 tests), open (5 tests), close (5 tests)
+     - Uses plain Ruby `define_singleton_method` for stubbing (Minitest::Mock unavailable in Minitest 6.0.1)
+     - Key test helper:
+     ```ruby
+     def with_terminal_manager_stub(open_result: nil, open_error: nil, close_error: nil, &block)
+       stub = Object.new
+       stub.define_singleton_method(:open) do |sandbox:|
+         raise TerminalManager::Error, open_error if open_error
+         open_result
+       end
+       stub.define_singleton_method(:close) do |sandbox:|
+         raise TerminalManager::Error, close_error if close_error
+       end
+       original_new = TerminalManager.method(:new)
+       TerminalManager.define_singleton_method(:new) { stub }
+       begin
+         yield
+       ensure
+         TerminalManager.define_singleton_method(:new, original_new)
+       end
+     end
+     ```
+
+4. Errors and Fixes:
+   - **Chrome testing showed no Terminal button**: The app at localhost:3000 was running in a Docker container (sandcastle-web), not from local files. Fixed by starting a local dev server on port 3001 via `bin/rails server -p 3001`.
+   - **Admin must_change_password**: The seed user had `must_change_password: true`, blocking login. Fixed with `bin/rails runner` but hit shell escaping issues with `!` in Ruby 4.0 — had to use `u.must_change_password = false; u.save` instead of `update!`.
+   - **Minitest `any_instance` not available**: Project doesn't use Mocha gem. Switched to `Minitest::Mock` approach.
+   - **Minitest::Mock not available**: `require "minitest/mock"` fails in Minitest 6.0.1 (Ruby 4.0). Fixed by using plain Ruby `define_singleton_method` for stubbing.
+   - **`assert_raises(ActiveRecord::RecordNotFound)` didn't work**: Rails integration tests rescue RecordNotFound as 404. Changed to `assert_response :not_found`.
+   - **Security sub-agent found CRITICAL shell injection**: `inject_pubkey` interpolated pubkey into `echo '#{pubkey}'` inside `sh -c`. Fixed by using discrete exec commands and stdin piping.
+   - **Security sub-agent found path traversal**: `cleanup_orphaned` used `FileUtils.rm_rf` with container-name-derived paths. Fixed with format validation regex and `File.expand_path` boundary check.
+
+5. Problem Solving:
+   - Implemented complete WeTTY terminal integration following existing service patterns (RouteManager, TailscaleManager)
+   - Security audit identified and fixed shell injection, CSRF, path traversal, enumeration, and error handling issues
+   - Architecture review identified GET→POST change, missing close button UI, and error handling inconsistencies
+   - QA analysis identified zero test coverage and led to creation of 21 controller tests
+
+6. All User Messages:
+   - "Implement the following plan: [detailed WeTTY Web Terminal Integration plan]"
+   - "remember to use chrome to test everything!"
+   - "as deveild advocate use chrome and really rtest and inspect everything use sub-agensts to defend and restructure"
+
+7. Pending Tasks:
+   - Task 11 (Write tests) is marked in_progress — controller tests are done (21 pass), but the full test suite (`bin/rails test`) was still running when the summary was requested
+   - The full test suite run (`bin/rails test`) timed out waiting for output — need to check results
+   - No Chrome re-testing has been done after the security/architecture fixes
+
+8. Current Work:
+   Immediately before this summary, I had just run `bin/rails test` (full test suite) to verify all 21 new terminal tests plus the existing 41 tests pass together. The command was running in background (task ID: b198a01) and the `TaskOutput` call timed out after 120 seconds without completing. The terminal controller tests alone passed (21 runs, 39 assertions, 0 failures, 0 errors). The output appears corrupted with memory map data, suggesting possible process issues.
+
+9. Optional Next Step:
+   Check the result of the full test suite run (`bin/rails test`) by reading the output file or re-running it. If all 62 tests pass, the implementation and devil's advocate fixes are complete. The user also asked to "use chrome" to test — after confirming tests pass, should re-test the UI changes (POST button_to, Terminal button rendering) in Chrome on a local dev server, since the security fixes changed the button from link_to to button_to with POST method.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+/rails/app/services/sandbox_manager.rb:61: syntax errors found (SyntaxError)
+   59 |
+   60 |   def destroy(sandbox:, keep_volume: false)
+>  61 | ... , Docker::Error::DockerError; e ...
+      |     ^ unexpected ',', ignoring it
+      |     ^ unexpected ',', expecting end-of-input
+   62 |
+   63 |     RouteManager.new.remove_all_routes(sandbox: sandbox) if sandbox.routed?
+  ~~~~~~~
+  103 |     return sandbox if sandbox.status == "stopped"
+  104 |
+> 105 | ... , Docker::Error::DockerError; e ...
+      |     ^ unexpected ',', ignoring it
+      |     ^ unexpected ',', expecting end-of-input
+  106 |
+  107 |     RouteManager.new.suspend_routes(sandbox: sandbox) if sandbox.routed?
+  ~~~~~~~
+  192 |     Docker::Image.get(image_ref)
+  193 |
+> 194 | ... , Docker::Error::DockerError; e ...
+      |     ^ unexpected ',', ignoring it
+      |     ^ unexpected ',', expecting end-of-input
+  195 |
+  196 |     if sandbox.tailscale?
+
+    from /usr/local/lib/ruby/4.0.0/bundled_gems.rb:60:in 'block (2 levels) in Kernel#replace_require'
+    from /usr/local/bundle/ruby/4.0.0/gems/bootsnap-1.22.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:33:in 'Kernel#require'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/core_ext/kernel.rb:26:in 'Kernel#require'
+    from /rails/app/controllers/api/base_controller.rb:14:in '<class:BaseController>'
+    from /rails/app/controllers/api/base_controller.rb:2:in '<module:Api>'
+    from /rails/app/controllers/api/base_controller.rb:1:in '<main>'
+    from /usr/local/lib/ruby/4.0.0/bundled_gems.rb:60:in 'Kernel.require'
+    from /usr/local/lib/ruby/4.0.0/bundled_gems.rb:60:in 'block (2 levels) in Kernel#replace_require'
+    from /usr/local/bundle/ruby/4.0.0/gems/bootsnap-1.22.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:33:in 'Kernel#require'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/core_ext/kernel.rb:26:in 'Kernel#require'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/cref.rb:62:in 'Module#const_get'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/cref.rb:62:in 'Zeitwerk::Cref#get'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/eager_load.rb:173:in 'block in Zeitwerk::Loader::EagerLoad#actual_eager_load_dir'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/helpers.rb:47:in 'block in Zeitwerk::Loader::Helpers#ls'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/helpers.rb:25:in 'Array#each'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/helpers.rb:25:in 'Zeitwerk::Loader::Helpers#ls'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/eager_load.rb:168:in 'Zeitwerk::Loader::EagerLoad#actual_eager_load_dir'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/eager_load.rb:17:in 'block (2 levels) in Zeitwerk::Loader::EagerLoad#eager_load'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/eager_load.rb:16:in 'Hash#each'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/eager_load.rb:16:in 'block in Zeitwerk::Loader::EagerLoad#eager_load'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/eager_load.rb:10:in 'Thread::Mutex#synchronize'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader/eager_load.rb:10:in 'Zeitwerk::Loader::EagerLoad#eager_load'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader.rb:431:in 'block in Zeitwerk::Loader.eager_load_all'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/registry/loaders.rb:10:in 'Array#each'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/registry/loaders.rb:10:in 'Zeitwerk::Registry::Loaders#each'
+    from /usr/local/bundle/ruby/4.0.0/gems/zeitwerk-2.7.4/lib/zeitwerk/loader.rb:429:in 'Zeitwerk::Loader.eager_load_all'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/application/finisher.rb:79:in 'block in <module:Finisher>'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/initializable.rb:24:in 'BasicObject#instance_exec'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/initializable.rb:24:in 'Rails::Initializable::Initializer#run'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/initializable.rb:103:in 'block in Rails::Initializable#run_initializers'
+    from /usr/local/bundle/ruby/4.0.0/gems/tsort-0.2.0/lib/tsort.rb:231:in 'block in TSort.tsort_each'
+    from /usr/local/bundle/ruby/4.0.0/gems/tsort-0.2.0/lib/tsort.rb:353:in 'block (2 levels) in TSort.each_strongly_connected_component'
+    from /usr/local/bundle/ruby/4.0.0/gems/tsort-0.2.0/lib/tsort.rb:434:in 'TSort.each_strongly_connected_component_from'
+    from /usr/local/bundle/ruby/4.0.0/gems/tsort-0.2.0/lib/tsort.rb:352:in 'block in TSort.each_strongly_connected_component'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/initializable.rb:59:in 'Array#each'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/initializable.rb:59:in 'Rails::Initializable::Collection#each'
+    from /usr/local/bundle/ruby/4.0.0/gems/tsort-0.2.0/lib/tsort.rb:350:in 'Method#call'
+    from /usr/local/bundle/ruby/4.0.0/gems/tsort-0.2.0/lib/tsort.rb:350:in 'TSort.each_strongly_connected_component'
+    from /usr/local/bundle/ruby/4.0.0/gems/tsort-0.2.0/lib/tsort.rb:229:in 'TSort.tsort_each'
+    from /usr/local/bundle/ruby/4.0.0/gems/tsort-0.2.0/lib/tsort.rb:208:in 'TSort#tsort_each'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/initializable.rb:102:in 'Rails::Initializable#run_initializers'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/application.rb:442:in 'Rails::Application#initialize!'
+    from /rails/config/environment.rb:5:in '<main>'
+    from config.ru:3:in 'Kernel#require_relative'
+    from config.ru:3:in 'block (2 levels) in <main>'
+    from /usr/local/bundle/ruby/4.0.0/gems/rack-3.2.4/lib/rack/builder.rb:108:in 'Kernel#eval'
+    from /usr/local/bundle/ruby/4.0.0/gems/rack-3.2.4/lib/rack/builder.rb:108:in 'Rack::Builder.new_from_string'
+    from /usr/local/bundle/ruby/4.0.0/gems/rack-3.2.4/lib/rack/builder.rb:97:in 'Rack::Builder.load_file'
+    from /usr/local/bundle/ruby/4.0.0/gems/rack-3.2.4/lib/rack/builder.rb:67:in 'Rack::Builder.parse_file'
+    from /usr/local/bundle/ruby/4.0.0/gems/rackup-2.3.1/lib/rackup/server.rb:354:in 'Rackup::Server#build_app_and_options_from_config'
+    from /usr/local/bundle/ruby/4.0.0/gems/rackup-2.3.1/lib/rackup/server.rb:263:in 'Rackup::Server#app'
+    from /usr/local/bundle/ruby/4.0.0/gems/rackup-2.3.1/lib/rackup/server.rb:424:in 'Rackup::Server#wrapped_app'
+    from /usr/local/bundle/ruby/4.0.0/gems/rackup-2.3.1/lib/rackup/server.rb:326:in 'block in Rackup::Server#start'
+    from /usr/local/bundle/ruby/4.0.0/gems/rackup-2.3.1/lib/rackup/server.rb:382:in 'Rackup::Server#handle_profiling'
+    from /usr/local/bundle/ruby/4.0.0/gems/rackup-2.3.1/lib/rackup/server.rb:325:in 'Rackup::Server#start'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/commands/server/server_command.rb:38:in 'Rails::Server#start'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/commands/server/server_command.rb:145:in 'block in Rails::Command::ServerCommand#perform'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/commands/server/server_command.rb:136:in 'Kernel#tap'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/commands/server/server_command.rb:136:in 'Rails::Command::ServerCommand#perform'
+    from /usr/local/bundle/ruby/4.0.0/gems/thor-1.5.0/lib/thor/command.rb:28:in 'Thor::Command#run'
+    from /usr/local/bundle/ruby/4.0.0/gems/thor-1.5.0/lib/thor/invocation.rb:127:in 'Thor::Invocation#invoke_command'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/command/base.rb:176:in 'Rails::Command::Base#invoke_command'
+    from /usr/local/bundle/ruby/4.0.0/gems/thor-1.5.0/lib/thor.rb:538:in 'Thor.dispatch'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/command/base.rb:71:in 'Rails::Command::Base.perform'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/command.rb:65:in 'block in Rails::Command.invoke'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/command.rb:143:in 'Rails::Command.with_argv'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/command.rb:63:in 'Rails::Command.invoke'
+    from /usr/local/bundle/ruby/4.0.0/gems/railties-8.1.2/lib/rails/commands.rb:18:in '<main>'
+    from /usr/local/lib/ruby/4.0.0/bundled_gems.rb:60:in 'Kernel.require'
+    from /usr/local/lib/ruby/4.0.0/bundled_gems.rb:60:in 'block (2 levels) in Kernel#replace_require'
+    from /usr/local/bundle/ruby/4.0.0/gems/bootsnap-1.22.0/lib/bootsnap/load_path_cache/core_ext/kernel_require.rb:33:in 'Kernel#require'
+    from ./bin/rails:4:in '<main>'
+
+---
+
+terminal does not open - check http://localhost:3000/ (running in docker) - debug and fix. i want the terminal to be shown in chrome.
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+just make the dev-setup seimilar or identical to the prodcution!
+get teh weeby ssh terminal to work - use the docker setup and chrome to debug!
+
+---
+
+[Request interrupted by user for tool use]

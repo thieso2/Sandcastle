@@ -3,27 +3,35 @@
   "checkpoint_id": "6cc0c544dacc",
   "strategy": "manual-commit",
   "branch": "wetty",
-  "checkpoints_count": 1,
+  "checkpoints_count": 4,
   "files_touched": [
+    "Dockerfile",
     "app/controllers/admin/base_controller.rb",
     "app/controllers/admin/dashboard_controller.rb",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/admin/settings_controller.rb",
     "app/controllers/admin/users_controller.rb",
     "app/controllers/invites_controller.rb",
+    "app/controllers/terminal_controller.rb",
+    "app/jobs/container_sync_job.rb",
     "app/mailers/invite_mailer.rb",
     "app/mailers/test_mailer.rb",
     "app/models/setting.rb",
     "app/models/user.rb",
     "app/policies/setting_policy.rb",
+    "app/services/sandbox_manager.rb",
+    "app/services/terminal_manager.rb",
     "app/views/admin/_subnav.html.erb",
+    "app/views/admin/dashboard/_sandbox.html.erb",
     "app/views/admin/dashboard/index.html.erb",
     "app/views/admin/settings/edit.html.erb",
     "app/views/admin/users/index.html.erb",
+    "app/views/dashboard/_sandbox.html.erb",
     "app/views/invite_mailer/invite.html.erb",
     "app/views/invite_mailer/invite.text.erb",
     "app/views/invites/edit.html.erb",
     "app/views/layouts/admin.html.erb",
+    "app/views/pages/guide.html.erb",
     "app/views/sessions/new.html.erb",
     "app/views/test_mailer/test.html.erb",
     "app/views/test_mailer/test.text.erb",
@@ -35,7 +43,11 @@
     "config/routes.rb",
     "db/migrate/20260212183349_create_settings.rb",
     "test/controllers/admin/settings_controller_test.rb",
-    "test/models/setting_test.rb"
+    "test/controllers/terminal_controller_test.rb",
+    "test/fixtures/sandboxes.yml",
+    "test/models/setting_test.rb",
+    "tmp/create_test_sandbox.rb",
+    "tmp/pids/server.pid"
   ],
   "sessions": [
     {
@@ -44,13 +56,20 @@
       "context": "/6c/c0c544dacc/0/context.md",
       "content_hash": "/6c/c0c544dacc/0/content_hash.txt",
       "prompt": "/6c/c0c544dacc/0/prompt.txt"
+    },
+    {
+      "metadata": "/6c/c0c544dacc/1/metadata.json",
+      "transcript": "/6c/c0c544dacc/1/full.jsonl",
+      "context": "/6c/c0c544dacc/1/context.md",
+      "content_hash": "/6c/c0c544dacc/1/content_hash.txt",
+      "prompt": "/6c/c0c544dacc/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 89,
-    "cache_creation_tokens": 38748,
-    "cache_read_tokens": 9052810,
-    "output_tokens": 5202,
-    "api_call_count": 67
+    "input_tokens": 421,
+    "cache_creation_tokens": 297826,
+    "cache_read_tokens": 36559368,
+    "output_tokens": 32431,
+    "api_call_count": 349
   }
 }

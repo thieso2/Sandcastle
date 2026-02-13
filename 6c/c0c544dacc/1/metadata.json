@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "6cc0c544dacc",
+  "session_id": "1d2830d9-e604-4d80-b403-7fb72a690e45",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-13T04:52:53.22449Z",
+  "branch": "wetty",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "Dockerfile",
+    "app/controllers/terminal_controller.rb",
+    "app/jobs/container_sync_job.rb",
+    "app/services/sandbox_manager.rb",
+    "app/services/terminal_manager.rb",
+    "app/views/admin/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/pages/guide.html.erb",
+    "config/routes.rb",
+    "test/controllers/terminal_controller_test.rb",
+    "test/fixtures/sandboxes.yml",
+    "tmp/create_test_sandbox.rb",
+    "tmp/pids/server.pid"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 332,
+    "cache_creation_tokens": 259078,
+    "cache_read_tokens": 27506558,
+    "output_tokens": 27229,
+    "api_call_count": 282
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-13T04:52:52.878228Z",
+    "agent_lines": 660,
+    "human_added": 0,
+    "human_modified": 1,
+    "human_removed": 1,
+    "total_committed": 661,
+    "agent_percentage": 99.84871406959152
+  }
+}
