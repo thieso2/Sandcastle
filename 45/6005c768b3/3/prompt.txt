@@ -1,0 +1,45 @@
+Implement the following plan:
+
+# Plan: Add full_name to User and configure git identity in sandboxes
+
+## Context
+Sandbox users currently have no git identity configured, so `git commit` prompts for name/email. Adding a `full_name` field to User and passing it + email as env vars to sandbox containers lets the entrypoint auto-configure `/etc/gitconfig` with `[user]` name and email.
+
+## Changes
+
+### 1. Migration — add `full_name` to users
+- `bin/rails generate migration AddFullNameToUsers full_name:string`
+- Nullable, no default needed
+
+### 2. Permit `full_name` in controllers
+- `app/controllers/admin/users_controller.rb` — add `:full_name` to `user_params`
+- `app/controllers/api/users_controller.rb` — add `:full_name` to `user_params`
+
+### 3. Admin user form
+- `app/views/admin/users/_form.html.erb` — add `full_name` text field (after name, before email)
+
+### 4. SandboxManager — pass env vars
+- `app/services/sandbox_manager.rb` — add `USER_EMAIL` and `USER_FULLNAME` to the `"Env"` array in container creation
+
+### 5. Sandbox entrypoint — configure git identity
+- `images/sandbox/entrypoint.sh` — after user setup, if `USER_FULLNAME` and/or `USER_EMAIL` are set, append `[user]` section to `/etc/gitconfig`
+
+## Files to modify
+- `db/migrate/NEW_add_full_name_to_users.rb` (new)
+- `app/controllers/admin/users_controller.rb:69`
+- `app/controllers/api/users_controller.rb:42`
+- `app/views/admin/users/_form.html.erb`
+- `app/services/sandbox_manager.rb:31-34`
+- `images/sandbox/entrypoint.sh`
+
+## Verification
+- `bin/rails test` — all existing tests pass
+- Set full_name on a user via admin UI
+- Create/start a sandbox, SSH in, run `git config user.name` and `git config user.email`
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+commit this and push
