@@ -75,6 +75,10 @@
 ### High Priority
 (UX issues)
 - ⚠️ **BUILD_* variable warnings** - docker-compose shows warnings for unset BUILD_VERSION, BUILD_GIT_SHA, BUILD_GIT_DIRTY, BUILD_DATE variables (cosmetic, not breaking)
+- ❌ **Jobs page completely blank** - /admin/jobs returns empty page, MissionControl::Jobs not rendering
+- ❌ **Admin sandbox stats shows "Content missing"** - Stats not displaying on admin dashboard
+- ❌ **Stats endpoint 500 error for destroyed sandboxes** - Turbo frame error for sandbox_stats_10 (destroyed sandbox)
+- ⚠️ **Confirm dialogs block browser automation** - turbo_confirm uses native browser dialogs which prevent automated testing. Need custom HTML modals.
 
 ### Low Priority
 (minor issues)
