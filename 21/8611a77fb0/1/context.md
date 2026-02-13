@@ -221,3 +221,7 @@ Failed to open terminal: Permission denied @ rb_sysopen - /data/traefik/dynamic/
 
 now debug opening the terminal in the web!
 
+### Prompt 42
+
+open terminal got me bad gateway - reload fixed it - but i down want to see the bad gateway!
+

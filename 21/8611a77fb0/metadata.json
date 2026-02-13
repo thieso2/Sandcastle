@@ -5,8 +5,8 @@
   "branch": "claude/issue-13-20260213-1425",
   "checkpoints_count": 2,
   "files_touched": [
+    "app/services/terminal_manager.rb",
     "config/deploy.yml",
-    "docker-compose.local.yml",
     "installer.sh"
   ],
   "sessions": [
@@ -26,10 +26,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 282,
-    "cache_creation_tokens": 23156,
-    "cache_read_tokens": 2425674,
-    "output_tokens": 3542,
-    "api_call_count": 34
+    "input_tokens": 156,
+    "cache_creation_tokens": 14172,
+    "cache_read_tokens": 1537071,
+    "output_tokens": 899,
+    "api_call_count": 19
   }
 }
