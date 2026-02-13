@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "ddbd9e69c13d",
+  "session_id": "292e16e3-b90f-4a38-801b-6658af224c63",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-13T20:18:03.707913Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "PROGRESS.md",
+    "app/javascript/controllers/confirm_controller.js",
+    "app/views/admin/dashboard/_sandbox.html.erb",
+    "app/views/admin/users/index.html.erb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/layouts/application.html.erb",
+    "app/views/shared/_confirm_modal.html.erb",
+    "app/views/tailscale/show.html.erb",
+    "config/initializers/mission_control.rb",
+    "config/initializers/mission_control_jobs.rb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "2bfb4d7c-39e4-4473-9b6a-a6489d3a612a",
+  "token_usage": {
+    "input_tokens": 592,
+    "cache_creation_tokens": 95371,
+    "cache_read_tokens": 5540072,
+    "output_tokens": 8127,
+    "api_call_count": 72
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-13T20:18:03.606415Z",
+    "agent_lines": 0,
+    "human_added": 165,
+    "human_modified": 9,
+    "human_removed": 0,
+    "total_committed": 167,
+    "agent_percentage": 0
+  }
+}
