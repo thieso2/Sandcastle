@@ -46,4 +46,8 @@ class User < ApplicationRecord
   def tailscale_disabled?
     !respond_to?(:tailscale_state) || tailscale_state == "disabled"
   end
+
+  def tailscale_auto_connect?
+    tailscale_auto_connect
+  end
 end

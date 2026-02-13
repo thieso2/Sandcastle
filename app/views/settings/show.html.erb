@@ -1,0 +1,172 @@
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
+
+  <% if flash[:api_token] %>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <p class="text-sm font-medium text-blue-800 mb-2">Your new API token (save this now - you won't see it again!):</p>
+      <div class="flex items-center gap-2">
+        <code class="flex-1 bg-blue-100 text-blue-900 px-3 py-2 rounded font-mono text-sm break-all"><%= flash[:api_token] %></code>
+        <button onclick="navigator.clipboard.writeText('<%= flash[:api_token] %>')"
+                class="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 whitespace-nowrap">
+          Copy
+        </button>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── Profile Section ── %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Profile</h2>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+        <div class="text-sm text-gray-900 font-mono bg-gray-50 px-3 py-2 rounded border border-gray-200">
+          <%= @user.name %>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Username cannot be changed</p>
+      </div>
+
+      <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "space-y-4" do |f| %>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <%= f.email_field :email_address, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          <% if @user.errors[:email_address].any? %>
+            <p class="text-xs text-red-600 mt-1"><%= @user.errors[:email_address].first %></p>
+          <% end %>
+        </div>
+
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Update Email
+        </button>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── Change Password Section ── %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
+
+    <%= form_with url: update_password_settings_path, method: :patch, class: "space-y-4" do |f| %>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+        <%= password_field_tag :current_password, nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+        <%= password_field_tag "user[password]", nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+        <%= password_field_tag "user[password_confirmation]", nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+      </div>
+
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+        Change Password
+      </button>
+    <% end %>
+  </div>
+
+  <%# ── Tailscale Section ── %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Tailscale</h2>
+
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-700">Status</p>
+          <p class="text-sm text-gray-600">
+            <% case @user.tailscale_state %>
+            <% when "enabled" %>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                Enabled
+              </span>
+            <% when "pending" %>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                Pending authentication
+              </span>
+            <% else %>
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                Disabled
+              </span>
+            <% end %>
+          </p>
+        </div>
+        <% if @user.tailscale_enabled? %>
+          <%= link_to "Manage Tailscale", tailscale_path, class: "text-sm text-blue-600 hover:text-blue-700 underline" %>
+        <% end %>
+      </div>
+
+      <% if @user.tailscale_enabled? %>
+        <%= form_with url: toggle_tailscale_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
+          <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input type="checkbox"
+                   <%= "checked" if @user.tailscale_auto_connect %>
+                   onchange="this.form.requestSubmit()"
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            Auto-connect new sandboxes to Tailscale
+          </label>
+        <% end %>
+      <% else %>
+        <p class="text-sm text-gray-500">
+          <%= link_to "Enable Tailscale", tailscale_path, class: "text-blue-600 hover:text-blue-700 underline" %> to connect your sandboxes to your tailnet.
+        </p>
+      <% end %>
+    </div>
+  </div>
+
+  <%# ── API Token Section ── %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">API Token</h2>
+
+    <% if @api_token %>
+      <div class="space-y-4">
+        <div>
+          <p class="text-sm font-medium text-gray-700 mb-1">Current Token</p>
+          <div class="flex items-center gap-2">
+            <code class="flex-1 bg-gray-50 text-gray-900 px-3 py-2 rounded font-mono text-sm border border-gray-200">
+              <%= @api_token.masked_token %>
+            </code>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">
+            Last used: <%= @api_token.last_used_at ? time_ago_in_words(@api_token.last_used_at) + " ago" : "Never" %>
+          </p>
+        </div>
+
+        <div class="flex gap-3">
+          <%= button_to "Generate New Token", generate_token_settings_path, method: :post,
+                class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm",
+                data: { confirm_message: "This will invalidate your current API token. Any applications using it will stop working. Continue?" } %>
+
+          <%= button_to "Revoke Token", revoke_token_settings_path, method: :delete,
+                class: "px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm",
+                data: { confirm_message: "This will revoke your API token. Any applications using it will stop working. Continue?" } %>
+        </div>
+      </div>
+    <% else %>
+      <div class="space-y-4">
+        <p class="text-sm text-gray-600">No API token generated yet. Generate one to use the Sandcastle CLI and API.</p>
+
+        <%= button_to "Generate API Token", generate_token_settings_path, method: :post,
+              class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm" %>
+      </div>
+    <% end %>
+
+    <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <p class="text-xs text-blue-800">
+        <strong>Tip:</strong> Use your API token with the Sandcastle CLI by running <code class="bg-blue-100 px-1.5 py-0.5 rounded font-mono">sandcastle config set-token</code>
+      </p>
+    </div>
+  </div>
+
+  <%# ── SSH Keys Section (Future) ── %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6 opacity-50 cursor-not-allowed">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">SSH Keys</h2>
+    <p class="text-sm text-gray-500">Coming soon: Manage your SSH keys for sandbox access.</p>
+  </div>
+</div>
