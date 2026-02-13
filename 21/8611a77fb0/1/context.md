@@ -185,3 +185,39 @@ Let me chronologically analyze the conversation:
 
 still 500 - use chrome to create a new sandcastle yourself!
 
+### Prompt 36
+
+Failed to create sandbox: Container failed to start (state: created)
+
+debug this - create a sandcastle using chrome!
+
+### Prompt 37
+
+[Request interrupted by user]
+
+### Prompt 38
+
+# 📐  CONTEXT-ENGINEERING PIPELINE (DSPy-Style)
+
+## ☑️  PURPOSE  
+Engineer a **self-validating, multi-agent software-development workspace** that:  
+
+1. **Interviews** the user, expands & refines requirements.  
+2. **Writes, selects, compresses, and isolates** context per the attached *Context Engineering Cheat Sheet* (Write ▸ Select ▸ Compress ▸ Isolate).  
+3. **Scaffolds** a project-folder tree populated with `CLAUDE.md` and slash-command files under `./.claude/commands/`.  
+4. **S...
+
+### Prompt 39
+
+[Request interrupted by user]
+
+### Prompt 40
+
+continue chrome is now connected
+
+### Prompt 41
+
+Failed to open terminal: Permission denied @ rb_sysopen - /data/traefik/dynamic/terminal-2.yml
+
+now debug opening the terminal in the web!
+
