@@ -15,3 +15,53 @@ create mise task to reset local docker coompse env
 ---
 
 commit these fixes
+
+---
+
+what is teh default user/pw created on deploy?
+
+---
+
+for the lcoal docker deploy and also bin/dev change the port to 4000
+
+---
+
+mise run deploy:local:reset shoudl also delete theg wetty container!
+
+---
+
+~/Projects/GitHub/Sandcastle [main] % mise run deploy:local:reset
+[deploy:local:reset] ERROR Failed to render task script: #!/usr/bin/env bash
+set -euo pipefail
+
+echo "Removing WeTTY containers..."
+docker ps -a --filter "name=sc-wetty-" --format "{{.Names}}" | xargs -r docker rm -f || true
+
+echo "Removing Tailscale containers..."
+docker ps -a --filter "name=sc-ts-" --format "{{.Names}}" | xargs -r docker rm -f || true
+
+echo "Stopping and removing containers, volumes, and networks..."
+docker compose -f docker-compose.local.yml down --volumes --remove-orphans
+
+echo ""
+echo "Local environment reset complete."
+echo "Run 'mise run deploy:local' to rebuild and start fresh."
+
+[deploy:local:reset] ERROR Failed to parse '__tera_one_off'
+[deploy:local:reset] ERROR  --> 5:52
+
+---
+
+run and debug "mise run deploy:local:reset"
+
+---
+
+whats the admin user and PW after mise run deploy:local
+
+---
+
+flash should be centred!
+
+---
+
+commit these changes
