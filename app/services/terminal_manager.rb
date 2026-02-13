@@ -202,15 +202,21 @@ class TerminalManager
       # No existing container
     end
 
+    ssh_command = [
+      "ssh", "-p", "22",
+      "-o", "StrictHostKeyChecking=no",
+      "-o", "UserKnownHostsFile=/dev/null",
+      "-o", "LogLevel=ERROR",
+      "-i", "/etc/wetty/key",
+      "#{user.name}@#{sandbox.full_name}",
+      "-t", "tmux new-session -A -s main"
+    ].join(" ")
+
     container = Docker::Container.create(
       "name" => container_name,
       "Image" => WETTY_IMAGE,
       "Env" => [
-        "SSHHOST=#{sandbox.full_name}",
-        "SSHPORT=22",
-        "SSHUSER=#{user.name}",
-        "SSHAUTH=publickey",
-        "SSHKEY=/etc/wetty/key",
+        "COMMAND=#{ssh_command}",
         "BASE=/terminal/#{sandbox.id}/wetty"
       ],
       "HostConfig" => {
