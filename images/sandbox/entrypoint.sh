@@ -27,8 +27,11 @@ if [ -n "$SSH_KEY" ]; then
     chown -R "$USERNAME:$USERNAME" "$SSH_DIR"
 fi
 
-# Ensure home directory ownership
+# Ensure home directory ownership and permissions.
+# The host may create bind-mounted home dirs with 777 so Sysbox-mapped root
+# can write. Tighten to 755 here so sshd StrictModes is satisfied.
 chown "$USERNAME:$USERNAME" "/home/$USERNAME"
+chmod 755 "/home/$USERNAME"
 
 # Ensure workspace is accessible
 chown "$USERNAME:$USERNAME" /workspace 2>/dev/null || true
