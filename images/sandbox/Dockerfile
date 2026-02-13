@@ -36,6 +36,12 @@ RUN mkdir -p /opt/sandcastle/bin \
     && cp -L /root/.local/bin/claude /opt/sandcastle/bin/claude \
     && rm -rf /root/.local/share/claude /root/.local/bin/claude
 
+# Entire CLI — git observability for AI agent sessions (https://entire.io)
+RUN ARCH="$(dpkg --print-architecture)" \
+    && curl -fsSL "https://github.com/entireio/cli/releases/latest/download/entire_linux_${ARCH}.tar.gz" \
+       | tar -xz -C /usr/local/bin entire \
+    && chmod +x /usr/local/bin/entire
+
 # Shell config: PATH, mise activation, aliases
 RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
     && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
