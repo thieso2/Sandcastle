@@ -146,3 +146,11 @@ thsi was claude running as GH action. it does talk back but not craete branch or
 
 yes, commit and push
 
+### Prompt 29
+
+commit local changes and push
+
+### Prompt 30
+
+check teh last action runs on GH - no PR no branch - still useless!
+
