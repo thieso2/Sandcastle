@@ -16,3 +16,6 @@ production:
   container_sync:
     class: ContainerSyncJob
     schedule: every 5 minutes
+  stuck_job_cleanup:
+    class: StuckJobCleanupJob
+    schedule: every 5 minutes

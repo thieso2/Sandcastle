@@ -53,6 +53,14 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
+  # Configure Action Cable for WebSocket connections
+  config.action_cable.url = "wss://#{ENV.fetch('SANDCASTLE_HOST', 'localhost')}/cable"
+  config.action_cable.allowed_request_origins = [
+    "http://#{ENV.fetch('SANDCASTLE_HOST', 'localhost')}",
+    "https://#{ENV.fetch('SANDCASTLE_HOST', 'localhost')}",
+    /http:\/\/localhost.*/,
+    /https:\/\/localhost.*/
+  ]
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.

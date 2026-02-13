@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   root "dashboard#index"
 
+  # Mount Action Cable for WebSocket connections
+  mount ActionCable.server => "/cable"
+
   resource :session
   resources :passwords, param: :token
   resource :invite, only: [ :edit, :update ], path_names: { edit: "" }
@@ -19,6 +22,7 @@ Rails.application.routes.draw do
     member do
       post :start
       post :stop
+      post :retry
       get :stats, controller: "dashboard", action: "stats"
       post :terminal, controller: "terminal", action: "open"
       get  "terminal/wait", controller: "terminal", action: "wait"
