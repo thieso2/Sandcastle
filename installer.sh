@@ -123,6 +123,23 @@ derive_vars() {
   fi
 }
 
+# ═══ ensure_dirs ═════════════════════════════════════════════════════════
+# Create/fix data directories and ownership. Safe to run repeatedly.
+
+ensure_dirs() {
+  mkdir -p "$SANDCASTLE_HOME"/etc
+  mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty}
+  mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
+  chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
+  chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" \
+    "$SANDCASTLE_HOME"/data/users \
+    "$SANDCASTLE_HOME"/data/sandboxes \
+    "$SANDCASTLE_HOME"/data/wetty \
+    "$SANDCASTLE_HOME"/data/traefik/dynamic
+  usermod -d "$SANDCASTLE_HOME" "$SANDCASTLE_USER" 2>/dev/null || true
+  ok "Data directories verified"
+}
+
 # ═══ Helpers ═════════════════════════════════════════════════════════════════
 
 show_image_info() {
@@ -555,12 +572,7 @@ DYEOF
 
   # ── Create directories ────────────────────────────────────────────────────
 
-  mkdir -p "$SANDCASTLE_HOME"/etc
-  mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes}
-  mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
-  chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
-  chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$SANDCASTLE_HOME"/data/users "$SANDCASTLE_HOME"/data/sandboxes "$SANDCASTLE_HOME"/data/traefik/dynamic
-  usermod -d "$SANDCASTLE_HOME" "$SANDCASTLE_USER" 2>/dev/null || true
+  ensure_dirs
 
   # ── Detect fresh install vs upgrade ─────────────────────────────────────
 
@@ -953,6 +965,8 @@ cmd_update() {
   show_image_info "sandcastle"
   show_image_info "sandcastle-sandbox"
   echo ""
+
+  ensure_dirs
 
   info "Pulling images..."
   $DOCKER pull "$APP_IMAGE" &
