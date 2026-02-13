@@ -1,0 +1,90 @@
+Implement the following plan:
+
+# Fix WeTTY Terminal: Get it working in local Docker
+
+## Context
+WeTTY terminal implementation is complete (code, tests, UI all done). The blocker is the local Docker networking: Traefik needs to route `/terminal/{id}/wetty` to the WeTTY sidecar container, but the local setup is missing Traefik and has network mismatches.
+
+## Root Causes Found
+1. **`inject_pubkey` hangs** — `container.exec` with `stdin: StringIO` never sends EOF → fixed with base64 pipe approach
+2. **No Traefik locally** — production has Traefik as a Kamal accessory; local Docker Compose doesn't
+3. **Network mismatch** — `sandcastle-web` container is on `sandcastle_default` network, not `sandcastle-web` network where Traefik + WeTTY live
+4. **TLS mode** — dynamic configs need `SANDCASTLE_TLS_MODE=selfsigned` for local dev (no Let's Encrypt)
+
+## Plan
+1. Connect `sandcastle-web` to `sandcastle-web` Docker network (so Traefik can reach Rails)
+2. Verify Traefik container (`sandcastle-traefik`) can reach `sandcastle-web:80`
+3. Set `SANDCASTLE_TLS_MODE=selfsigned` in the running Rails container and restart
+4. Regenerate dynamic Traefik configs in self-signed mode
+5. Verify WeTTY container is running (restart if needed)
+6. Open `https://localhost:8443` in Chrome, click Terminal, verify WeTTY shell appears
+7. If anything fails, check `docker logs` and fix iteratively
+
+## Files to touch
+- `app/services/terminal_manager.rb` — already fixed (base64 inject_pubkey)
+- Docker runtime config only (no code changes expected)
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+<task-notification>
+<task-id>bde7279</task-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Test Rails port 80 with Ruby" failed with exit code 143</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>beee7cc</task-id>
+<output-file>/private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/tasks/beee7cc.output</output-file>
+<status>completed</status>
+<summary>Background command "Check if Rails responds on port 80 internally" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/tasks/beee7cc.output
+
+---
+
+<task-notification>
+<task-id>b6c9b56</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Test Traefik can reach Rails" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>b188f5b</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Test HTTPS access to Traefik" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>b8a89a4</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Test HTTPS response body" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+continue
+
+---
+
+create branch wetty and commit
+
+---
+
+connot start the tern on my local docker install http://localhost:3000/terminal/7/wetty 404. debug
