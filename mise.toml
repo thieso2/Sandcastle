@@ -33,6 +33,20 @@ echo "Logs: docker compose -f docker-compose.local.yml logs -f"
 description = "Stop local docker-compose deployment"
 run = "docker compose -f docker-compose.local.yml down"
 
+[tasks."deploy:local:reset"]
+description = "Reset local docker-compose environment (stop, remove volumes, rebuild)"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Stopping and removing containers, volumes, and networks..."
+docker compose -f docker-compose.local.yml down --volumes --remove-orphans
+
+echo ""
+echo "Local environment reset complete."
+echo "Run 'mise run deploy:local' to rebuild and start fresh."
+"""
+
 [tasks."deploy:local:logs"]
 description = "Tail logs from local docker-compose deployment"
 run = "docker compose -f docker-compose.local.yml logs -f"
