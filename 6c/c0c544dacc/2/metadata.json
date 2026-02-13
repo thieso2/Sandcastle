@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "6cc0c544dacc",
+  "session_id": "92013a1a-f979-48e5-a8d1-8a6096b9daab",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-13T04:53:08.42164Z",
+  "branch": "wetty",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/services/terminal_manager.rb",
+    "docker-compose.local.yml"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 179,
+    "cache_creation_tokens": 198090,
+    "cache_read_tokens": 14262074,
+    "output_tokens": 14558,
+    "api_call_count": 163
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-13T04:53:07.97917Z",
+    "agent_lines": 329,
+    "human_added": 339,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 668,
+    "agent_percentage": 49.25149700598803
+  }
+}
