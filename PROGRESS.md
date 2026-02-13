@@ -52,8 +52,10 @@
 - [x] Verify web container running (✅ Puma on port 80)
 - [x] Verify worker container running (✅ Solid Queue processing)
 - [x] Verify site accessible (✅ HTTP/2 302 to /session/new)
+- [x] Replace turbo_confirm with custom HTML modal (commit c11f800)
 - [ ] Manual browser testing required:
-  - [ ] Login and navigation
+  - [x] Login and navigation (✅ All pages load correctly)
+  - [x] Custom confirm modal (✅ Working perfectly, no native dialogs)
   - [ ] Flash auto-dismiss behavior
   - [ ] Sandbox lifecycle + toast notifications
   - [ ] Stats endpoint (no 500 errors on destroyed sandboxes)
