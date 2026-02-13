@@ -65,3 +65,84 @@ flash should be centred!
 
 commit these changes
 
+### Prompt 14
+
+craete a GH issue "i want to create a sandcastle" on the website. the "create" form should have all teh fields that sandcastle create has.
+
+### Prompt 15
+
+~/Projects/GitHub/Sandcastle [main] % sandcastle login http://localhost:4000/ local
+Your code: 9CBE-D427
+
+Open this URL to authorize:
+  http://localhost:4000/auth/device?code=9CBE-D427
+
+Browser opened. Waiting for authorization...
+
+Logged in to http://localhost:4000 (alias: local)
+~/Projects/GitHub/Sandcastle [main] % sandcastle create  thies --home --data
+Sandbox "thies" created.
+  Home:      mounted (~/ persisted)
+  Data:      mounted (user data root → /data)
+  Tailscale: enabled
+Waiting for...
+
+### Prompt 16
+
+[Request interrupted by user]
+
+### Prompt 17
+
+i forgot to add the ssh key - never mind!
+
+### Prompt 18
+
+https://localhost:8443/terminal/2/wetty 
+
+This site can’t be reached
+localhost refused to connect.
+Try:
+
+Checking the connection
+
+### Prompt 19
+
+1
+
+### Prompt 20
+
+https://localhost:8443/ -> 404
+
+### Prompt 21
+
+http://localhost:8080 -> 404
+https://localhost:8443 -> works
+
+### Prompt 22
+
+https://localhost:8443/terminal/2/wetty -> 404
+
+### Prompt 23
+
+mise run deploy:local should create admin user thieso@gmail.com username: thies password: tubu ssh-key:"ssh-ed25519 REDACTED thieso@gmail.com"
+
+### Prompt 24
+
+[Request interrupted by user]
+
+### Prompt 25
+
+mise run deploy:local should create admin user thieso@gmail.com username: thies password: tubu ssh-key:"ssh-ed25519  REDACTED thieso@gmail.com" and password does not need to be changed on 1st login
+
+### Prompt 26
+
+research and explain why @cluade did not craete a PR or branch when working on "https://github.com/thieso2/Sandcastle/issues/13"
+
+### Prompt 27
+
+thsi was claude running as GH action. it does talk back but not craete branch or PR. look and analyze https://github.com/thieso2/Sandcastle/actions/runs/21989504073
+
+### Prompt 28
+
+yes, commit and push
+

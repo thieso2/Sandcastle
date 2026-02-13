@@ -65,3 +65,87 @@ flash should be centred!
 ---
 
 commit these changes
+
+---
+
+craete a GH issue "i want to create a sandcastle" on the website. the "create" form should have all teh fields that sandcastle create has.
+
+---
+
+~/Projects/GitHub/Sandcastle [main] % sandcastle login http://localhost:4000/ local
+Your code: 9CBE-D427
+
+Open this URL to authorize:
+  http://localhost:4000/auth/device?code=9CBE-D427
+
+Browser opened. Waiting for authorization...
+
+Logged in to http://localhost:4000 (alias: local)
+~/Projects/GitHub/Sandcastle [main] % sandcastle create  thies --home --data
+Sandbox "thies" created.
+  Home:      mounted (~/ persisted)
+  Data:      mounted (user data root → /data)
+  Tailscale: enabled
+Waiting for SSH to be ready....
+admin@172.30.101.3: Permission denied (publickey).
+
+running locally in docker - (mise run deploy:local)
+
+---
+
+[Request interrupted by user]
+
+---
+
+i forgot to add the ssh key - never mind!
+
+---
+
+https://localhost:8443/terminal/2/wetty 
+
+This site can’t be reached
+localhost refused to connect.
+Try:
+
+Checking the connection
+
+---
+
+1
+
+---
+
+https://localhost:8443/ -> 404
+
+---
+
+http://localhost:8080 -> 404
+https://localhost:8443 -> works
+
+---
+
+https://localhost:8443/terminal/2/wetty -> 404
+
+---
+
+mise run deploy:local should create admin user thieso@gmail.com username: thies password: tubu ssh-key:"ssh-ed25519 REDACTED thieso@gmail.com"
+
+---
+
+[Request interrupted by user]
+
+---
+
+mise run deploy:local should create admin user thieso@gmail.com username: thies password: tubu ssh-key:"ssh-ed25519  REDACTED thieso@gmail.com" and password does not need to be changed on 1st login
+
+---
+
+research and explain why @cluade did not craete a PR or branch when working on "https://github.com/thieso2/Sandcastle/issues/13"
+
+---
+
+thsi was claude running as GH action. it does talk back but not craete branch or PR. look and analyze https://github.com/thieso2/Sandcastle/actions/runs/21989504073
+
+---
+
+yes, commit and push
