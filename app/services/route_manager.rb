@@ -88,7 +88,12 @@ class RouteManager
     config = {
       "http" => {
         "routers" => {
-          "rails" => {
+          "rails-http" => {
+            "rule" => rule,
+            "service" => "rails",
+            "entryPoints" => [ "web" ]
+          },
+          "rails-https" => {
             "rule" => rule,
             "service" => "rails",
             "entryPoints" => [ "websecure" ],
