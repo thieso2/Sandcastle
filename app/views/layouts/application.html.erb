@@ -28,7 +28,7 @@
       <%= render "shared/navbar" %>
     <% end %>
 
-    <main class="container mx-auto px-5 flex <%= authenticated? ? 'pt-20' : 'mt-28' %>">
+    <main class="container mx-auto px-5 <%= authenticated? ? 'pt-20' : 'mt-28' %>">
       <% if flash[:alert] %>
         <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= flash[:alert] %></p>
       <% end %>
