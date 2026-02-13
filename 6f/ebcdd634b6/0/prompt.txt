@@ -1,0 +1,9 @@
+cannot open terminal on https://demo.sandcastle.rocks/ - debug  (ssh sandman -c "sudo /sandcastle/docker-runtime/bin/docker compose -f /sandcastle/docker-compose.yml  logs -f"
+
+---
+
+update installer.sh so update fixes an installation.
+
+---
+
+commit and push
