@@ -41,6 +41,9 @@ SANDCASTLE_HTTPS_PORT="443"
 
 # ─── Admin account (required for fresh install) ─────────────────────────────
 
+# Username for the admin account
+SANDCASTLE_ADMIN_USER="admin"
+
 # SANDCASTLE_ADMIN_EMAIL="admin@example.com"
 # SANDCASTLE_ADMIN_PASSWORD="changeme"
 # SANDCASTLE_ADMIN_PASSWORD_FILE="/path/to/password-file"  # alternative to inline password
