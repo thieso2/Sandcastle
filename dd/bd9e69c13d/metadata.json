@@ -6,8 +6,8 @@
   "checkpoints_count": 5,
   "files_touched": [
     ".github/workflows/claude.yml",
+    "PROGRESS.md",
     "app/controllers/admin/sandboxes_controller.rb",
-    "app/views/shared/_toast.html.erb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
     "research/COMPARISON.md",
@@ -58,10 +58,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 584,
-    "cache_creation_tokens": 185209,
-    "cache_read_tokens": 7062409,
-    "output_tokens": 16557,
-    "api_call_count": 72
+    "input_tokens": 914,
+    "cache_creation_tokens": 229389,
+    "cache_read_tokens": 8180125,
+    "output_tokens": 17794,
+    "api_call_count": 113
   }
 }
