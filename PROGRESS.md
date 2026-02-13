@@ -80,7 +80,9 @@
 - ❌ **Jobs page completely blank** - /admin/jobs returns empty page, MissionControl::Jobs not rendering
 - ❌ **Admin sandbox stats shows "Content missing"** - Stats not displaying on admin dashboard
 - ❌ **Stats endpoint 500 error for destroyed sandboxes** - Turbo frame error for sandbox_stats_10 (destroyed sandbox)
-- ⚠️ **Confirm dialogs block browser automation** - turbo_confirm uses native browser dialogs which prevent automated testing. Need custom HTML modals.
+- ❌ **Toast notifications not appearing** - Background jobs (Stop/Start/Provision/Destroy) don't show toast notifications despite broadcasts in job code
+- ❌ **Flash messages not appearing** - Tailscale settings update doesn't show flash (Turbo frame issue?)
+- ✅ ~~Confirm dialogs block browser automation~~ - FIXED with custom HTML modals (commit c11f800)
 
 ### Low Priority
 (minor issues)
