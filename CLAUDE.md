@@ -66,6 +66,7 @@ Both concerns provide `require_admin!` for admin-only actions.
 
 Business logic lives in plain Ruby service classes, not models or controllers:
 - `SandboxManager` — Container lifecycle (create/destroy/start/stop/snapshot/restore). Uses the `docker-api` gem to talk to the Docker daemon via socket.
+- `TerminalManager` — WeTTY web terminal sidecar lifecycle (see Web Terminal section below)
 - `TailscaleManager` — Per-user Tailscale sidecar lifecycle (see Tailscale section below)
 - `SystemStatus` — Docker daemon stats for admin dashboard
 
@@ -83,6 +84,28 @@ The sandbox image (`images/sandbox/`) is Ubuntu 24.04 with Docker-in-Docker, SSH
 - runc pinned to v1.1.15 (1.2+ fails in Sysbox)
 - Docker daemon MTU matches container's eth0 to avoid fragmentation
 - The `entrypoint.sh` creates the user, injects SSH keys, starts dockerd, then runs sshd
+
+### Web Terminal (WeTTY)
+
+Browser-based terminal access via [WeTTY](https://github.com/butlerx/wetty) sidecar containers. Each terminal open spawns an ephemeral WeTTY container that SSH's into the sandbox.
+
+**Architecture:**
+- WeTTY container: `sc-wetty-{user}-{sandbox}` on the `sandcastle-web` Docker network
+- SSH keypair: generated per-open in `/data/wetty/{full_name}/`, private key copied into WeTTY container via `docker exec` + base64 (bind mounts don't work because Rails runs inside a container with a named Docker volume for `/data`)
+- Traefik dynamic config: `terminal-{id}.yml` in `/data/traefik/dynamic/` with forwardAuth middleware
+- WeTTY uses `COMMAND` env var with full SSH command including tmux (`tmux new-session -A -s main`)
+- `SANDCASTLE_TERMINAL_URL` env var controls the redirect target (needed when Rails is behind a different port than Traefik)
+
+**ForwardAuth flow (`TerminalController#auth`):**
+- Traefik sends each request to `http://sandcastle-web:80/terminal/auth` with `X-Forwarded-Uri`
+- Rails validates the session cookie and sandbox ownership (owner or admin)
+- Unauthenticated users get redirected to the login page with `return_to_after_authenticating` set to the terminal URL
+- Returns 200 to allow, redirect to login, or 401 for unauthorized
+
+**Important gotchas:**
+- Sandbox entrypoint must **append** SSH keys (not overwrite) because all sandboxes for the same user share `/home/{user}` via bind mount
+- `remove_pubkey` uses end-of-line regex anchor (`$`) to avoid substring collisions between sandbox names
+- Traefik config is written early in `TerminalManager#open` (before container creation) with a 1-second sleep to allow Traefik to detect the new route before the browser redirect arrives
 
 ### Tailscale System
 
