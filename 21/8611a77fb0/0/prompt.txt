@@ -1,0 +1,5 @@
+add SANDCASTLE_ADMIN_USER (name of the user to create) to installer.sh
+
+---
+
+commit and push
