@@ -110,6 +110,18 @@ class RouteManager
       }
     }
 
+    # Add TLS certificates section for self-signed mode
+    if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+      config["tls"] = {
+        "certificates" => [
+          {
+            "certFile" => "/data/certs/cert.pem",
+            "keyFile" => "/data/certs/key.pem"
+          }
+        ]
+      }
+    end
+
     File.write(File.join(DYNAMIC_DIR, "rails.yml"), config.to_yaml)
   end
 
