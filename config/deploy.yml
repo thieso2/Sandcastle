@@ -52,7 +52,7 @@ accessories:
     image: postgres:18
     host: 100.65.155.100
     volumes:
-      - /data/pgdata:/var/lib/postgresql
+      - /data/postgres:/var/lib/postgresql
     env:
       clear:
         POSTGRES_USER: sandcastle

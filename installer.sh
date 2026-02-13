@@ -279,7 +279,7 @@ services:
     runtime: runc
     restart: unless-stopped
     volumes:
-      - ${SANDCASTLE_HOME}/pgdata:/var/lib/postgresql
+      - ${SANDCASTLE_HOME}/data/postgres:/var/lib/postgresql
       - ${SANDCASTLE_HOME}/etc/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
     environment:
       POSTGRES_USER: sandcastle
