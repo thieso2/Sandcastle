@@ -25,7 +25,10 @@ echo "Starting services..."
 docker compose -f docker-compose.local.yml up -d
 
 echo ""
-echo "Sandcastle running at http://localhost:${PORT:-4000}"
+echo "Sandcastle running at:"
+echo "  - https://localhost:8443 (via Traefik, with terminal support)"
+echo "  - http://localhost:8080 (via Traefik, HTTP)"
+echo ""
 echo "Logs: docker compose -f docker-compose.local.yml logs -f"
 """
 

@@ -1,4 +1,55 @@
 services:
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - traefik-data:/data
+    command:
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.file.directory=/data/dynamic"
+      - "--providers.file.watch=true"
+      - "--log.level=INFO"
+    networks:
+      - sandcastle-web
+    depends_on:
+      init-traefik:
+        condition: service_completed_successfully
+
+  init-traefik:
+    image: busybox
+    volumes:
+      - traefik-data:/data
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data/dynamic /data/certs
+        chown -R 1000:1000 /data
+        cat > /data/dynamic/rails.yml << 'EOFCONFIG'
+        http:
+          routers:
+            rails-http:
+              rule: "HostRegexp(`.+`)"
+              service: rails
+              entryPoints:
+                - web
+            rails-https:
+              rule: "HostRegexp(`.+`)"
+              service: rails
+              entryPoints:
+                - websecure
+              tls: {}
+          services:
+            rails:
+              loadBalancer:
+                servers:
+                  - url: "http://sandcastle-web:80"
+        EOFCONFIG
+
   postgres:
     image: postgres:18
     restart: unless-stopped
@@ -33,11 +84,10 @@ services:
     container_name: sandcastle-web
     group_add:
       - "${DOCKER_GID:-0}"
-    ports:
-      - "${PORT:-4000}:80"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - sandcastle-data:/data
+      - traefik-data:/data/traefik
     networks:
       - default
       - sandcastle-web
@@ -67,6 +117,11 @@ services:
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+      SANDCASTLE_ADMIN_USER: thies
+      SANDCASTLE_ADMIN_EMAIL: thieso@gmail.com
+      SANDCASTLE_ADMIN_PASSWORD: tubu
+      SANDCASTLE_ADMIN_SSH_KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINZ69Do+hFr765usOHQwQG6pzLUyT4kr+uchUrAgrTqH thieso@gmail.com"
+      SANDCASTLE_SKIP_PASSWORD_CHANGE: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,3 +133,4 @@ networks:
 volumes:
   pgdata:
   sandcastle-data:
+  traefik-data:
