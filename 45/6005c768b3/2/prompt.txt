@@ -1,0 +1,5 @@
+when opening a terminal from the dashboard the 1st time i sometimes get Bad Gateway - should we add a "waiting..." page?
+
+---
+
+[Request interrupted by user for tool use]
