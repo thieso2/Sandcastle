@@ -873,7 +873,7 @@ INITDB
 
   cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
 #!/bin/bash
-exec ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml --env-file ${SANDCASTLE_HOME}/.env logs -f "\$@"
+exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml --env-file ${SANDCASTLE_HOME}/.env logs -f "\$@"
 LOGS
   chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
   ok "docker-logs helper written"
