@@ -20,16 +20,28 @@ module Api
         params[:image] || SandboxManager::DEFAULT_IMAGE
       end
 
-      sandbox = SandboxManager.new.create(
-        user: current_user,
+      # Build sandbox record
+      sandbox = current_user.sandboxes.build(
         name: params.require(:name),
+        status: "pending",
         image: image,
-        persistent: params[:persistent] || false,
-        tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? },
+        persistent_volume: params[:persistent] || false,
         mount_home: params[:mount_home] || false,
         data_path: params[:data_path],
+        tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? },
         temporary: params[:temporary] || false
       )
+
+      if sandbox.persistent_volume
+        sandbox.volume_path = "#{SandboxManager::DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
+      end
+
+      sandbox.save!
+
+      # Enqueue async job
+      SandboxProvisionJob.perform_later(sandbox_id: sandbox.id)
+
+      # Return immediately with job_status so CLI can poll
       render json: sandbox_json(sandbox), status: :created
     end
 
@@ -39,20 +51,35 @@ module Api
     end
 
     def destroy
-      SandboxManager.new.destroy(
-        sandbox: @sandbox,
-        keep_volume: params[:keep_volume] || false
-      )
-      render json: { status: "destroyed" }
+      if @sandbox.job_in_progress?
+        render json: { error: "Operation already in progress" }, status: :conflict
+        return
+      end
+
+      # Enqueue async job
+      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
+
+      # Return immediately with job_status so CLI can poll
+      render json: sandbox_json(@sandbox.reload)
     end
 
     def start
-      SandboxManager.new.start(sandbox: @sandbox)
+      if @sandbox.job_in_progress?
+        render json: { error: "Operation already in progress" }, status: :conflict
+        return
+      end
+
+      SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
       render json: sandbox_json(@sandbox.reload)
     end
 
     def stop
-      SandboxManager.new.stop(sandbox: @sandbox)
+      if @sandbox.job_in_progress?
+        render json: { error: "Operation already in progress" }, status: :conflict
+        return
+      end
+
+      SandboxStopJob.perform_later(sandbox_id: @sandbox.id)
       render json: sandbox_json(@sandbox.reload)
     end
 
@@ -103,7 +130,9 @@ module Api
         tailscale: sandbox.tailscale,
         routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
         created_at: sandbox.created_at,
-        connect_command: sandbox.connect_command
+        connect_command: sandbox.connect_command,
+        job_status: sandbox.job_status,
+        job_error: sandbox.job_error
       }
 
       if sandbox.tailscale?

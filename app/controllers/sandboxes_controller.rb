@@ -1,5 +1,5 @@
 class SandboxesController < ApplicationController
-  before_action :set_sandbox, only: [ :destroy, :start, :stop ]
+  before_action :set_sandbox, only: [ :destroy, :start, :stop, :retry ]
 
   def new
     authorize Sandbox
@@ -15,41 +15,83 @@ class SandboxesController < ApplicationController
       params[:image].presence || SandboxManager::DEFAULT_IMAGE
     end
 
-    sandbox = SandboxManager.new.create(
-      user: Current.user,
+    # Build sandbox record
+    sandbox = Current.user.sandboxes.build(
       name: params.require(:name),
+      status: "pending",
       image: image,
-      persistent: params[:persistent] == "1",
-      tailscale: params[:tailscale] == "1",
+      persistent_volume: params[:persistent] == "1",
       mount_home: params[:mount_home] == "1",
       data_path: params[:data_path].presence,
+      tailscale: params[:tailscale] == "1",
       temporary: params[:temporary] == "1"
     )
 
-    redirect_to root_path, notice: "Sandcastle #{sandbox.name} created successfully"
-  rescue ActiveRecord::RecordInvalid => e
-    @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
-    flash.now[:alert] = "Failed to create sandbox: #{e.record.errors.full_messages.join(', ')}"
-    render :new, status: :unprocessable_entity
-  rescue SandboxManager::Error => e
+    if sandbox.persistent_volume
+      sandbox.volume_path = "#{SandboxManager::DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
+    end
+
+    if sandbox.save
+      # Enqueue async job
+      SandboxProvisionJob.perform_later(sandbox_id: sandbox.id)
+
+      # Optimistic redirect - dashboard will update via Turbo
+      redirect_to root_path, notice: "Creating sandcastle #{sandbox.name}..."
+    else
+      @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+      flash.now[:alert] = "Failed to create sandbox: #{sandbox.errors.full_messages.join(', ')}"
+      render :new, status: :unprocessable_entity
+    end
+  rescue => e
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     flash.now[:alert] = "Failed to create sandbox: #{e.message}"
     render :new, status: :unprocessable_entity
   end
 
   def destroy
-    SandboxManager.new.destroy(sandbox: @sandbox)
-    redirect_to root_path, notice: "Sandcastle #{@sandbox.name} destroyed"
+    if @sandbox.job_in_progress?
+      redirect_to root_path, alert: "Operation already in progress"
+      return
+    end
+
+    SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
+    redirect_to root_path, notice: "Destroying sandcastle #{@sandbox.name}..."
   end
 
   def start
-    SandboxManager.new.start(sandbox: @sandbox)
-    redirect_to root_path, notice: "Sandcastle #{@sandbox.name} started"
+    if @sandbox.job_in_progress?
+      redirect_to root_path, alert: "Operation already in progress"
+      return
+    end
+
+    SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
+    redirect_to root_path, notice: "Starting sandcastle #{@sandbox.name}..."
   end
 
   def stop
-    SandboxManager.new.stop(sandbox: @sandbox)
-    redirect_to root_path, notice: "Sandcastle #{@sandbox.name} stopped"
+    if @sandbox.job_in_progress?
+      redirect_to root_path, alert: "Operation already in progress"
+      return
+    end
+
+    SandboxStopJob.perform_later(sandbox_id: @sandbox.id)
+    redirect_to root_path, notice: "Stopping sandcastle #{@sandbox.name}..."
+  end
+
+  def retry
+    return unless @sandbox.job_failed?
+
+    @sandbox.update!(job_error: nil)
+
+    case @sandbox.status
+    when "destroyed", "pending"
+      redirect_to root_path, alert: "Cannot retry creation. Please create a new sandbox."
+    when "stopped"
+      SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
+      redirect_to root_path, notice: "Retrying start..."
+    when "running"
+      redirect_to root_path, alert: "Sandbox is already running"
+    end
   end
 
   private
