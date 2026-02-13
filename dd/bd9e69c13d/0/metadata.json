@@ -3,32 +3,38 @@
   "checkpoint_id": "ddbd9e69c13d",
   "session_id": "8bbe5e59-333c-4dd6-9b21-339d8497f6f9",
   "strategy": "manual-commit",
-  "created_at": "2026-02-13T19:53:06.098743Z",
+  "created_at": "2026-02-13T19:57:06.48274Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "app/services/route_manager.rb",
     "config/initializers/mission_control.rb",
-    "config/initializers/mission_control_jobs.rb"
+    "config/initializers/mission_control_jobs.rb",
+    "docs/LOCAL_CERT_SETUP.md",
+    "research/docker-sysbox.md",
+    "research/firecracker.md",
+    "research/flintlock.md",
+    "research/gvisor.md",
+    "research/kata-containers.md",
+    "scripts/generate-local-cert.sh"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "3bb29413-8e3e-4d2a-9dee-ccd76bcf837c",
-  "checkpoint_transcript_start": 425,
-  "transcript_lines_at_start": 425,
+  "transcript_identifier_at_start": "e93759fd-1993-4b99-a343-ef35c5a7597c",
+  "checkpoint_transcript_start": 464,
+  "transcript_lines_at_start": 464,
   "token_usage": {
-    "input_tokens": 58,
-    "cache_creation_tokens": 5463,
-    "cache_read_tokens": 730780,
-    "output_tokens": 161,
-    "api_call_count": 7
+    "input_tokens": 170,
+    "cache_creation_tokens": 9473,
+    "cache_read_tokens": 2337989,
+    "output_tokens": 2078,
+    "api_call_count": 21
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-13T19:53:06.027032Z",
-    "agent_lines": 0,
-    "human_added": 27,
-    "human_modified": 1,
-    "human_removed": 0,
-    "total_committed": 28,
-    "agent_percentage": 0
+    "calculated_at": "2026-02-13T19:57:06.385493Z",
+    "agent_lines": 42,
+    "human_added": 0,
+    "human_modified": 80,
+    "human_removed": 3034,
+    "total_committed": 122,
+    "agent_percentage": 34.42622950819672
   }
 }

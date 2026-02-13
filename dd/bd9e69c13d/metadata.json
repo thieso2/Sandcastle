@@ -5,9 +5,15 @@
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "app/services/route_manager.rb",
     "config/initializers/mission_control.rb",
-    "config/initializers/mission_control_jobs.rb"
+    "config/initializers/mission_control_jobs.rb",
+    "docs/LOCAL_CERT_SETUP.md",
+    "research/docker-sysbox.md",
+    "research/firecracker.md",
+    "research/flintlock.md",
+    "research/gvisor.md",
+    "research/kata-containers.md",
+    "scripts/generate-local-cert.sh"
   ],
   "sessions": [
     {
@@ -19,10 +25,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 58,
-    "cache_creation_tokens": 5463,
-    "cache_read_tokens": 730780,
-    "output_tokens": 161,
-    "api_call_count": 7
+    "input_tokens": 170,
+    "cache_creation_tokens": 9473,
+    "cache_read_tokens": 2337989,
+    "output_tokens": 2078,
+    "api_call_count": 21
   }
 }

@@ -10,3 +10,7 @@ look at @tasks.md - check what's done and what is not - continue and to the chor
 
 we're back on the traefik cert and not our own, why?
 
+### Prompt 3
+
+its the sandcaste cert but not the one we made valid in the system keychain!
+
