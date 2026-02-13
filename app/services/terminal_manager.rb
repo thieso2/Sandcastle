@@ -32,6 +32,11 @@ class TerminalManager
     inject_pubkey(sandbox, key_dir)
     create_wetty_container(sandbox: sandbox, user: user, key_dir: key_dir)
 
+    # Give Traefik time to detect the new route configuration
+    # before the wait page starts polling. Traefik's file watcher
+    # typically picks up changes within 1-2 seconds.
+    sleep 2
+
     wetty_url(sandbox)
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to open terminal: #{e.message}"

@@ -28,7 +28,7 @@ services:
       - -c
       - |
         mkdir -p /data/dynamic /data/certs
-        chown -R 1000:1000 /data
+        chown -R 220568:220568 /data
         cat > /data/dynamic/rails.yml << 'EOFCONFIG'
         http:
           routers:

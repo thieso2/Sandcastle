@@ -15,7 +15,7 @@ Rails.application.routes.draw do
   get  "auth/device/approve/:id",  to: "device_auth#confirm",  as: :auth_device_confirm
   post "auth/device/approve",      to: "device_auth#approve",  as: :auth_device_approve
 
-  resources :sandboxes, only: :destroy do
+  resources :sandboxes, only: [ :new, :create, :destroy ] do
     member do
       post :start
       post :stop
