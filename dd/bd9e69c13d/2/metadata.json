@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "ddbd9e69c13d",
+  "session_id": "0c039098-943b-443b-af03-80955bb239dc",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-13T20:01:27.322808Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "config/initializers/mission_control.rb",
+    "config/initializers/mission_control_jobs.rb",
+    "research/COMPARISON.md",
+    "research/QUICK_REFERENCE.md",
+    "research/README.md",
+    "research/docker-sysbox.md",
+    "research/firecracker.md",
+    "research/flintlock.md",
+    "research/gvisor.md",
+    "research/kata-containers.md",
+    "scripts/generate-local-cert.sh"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 50,
+    "cache_creation_tokens": 52734,
+    "cache_read_tokens": 270698,
+    "output_tokens": 10014,
+    "api_call_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-13T20:01:27.240598Z",
+    "agent_lines": 41,
+    "human_added": 0,
+    "human_modified": 213,
+    "human_removed": 4246,
+    "total_committed": 254,
+    "agent_percentage": 16.141732283464567
+  }
+}

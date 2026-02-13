@@ -3,11 +3,14 @@
   "checkpoint_id": "ddbd9e69c13d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
     "docs/LOCAL_CERT_SETUP.md",
+    "research/COMPARISON.md",
+    "research/QUICK_REFERENCE.md",
+    "research/README.md",
     "research/docker-sysbox.md",
     "research/firecracker.md",
     "research/flintlock.md",
@@ -29,13 +32,20 @@
       "context": "/dd/bd9e69c13d/1/context.md",
       "content_hash": "/dd/bd9e69c13d/1/content_hash.txt",
       "prompt": "/dd/bd9e69c13d/1/prompt.txt"
+    },
+    {
+      "metadata": "/dd/bd9e69c13d/2/metadata.json",
+      "transcript": "/dd/bd9e69c13d/2/full.jsonl",
+      "context": "/dd/bd9e69c13d/2/context.md",
+      "content_hash": "/dd/bd9e69c13d/2/content_hash.txt",
+      "prompt": "/dd/bd9e69c13d/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 212,
-    "cache_creation_tokens": 52020,
-    "cache_read_tokens": 2493625,
-    "output_tokens": 3458,
-    "api_call_count": 26
+    "input_tokens": 262,
+    "cache_creation_tokens": 104754,
+    "cache_read_tokens": 2764323,
+    "output_tokens": 13472,
+    "api_call_count": 32
   }
 }
