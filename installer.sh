@@ -166,7 +166,7 @@ ensure_dirs() {
   # StrictModes is satisfied (rejects 777 home dirs).
   for cid in $($DOCKER ps -q 2>/dev/null); do
     user=$($DOCKER inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$cid" \
-      | grep '^SANDCASTLE_USER=' | cut -d= -f2)
+      | grep '^SANDCASTLE_USER=' | cut -d= -f2 || true)
     [ -n "$user" ] && $DOCKER exec "$cid" chmod 755 "/home/$user" 2>/dev/null || true
   done
   usermod -d "$SANDCASTLE_HOME" "$SANDCASTLE_USER" 2>/dev/null || true
