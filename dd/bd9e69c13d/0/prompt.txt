@@ -7,3 +7,11 @@ we're back on the traefik cert and not our own, why?
 ---
 
 its the sandcaste cert but not the one we made valid in the system keychain!
+
+---
+
+doit
+
+---
+
+need to re-deploy? still red!

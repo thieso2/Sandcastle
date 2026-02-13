@@ -7,7 +7,6 @@
   "files_touched": [
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
-    "docs/LOCAL_CERT_SETUP.md",
     "research/COMPARISON.md",
     "research/QUICK_REFERENCE.md",
     "research/README.md",
@@ -42,10 +41,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 262,
-    "cache_creation_tokens": 104754,
-    "cache_read_tokens": 2764323,
-    "output_tokens": 13472,
-    "api_call_count": 32
+    "input_tokens": 168,
+    "cache_creation_tokens": 97934,
+    "cache_read_tokens": 1480470,
+    "output_tokens": 11549,
+    "api_call_count": 21
   }
 }
