@@ -47,26 +47,38 @@
 - [ ] Verify all tests pass (pending)
 
 ## Phase 7: Chrome Testing & Bug Fixes ⏳
-- [ ] Deploy locally
-- [ ] Test basic lifecycle
-- [ ] Test Tailscale integration
-- [ ] Test snapshots
-- [ ] Test error handling
-- [ ] Test job monitoring
-- [ ] Test CLI commands
-- [ ] Document bugs
-- [ ] Fix critical bugs
+- [x] Deploy locally (DEPLOYED - https://sandcastle.local:8443)
+- [x] Fix syntax error in SandboxProvisionJob (extra 'end')
+- [x] Verify web container running (✅ Puma on port 80)
+- [x] Verify worker container running (✅ Solid Queue processing)
+- [x] Verify site accessible (✅ HTTP/2 302 to /session/new)
+- [ ] Manual browser testing required:
+  - [ ] Login and navigation
+  - [ ] Flash auto-dismiss behavior
+  - [ ] Sandbox lifecycle + toast notifications
+  - [ ] Stats endpoint (no 500 errors on destroyed sandboxes)
+  - [ ] Job monitoring dashboard at /admin/jobs
+  - [ ] Tailscale integration
+  - [ ] Snapshots
+  - [ ] CLI commands
 
-## Bugs Found
+## Bugs Found & Fixed
+
+### Fixed
+- ✅ **Syntax error in SandboxProvisionJob** - Extra 'end' statement caused web container crash (commit 4b7efd0)
+- ✅ **MissionControl::Jobs authentication** - Fixed route mounting and authentication setup (commits 2d63c17, 296373d, 4627b7c, b3cb39e)
 
 ### Critical
 (breaks core features)
+- None found
 
 ### High Priority
 (UX issues)
+- ⚠️ **BUILD_* variable warnings** - docker-compose shows warnings for unset BUILD_VERSION, BUILD_GIT_SHA, BUILD_GIT_DIRTY, BUILD_DATE variables (cosmetic, not breaking)
 
 ### Low Priority
 (minor issues)
+- None found
 
 ## Notes
 
