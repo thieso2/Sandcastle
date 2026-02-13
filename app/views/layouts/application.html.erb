@@ -32,6 +32,9 @@
     <%# Toast notifications container %>
     <div id="toasts" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
+    <%# Confirmation modal %>
+    <%= render "shared/confirm_modal" %>
+
     <main class="container mx-auto px-5 <%= authenticated? ? 'pt-20' : 'mt-28' %>">
       <% if flash[:alert] %>
         <div class="flex justify-center mb-5">

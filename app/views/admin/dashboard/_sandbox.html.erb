@@ -37,7 +37,7 @@
       <% if sandbox.temp? %>
         <%= button_to "Remove", admin_sandbox_path(sandbox), method: :delete,
               class: "text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700",
-              data: { turbo_confirm: "Remove sandcastle #{sandbox.name}? All data will be lost." } %>
+              data: { confirm_message: "Remove sandcastle #{sandbox.name}? All data will be lost." } %>
       <% else %>
         <% if sandbox.status == "stopped" %>
           <%= button_to "Start", start_admin_sandbox_path(sandbox), method: :post,
@@ -57,7 +57,7 @@
         <% end %>
         <%= button_to "Destroy", admin_sandbox_path(sandbox), method: :delete,
               class: "text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700",
-              data: { turbo_confirm: "Destroy sandcastle #{sandbox.name}?" } %>
+              data: { confirm_message: "Destroy sandcastle #{sandbox.name}?" } %>
       <% end %>
     </div>
   </div>
