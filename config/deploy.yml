@@ -4,6 +4,9 @@ image: thieso2/sandcastle
 ssh:
   user: thies
 
+docker:
+  bin: /sandcastle/docker-runtime/bin/docker
+
 servers:
   web:
     hosts:
@@ -13,7 +16,7 @@ servers:
       network: "name=sandcastle-web,alias=sandcastle-web"
 
 volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
+  - /sandcastle/docker.sock:/var/run/docker.sock
   - /data:/data
 
 proxy:
@@ -22,6 +25,7 @@ proxy:
   response_timeout: 60
   healthcheck:
     path: /up
+  ssl: false
   run:
     publish: false
 
@@ -74,6 +78,7 @@ accessories:
       - /data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - /data/traefik/dynamic:/data/dynamic:ro
       - /data/traefik/acme.json:/data/acme.json
+      - /sandcastle/docker.sock:/var/run/docker.sock:ro
     options:
       publish: "80:80"
       network: sandcastle-web
