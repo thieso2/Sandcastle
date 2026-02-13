@@ -55,10 +55,8 @@ Rails.application.routes.draw do
         get :stats
       end
     end
-  end
 
-  # Job monitoring dashboard (admin-only)
-  authenticate :user, ->(user) { user.admin? } do
+    # Job monitoring dashboard
     mount MissionControl::Jobs::Engine, at: "/jobs"
   end
 

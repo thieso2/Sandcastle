@@ -17,8 +17,8 @@
         { label: "Tailscale", path: tailscale_path, active: controller_name == "tailscale" && !controller_path.start_with?("api") },
       ] %>
       <% if policy(:user).index? %>
-        <% nav_items << { label: "Admin", path: admin_dashboard_path, active: controller_path.start_with?("admin") } %>
-        <% nav_items << { label: "Jobs", path: "/jobs", active: request.path.start_with?("/jobs") } %>
+        <% nav_items << { label: "Admin", path: admin_dashboard_path, active: controller_path.start_with?("admin") && !request.path.start_with?("/admin/jobs") } %>
+        <% nav_items << { label: "Jobs", path: "/admin/jobs", active: request.path.start_with?("/admin/jobs") } %>
       <% end %>
 
       <% nav_items.each do |item| %>
