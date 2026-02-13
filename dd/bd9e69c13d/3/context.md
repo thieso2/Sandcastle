@@ -34,3 +34,7 @@ Analyzing chronologically:
    - Stats endpoint
 ...
 
+### Prompt 6
+
+stop a sandbox to test the toasts
+
