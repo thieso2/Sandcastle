@@ -1,0 +1,67 @@
+on https://demo.sandcastle.rocks/ i cannot open  terminal - investigate - use chrome. login to the system using ssh sandman. docker is /sandcastle/docker-runtime/bin/docker p
+I'm looging in to https://demo.sandcastle.rocks/ - use chrome and ssh to debug!
+
+---
+
+ssh sandman "/sandcastle/docker-runtime/bin/docker logs 8b184c75be23"
+
+---
+
+use ssh sandman
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+will this fix the dirs already on the server?
+
+---
+
+what shoudl i run on thge server to fix what's there?
+
+---
+
+[Request interrupted by user]
+
+---
+
+what shoudl i run on thge server to fix what's there? (add it to installer.sh update)
+
+---
+
+where is the chown in the installer that fixed what's there
+
+---
+
+commit and push
+
+---
+
+~/Projects/GitHub/Sandcastle [main] % sandcastle create  thieso2 --home --data
+Sandbox "thieso2" created.
+  Home:      mounted (~/ persisted)
+  Data:      mounted (user data root → /data)
+  Tailscale: enabled
+thieso@172.24.197.3: Permission denied (publickey).
+
+---
+
+make installer.sh update fix it as well!
+
+---
+
+~/Projects/GitHub/Sandcastle [main] % scp installer.sh sandman: && ssh sandman -C "sudo ./installer.sh update"
+installer.sh                                                                                        100%   39KB   1.1MB/s   00:00
+[INFO] Loaded /home/thies/sandcastle.env
+
+═══ Sandcastle Update ═══
+
+[INFO] Available images (amd64):
+  ghcr.io/thieso2/sandcastle:latest    built 2026-02-13 06:37 UTC (5h ago)
+  ghcr.io/thieso2/sandcastle-sandbox:latest    built 2026-02-13 06:37 UTC (5h ago)
+
+~/Projects/GitHub/Sandcastle [main] %
+
+should do way more - seemt to be broken.
