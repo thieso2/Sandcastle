@@ -89,10 +89,10 @@ services:
     build:
       context: .
       args:
-        BUILD_VERSION: "${BUILD_VERSION}"
-        BUILD_GIT_SHA: "${BUILD_GIT_SHA}"
-        BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY}"
-        BUILD_DATE: "${BUILD_DATE}"
+        BUILD_VERSION: "${BUILD_VERSION:-dev}"
+        BUILD_GIT_SHA: "${BUILD_GIT_SHA:-local}"
+        BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY:-false}"
+        BUILD_DATE: "${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
     container_name: sandcastle-web
     command: ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "80"]
     group_add:
@@ -126,10 +126,10 @@ services:
     build:
       context: .
       args:
-        BUILD_VERSION: "${BUILD_VERSION}"
-        BUILD_GIT_SHA: "${BUILD_GIT_SHA}"
-        BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY}"
-        BUILD_DATE: "${BUILD_DATE}"
+        BUILD_VERSION: "${BUILD_VERSION:-dev}"
+        BUILD_GIT_SHA: "${BUILD_GIT_SHA:-local}"
+        BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY:-false}"
+        BUILD_DATE: "${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
     container_name: sandcastle-worker
     command: ["bundle", "exec", "rake", "solid_queue:start"]
     group_add:
