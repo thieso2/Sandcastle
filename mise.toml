@@ -25,7 +25,7 @@ echo "Starting services..."
 docker compose -f docker-compose.local.yml up -d
 
 echo ""
-echo "Sandcastle running at http://localhost:${PORT:-3000}"
+echo "Sandcastle running at http://localhost:${PORT:-4000}"
 echo "Logs: docker compose -f docker-compose.local.yml logs -f"
 """
 
@@ -38,6 +38,12 @@ description = "Reset local docker-compose environment (stop, remove volumes, reb
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
+echo "Removing WeTTY containers..."
+docker ps -a --filter "name=sc-wetty-" -q | xargs -r docker rm -f || true
+
+echo "Removing Tailscale containers..."
+docker ps -a --filter "name=sc-ts-" -q | xargs -r docker rm -f || true
 
 echo "Stopping and removing containers, volumes, and networks..."
 docker compose -f docker-compose.local.yml down --volumes --remove-orphans
