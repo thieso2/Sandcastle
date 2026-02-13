@@ -3,7 +3,7 @@
   "checkpoint_id": "218611a77fb0",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     ".gitignore",
     "SANDMAN.md",
@@ -32,13 +32,20 @@
       "context": "/21/8611a77fb0/2/context.md",
       "content_hash": "/21/8611a77fb0/2/content_hash.txt",
       "prompt": "/21/8611a77fb0/2/prompt.txt"
+    },
+    {
+      "metadata": "/21/8611a77fb0/3/metadata.json",
+      "transcript": "/21/8611a77fb0/3/full.jsonl",
+      "context": "/21/8611a77fb0/3/context.md",
+      "content_hash": "/21/8611a77fb0/3/content_hash.txt",
+      "prompt": "/21/8611a77fb0/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 144,
-    "cache_creation_tokens": 32566,
-    "cache_read_tokens": 1358487,
-    "output_tokens": 1072,
-    "api_call_count": 17
+    "input_tokens": 414,
+    "cache_creation_tokens": 74525,
+    "cache_read_tokens": 2906863,
+    "output_tokens": 3240,
+    "api_call_count": 51
   }
 }

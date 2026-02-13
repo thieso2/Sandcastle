@@ -1,0 +1,25 @@
+https://demo.sandcastle.rocks/ should get a letsencrypt cers automatiallcy. used to work - what changed? see @SANDMAN.md
+
+---
+
+[Request interrupted by user]
+
+---
+
+this is very wrong, all out services need to be in "our" docker. will reinstall from scratch!
+
+---
+
+fori the code - i'll redeploy
+
+---
+
+[Request interrupted by user]
+
+---
+
+fix  the code - i'll redeploy
+
+---
+
+commit and push
