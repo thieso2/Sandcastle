@@ -1,0 +1,151 @@
+services:
+  traefik:
+    image: traefik:v3.3
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - traefik-data:/data
+    command:
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.file.directory=/data/dynamic"
+      - "--providers.file.watch=true"
+      - "--log.level=INFO"
+    networks:
+      - sandcastle-web
+    depends_on:
+      init-traefik:
+        condition: service_completed_successfully
+
+  init-traefik:
+    image: busybox
+    volumes:
+      - traefik-data:/data
+    command:
+      - sh
+      - -c
+      - |
+        mkdir -p /data/dynamic /data/certs
+        chown -R 220568:220568 /data
+        cat > /data/dynamic/rails.yml << 'EOFCONFIG'
+        http:
+          routers:
+            rails-http:
+              rule: "HostRegexp(`.+`)"
+              service: rails
+              entryPoints:
+                - web
+            rails-https:
+              rule: "HostRegexp(`.+`)"
+              service: rails
+              entryPoints:
+                - websecure
+              tls: {}
+          services:
+            rails:
+              loadBalancer:
+                servers:
+                  - url: "http://sandcastle-web:80"
+        EOFCONFIG
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    environment:
+      POSTGRES_USER: sandcastle
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-sandcastle}
+      POSTGRES_DB: sandcastle_development
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sandcastle -d sandcastle_development"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  init-data:
+    image: busybox
+    volumes:
+      - sandcastle-data:/data
+    command: sh -c "mkdir -p /data/users /data/sandboxes && chown -R 220568:220568 /data"
+
+  web:
+    image: sandcastle:dev
+    build:
+      context: .
+      target: development
+    container_name: sandcastle-web
+    group_add:
+      - "${DOCKER_GID:-0}"
+    volumes:
+      # Mount source code for live reloading
+      - .:/rails
+      # Persist gems in volume (faster than bind mount)
+      - bundle-data:/usr/local/bundle
+      # Persist node modules
+      - node-modules:/rails/node_modules
+      # Share Docker socket
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Data directory
+      - sandcastle-data:/data
+      # Traefik config
+      - traefik-data:/data/traefik
+    networks:
+      - default
+      - sandcastle-web
+    environment:
+      RAILS_ENV: development
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      SANDCASTLE_HOST: ${SANDCASTLE_HOST:-localhost}
+      SANDCASTLE_DATA_DIR: /data
+      SANDCASTLE_TLS_MODE: selfsigned
+      SANDCASTLE_TERMINAL_URL: https://localhost:8443
+      SOLID_QUEUE_IN_PUMA: "true"
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+    restart: unless-stopped
+    command: ./bin/dev
+    depends_on:
+      init-data:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    image: sandcastle:dev
+    build:
+      context: .
+      target: development
+    volumes:
+      - .:/rails
+      - bundle-data:/usr/local/bundle
+    command: ["./bin/rails", "db:prepare"]
+    environment:
+      RAILS_ENV: development
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+      SANDCASTLE_ADMIN_USER: thies
+      SANDCASTLE_ADMIN_EMAIL: thieso@gmail.com
+      SANDCASTLE_ADMIN_PASSWORD: tubu
+      SANDCASTLE_ADMIN_SSH_KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINZ69Do+hFr765usOHQwQG6pzLUyT4kr+uchUrAgrTqH thieso@gmail.com"
+      SANDCASTLE_SKIP_PASSWORD_CHANGE: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  sandcastle-web:
+    external: true
+
+volumes:
+  bundle-data:
+  node-modules:
+  pgdata:
+  sandcastle-data:
+  traefik-data:
