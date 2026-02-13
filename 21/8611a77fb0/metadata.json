@@ -5,7 +5,7 @@
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "install-defaults",
+    "config/deploy.yml",
     "installer.sh"
   ],
   "sessions": [
@@ -18,10 +18,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 60,
-    "cache_creation_tokens": 61793,
-    "cache_read_tokens": 332817,
-    "output_tokens": 285,
-    "api_call_count": 7
+    "input_tokens": 50,
+    "cache_creation_tokens": 3231,
+    "cache_read_tokens": 379143,
+    "output_tokens": 505,
+    "api_call_count": 6
   }
 }
