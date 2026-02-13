@@ -47,6 +47,7 @@ services:
       SANDCASTLE_HOST: ${SANDCASTLE_HOST:-localhost}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
+      SANDCASTLE_TERMINAL_URL: https://localhost:8443
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}

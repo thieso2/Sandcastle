@@ -9,8 +9,8 @@ class TerminalController < ApplicationController
       Current.user.sandboxes.active.find(params[:id])
     end
 
-    url = TerminalManager.new.open(sandbox: sandbox)
-    redirect_to url, allow_other_host: false, status: :see_other
+    path = TerminalManager.new.open(sandbox: sandbox)
+    redirect_to terminal_redirect_url(path), allow_other_host: true, status: :see_other
   rescue TerminalManager::Error => e
     redirect_to root_path, alert: e.message
   end
@@ -27,6 +27,18 @@ class TerminalController < ApplicationController
   rescue TerminalManager::Error => e
     redirect_to root_path, alert: e.message
   end
+
+  private
+
+  # Build the full terminal URL. In production, Traefik is the entry point
+  # so a relative path works. In local dev (selfsigned TLS), Rails may be
+  # accessed directly on a different port, so we need an absolute URL.
+  def terminal_redirect_url(path)
+    base = ENV["SANDCASTLE_TERMINAL_URL"]
+    base ? "#{base}#{path}" : path
+  end
+
+  public
 
   # Called by Traefik forwardAuth — returns status code only, no body/redirect
   def auth
