@@ -4,20 +4,20 @@ module Admin
 
     def destroy
       authorize @sandbox
-      SandboxManager.new.destroy(sandbox: @sandbox)
-      redirect_to admin_dashboard_path, notice: "Sandcastle #{@sandbox.name} destroyed"
+      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
+      redirect_to admin_dashboard_path, notice: "Destroying sandbox #{@sandbox.name}..."
     end
 
     def start
       authorize @sandbox
-      SandboxManager.new.start(sandbox: @sandbox)
-      redirect_to admin_dashboard_path, notice: "Sandcastle #{@sandbox.name} started"
+      SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
+      redirect_to admin_dashboard_path, notice: "Starting sandbox #{@sandbox.name}..."
     end
 
     def stop
       authorize @sandbox
-      SandboxManager.new.stop(sandbox: @sandbox)
-      redirect_to admin_dashboard_path, notice: "Sandcastle #{@sandbox.name} stopped"
+      SandboxStopJob.perform_later(sandbox_id: @sandbox.id)
+      redirect_to admin_dashboard_path, notice: "Stopping sandbox #{@sandbox.name}..."
     end
 
     def stats
