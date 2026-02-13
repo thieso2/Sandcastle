@@ -17,6 +17,19 @@ warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 die()   { error "$@"; exit 1; }
 
+WRITTEN_FILES=()
+wrote() { WRITTEN_FILES+=("$1"); }
+print_written_files() {
+  if [ ${#WRITTEN_FILES[@]} -gt 0 ]; then
+    echo ""
+    info "Files created/updated:"
+    for f in "${WRITTEN_FILES[@]}"; do
+      echo -e "    ${f}"
+    done
+  fi
+  WRITTEN_FILES=()
+}
+
 require_root() {
   [ "$(id -u)" -eq 0 ] || die "This command must be run as root (use sudo)"
 }
@@ -217,7 +230,7 @@ write_helper_scripts() {
 exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml --env-file ${SANDCASTLE_HOME}/.env logs -f "\$@"
 LOGS
   chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
-  ok "docker-logs helper written"
+  wrote "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
 }
 
 write_compose() {
@@ -316,7 +329,7 @@ networks:
     external: true
 COMPOSE
 
-  ok "docker-compose.yml written"
+  wrote "$SANDCASTLE_HOME/docker-compose.yml"
 }
 
 # ═══ cmd_gen_env ═════════════════════════════════════════════════════════════
@@ -528,6 +541,7 @@ DOCKYARD_FIXED_CIDR=${DOCKYARD_FIXED_CIDR}
 DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}
 DOCKYARD_POOL_SIZE=${DOCKYARD_POOL_SIZE}
 DYEOF
+    wrote "$SANDCASTLE_HOME/etc/dockyard.env"
 
     DOCKYARD_ENV="$SANDCASTLE_HOME/etc/dockyard.env" bash /tmp/dockyard.sh create
     rm -f /tmp/dockyard.sh
@@ -625,7 +639,7 @@ GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
 GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
 EOF
     chmod 600 "$SANDCASTLE_HOME/.env"
-    ok "Runtime env written to $SANDCASTLE_HOME/.env"
+    wrote "$SANDCASTLE_HOME/.env"
   else
     info "Existing install — loading $SANDCASTLE_HOME/.env"
   fi
@@ -687,7 +701,7 @@ CREATED_USER="${CREATED_USER}"
 CREATED_GROUP="${CREATED_GROUP}"
 EOF
   chmod 600 "$SANDCASTLE_HOME/etc/sandcastle.env"
-  ok "Installed env written to $SANDCASTLE_HOME/etc/sandcastle.env"
+  wrote "$SANDCASTLE_HOME/etc/sandcastle.env"
 
   # ── Traefik config ────────────────────────────────────────────────────────
 
@@ -765,6 +779,7 @@ api:
   dashboard: false
 TEOF
   fi
+  wrote "$TRAEFIK_DIR/traefik.yml"
 
   if [ ! -f "$TRAEFIK_DIR/acme.json" ]; then
     touch "$TRAEFIK_DIR/acme.json"
@@ -805,6 +820,7 @@ http:
           - url: "http://sandcastle-web:80"
 TEOF
   fi
+  wrote "$TRAEFIK_DIR/dynamic/rails.yml"
 
   chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$SANDCASTLE_HOME"/data/traefik/dynamic
 
@@ -850,6 +866,7 @@ WantedBy=multi-user.target
 NATEOF
   systemctl daemon-reload
   systemctl enable sandcastle-nat >/dev/null 2>&1
+  wrote "/etc/systemd/system/sandcastle-nat.service"
 
   # ── Pull images ───────────────────────────────────────────────────────────
 
@@ -875,6 +892,7 @@ EOSQL
 done
 INITDB
   chmod +x "$SANDCASTLE_HOME/etc/postgres/init-databases.sh"
+  wrote "$SANDCASTLE_HOME/etc/postgres/init-databases.sh"
 
   write_compose
 
@@ -937,6 +955,8 @@ INITDB
   echo -e "  Config:     $SANDCASTLE_HOME/etc/sandcastle.env"
   echo -e "  Docker:     $DOCKER"
   echo -e "  Logs:       ${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+
+  print_written_files
   echo ""
 }
 
@@ -986,6 +1006,8 @@ cmd_update() {
 
   echo ""
   echo -e "${GREEN}  Sandcastle updated!${NC}"
+
+  print_written_files
   echo ""
 }
 
