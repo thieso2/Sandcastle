@@ -68,7 +68,10 @@
 
 ### Fixed
 - ✅ **Syntax error in SandboxProvisionJob** - Extra 'end' statement caused web container crash (commit 4b7efd0)
-- ✅ **MissionControl::Jobs authentication** - Fixed route mounting and authentication setup (commits 2d63c17, 296373d, 4627b7c, b3cb39e)
+- ✅ **MissionControl::Jobs authentication** - Fixed HTTP Basic auth conflict and method name issues (commits 2d63c17, 296373d, 4627b7c, b3cb39e, af91e16, 1518f14, 779b243)
+- ✅ **Stats endpoint partial path** - Fixed missing partial error by using full path admin/dashboard/sandbox_stats (commit 7b4efa9)
+- ✅ **Custom confirm modals** - Replaced native browser dialogs with HTML modals for automation compatibility (commit c11f800)
+- ✅ **Toast positioning** - Fixed duplicate fixed positioning causing stacked toasts (commit 0da6851)
 
 ### Critical
 (breaks core features)
@@ -77,11 +80,11 @@
 ### High Priority
 (UX issues)
 - ⚠️ **BUILD_* variable warnings** - docker-compose shows warnings for unset BUILD_VERSION, BUILD_GIT_SHA, BUILD_GIT_DIRTY, BUILD_DATE variables (cosmetic, not breaking)
-- ❌ **Jobs page completely blank** - /admin/jobs returns empty page, MissionControl::Jobs not rendering
-- ❌ **Admin sandbox stats shows "Content missing"** - Stats not displaying on admin dashboard
-- ❌ **Stats endpoint 500 error for destroyed sandboxes** - Turbo frame error for sandbox_stats_10 (destroyed sandbox)
-- ❌ **Toast notifications not appearing** - Background jobs (Stop/Start/Provision/Destroy) don't show toast notifications despite broadcasts in job code
-- ❌ **Flash messages not appearing** - Tailscale settings update doesn't show flash (Turbo frame issue?)
+- ✅ ~~Jobs page completely blank~~ - FIXED with skip_before_action and correct method names (commits af91e16, 1518f14, 779b243)
+- ✅ ~~Admin sandbox stats shows "Content missing"~~ - FIXED with correct partial path (commit 7b4efa9)
+- ✅ ~~Stats endpoint 500 error for destroyed sandboxes~~ - FIXED by skipping before_action and using direct find (commit 7edefce)
+- ✅ ~~Toast notifications not appearing~~ - FIXED by removing duplicate fixed positioning (commit 0da6851)
+- ❌ **Flash messages not appearing** - Tailscale settings update doesn't show flash (Turbo frame issue? - needs testing)
 - ✅ ~~Confirm dialogs block browser automation~~ - FIXED with custom HTML modals (commit c11f800)
 
 ### Low Priority
