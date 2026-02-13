@@ -1,0 +1,17 @@
+the flash layout is broken:
+
+---
+
+SANDCASTLE_USER was not saved on install!
+
+---
+
+the SANDCASTLE_ADMIN_USER is not stored in the db on setup!
+
+---
+
+create mise task to reset local docker coompse env
+
+---
+
+commit these fixes

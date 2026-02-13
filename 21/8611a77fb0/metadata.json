@@ -3,10 +3,14 @@
   "checkpoint_id": "218611a77fb0",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 6,
   "files_touched": [
+    "app/views/layouts/application.html.erb",
+    "app/views/sessions/new.html.erb",
     "config/deploy.yml",
-    "installer.sh"
+    "db/seeds.rb",
+    "installer.sh",
+    "mise.toml"
   ],
   "sessions": [
     {
@@ -15,13 +19,20 @@
       "context": "/21/8611a77fb0/0/context.md",
       "content_hash": "/21/8611a77fb0/0/content_hash.txt",
       "prompt": "/21/8611a77fb0/0/prompt.txt"
+    },
+    {
+      "metadata": "/21/8611a77fb0/1/metadata.json",
+      "transcript": "/21/8611a77fb0/1/full.jsonl",
+      "context": "/21/8611a77fb0/1/context.md",
+      "content_hash": "/21/8611a77fb0/1/content_hash.txt",
+      "prompt": "/21/8611a77fb0/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 50,
-    "cache_creation_tokens": 3231,
-    "cache_read_tokens": 379143,
-    "output_tokens": 505,
-    "api_call_count": 6
+    "input_tokens": 278,
+    "cache_creation_tokens": 69707,
+    "cache_read_tokens": 2077749,
+    "output_tokens": 2459,
+    "api_call_count": 33
   }
 }
