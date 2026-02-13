@@ -159,6 +159,9 @@ class TerminalManager
     return if networks.key?(NETWORK_NAME)
 
     network.connect(sandbox.container_id)
+  rescue Docker::Error::NotFoundError
+    # Container no longer exists - sync job will fix the DB state
+    raise Error, "Sandbox container not found. Please refresh and try again."
   end
 
   def generate_keypair(sandbox)
