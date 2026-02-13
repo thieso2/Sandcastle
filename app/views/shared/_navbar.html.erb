@@ -18,6 +18,7 @@
       ] %>
       <% if policy(:user).index? %>
         <% nav_items << { label: "Admin", path: admin_dashboard_path, active: controller_path.start_with?("admin") } %>
+        <% nav_items << { label: "Jobs", path: "/jobs", active: request.path.start_with?("/jobs") } %>
       <% end %>
 
       <% nav_items.each do |item| %>
