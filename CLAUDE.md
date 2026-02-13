@@ -141,6 +141,13 @@ PostgreSQL with 4 separate databases in production (`config/database.yml`):
 
 The primary database is created by PostgreSQL's `POSTGRES_DB` env var. The other 3 are created by a PostgreSQL init script (`docker/postgres/init-databases.sh`, mounted into `/docker-entrypoint-initdb.d/`). The installer writes this script to `$SANDCASTLE_HOME/etc/postgres/init-databases.sh`. When adding or removing Solid* databases, update both the init script and `database.yml`.
 
+**Database password preservation:**
+- Password stored in `$SANDCASTLE_HOME/data/postgres/.secrets` (600 perms)
+- On fresh install: generates random password and saves to `.secrets`
+- On reinstall: reuses password from `.secrets` to match existing postgres data
+- Preserved during uninstall/reset (user data)
+- Prevents authentication failures when reinstalling with existing database
+
 Key constraints:
 - Sandbox names and SSH ports are unique only among non-destroyed sandboxes (partial unique indexes: `WHERE status != 'destroyed'`)
 - SSH port auto-assigned from 2201–2299 on create
