@@ -43,6 +43,20 @@ sandcastle tailscale enable --auth-key tskey-auth-...</code></pre>
   <section class="mb-10">
     <h2 class="text-xl font-semibold text-gray-900 mb-3">4. Create a sandbox</h2>
 
+    <p class="text-gray-700 mb-3"><strong>Web UI</strong> — click the "Create Sandcastle" button on your dashboard to create a sandbox with all available options:</p>
+    <ul class="list-disc list-inside text-gray-700 ml-4 space-y-1 text-sm">
+      <li><strong>Name</strong> — unique identifier for your sandbox</li>
+      <li><strong>Container Image</strong> — custom image or default</li>
+      <li><strong>Snapshot</strong> — restore from an existing snapshot</li>
+      <li><strong>Persistent Volume</strong> — keep /workspace across recreations</li>
+      <li><strong>Mount Home</strong> — persistent home directory across all sandboxes</li>
+      <li><strong>Data Path</strong> — mount user data (or subpath) to /data</li>
+      <li><strong>Tailscale</strong> — connect to your Tailscale network</li>
+      <li><strong>Temporary</strong> — auto-remove when you disconnect</li>
+    </ul>
+
+    <p class="text-gray-700 mb-3 mt-4"><strong>Or use the CLI</strong> for quick creation:</p>
+
     <p class="text-gray-700 mb-3"><strong>Quick throwaway sandbox</strong> — deleted when you disconnect:</p>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle create scratch --rm</code></pre>
 
