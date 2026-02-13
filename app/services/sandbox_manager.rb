@@ -5,6 +5,7 @@ class SandboxManager
   class Error < StandardError; end
 
   def create(user:, name:, image: DEFAULT_IMAGE, persistent: false, tailscale: false, mount_home: false, data_path: nil, temporary: false)
+    # Build sandbox record (not saved yet)
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
@@ -19,14 +20,42 @@ class SandboxManager
       sandbox.volume_path = "#{DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
     end
 
-    sandbox.save!
+    # Validate before doing expensive operations
+    sandbox.validate!
 
-    ensure_image(image)
+    # Create directories FIRST (can fail fast before saving record)
     ensure_mount_dirs(user, sandbox)
 
+    # Now safe to save
+    sandbox.save!
+
+    # Pull image
+    ensure_image(image)
+
+    # Create and start container
+    create_container_and_start(sandbox: sandbox, user: user)
+
+    # Connect to Tailscale if requested
+    if (tailscale || user.tailscale_auto_connect?) && user.tailscale_enabled?
+      TailscaleManager.new.connect_sandbox(sandbox: sandbox)
+    end
+
+    sandbox
+  rescue Docker::Error::DockerError => e
+    sandbox&.update(status: "destroyed") if sandbox&.persisted?
+    raise Error, "Failed to create container: #{e.message}"
+  rescue => e
+    # If anything fails before save, no DB record is created
+    # If anything fails after save, mark as destroyed
+    sandbox&.update(status: "destroyed") if sandbox&.persisted?
+    raise Error, e.message
+  end
+
+  # Public method for job usage
+  def create_container_and_start(sandbox:, user:)
     container = Docker::Container.create(
       "name" => sandbox.full_name,
-      "Image" => image,
+      "Image" => sandbox.image,
       "Hostname" => sandbox.full_name,
       "Env" => container_env(user),
       "HostConfig" => {
@@ -43,15 +72,36 @@ class SandboxManager
     container.refresh!
     raise Error, "Container failed to start (state: #{container.json.dig("State", "Status")})" unless container.json.dig("State", "Running")
     sandbox.update!(container_id: container.id, status: "running")
+  end
 
-    if (tailscale || user.tailscale_auto_connect?) && user.tailscale_enabled?
-      TailscaleManager.new.connect_sandbox(sandbox: sandbox)
-    end
-
-    sandbox
+  # Public method for job usage
+  def ensure_image(image)
+    Docker::Image.create("fromImage" => image)
   rescue Docker::Error::DockerError => e
-    sandbox&.update(status: "destroyed") if sandbox&.persisted?
-    raise Error, "Failed to create container: #{e.message}"
+    raise Error, "Failed to pull image #{image}: #{e.message}"
+  end
+
+  # Public method for job usage
+  def ensure_mount_dirs(user, sandbox)
+    # Directories bind-mounted into Sysbox containers must be world-writable
+    # because Sysbox maps container root to a high host UID (via /etc/subuid)
+    # that won't match the directory owner.
+    if sandbox.mount_home
+      dir = "#{DATA_DIR}/users/#{user.name}/home"
+      FileUtils.mkdir_p(dir)
+      FileUtils.chmod(0o777, dir)
+    end
+    if sandbox.data_path.present?
+      dir = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
+      FileUtils.mkdir_p(dir)
+      FileUtils.chmod(0o777, dir)
+    end
+    if sandbox.persistent_volume && sandbox.volume_path
+      FileUtils.mkdir_p(sandbox.volume_path)
+      FileUtils.chmod(0o777, sandbox.volume_path)
+    end
+  rescue Errno::EACCES, Errno::ENOENT => e
+    raise Error, "Failed to create mount directories: #{e.message}"
   end
 
   def destroy(sandbox:, keep_volume: false)
@@ -289,32 +339,6 @@ class SandboxManager
         Rails.logger.warn("SandboxManager: sysbox-runc not available, falling back to runc (Docker-in-Docker will not work inside sandboxes)")
         "runc"
       end
-    end
-  end
-
-  def ensure_image(image)
-    Docker::Image.create("fromImage" => image)
-  rescue Docker::Error::DockerError => e
-    raise Error, "Failed to pull image #{image}: #{e.message}"
-  end
-
-  def ensure_mount_dirs(user, sandbox)
-    # Directories bind-mounted into Sysbox containers must be world-writable
-    # because Sysbox maps container root to a high host UID (via /etc/subuid)
-    # that won't match the directory owner.
-    if sandbox.mount_home
-      dir = "#{DATA_DIR}/users/#{user.name}/home"
-      FileUtils.mkdir_p(dir)
-      FileUtils.chmod(0o777, dir)
-    end
-    if sandbox.data_path.present?
-      dir = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
-      FileUtils.mkdir_p(dir)
-      FileUtils.chmod(0o777, dir)
-    end
-    if sandbox.persistent_volume && sandbox.volume_path
-      FileUtils.mkdir_p(sandbox.volume_path)
-      FileUtils.chmod(0o777, sandbox.volume_path)
     end
   end
 
