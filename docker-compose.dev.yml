@@ -33,12 +33,12 @@ services:
         http:
           routers:
             rails-http:
-              rule: "HostRegexp(`.+`)"
+              rule: "Host(`localhost`)"
               service: rails
               entryPoints:
                 - web
             rails-https:
-              rule: "HostRegexp(`.+`)"
+              rule: "Host(`localhost`)"
               service: rails
               entryPoints:
                 - websecure
@@ -77,6 +77,11 @@ services:
     build:
       context: .
       target: development
+      args:
+        BUILD_VERSION: "dev"
+        BUILD_GIT_SHA: ""
+        BUILD_GIT_DIRTY: ""
+        BUILD_DATE: ""
     container_name: sandcastle-web
     group_add:
       - "${DOCKER_GID:-0}"
@@ -103,12 +108,55 @@ services:
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       SANDCASTLE_TERMINAL_URL: https://localhost:8443
-      SOLID_QUEUE_IN_PUMA: "true"
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
     restart: unless-stopped
     command: ./bin/dev
+    depends_on:
+      init-data:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    image: sandcastle:dev
+    build:
+      context: .
+      target: development
+      args:
+        BUILD_VERSION: "dev"
+        BUILD_GIT_SHA: ""
+        BUILD_GIT_DIRTY: ""
+        BUILD_DATE: ""
+    container_name: sandcastle-dev-worker
+    group_add:
+      - "${DOCKER_GID:-0}"
+    volumes:
+      # Mount source code for live reloading
+      - .:/rails
+      # Persist gems in volume (faster than bind mount)
+      - bundle-data:/usr/local/bundle
+      # Share Docker socket
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Data directory
+      - sandcastle-data:/data
+      # Traefik config
+      - traefik-data:/data/traefik
+    networks:
+      - default
+      - sandcastle-web
+    environment:
+      RAILS_ENV: development
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      SANDCASTLE_HOST: ${SANDCASTLE_HOST:-localhost}
+      SANDCASTLE_DATA_DIR: /data
+      SANDCASTLE_TLS_MODE: selfsigned
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+    restart: unless-stopped
+    command: ["bundle", "exec", "rake", "solid_queue:start"]
     depends_on:
       init-data:
         condition: service_completed_successfully

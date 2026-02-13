@@ -39,12 +39,12 @@ services:
         http:
           routers:
             rails-http:
-              rule: "HostRegexp(`.+`)"
+              rule: "Host(`sandcastle.local`)"
               service: rails
               entryPoints:
                 - web
             rails-https:
-              rule: "HostRegexp(`.+`)"
+              rule: "Host(`sandcastle.local`)"
               service: rails
               entryPoints:
                 - websecure
@@ -111,7 +111,42 @@ services:
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       SANDCASTLE_TERMINAL_URL: https://sandcastle.local:8443
-      SOLID_QUEUE_IN_PUMA: "true"
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+    restart: unless-stopped
+    depends_on:
+      init-data:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    image: sandcastle:local
+    build:
+      context: .
+      args:
+        BUILD_VERSION: "${BUILD_VERSION}"
+        BUILD_GIT_SHA: "${BUILD_GIT_SHA}"
+        BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY}"
+        BUILD_DATE: "${BUILD_DATE}"
+    container_name: sandcastle-worker
+    command: ["bundle", "exec", "rake", "solid_queue:start"]
+    group_add:
+      - "${DOCKER_GID:-0}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - sandcastle-data:/data
+      - traefik-data:/data/traefik
+    networks:
+      - default
+      - sandcastle-web
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      SANDCASTLE_HOST: sandcastle.local
+      SANDCASTLE_DATA_DIR: /data
+      SANDCASTLE_TLS_MODE: selfsigned
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
