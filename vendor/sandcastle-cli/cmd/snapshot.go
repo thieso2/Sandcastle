@@ -33,6 +33,7 @@ var snapshotCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {
@@ -64,6 +65,7 @@ var snapshotListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		snapshots, err := client.ListSnapshots()
 		if err != nil {
@@ -99,6 +101,7 @@ var snapshotDestroyCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		if err := client.DestroySnapshot(args[0]); err != nil {
 			return err
@@ -118,6 +121,7 @@ var snapshotRestoreCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {

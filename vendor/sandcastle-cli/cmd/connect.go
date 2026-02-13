@@ -32,6 +32,7 @@ var connectCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, name)
 		if err != nil {
@@ -75,6 +76,7 @@ var sshCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, name)
 		if err != nil {

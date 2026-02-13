@@ -30,6 +30,7 @@ var usersListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		users, err := client.ListUsers()
 		if err != nil {
@@ -59,6 +60,7 @@ var usersCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		user, err := client.CreateUser(api.CreateUserRequest{
 			Name:                 args[0],
@@ -84,6 +86,7 @@ var usersDestroyCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		users, err := client.ListUsers()
 		if err != nil {

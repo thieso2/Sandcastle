@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sandcastle/cli/api"
 	"github.com/spf13/cobra"
 )
 
@@ -31,6 +32,14 @@ func Execute() {
 func init() {
 	rootCmd.Version = Version
 	rootCmd.AddCommand(versionCmd)
+}
+
+func printServer(client *api.Client) {
+	if client.ServerAlias != "" {
+		fmt.Printf("Server: %s (%s)\n", client.ServerAlias, client.BaseURL)
+	} else {
+		fmt.Printf("Server: %s\n", client.BaseURL)
+	}
 }
 
 var versionCmd = &cobra.Command{

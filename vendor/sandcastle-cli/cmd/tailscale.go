@@ -37,6 +37,7 @@ var tsEnableCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		// If auth key provided, use the legacy one-shot flow
 		if tsAuthKey != "" {
@@ -97,6 +98,7 @@ var tsDisableCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		if err := client.TailscaleDisable(); err != nil {
 			return err
@@ -115,6 +117,7 @@ var tsStatusCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		status, err := client.TailscaleStatus()
 		if err != nil {
@@ -165,6 +168,7 @@ var tsConnectCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {
@@ -191,6 +195,7 @@ var tsDisconnectCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {

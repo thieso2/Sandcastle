@@ -76,6 +76,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := client.CreateSandbox(api.CreateSandboxRequest{
 			Name:       args[0],
@@ -92,7 +93,6 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		fmt.Printf("Sandbox %q created.\n", sandbox.Name)
-		fmt.Printf("  Server:    %s\n", client.BaseURL)
 
 		// Print active options (use local flags — they reflect what was actually requested)
 		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove {
@@ -160,6 +160,7 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandboxes, err := client.ListSandboxes()
 		if err != nil {
@@ -222,6 +223,7 @@ var deleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {
@@ -246,6 +248,7 @@ var startCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {
@@ -271,6 +274,7 @@ var stopCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {
@@ -370,6 +374,7 @@ var setCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {

@@ -39,6 +39,7 @@ var routeAddCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {
@@ -79,6 +80,7 @@ var routeListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {
@@ -114,6 +116,7 @@ var routeDeleteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, args[0])
 		if err != nil {

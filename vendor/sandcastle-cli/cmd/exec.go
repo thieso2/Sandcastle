@@ -24,6 +24,7 @@ var execCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		sandbox, err := findSandboxByName(client, name)
 		if err != nil {

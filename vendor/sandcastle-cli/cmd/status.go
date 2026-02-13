@@ -20,6 +20,7 @@ var statusCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		printServer(client)
 
 		status, err := client.Status()
 		if err != nil {

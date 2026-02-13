@@ -25,9 +25,10 @@ func logVerbose(format string, args ...any) {
 }
 
 type Client struct {
-	BaseURL    string
-	Token      string
-	HTTPClient *http.Client
+	BaseURL     string
+	Token       string
+	ServerAlias string
+	HTTPClient  *http.Client
 }
 
 func newHTTPClient(insecure bool) *http.Client {
@@ -52,9 +53,10 @@ func NewClient() (*Client, error) {
 	}
 	logVerbose("server: %s (%s)", cfg.CurrentServer, srv.URL)
 	return &Client{
-		BaseURL:    srv.URL,
-		Token:      srv.Token,
-		HTTPClient: newHTTPClient(srv.Insecure),
+		BaseURL:     srv.URL,
+		Token:       srv.Token,
+		ServerAlias: cfg.CurrentServer,
+		HTTPClient:  newHTTPClient(srv.Insecure),
 	}, nil
 }
 
@@ -328,6 +330,14 @@ func (c *Client) CreateUser(req CreateUserRequest) (*User, error) {
 
 func (c *Client) DestroyUser(id int) error {
 	return c.do("DELETE", fmt.Sprintf("/api/users/%d", id), nil, nil)
+}
+
+// Info
+
+func (c *Client) Info() (*ServerInfo, error) {
+	var info ServerInfo
+	err := c.do("GET", "/api/info", nil, &info)
+	return &info, err
 }
 
 // Status
