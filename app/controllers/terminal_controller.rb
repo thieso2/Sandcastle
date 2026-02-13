@@ -3,24 +3,27 @@ class TerminalController < ApplicationController
   skip_before_action :require_password_change, only: :auth
 
   def open
-    sandbox = if Current.user.admin?
-      Sandbox.active.find(params[:id])
-    else
-      Current.user.sandboxes.active.find(params[:id])
-    end
+    sandbox = find_sandbox
 
-    path = TerminalManager.new.open(sandbox: sandbox)
-    redirect_to terminal_redirect_url(path), allow_other_host: true, status: :see_other
+    TerminalManager.new.open(sandbox: sandbox)
+    redirect_to terminal_wait_sandbox_path(sandbox), status: :see_other
   rescue TerminalManager::Error => e
     redirect_to root_path, alert: e.message
   end
 
+  def wait
+    @sandbox = find_sandbox
+    @terminal_url = terminal_redirect_url("/terminal/#{@sandbox.id}/wetty")
+  end
+
+  def status
+    sandbox = find_sandbox
+    ready = TerminalManager.new.active?(sandbox: sandbox)
+    render json: { status: ready ? "ready" : "waiting" }
+  end
+
   def close
-    sandbox = if Current.user.admin?
-      Sandbox.active.find(params[:id])
-    else
-      Current.user.sandboxes.active.find(params[:id])
-    end
+    sandbox = find_sandbox
 
     TerminalManager.new.close(sandbox: sandbox)
     redirect_to root_path, notice: "Terminal closed"
@@ -29,6 +32,14 @@ class TerminalController < ApplicationController
   end
 
   private
+
+  def find_sandbox
+    if Current.user.admin?
+      Sandbox.active.find(params[:id])
+    else
+      Current.user.sandboxes.active.find(params[:id])
+    end
+  end
 
   # Build the full terminal URL. In production, Traefik is the entry point
   # so a relative path works. In local dev (selfsigned TLS), Rails may be

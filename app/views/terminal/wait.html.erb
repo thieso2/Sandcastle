@@ -1,0 +1,59 @@
+<% content_for(:title, "Connecting to terminal...") %>
+
+<div class="w-full max-w-md mx-auto mt-12">
+  <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <div id="connecting" class="text-center">
+      <div class="flex items-center justify-center gap-3 mb-4">
+        <svg class="w-5 h-5 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <h2 class="text-lg font-semibold text-gray-900">Connecting to terminal...</h2>
+      </div>
+      <p class="text-sm text-gray-500">Waiting for the terminal to become ready.</p>
+    </div>
+
+    <div id="timeout-error" class="hidden text-center">
+      <div class="mb-4">
+        <svg class="w-8 h-8 text-red-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 class="text-lg font-semibold text-gray-900">Connection timed out</h2>
+      </div>
+      <p class="text-sm text-gray-500 mb-4">The terminal did not become ready in time. Try closing and reopening it.</p>
+      <a href="<%= root_path %>" class="inline-block px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm">
+        Back to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    var statusUrl = "<%= terminal_status_sandbox_path(@sandbox) %>";
+    var terminalUrl = "<%= j @terminal_url %>";
+    var elapsed = 0;
+    var timeout = 30;
+
+    var poll = setInterval(function() {
+      elapsed++;
+
+      if (elapsed > timeout) {
+        clearInterval(poll);
+        document.getElementById("connecting").classList.add("hidden");
+        document.getElementById("timeout-error").classList.remove("hidden");
+        return;
+      }
+
+      fetch(statusUrl, { headers: { "Accept": "application/json" } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.status === "ready") {
+            clearInterval(poll);
+            window.location.href = terminalUrl;
+          }
+        })
+        .catch(function() {});
+    }, 1000);
+  })();
+</script>

@@ -97,16 +97,15 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
-  test "open redirects to WeTTY URL on success" do
+  test "open redirects to wait page on success" do
     sign_in_as(@admin)
-    url = "/terminal/#{@alice_sandbox.id}/wetty"
 
-    with_terminal_manager_stub(open_result: url) do
+    with_terminal_manager_stub(open_result: "/terminal/#{@alice_sandbox.id}/wetty") do
       post terminal_sandbox_path(@alice_sandbox)
     end
 
     assert_response :see_other
-    assert_redirected_to url
+    assert_redirected_to terminal_wait_sandbox_path(@alice_sandbox)
   end
 
   test "open returns 404 for another user's sandbox" do
@@ -123,6 +122,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
+    assert_redirected_to terminal_wait_sandbox_path(@bob_sandbox)
   end
 
   test "open redirects to root with alert on TerminalManager error" do
@@ -134,6 +134,78 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to root_path
     assert_equal "Sandbox is not running", flash[:alert]
+  end
+
+  # ── wait ───────────────────────────────────────────────────────
+
+  test "wait requires authentication" do
+    get terminal_wait_sandbox_path(@alice_sandbox)
+    assert_redirected_to new_session_path
+  end
+
+  test "wait renders for sandbox owner" do
+    sign_in_as(@admin)
+    get terminal_wait_sandbox_path(@alice_sandbox)
+    assert_response :ok
+    assert_select "h2", "Connecting to terminal..."
+  end
+
+  test "wait returns 404 for non-owner" do
+    sign_in_as(@user)
+    get terminal_wait_sandbox_path(@alice_sandbox)
+    assert_response :not_found
+  end
+
+  test "admin can view wait page for any sandbox" do
+    sign_in_as(@admin)
+    get terminal_wait_sandbox_path(@bob_sandbox)
+    assert_response :ok
+  end
+
+  # ── status ─────────────────────────────────────────────────────
+
+  test "status requires authentication" do
+    get terminal_status_sandbox_path(@alice_sandbox)
+    assert_redirected_to new_session_path
+  end
+
+  test "status returns ready when WeTTY is running" do
+    sign_in_as(@admin)
+
+    with_terminal_manager_stub(active: true) do
+      get terminal_status_sandbox_path(@alice_sandbox), as: :json
+    end
+
+    assert_response :ok
+    assert_equal({ "status" => "ready" }, response.parsed_body)
+  end
+
+  test "status returns waiting when WeTTY is not running" do
+    sign_in_as(@admin)
+
+    with_terminal_manager_stub(active: false) do
+      get terminal_status_sandbox_path(@alice_sandbox), as: :json
+    end
+
+    assert_response :ok
+    assert_equal({ "status" => "waiting" }, response.parsed_body)
+  end
+
+  test "status returns 404 for non-owner" do
+    sign_in_as(@user)
+    get terminal_status_sandbox_path(@alice_sandbox), as: :json
+    assert_response :not_found
+  end
+
+  test "admin can check status for any sandbox" do
+    sign_in_as(@admin)
+
+    with_terminal_manager_stub(active: true) do
+      get terminal_status_sandbox_path(@bob_sandbox), as: :json
+    end
+
+    assert_response :ok
+    assert_equal({ "status" => "ready" }, response.parsed_body)
   end
 
   # ── close ──────────────────────────────────────────────────────
@@ -183,7 +255,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def with_terminal_manager_stub(open_result: nil, open_error: nil, close_error: nil, &block)
+  def with_terminal_manager_stub(open_result: nil, open_error: nil, close_error: nil, active: nil, &block)
     stub = Object.new
     stub.define_singleton_method(:open) do |sandbox:|
       raise TerminalManager::Error, open_error if open_error
@@ -191,6 +263,9 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     end
     stub.define_singleton_method(:close) do |sandbox:|
       raise TerminalManager::Error, close_error if close_error
+    end
+    stub.define_singleton_method(:active?) do |sandbox:|
+      active
     end
 
     original_new = TerminalManager.method(:new)

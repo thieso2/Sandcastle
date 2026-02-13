@@ -32,9 +32,6 @@ class TerminalManager
     inject_pubkey(sandbox, key_dir)
     create_wetty_container(sandbox: sandbox, user: user, key_dir: key_dir)
 
-    # Give Traefik a moment to load the dynamic config before redirecting.
-    sleep 1
-
     wetty_url(sandbox)
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to open terminal: #{e.message}"

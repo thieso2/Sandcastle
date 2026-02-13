@@ -21,6 +21,8 @@ Rails.application.routes.draw do
       post :stop
       get :stats, controller: "dashboard", action: "stats"
       post :terminal, controller: "terminal", action: "open"
+      get  "terminal/wait", controller: "terminal", action: "wait"
+      get  "terminal/status", controller: "terminal", action: "status"
       delete :terminal, controller: "terminal", action: "close"
     end
   end
