@@ -66,5 +66,4 @@ class SandboxProvisionJob < ApplicationJob
     Rails.logger.error("Failed to broadcast toast: #{e.message}")
     # Don't raise - toast failure shouldn't break the job
   end
-  end
 end
