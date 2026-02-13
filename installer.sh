@@ -211,6 +211,15 @@ find_free_subnet() {
 
 # ═══ write_compose ══════════════════════════════════════════════════════════
 
+write_helper_scripts() {
+  cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
+#!/bin/bash
+exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml --env-file ${SANDCASTLE_HOME}/.env logs -f "\$@"
+LOGS
+  chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  ok "docker-logs helper written"
+}
+
 write_compose() {
   local DATA_MOUNT="$SANDCASTLE_HOME/data"
 
@@ -869,14 +878,7 @@ INITDB
 
   write_compose
 
-  # ── Write helper scripts ─────────────────────────────────────────────────
-
-  cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
-#!/bin/bash
-exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml --env-file ${SANDCASTLE_HOME}/.env logs -f "\$@"
-LOGS
-  chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
-  ok "docker-logs helper written"
+  write_helper_scripts
 
   # ── Start services ────────────────────────────────────────────────────────
 
@@ -975,6 +977,7 @@ cmd_update() {
   ok "Images pulled"
 
   write_compose
+  write_helper_scripts
 
   info "Restarting services..."
   cd "$SANDCASTLE_HOME"
