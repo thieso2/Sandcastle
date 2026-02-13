@@ -12,7 +12,7 @@ Rails.application.configure do
 
       private
 
-      def require_admin!
+      def require_admin
         unless Current.user&.admin?
           redirect_to root_path, alert: "Access denied. Admin privileges required."
         end
