@@ -3,15 +3,20 @@
   "checkpoint_id": "218611a77fb0",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 13,
+  "checkpoints_count": 16,
   "files_touched": [
     ".gitignore",
+    ".tasks.md.swp",
     "Dockerfile",
+    "PROGRESS.md",
     "Procfile.dev",
     "SANDMAN.md",
     "app/assets/tailwind/application.css",
+    "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/dashboard_controller.rb",
     "app/controllers/sandboxes_controller.rb",
+    "app/javascript/controllers/flash_controller.js",
     "app/jobs/sandbox_destroy_job.rb",
     "app/jobs/sandbox_provision_job.rb",
     "app/jobs/sandbox_start_job.rb",
@@ -23,16 +28,27 @@
     "app/views/change_passwords/show.html.erb",
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/dashboard/index.html.erb",
+    "app/views/layouts/application.html.erb",
     "app/views/sandboxes/new.html.erb",
+    "app/views/shared/_navbar.html.erb",
+    "app/views/shared/_toast.html.erb",
     "config/deploy.yml",
     "config/environments/production.rb",
+    "config/initializers/mission_control.rb",
+    "config/initializers/mission_control_jobs.rb",
     "config/recurring.yml",
     "config/routes.rb",
     "db/migrate/20260213120000_add_job_tracking_to_sandboxes.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "installer.sh",
-    "mise.toml"
+    "mise.toml",
+    "test/jobs/sandbox_destroy_job_test.rb",
+    "test/jobs/sandbox_provision_job_test.rb",
+    "test/services/sandbox_manager_test.rb",
+    "test/support/docker_mock.rb",
+    "test/system/sandbox_lifecycle_test.rb",
+    "test/test_helper.rb"
   ],
   "sessions": [
     {
@@ -76,13 +92,20 @@
       "context": "/21/8611a77fb0/5/context.md",
       "content_hash": "/21/8611a77fb0/5/content_hash.txt",
       "prompt": "/21/8611a77fb0/5/prompt.txt"
+    },
+    {
+      "metadata": "/21/8611a77fb0/6/metadata.json",
+      "transcript": "/21/8611a77fb0/6/full.jsonl",
+      "context": "/21/8611a77fb0/6/context.md",
+      "content_hash": "/21/8611a77fb0/6/content_hash.txt",
+      "prompt": "/21/8611a77fb0/6/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 2010,
-    "cache_creation_tokens": 376540,
-    "cache_read_tokens": 22173411,
-    "output_tokens": 24511,
-    "api_call_count": 249
+    "input_tokens": 2674,
+    "cache_creation_tokens": 455944,
+    "cache_read_tokens": 28676939,
+    "output_tokens": 37332,
+    "api_call_count": 331
   }
 }

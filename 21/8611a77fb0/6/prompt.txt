@@ -1,0 +1,295 @@
+Implement the following plan:
+
+# Sandcastle Comprehensive Improvement Plan
+
+## Context
+
+This plan addresses multiple issues identified in `tasks.md` to improve the Sandcastle platform's stability, testing, and user experience. The problems stem from:
+
+1. **Architecture**: Solid Queue worker running in Puma container (should be separate)
+2. **Visibility**: No job monitoring dashboard for background jobs
+3. **UI Bugs**: Flash messages never clear, stats endpoint crashes on deleted sandboxes
+4. **Configuration**: Docker warnings for missing BUILD_* vars, Traefik warnings for HostRegexp
+5. **Testing**: No system tests, no Docker mocks, minimal test coverage for core services
+
+The goal is to create a production-ready system with comprehensive tests that can run in CI without requiring real Docker/Sysbox.
+
+## Implementation Phases
+
+### Phase 1: Configuration Fixes (No Breaking Changes)
+
+**Fix Docker Build Warnings**
+- Add default BUILD_* environment variables to `docker-compose.dev.yml`
+- Set: `BUILD_VERSION: "dev"`, `BUILD_GIT_SHA: ""`, `BUILD_GIT_DIRTY: ""`, `BUILD_DATE: ""`
+- Files: `docker-compose.dev.yml`
+
+**Fix Traefik Warnings**
+- Replace `HostRegexp('.+')` with explicit `Host('sandcastle.local')` in init-traefik container scripts
+- Use `SANDCASTLE_HOST` env var for dynamic domain configuration
+- Files: `docker-compose.local.yml`, `docker-compose.dev.yml` (init-traefik service command)
+
+### Phase 2: Separate Worker Container
+
+**Add Dedicated Worker Service**
+- Create `worker` service in both `docker-compose.local.yml` and `docker-compose.dev.yml`
+- Clone web service config but change command to `bundle exec rake solid_queue:start`
+- Remove port exposures (internal only)
+- Container name: `sandcastle-worker` / `sandcastle-dev-worker`
+- Files: `docker-compose.local.yml`, `docker-compose.dev.yml`
+
+**Update Web Service**
+- Remove `SOLID_QUEUE_IN_PUMA: "true"` env var from web services
+- Jobs will now process in dedicated worker container
+- Files: `docker-compose.local.yml`, `docker-compose.dev.yml`
+
+**Verification**: Deploy locally and verify separate worker logs
+```bash
+mise run deploy:local
+docker logs sandcastle-worker -f  # Should show job processing
+```
+
+### Phase 3: Job Monitoring Dashboard
+
+**Mount Mission Control**
+- Add route: `mount MissionControl::Jobs::Engine, at: "/jobs"` (admin-only)
+- Wrap in admin authentication constraint
+- Files: `config/routes.rb`
+
+**Add Navigation Link**
+- Add "Jobs" link to admin navbar pointing to `/jobs`
+- Files: `app/views/shared/_navbar.html.erb` or admin layout
+
+**Verification**: Login as admin, navigate to https://sandcastle.local:8443/jobs
+
+### Phase 4: Fix Stats Endpoint Bug
+
+**Problem**: When a sandbox is destroyed, the lazy-loaded Turbo Frame tries to fetch `/sandboxes/:id/stats` which uses `.active` scope, raising `RecordNotFound` → 500 error
+
+**Fix Stats Controllers**
+- Add `rescue ActiveRecord::RecordNotFound` to stats actions
+- Return empty stats partial (already handles `stats: nil`)
+- Gracefully handle destroyed sandboxes
+- Files: `app/controllers/dashboard_controller.rb`, `app/controllers/admin/sandboxes_controller.rb`
+
+**Example**:
+```ruby
+def stats
+  sandbox = policy_scope(Sandbox).find(params[:id])
+  # ... Docker stats logic ...
+rescue ActiveRecord::RecordNotFound
+  render partial: "sandbox_stats", locals: { stats: nil, sandbox: nil }
+rescue Docker::Error::DockerError
+  render partial: "sandbox_stats", locals: { stats: nil, sandbox: sandbox }
+end
+```
+
+**Verification**: Create sandbox, destroy it, check console for errors (should be none)
+
+### Phase 5: Flash Notifications & Turbo Broadcasts
+
+**Create Flash Auto-Dismiss**
+- Create Stimulus controller: `app/javascript/controllers/flash_controller.js`
+- Auto-dismiss "notice" level after 5 seconds
+- Keep "alert" level persistent with manual close button
+- Files: `app/javascript/controllers/flash_controller.js`
+
+**Update Flash HTML**
+- Add `data-controller="flash"` to flash divs
+- Add close button with `data-action="click->flash#close"`
+- Files: `app/views/layouts/application.html.erb`
+
+**Add Toast Notifications for Jobs**
+- Create toast partial: `app/views/shared/_toast.html.erb`
+- Add Turbo Stream broadcasts to all job classes on completion:
+  - `SandboxProvisionJob` - success/failure toast
+  - `SandboxDestroyJob` - completion toast
+  - `SandboxStartJob`, `SandboxStopJob` - status toast
+- Use `Turbo::StreamsChannel.broadcast_append_to` with auto-dismiss toast
+- Files: `app/jobs/sandbox_provision_job.rb`, `sandbox_destroy_job.rb`, `sandbox_start_job.rb`, `sandbox_stop_job.rb`, `app/views/shared/_toast.html.erb`
+
+**Verification**: Create sandbox, verify flash appears then auto-dismisses, then toast appears after provisioning
+
+### Phase 6: Testing Infrastructure
+
+**Create Docker Mock**
+- Build stateful Docker API mock: `test/support/docker_mock.rb`
+- Mock: `Docker::Container.create`, `.get`, `.start`, `.stop`, `.delete`, `.stats`
+- Mock: `Docker::Image.create`, `.all`, `.get`
+- Store state in memory (@@containers, @@images hash)
+- Simulate realistic delays (pull: 2s, create: 0.5s, start: 1s)
+- Support failure injection for error path testing
+- Files: `test/support/docker_mock.rb`, `test/test_helper.rb` (enable mock)
+
+**Create Service Tests**
+- `test/services/sandbox_manager_test.rb` - container lifecycle, error handling
+- `test/services/terminal_manager_test.rb` - WeTTY sidecar, SSH keypair
+- `test/services/tailscale_manager_test.rb` - sidecar, auth flows
+- Test happy paths, error handling, idempotency
+- Files: `test/services/` (new directory)
+
+**Create Job Tests**
+- `test/jobs/sandbox_provision_job_test.rb` - provision success/failure
+- `test/jobs/sandbox_destroy_job_test.rb` - destroy, cleanup
+- `test/jobs/container_sync_job_test.rb` - reconciliation logic
+- Test with `perform_enqueued_jobs`, verify state transitions
+- Files: `test/jobs/` (new directory)
+
+**Create System Tests**
+- `test/system/sandbox_lifecycle_test.rb` - create, start, stop, destroy flow
+- `test/system/terminal_test.rb` - open terminal, verify WeTTY iframe
+- `test/system/tailscale_test.rb` - enable, login, connect sandbox
+- `test/system/flash_notifications_test.rb` - auto-dismiss, manual close
+- Use Capybara with headless Chrome, Docker mock enabled
+- Files: `test/system/` (populate existing empty directory)
+
+**Verification**: Run full suite
+```bash
+bin/rails test          # All tests pass
+bin/rails test:system   # System tests pass
+bin/ci                  # Full CI pipeline passes
+```
+
+### Phase 7: Chrome Testing & Bug Fixes
+
+**Deploy Locally**
+```bash
+mise run deploy:local
+```
+
+**Manual Chrome Testing Scenarios**
+
+1. **Basic Lifecycle** (https://sandcastle.local:8443, login: thieso@gmail.com:tubu)
+   - Create sandbox with persistent volume
+   - Verify flash → auto-dismiss → toast notification
+   - Wait for "running" status
+   - Open terminal, verify WeTTY loads
+   - Destroy sandbox
+   - **Check**: No console errors, no 500 errors
+
+2. **Tailscale Integration**
+   - Enable Tailscale (settings)
+   - Follow interactive login
+   - Create sandbox with Tailscale
+   - Verify connection
+
+3. **Snapshots**
+   - Create sandbox, take snapshot
+   - Restore from snapshot
+   - Verify state preservation
+
+4. **Error Handling**
+   - Invalid name (uppercase)
+   - Duplicate name
+   - Start running sandbox
+   - Stop stopped sandbox
+
+5. **Job Monitoring**
+   - Navigate to /jobs (admin)
+   - Create sandbox, verify job appears
+   - Check job history, status
+
+6. **CLI Testing**
+   ```bash
+   sandcastle login
+   sandcastle create cli-test --persistent
+   sandcastle list
+   sandcastle connect cli-test
+   sandcastle destroy cli-test
+   ```
+
+**Bug Triage**
+- Document bugs in PROGRESS.md
+- Fix critical bugs (breaks core features)
+- Fix high-priority bugs (UX issues)
+- Create GitHub issues for low-priority items
+
+**Verification**: All core features work without errors
+
+## Critical Files
+
+### To Create
+- `test/support/docker_mock.rb` - Core testing infrastructure
+- `test/services/sandbox_manager_test.rb`, `terminal_manager_test.rb`, `tailscale_manager_test.rb`
+- `test/jobs/sandbox_provision_job_test.rb`, `sandbox_destroy_job_test.rb`, `container_sync_job_test.rb`
+- `test/system/sandbox_lifecycle_test.rb`, `terminal_test.rb`, `tailscale_test.rb`, `flash_notifications_test.rb`
+- `app/javascript/controllers/flash_controller.js`
+- `app/views/shared/_toast.html.erb`
+- `PROGRESS.md` - Track implementation progress
+
+### To Modify
+- `docker-compose.local.yml` - Worker service, Traefik fix, BUILD vars
+- `docker-compose.dev.yml` - Same as above
+- `config/routes.rb` - Mount Mission Control at /jobs
+- `app/controllers/dashboard_controller.rb` - Fix stats race condition
+- `app/controllers/admin/sandboxes_controller.rb` - Fix stats race condition
+- `app/views/layouts/application.html.erb` - Stimulus flash controller
+- `app/views/shared/_navbar.html.erb` - Add Jobs link (admin)
+- `app/jobs/sandbox_provision_job.rb` - Toast broadcasts
+- `app/jobs/sandbox_destroy_job.rb` - Toast broadcasts
+- `app/jobs/sandbox_start_job.rb` - Toast broadcasts
+- `app/jobs/sandbox_stop_job.rb` - Toast broadcasts
+- `test/test_helper.rb` - Enable Docker mock
+
+## Success Criteria
+
+- [ ] No docker-compose warnings on startup
+- [ ] Worker container runs independently
+- [ ] Jobs visible at /jobs dashboard (admin)
+- [ ] No 500 errors on sandbox destroy
+- [ ] Flash messages auto-dismiss after 5s
+- [ ] Toast notifications appear after async jobs
+- [ ] All tests pass: `bin/ci`
+- [ ] Full sandbox lifecycle works in Chrome
+- [ ] Tailscale integration works
+- [ ] CLI commands work correctly
+- [ ] No console errors during normal use
+
+## Rollback Plan
+
+If critical issues arise:
+1. **Worker Container**: Revert to `SOLID_QUEUE_IN_PUMA: "true"`
+2. **Stats Bug**: Revert controller changes
+3. **Notifications**: Remove Stimulus controller
+4. **Job Monitoring**: Remove route (gem unused)
+5. **Tests**: Disable Docker mock in CI
+
+Each phase commits atomically for easy rollback.
+
+## Trade-offs & Risks
+
+**Separate Worker**: Slightly more complex (2 containers vs 1), but production-ready
+**Docker Mock**: Won't catch real Docker API issues, mitigate with manual staging tests
+**Flash Auto-Dismiss**: Users might miss messages, keep alerts persistent
+**Mission Control**: External dependency, pin version to avoid breaking changes
+**System Tests**: Slower CI, potential flakiness, use explicit waits
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+do it!
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+<task-notification>
+<task-id>b7b064d</task-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Deploy Sandcastle locally" failed with exit code 1</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>bcc9685</task-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Retry local deployment" failed with exit code 1</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
