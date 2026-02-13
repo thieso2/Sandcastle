@@ -1,8 +1,4 @@
 <div class="mx-auto md:w-2/3 w-full">
-  <% if alert = flash[:alert] %>
-    <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= alert %></p>
-  <% end %>
-
   <% if Current.user.must_change_password? %>
     <div class="py-3 px-4 bg-amber-50 border border-amber-200 mb-5 text-amber-800 rounded-lg">
       Your password was set by an administrator. Please choose a new password to continue.
