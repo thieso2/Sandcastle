@@ -1,0 +1,29 @@
+remove all printServer(client) changes
+
+---
+
+the sandcastle info call should stay
+
+---
+
+commit cli and api
+
+---
+
+what are the uncommitted changes?
+
+---
+
+what are those about
+
+---
+
+revert app/services/terminal_manager.rb
+
+---
+
+commit the rest
+
+---
+
+separate atomic commits,
