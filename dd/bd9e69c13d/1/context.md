@@ -1,0 +1,8 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+add GH issue finish mailgun implemenation (use REST api instead of SMTP) (or not) - reserch
+
