@@ -1,0 +1,5 @@
+all sandcasle cli should echt the server first in their output.
+
+---
+
+add a info api call on the server that returns the server version (and some stats - uptime mem etc). also add sandcastle info that prints it niceliy formatted.
