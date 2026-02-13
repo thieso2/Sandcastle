@@ -235,3 +235,11 @@ Auto-generate placeholder text!
 enable  Connect to Tailscale network when tailscale is active
 persistent volumen is mountes on /data
 
+### Prompt 45
+
+commit and push
+
+### Prompt 46
+
+sandbox name shoudl be pre-filled with the generated name.
+

@@ -664,3 +664,11 @@ validate and verify that production  docker-compose is in sync and that all our 
 Auto-generate placeholder text!
 enable  Connect to Tailscale network when tailscale is active
 persistent volumen is mountes on /data
+
+---
+
+commit and push
+
+---
+
+sandbox name shoudl be pre-filled with the generated name.
