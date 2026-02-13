@@ -1,5 +1,8 @@
 # Configure Mission Control Jobs for admin access
 Rails.application.configure do
+  # Disable HTTP Basic auth (we use session-based auth instead)
+  config.mission_control.jobs.http_basic_auth_enabled = false
+
   # Authenticate admin users for Mission Control Jobs
   config.to_prepare do
     MissionControl::Jobs::ApplicationController.class_eval do
