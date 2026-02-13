@@ -1,0 +1,18 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+om sandman a fresh sandcaste install has created /data again - why?
+thies@sandman:~$ sudo ./installer.sh  install
+was done 
+docker is /sandcastle/docker-runtime/bin/docker
+
+explore and analyze 
+/data shoudl be in /sandcastle/data
+
+### Prompt 2
+
+commit
+
