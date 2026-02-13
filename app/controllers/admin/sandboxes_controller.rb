@@ -1,6 +1,6 @@
 module Admin
   class SandboxesController < BaseController
-    before_action :set_sandbox
+    before_action :set_sandbox, except: [:stats]
 
     def destroy
       authorize @sandbox
@@ -21,6 +21,7 @@ module Admin
     end
 
     def stats
+      @sandbox = Sandbox.find(params[:id])
       authorize @sandbox
       if @sandbox.status == "running" && @sandbox.container_id.present?
         container = Docker::Container.get(@sandbox.container_id)
