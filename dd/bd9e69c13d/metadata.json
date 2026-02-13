@@ -5,12 +5,9 @@
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "TESTING_RESULTS.md",
-    "app/controllers/dashboard_controller.rb",
     "app/services/route_manager.rb",
     "config/initializers/mission_control.rb",
-    "config/initializers/mission_control_jobs.rb",
-    "docker-compose.local.yml"
+    "config/initializers/mission_control_jobs.rb"
   ],
   "sessions": [
     {
@@ -22,10 +19,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 632,
-    "cache_creation_tokens": 74981,
-    "cache_read_tokens": 5304422,
-    "output_tokens": 5819,
-    "api_call_count": 78
+    "input_tokens": 58,
+    "cache_creation_tokens": 5463,
+    "cache_read_tokens": 730780,
+    "output_tokens": 161,
+    "api_call_count": 7
   }
 }

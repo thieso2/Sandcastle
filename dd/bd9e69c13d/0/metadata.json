@@ -3,33 +3,32 @@
   "checkpoint_id": "ddbd9e69c13d",
   "session_id": "8bbe5e59-333c-4dd6-9b21-339d8497f6f9",
   "strategy": "manual-commit",
-  "created_at": "2026-02-13T19:51:17.122385Z",
+  "created_at": "2026-02-13T19:53:06.098743Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "TESTING_RESULTS.md",
-    "app/controllers/dashboard_controller.rb",
     "app/services/route_manager.rb",
     "config/initializers/mission_control.rb",
-    "config/initializers/mission_control_jobs.rb",
-    "docker-compose.local.yml"
+    "config/initializers/mission_control_jobs.rb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "18743ee0-5828-4658-be32-cbd3ef36379d",
+  "transcript_identifier_at_start": "3bb29413-8e3e-4d2a-9dee-ccd76bcf837c",
+  "checkpoint_transcript_start": 425,
+  "transcript_lines_at_start": 425,
   "token_usage": {
-    "input_tokens": 632,
-    "cache_creation_tokens": 74981,
-    "cache_read_tokens": 5304422,
-    "output_tokens": 5819,
-    "api_call_count": 78
+    "input_tokens": 58,
+    "cache_creation_tokens": 5463,
+    "cache_read_tokens": 730780,
+    "output_tokens": 161,
+    "api_call_count": 7
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-13T19:51:17.051698Z",
+    "calculated_at": "2026-02-13T19:53:06.027032Z",
     "agent_lines": 0,
-    "human_added": 176,
-    "human_modified": 25,
+    "human_added": 27,
+    "human_modified": 1,
     "human_removed": 0,
-    "total_committed": 179,
+    "total_committed": 28,
     "agent_percentage": 0
   }
 }
