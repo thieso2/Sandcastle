@@ -16,7 +16,8 @@
         <%= form.text_field :name,
               required: true,
               pattern: "[a-z][a-z0-9_-]{0,62}",
-              placeholder: "my-dev",
+              placeholder: "",
+              id: "sandbox_name",
               class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
         <p class="mt-1 text-xs text-gray-500">Lowercase letters, numbers, hyphens, and underscores only</p>
       </div>
@@ -55,7 +56,7 @@
           <%= form.check_box :persistent, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
           <div class="flex-1">
             <div class="text-sm font-medium text-gray-900">Enable persistent volume</div>
-            <p class="text-xs text-gray-500">Create a persistent /workspace volume that survives sandbox recreation</p>
+            <p class="text-xs text-gray-500">Create a persistent /data volume that survives sandbox recreation</p>
           </div>
         </label>
 
@@ -83,7 +84,7 @@
         <h2 class="text-lg font-semibold text-gray-900">Network Options</h2>
 
         <label class="flex items-start gap-3 cursor-pointer">
-          <%= form.check_box :tailscale, class: "mt-1 h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500" %>
+          <%= form.check_box :tailscale, checked: true, class: "mt-1 h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500" %>
           <div class="flex-1">
             <div class="text-sm font-medium text-gray-900">Connect to Tailscale network</div>
             <p class="text-xs text-gray-500">Automatically connect this sandbox to your Tailscale network</p>
@@ -117,3 +118,21 @@
     </div>
   <% end %>
 </div>
+
+<script>
+(function() {
+  var adjectives = ["swift", "brave", "wild", "calm", "bold", "wise", "cool", "warm", "bright", "dark", "silent", "loud", "quick", "slow", "happy", "zen", "cosmic", "electric", "quantum", "digital"];
+  var nouns = ["fox", "wolf", "eagle", "tiger", "bear", "shark", "hawk", "lion", "dragon", "phoenix", "cobra", "falcon", "raven", "panther", "viper", "lynx", "orca", "jaguar", "puma", "leopard"];
+
+  function generateName() {
+    var adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    var noun = nouns[Math.floor(Math.random() * nouns.length)];
+    return adj + "-" + noun;
+  }
+
+  var nameField = document.getElementById("sandbox_name");
+  if (nameField) {
+    nameField.placeholder = generateName();
+  }
+})();
+</script>
