@@ -30,10 +30,14 @@
 
     <main class="container mx-auto px-5 <%= authenticated? ? 'pt-20' : 'mt-28' %>">
       <% if flash[:alert] %>
-        <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= flash[:alert] %></p>
+        <div class="flex justify-center mb-5">
+          <p class="py-2 px-3 bg-red-50 text-red-500 font-medium rounded-lg" id="alert"><%= flash[:alert] %></p>
+        </div>
       <% end %>
       <% if flash[:notice] %>
-        <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-lg inline-block" id="notice"><%= flash[:notice] %></p>
+        <div class="flex justify-center mb-5">
+          <p class="py-2 px-3 bg-green-50 text-green-500 font-medium rounded-lg" id="notice"><%= flash[:notice] %></p>
+        </div>
       <% end %>
       <%= yield %>
     </main>
