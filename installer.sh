@@ -513,7 +513,7 @@ cmd_destroy() {
     systemctl daemon-reload 2>/dev/null || true
   fi
 
-  # Remove Sandcastle files — keep user data (data/users, data/sandboxes)
+  # Remove Sandcastle files — keep user data (data/users, data/sandboxes, data/postgres)
   rm -f "$SANDCASTLE_HOME/.env"
   rm -f "$SANDCASTLE_HOME/docker-compose.yml"
   rm -rf "$SANDCASTLE_HOME/etc"
@@ -522,7 +522,7 @@ cmd_destroy() {
   rmdir "$SANDCASTLE_HOME" 2>/dev/null || true
   rm -rf "/run/${DOCKYARD_DOCKER_PREFIX}docker"
 
-  if [ -d "$SANDCASTLE_HOME/data/users" ] || [ -d "$SANDCASTLE_HOME/data/sandboxes" ]; then
+  if [ -d "$SANDCASTLE_HOME/data/users" ] || [ -d "$SANDCASTLE_HOME/data/sandboxes" ] || [ -d "$SANDCASTLE_HOME/data/postgres" ]; then
     warn "User data preserved in $SANDCASTLE_HOME/data/ — remove manually if no longer needed"
   fi
 
@@ -641,8 +641,21 @@ DYEOF
     fi
 
     SECRET_KEY_BASE=$(openssl rand -hex 64)
-    DB_PASSWORD=$(openssl rand -hex 32)
     DOCKER_GID=$(stat -c '%g' "$DOCKER_SOCK" 2>/dev/null || echo "988")
+
+    # Preserve DB password across reinstalls (user data)
+    POSTGRES_SECRETS_FILE="$SANDCASTLE_HOME/data/postgres/.secrets"
+    if [ -f "$POSTGRES_SECRETS_FILE" ]; then
+      # shellcheck source=/dev/null
+      source "$POSTGRES_SECRETS_FILE"
+      info "Reusing existing database password"
+    else
+      DB_PASSWORD=$(openssl rand -hex 32)
+      mkdir -p "$SANDCASTLE_HOME/data/postgres"
+      echo "DB_PASSWORD=$DB_PASSWORD" > "$POSTGRES_SECRETS_FILE"
+      chmod 600 "$POSTGRES_SECRETS_FILE"
+      wrote "$POSTGRES_SECRETS_FILE"
+    fi
 
     cat > "$SANDCASTLE_HOME/.env" <<EOF
 # Sandcastle runtime — generated $(date -Iseconds)
