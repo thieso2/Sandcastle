@@ -225,3 +225,13 @@ now debug opening the terminal in the web!
 
 open terminal got me bad gateway - reload fixed it - but i down want to see the bad gateway!
 
+### Prompt 43
+
+validate and verify that production  docker-compose is in sync and that all our chages will work in prod too
+
+### Prompt 44
+
+Auto-generate placeholder text!
+enable  Connect to Tailscale network when tailscale is active
+persistent volumen is mountes on /data
+
