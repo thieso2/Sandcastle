@@ -3,14 +3,36 @@
   "checkpoint_id": "218611a77fb0",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 13,
   "files_touched": [
     ".gitignore",
+    "Dockerfile",
+    "Procfile.dev",
     "SANDMAN.md",
+    "app/assets/tailwind/application.css",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/jobs/sandbox_destroy_job.rb",
+    "app/jobs/sandbox_provision_job.rb",
+    "app/jobs/sandbox_start_job.rb",
+    "app/jobs/sandbox_stop_job.rb",
+    "app/jobs/stuck_job_cleanup_job.rb",
+    "app/jobs/terminal_open_job.rb",
+    "app/models/sandbox.rb",
+    "app/services/sandbox_manager.rb",
     "app/views/change_passwords/show.html.erb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb",
     "app/views/sandboxes/new.html.erb",
     "config/deploy.yml",
-    "installer.sh"
+    "config/environments/production.rb",
+    "config/recurring.yml",
+    "config/routes.rb",
+    "db/migrate/20260213120000_add_job_tracking_to_sandboxes.rb",
+    "docker-compose.dev.yml",
+    "docker-compose.local.yml",
+    "installer.sh",
+    "mise.toml"
   ],
   "sessions": [
     {
@@ -47,13 +69,20 @@
       "context": "/21/8611a77fb0/4/context.md",
       "content_hash": "/21/8611a77fb0/4/content_hash.txt",
       "prompt": "/21/8611a77fb0/4/prompt.txt"
+    },
+    {
+      "metadata": "/21/8611a77fb0/5/metadata.json",
+      "transcript": "/21/8611a77fb0/5/full.jsonl",
+      "context": "/21/8611a77fb0/5/context.md",
+      "content_hash": "/21/8611a77fb0/5/content_hash.txt",
+      "prompt": "/21/8611a77fb0/5/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 728,
-    "cache_creation_tokens": 192706,
-    "cache_read_tokens": 5696756,
-    "output_tokens": 4957,
-    "api_call_count": 92
+    "input_tokens": 2010,
+    "cache_creation_tokens": 376540,
+    "cache_read_tokens": 22173411,
+    "output_tokens": 24511,
+    "api_call_count": 249
   }
 }

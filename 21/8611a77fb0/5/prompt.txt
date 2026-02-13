@@ -1,0 +1,1337 @@
+Implement the following plan:
+
+# Sandcastle: Async Operations with Real-Time Turbo Updates
+
+## Context
+
+Sandcastle currently uses synchronous operations for all sandbox management tasks (create, destroy, start, stop, terminal open, Tailscale auth). This creates a poor user experience:
+
+- **Long blocking requests**: Creating a sandbox takes 5-30 seconds and blocks the HTTP request
+- **No feedback during operations**: Users see nothing until completion or timeout
+- **Bug during creation**: Error occurs when creating sandboxes with `mount_home` or `data_path` enabled
+- **Unresponsive UI**: Full page reloads for every action, no real-time updates
+
+This plan transforms Sandcastle into a modern async architecture with real-time UI updates, fixing the creation bug and dramatically improving UX.
+
+## Goals
+
+1. **Make all operations async** using ActiveJob/Solid Queue (infrastructure already exists)
+2. **Add real-time updates** via Turbo Streams so dashboard updates automatically
+3. **Fix creation bug** where mount_home/data_path causes errors
+4. **Improve UI/UX** with loading states, subtle animations, and responsive feedback
+5. **BONUS: Enable live development** by mounting source code into Docker container
+
+## Implementation Strategy
+
+### Phase 1: Database & Model Foundation
+
+#### 1.1 Add Job Tracking Columns
+
+**Migration**: `db/migrate/YYYYMMDDHHMMSS_add_job_tracking_to_sandboxes.rb`
+
+```ruby
+class AddJobTrackingToSandboxes < ActiveRecord::Migration[8.1]
+  def change
+    add_column :sandboxes, :job_status, :string
+    add_column :sandboxes, :job_error, :text
+    add_column :sandboxes, :job_started_at, :datetime
+
+    add_index :sandboxes, :job_status
+    add_index :sandboxes, [:user_id, :job_status]
+  end
+end
+```
+
+**Why**: Track async operation state separately from container state. `status` = container reality (running/stopped/etc), `job_status` = operation in progress (creating/destroying/etc).
+
+#### 1.2 Enhance Sandbox Model
+
+**File**: `app/models/sandbox.rb`
+
+Add job tracking helpers:
+
+```ruby
+# Job lifecycle management
+def job_in_progress?
+  job_status.present?
+end
+
+def job_failed?
+  job_error.present?
+end
+
+def start_job(status)
+  update!(job_status: status, job_started_at: Time.current, job_error: nil)
+end
+
+def finish_job
+  update!(job_status: nil, job_started_at: nil)
+end
+
+def fail_job(error_message)
+  update!(job_status: nil, job_error: error_message, job_started_at: nil)
+end
+```
+
+Add Turbo Stream broadcasts (real-time dashboard updates):
+
+```ruby
+# Turbo Streams for real-time UI updates
+after_update_commit :broadcast_replace_to_dashboard
+after_destroy_commit :broadcast_remove_from_dashboard
+
+def broadcast_replace_to_dashboard
+  broadcast_replace_to(
+    [user, "dashboard"],
+    partial: "dashboard/sandbox",
+    locals: { sandbox: self },
+    target: dom_id(self)
+  )
+end
+
+def broadcast_remove_from_dashboard
+  broadcast_remove_to([user, "dashboard"], target: dom_id(self))
+end
+```
+
+**Why**: Model callbacks ensure broadcasts happen automatically when state changes, guaranteeing UI stays in sync.
+
+### Phase 2: Refactor Services for Jobs
+
+#### 2.1 Fix SandboxManager Creation Bug
+
+**File**: `app/services/sandbox_manager.rb`
+
+**Current Bug**: `ensure_mount_dirs` is called AFTER sandbox record is created. If directory creation fails, we have orphaned DB records.
+
+**Fix**: Refactor `create` method:
+
+1. Extract `ensure_mount_dirs` as public method (jobs need it)
+2. Extract `ensure_image` as public method
+3. Extract `create_container_and_start` as public method
+4. Call `ensure_mount_dirs` BEFORE saving sandbox record
+5. Wrap all in transaction with proper rollback
+
+```ruby
+def create(user:, name:, image:, **options)
+  # Build sandbox record (not saved yet)
+  sandbox = user.sandboxes.build(
+    name: name,
+    image: image || DEFAULT_IMAGE,
+    status: "pending",
+    persistent_volume: options[:persistent],
+    mount_home: options[:mount_home],
+    data_path: options[:data_path],
+    tailscale: options[:tailscale],
+    temporary: options[:temporary]
+  )
+
+  # Validate before doing expensive operations
+  sandbox.validate!
+
+  # Create directories FIRST (can fail fast)
+  ensure_mount_dirs(user, sandbox)
+
+  # Now safe to save
+  sandbox.save!
+
+  # Pull image
+  ensure_image(sandbox.image)
+
+  # Create and start container
+  create_container_and_start(sandbox: sandbox, user: user)
+
+  # Connect to Tailscale if requested
+  connect_to_tailscale(sandbox, user) if options[:tailscale]
+
+  sandbox.update!(status: "running")
+  sandbox
+end
+
+# Make these public for job usage
+def ensure_mount_dirs(user, sandbox)
+  # Existing logic lines 301-319
+  # Add better error messages for debugging
+end
+
+def ensure_image(image)
+  # Existing logic lines 295-299
+end
+
+def create_container_and_start(sandbox:, user:)
+  # Extracted from current create method
+  # Lines 27-51 logic
+end
+```
+
+**Why**: Early validation and directory creation prevents orphaned records. Public methods enable job reuse.
+
+### Phase 3: Implement Background Jobs
+
+#### 3.1 Enhanced SandboxProvisionJob
+
+**File**: `app/jobs/sandbox_provision_job.rb`
+
+```ruby
+class SandboxProvisionJob < ApplicationJob
+  queue_as :default
+
+  def perform(sandbox_id:)
+    sandbox = Sandbox.find(sandbox_id)
+    return if sandbox.status == "running" # Idempotent
+
+    sandbox.start_job("creating")
+    manager = SandboxManager.new
+
+    begin
+      # Directory creation
+      manager.ensure_mount_dirs(sandbox.user, sandbox)
+
+      # Image pull (can be slow)
+      manager.ensure_image(sandbox.image)
+
+      # Container creation and start
+      manager.create_container_and_start(sandbox: sandbox, user: sandbox.user)
+
+      # Connect to Tailscale if enabled
+      if sandbox.tailscale?
+        connect_to_tailscale(sandbox)
+      end
+
+      sandbox.update!(status: "running")
+      sandbox.finish_job
+
+    rescue => e
+      Rails.logger.error("SandboxProvisionJob failed: #{e.message}\n#{e.backtrace.join("\n")}")
+      sandbox.fail_job("Failed to create: #{e.message}")
+      sandbox.update!(status: "destroyed")
+      raise # Re-raise for Solid Queue retry
+    end
+  end
+
+  private
+
+  def connect_to_tailscale(sandbox)
+    return unless sandbox.user.tailscale_enabled?
+    TailscaleManager.new.connect_sandbox(sandbox: sandbox, user: sandbox.user)
+  end
+end
+```
+
+#### 3.2 New Background Jobs
+
+**File**: `app/jobs/sandbox_destroy_job.rb`
+
+```ruby
+class SandboxDestroyJob < ApplicationJob
+  queue_as :default
+
+  def perform(sandbox_id:)
+    sandbox = Sandbox.find(sandbox_id)
+    return if sandbox.status == "destroyed"
+
+    sandbox.start_job("destroying")
+
+    begin
+      SandboxManager.new.destroy(sandbox: sandbox)
+      sandbox.finish_job
+    rescue => e
+      sandbox.fail_job("Failed to destroy: #{e.message}")
+      raise
+    end
+  end
+end
+```
+
+**File**: `app/jobs/sandbox_start_job.rb`
+
+```ruby
+class SandboxStartJob < ApplicationJob
+  queue_as :default
+
+  def perform(sandbox_id:)
+    sandbox = Sandbox.find(sandbox_id)
+    return if sandbox.status == "running"
+
+    sandbox.start_job("starting")
+
+    begin
+      SandboxManager.new.start(sandbox: sandbox)
+      sandbox.finish_job
+    rescue => e
+      sandbox.fail_job("Failed to start: #{e.message}")
+      raise
+    end
+  end
+end
+```
+
+**File**: `app/jobs/sandbox_stop_job.rb`
+
+```ruby
+class SandboxStopJob < ApplicationJob
+  queue_as :default
+
+  def perform(sandbox_id:)
+    sandbox = Sandbox.find(sandbox_id)
+    return if sandbox.status == "stopped"
+
+    sandbox.start_job("stopping")
+
+    begin
+      SandboxManager.new.stop(sandbox: sandbox)
+      sandbox.finish_job
+    rescue => e
+      sandbox.fail_job("Failed to stop: #{e.message}")
+      raise
+    end
+  end
+end
+```
+
+**File**: `app/jobs/terminal_open_job.rb` (enhance existing)
+
+```ruby
+class TerminalOpenJob < ApplicationJob
+  queue_as :default
+
+  def perform(sandbox_id:)
+    sandbox = Sandbox.find(sandbox_id)
+    return unless sandbox.status == "running"
+
+    sandbox.start_job("opening_terminal")
+
+    begin
+      TerminalManager.new.open(sandbox: sandbox)
+      sandbox.finish_job
+    rescue => e
+      Rails.logger.error("TerminalOpenJob failed: #{e.message}")
+      sandbox.fail_job("Failed to open terminal: #{e.message}")
+      # Don't re-raise - terminal failures shouldn't retry
+    end
+  end
+end
+```
+
+#### 3.3 Stuck Job Cleanup
+
+**File**: `app/jobs/stuck_job_cleanup_job.rb`
+
+```ruby
+class StuckJobCleanupJob < ApplicationJob
+  queue_as :default
+
+  def perform
+    Sandbox.where.not(job_status: nil)
+           .where("job_started_at < ?", 5.minutes.ago)
+           .find_each do |sandbox|
+      Rails.logger.error("Stuck job detected: sandbox=#{sandbox.id} job_status=#{sandbox.job_status}")
+      sandbox.fail_job("Job timed out after 5 minutes")
+    end
+  end
+end
+```
+
+**File**: `config/recurring.yml` (update)
+
+```yaml
+production:
+  clear_solid_queue_finished_jobs:
+    class: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
+    schedule: every hour at minute 12
+  container_sync:
+    class: ContainerSyncJob
+    schedule: every 5 minutes
+  stuck_job_cleanup:
+    class: StuckJobCleanupJob
+    schedule: every 5 minutes
+```
+
+### Phase 4: Update Controllers for Async
+
+#### 4.1 SandboxesController
+
+**File**: `app/controllers/sandboxes_controller.rb`
+
+```ruby
+def create
+  authorize Sandbox
+
+  # Build sandbox record
+  sandbox = Current.user.sandboxes.build(
+    name: params.require(:name),
+    status: "pending",
+    image: params[:image].presence || SandboxManager::DEFAULT_IMAGE,
+    persistent_volume: params[:persistent] == "1",
+    mount_home: params[:mount_home] == "1",
+    data_path: params[:data_path].presence,
+    tailscale: params[:tailscale] == "1",
+    temporary: params[:temporary] == "1"
+  )
+
+  if sandbox.save
+    # Enqueue async job
+    SandboxProvisionJob.perform_later(sandbox_id: sandbox.id)
+
+    # Optimistic redirect - dashboard will update via Turbo
+    redirect_to root_path, notice: "Creating sandcastle #{sandbox.name}..."
+  else
+    @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+    flash.now[:alert] = "Failed to create sandbox: #{sandbox.errors.full_messages.join(', ')}"
+    render :new, status: :unprocessable_entity
+  end
+rescue => e
+  @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+  flash.now[:alert] = "Failed to create sandbox: #{e.message}"
+  render :new, status: :unprocessable_entity
+end
+
+def destroy
+  if @sandbox.job_in_progress?
+    redirect_to root_path, alert: "Operation already in progress"
+    return
+  end
+
+  SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
+  redirect_to root_path, notice: "Destroying sandcastle #{@sandbox.name}..."
+end
+
+def start
+  if @sandbox.job_in_progress?
+    redirect_to root_path, alert: "Operation already in progress"
+    return
+  end
+
+  SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
+  redirect_to root_path, notice: "Starting sandcastle #{@sandbox.name}..."
+end
+
+def stop
+  if @sandbox.job_in_progress?
+    redirect_to root_path, alert: "Operation already in progress"
+    return
+  end
+
+  SandboxStopJob.perform_later(sandbox_id: @sandbox.id)
+  redirect_to root_path, notice: "Stopping sandcastle #{@sandbox.name}..."
+end
+
+def retry
+  return unless @sandbox.job_failed?
+
+  @sandbox.update!(job_error: nil)
+
+  case @sandbox.status
+  when "destroyed", "pending"
+    redirect_to root_path, alert: "Cannot retry creation. Please create a new sandbox."
+  when "stopped"
+    SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
+    redirect_to root_path, notice: "Retrying start..."
+  when "running"
+    redirect_to root_path, alert: "Sandbox is already running"
+  end
+end
+```
+
+**File**: `config/routes.rb` (add retry route)
+
+```ruby
+resources :sandboxes do
+  member do
+    post :start
+    post :stop
+    post :retry
+  end
+  # ...
+end
+```
+
+### Phase 5: Real-Time UI with Turbo Streams
+
+#### 5.1 Dashboard View
+
+**File**: `app/views/dashboard/index.html.erb`
+
+```erb
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <%# Subscribe to user's personal dashboard stream %>
+  <%= turbo_stream_from [Current.user, "dashboard"] %>
+
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">My Sandcastles</h1>
+      <p class="text-gray-500 mt-1">Manage your development environments</p>
+    </div>
+    <%= link_to new_sandbox_path,
+          class: "inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-colors" do %>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+        <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+      </svg>
+      Create Sandcastle
+    <% end %>
+  </div>
+
+  <div id="sandboxes" class="space-y-4">
+    <% if @sandboxes.any? %>
+      <% @sandboxes.each do |sandbox| %>
+        <%= render "sandbox", sandbox: sandbox %>
+      <% end %>
+    <% else %>
+      <div class="text-center py-12 bg-white rounded-lg border border-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 mx-auto text-gray-400 mb-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 0 1-3-3m3 3a3 3 0 1 0 0 6h13.5a3 3 0 1 0 0-6m-16.5-3a3 3 0 0 1 3-3h13.5a3 3 0 0 1 3 3m-19.5 0a4.5 4.5 0 0 1 .9-2.7L5.737 5.1a3.375 3.375 0 0 1 2.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 0 1 .9 2.7m0 0a3 3 0 0 1-3 3m0 3h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Zm-3 6h.008v.008h-.008v-.008Zm0-6h.008v.008h-.008v-.008Z" />
+        </svg>
+        <p class="text-gray-600 font-medium mb-2">No sandcastles yet</p>
+        <p class="text-sm text-gray-500">Get started by creating your first development environment</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+```
+
+#### 5.2 Enhanced Sandbox Card with Loading States
+
+**File**: `app/views/dashboard/_sandbox.html.erb`
+
+```erb
+<div class="bg-white rounded-lg border border-gray-200 p-4 space-y-3 transition-all duration-200 hover:shadow-md
+            <%= 'animate-pulse border-blue-300' if sandbox.job_in_progress? %>
+            <%= 'border-red-300' if sandbox.job_failed? %>"
+     id="<%= dom_id(sandbox) %>">
+
+  <%# Line 1: Status, name, pills %>
+  <div class="flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2 flex-wrap">
+      <%# Status indicator with animation %>
+      <span class="inline-block w-2.5 h-2.5 rounded-full transition-colors duration-200
+        <%= if sandbox.job_in_progress?
+              'bg-blue-500 animate-pulse'
+            elsif sandbox.job_failed?
+              'bg-red-500'
+            else
+              case sandbox.status
+              when 'running' then 'bg-green-500'
+              when 'stopped' then 'bg-yellow-500'
+              when 'pending' then 'bg-blue-500'
+              else 'bg-gray-400'
+              end
+            end %>">
+      </span>
+
+      <span class="font-mono font-medium text-gray-900"><%= sandbox.name %></span>
+
+      <%# Job status badge %>
+      <% if sandbox.job_in_progress? %>
+        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded animate-pulse inline-flex items-center gap-1">
+          <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <%= sandbox.job_status.humanize %>
+        </span>
+      <% elsif sandbox.job_failed? %>
+        <span class="text-xs font-medium text-red-700 bg-red-100 px-2 py-0.5 rounded inline-flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+          </svg>
+          Failed
+        </span>
+      <% end %>
+
+      <%# Existing feature pills (temp, home, data, volume, Tailscale, routes) %>
+      <% if sandbox.temp? %>
+        <span class="text-xs font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">temp</span>
+      <% end %>
+      <% if sandbox.mount_home? %>
+        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3"><path fill-rule="evenodd" d="M9.293 2.293a1 1 0 0 1 1.414 0l7 7A1 1 0 0 1 17 11h-1v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6H3a1 1 0 0 1-.707-1.707l7-7Z" clip-rule="evenodd" /></svg>
+          home
+        </span>
+      <% end %>
+      <% if sandbox.data_path.present? %>
+        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
+          data<%= ":#{sandbox.data_path}" unless sandbox.data_path == "." %>
+        </span>
+      <% end %>
+      <% if sandbox.persistent_volume? %>
+        <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">volume</span>
+      <% end %>
+      <% if sandbox.tailscale? %>
+        <span class="text-xs font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">Tailscale</span>
+      <% end %>
+      <% sandbox.routes.each do |route| %>
+        <a href="<%= route.url %>" target="_blank" rel="noopener" class="text-xs font-medium text-green-700 bg-green-100 px-1.5 py-0.5 rounded hover:bg-green-200 transition-colors inline-flex items-center gap-0.5">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3"><path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0-.053 1.06Z" clip-rule="evenodd" /></svg>
+          <%= route.domain %>:<%= route.port %>
+        </a>
+      <% end %>
+    </div>
+
+    <%# Action buttons %>
+    <div class="flex items-center gap-2 shrink-0">
+      <% if sandbox.job_in_progress? %>
+        <span class="text-xs text-gray-500 italic">Processing...</span>
+      <% elsif sandbox.job_failed? %>
+        <%= button_to retry_sandbox_path(sandbox), method: :post,
+              class: "text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors inline-flex items-center gap-1" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+            <path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd" />
+          </svg>
+          Retry
+        <% end %>
+      <% elsif sandbox.temp? %>
+        <%= button_to "Remove", sandbox_path(sandbox), method: :delete,
+              class: "text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
+              data: { turbo_confirm: "Remove sandcastle #{sandbox.name}? All data will be lost." } %>
+      <% else %>
+        <% if sandbox.status == "stopped" %>
+          <%= button_to "Start", start_sandbox_path(sandbox), method: :post,
+                class: "text-xs px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" %>
+        <% elsif sandbox.status == "running" %>
+          <%= button_to terminal_sandbox_path(sandbox), method: :post,
+                form: { target: "_blank" },
+                class: "text-xs px-2 py-1.5 bg-gray-700 text-white rounded hover:bg-gray-800 transition-colors inline-flex items-center gap-1",
+                data: { turbo: false } do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+              <path fill-rule="evenodd" d="M3.25 3A2.25 2.25 0 0 0 1 5.25v9.5A2.25 2.25 0 0 0 3.25 17h13.5A2.25 2.25 0 0 0 19 14.75v-9.5A2.25 2.25 0 0 0 16.75 3H3.25Zm.943 8.752a.75.75 0 0 1 .055-1.06L6.128 9l-1.88-1.693a.75.75 0 1 1 1.004-1.114l2.5 2.25a.75.75 0 0 1 0 1.114l-2.5 2.25a.75.75 0 0 1-1.06-.055ZM9.75 10.25a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z" clip-rule="evenodd" />
+            </svg>
+            Terminal
+          <% end %>
+          <%= button_to "Stop", stop_sandbox_path(sandbox), method: :post,
+                class: "text-xs px-3 py-1.5 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors" %>
+        <% end %>
+        <%= button_to "Destroy", sandbox_path(sandbox), method: :delete,
+              class: "text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
+              data: { turbo_confirm: "Destroy sandcastle #{sandbox.name}?" } %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Error display %>
+  <% if sandbox.job_failed? %>
+    <div class="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200 animate-fadeIn">
+      <div class="flex items-start gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0 mt-0.5">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+        </svg>
+        <div>
+          <strong class="font-medium">Operation Failed</strong>
+          <p class="mt-1 text-xs"><%= sandbox.job_error %></p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Container info and stats %>
+  <div class="flex items-start justify-between gap-4 pt-1">
+    <div class="text-xs text-gray-400">
+      <% if sandbox.container_id.present? %>
+        <span class="font-mono"><%= sandbox.container_id.first(12) %></span> ·
+      <% end %>
+      <span class="font-mono"><%= sandbox.image.sub("ghcr.io/thieso2/", "") %></span>
+      · Created <%= time_ago_in_words(sandbox.created_at) %> ago
+      <% if sandbox.status == "running" %>
+        · Running for <%= time_ago_in_words(sandbox.updated_at) %>
+      <% elsif sandbox.status == "stopped" %>
+        · Stopped <%= time_ago_in_words(sandbox.updated_at) %> ago
+      <% end %>
+    </div>
+
+    <div class="w-80 shrink-0 text-right">
+      <% if sandbox.status == "running" %>
+        <%= turbo_frame_tag "sandbox_stats_#{sandbox.id}", src: stats_sandbox_path(sandbox), loading: :lazy do %>
+          <span class="text-xs text-gray-400">loading stats...</span>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>
+```
+
+#### 5.3 CSS Animations
+
+**File**: `app/assets/stylesheets/application.tailwind.css`
+
+```css
+@layer components {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+  }
+}
+```
+
+### Phase 6: BONUS - Live Development Setup
+
+**Goal**: Mount local source code into Docker container so changes reflect immediately without rebuilding.
+
+#### 6.1 Create Development Docker Compose
+
+**File**: `docker-compose.dev.yml` (new)
+
+```yaml
+services:
+  # Reuse most of docker-compose.local.yml
+  web:
+    image: sandcastle:dev
+    build:
+      context: .
+      target: development  # New build stage
+    volumes:
+      # Mount source code for live reloading
+      - .:/rails
+      # Persist gems in volume (faster than bind mount)
+      - bundle-data:/usr/local/bundle
+      # Persist node modules
+      - node-modules:/rails/node_modules
+      # Share Docker socket (same as before)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Data directory
+      - sandcastle-data:/data
+    environment:
+      RAILS_ENV: development
+      # Other env vars...
+    command: bin/dev  # Run Foreman instead of Thruster
+
+volumes:
+  bundle-data:
+  node-modules:
+  sandcastle-data:
+  # ... other volumes
+```
+
+#### 6.2 Multi-Stage Dockerfile
+
+**File**: `Dockerfile` (add development stage)
+
+```dockerfile
+# Existing base, build, final stages...
+
+# NEW: Development stage
+FROM base AS development
+
+# Install dev dependencies
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    git \
+    libpq-dev \
+    node-gyp \
+    pkg-config \
+    python-is-python3
+
+# Install gems
+COPY Gemfile Gemfile.lock ./
+RUN bundle install
+
+# Set working directory
+WORKDIR /rails
+
+# Don't precompile assets - use live Tailwind watcher
+# Assets will be compiled by bin/dev
+
+# Run as rails user
+USER rails:rails
+
+# Entrypoint for db readiness
+ENTRYPOINT ["/rails/bin/docker-entrypoint"]
+
+# Default to bin/dev (Foreman with Rails + Tailwind)
+CMD ["./bin/dev"]
+```
+
+#### 6.3 Update mise.toml
+
+**File**: `mise.toml` (add new task)
+
+```toml
+[tasks."deploy:dev"]
+description = "Run local development with live source mounting"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Starting development environment with live reload..."
+docker compose -f docker-compose.dev.yml up --build
+
+echo ""
+echo "Development server running at:"
+echo "  - https://localhost:8443"
+echo ""
+echo "Changes to Ruby/ERB files will reload automatically"
+echo "Tailwind CSS compiles on file changes"
+echo ""
+echo "Logs: docker compose -f docker-compose.dev.yml logs -f"
+"""
+```
+
+**Usage**:
+- `mise run deploy:dev` - Live development with source mounting
+- `mise run deploy:local` - Production-like local deployment (existing)
+
+## Verification Plan
+
+### Testing Async Operations
+
+1. **Create Sandbox**:
+   - Click "Create Sandcastle" → Fill form → Submit
+   - Immediately redirected to dashboard with "Creating..." message
+   - Sandbox card appears with blue pulsing status
+   - After ~10s, card updates to green "running" status (no page refresh)
+
+2. **Start/Stop/Destroy**:
+   - Click action button → Immediate redirect with optimistic notice
+   - Card shows pulsing "starting/stopping/destroying" badge
+   - Card updates automatically when operation completes
+
+3. **Error Handling**:
+   - Simulate failure (invalid image, permissions issue)
+   - Card shows red "Failed" badge with error message
+   - "Retry" button appears
+   - Click retry → Operation re-attempts
+
+4. **Terminal Open**:
+   - Click "Terminal" → Opens new tab to wait page
+   - Background job creates WeTTY container
+   - Wait page polls status endpoint
+   - Redirects to terminal when ready
+
+### Testing Real-Time Updates
+
+1. **Multiple Browser Windows**:
+   - Open dashboard in two windows (same user)
+   - Create sandbox in window 1
+   - Window 2 dashboard updates automatically via Turbo Stream
+
+2. **Job Progress**:
+   - Create sandbox with mount_home + data_path
+   - Watch pulsing animation during creation
+   - Verify no errors with directory mounts
+   - Confirm smooth transition to "running" state
+
+### Testing Bug Fix
+
+1. **Mount Home Creation**:
+   - Create sandbox with "Mount persistent home directory" checked
+   - Verify no errors
+   - Check `/data/users/{username}/home` directory exists with 0777 permissions
+
+2. **Data Path Creation**:
+   - Create sandbox with Data Path = "projects/myapp"
+   - Verify `/data/users/{username}/data/projects/myapp` created
+   - Verify sandbox starts successfully
+
+3. **Combined Mounts**:
+   - Create sandbox with mount_home + data_path + persistent volume
+   - All three directories should be created
+   - Container should start and mount all three
+
+### Testing Live Development (Bonus)
+
+1. **Start Dev Environment**: `mise run deploy:dev`
+2. **Edit Ruby File**: Change text in a view
+3. **Refresh Browser**: See changes immediately (no Docker rebuild)
+4. **Edit CSS**: Modify Tailwind classes in view
+5. **Auto-Refresh**: Tailwind watcher recompiles CSS automatically
+
+## Critical Files Summary
+
+### Files to Modify
+
+1. **Database**:
+   - `db/migrate/YYYYMMDDHHMMSS_add_job_tracking_to_sandboxes.rb` (new migration)
+
+2. **Models**:
+   - `app/models/sandbox.rb` (add job tracking, Turbo broadcasts)
+
+3. **Services**:
+   - `app/services/sandbox_manager.rb` (refactor create, extract methods, fix bug)
+
+4. **Jobs**:
+   - `app/jobs/sandbox_provision_job.rb` (enhance)
+   - `app/jobs/sandbox_destroy_job.rb` (new)
+   - `app/jobs/sandbox_start_job.rb` (new)
+   - `app/jobs/sandbox_stop_job.rb` (new)
+   - `app/jobs/terminal_open_job.rb` (enhance)
+   - `app/jobs/stuck_job_cleanup_job.rb` (new)
+
+5. **Controllers**:
+   - `app/controllers/sandboxes_controller.rb` (async job enqueue, add retry action)
+
+6. **Views**:
+   - `app/views/dashboard/index.html.erb` (add Turbo Stream subscription)
+   - `app/views/dashboard/_sandbox.html.erb` (enhanced with loading states, animations, error display)
+
+7. **Config**:
+   - `config/routes.rb` (add retry route)
+   - `config/recurring.yml` (add stuck_job_cleanup)
+
+8. **Assets**:
+   - `app/assets/stylesheets/application.tailwind.css` (add animations)
+
+9. **BONUS - Live Dev**:
+   - `docker-compose.dev.yml` (new)
+   - `Dockerfile` (add development stage)
+   - `mise.toml` (add deploy:dev task)
+
+## Rollout Strategy
+
+1. **Phase 1**: Database migration and model changes (deploy, run migration)
+2. **Phase 2**: Service refactoring and job implementation (deploy but don't use jobs yet)
+3. **Phase 3**: Controller changes to enqueue jobs + UI updates (go live with async)
+4. **Phase 4**: Monitor for stuck jobs, tune timeouts, add alerts
+5. **Phase 5 (Bonus)**: Dev team adopts `mise run deploy:dev` for local work
+
+## Risk Mitigation
+
+- **Idempotency**: All jobs check state before acting, safe to retry
+- **Orphaned Records**: Early validation and directory creation prevents partial states
+- **Turbo Stream Delivery**: Solid Cable (Rails 8) handles WebSocket scaling
+- **Stuck Jobs**: Cleanup job (every 5min) detects and fails jobs older than 5min
+- **Rollback**: Can disable jobs and return to sync mode via feature flag if needed
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+app is stuck in
+
+---
+
+do it
+
+---
+
+sandcastle was created dashboard was not updated.
+
+---
+
+connection.js:39 WebSocket connection to 'wss://localhost:8443/cable' failed: 
+:8443/sandboxes/new:1 Pattern attribute value [a-z][a-z0-9_-]{0,62} is not a valid regular expression: Uncaught SyntaxError: Invalid regular expression: /[a-z][a-z0-9_-]{0,62}/v: Invalid character in character class
+connection.js:39 WebSocket connection to 'wss://localhost:8443/cable' failed: 
+connection.js:39 WebSocket connection to 'wss://localhost:8443/cable' failed: 
+connection.js:39 WebSocket connection to 'wss://localhost:8443/cable' failed: 
+connection.js:39 WebSocket connection to 'wss://localhost:8443/cable' failed: 
+connection.js:39 WebSocket connection to 'wss://localhost:8443/cable' failed: 
+connection.js:39 WebSocket connection to 'wss://localhost:8443/cable' failed: 
+﻿
+
+
+maybe we need to add it to traefik?
+
+---
+
+still not updating - debug
+
+---
+
+http://localhost:8080 -> 404
+
+---
+
+work in http!
+
+---
+
+lets add some host to /etc/hosts and create a self-sighed cert that we add to the keychain.
+
+---
+
+its using the traefik default cert not ours!
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze this extensive conversation:
+
+**Initial Request**: User asked to implement a comprehensive plan transforming Sandcastle from synchronous to async operations with real-time Turbo updates. The plan had 6 main phases plus a bonus phase for live development.
+
+**Phase 1 Implementation**: Successfully created migration and enhanced Sandbox model with job tracking and Turbo Stream broadcasts.
+
+**Phase 2 Implementation**: Fixed critical bug in SandboxManager where ensure_mount_dirs was called after save, causing orphaned records. Refactored to call it before save.
+
+**Phase 3-6 Implementation**: Created all background jobs, updated controllers, enhanced views, added CSS animations, created development setup.
+
+**First Major Issue**: User reported app stuck in "Creating..." state. Root cause: Solid Queue workers not running. Fixed by adding to Procfile.dev and docker-compose configs.
+
+**Second Issue**: dom_id error in Turbo broadcasts. Fixed by including ActionView::RecordIdentifier in Sandbox model.
+
+**Third Issue**: Dashboard not updating, WebSocket failing. Multiple fixes needed:
+1. Fixed regex validation pattern
+2. Added Action Cable configuration  
+3. **Critical**: Mounted Action Cable in routes (mount ActionCable.server => "/cable")
+
+**Fourth Issue**: WebSocket still failing. Root cause: Thruster doesn't support WebSocket. Fixed by running Puma directly.
+
+**Fifth Issue**: HTTP 404 on port 8080. Traefik missing HTTP router. Fixed by regenerating config.
+
+**HTTPS Setup**: User requested proper local HTTPS with trusted certificate. Generated self-signed cert for sandcastle.local, added to keychain, configured Traefik.
+
+**Current Issue**: Traefik using default cert instead of custom cert. Problem identified: config had `certResolver: default` which overrides static certificates. Just fixed by removing that line.
+
+All user messages were carefully tracked, with specific feedback like "app is stuck", "still not updating - debug", "work in http!", and "its using the traefik default cert not ours!"
+
+Summary:
+1. Primary Request and Intent:
+   - Implement comprehensive async operations architecture for Sandcastle Rails application
+   - Replace synchronous sandbox operations with background jobs using Solid Queue
+   - Add real-time UI updates via Turbo Streams and Action Cable
+   - Fix sandbox creation bug with mount_home/data_path
+   - Implement live development setup (bonus)
+   - Set up proper local HTTPS with trusted certificate
+   - Debug and resolve WebSocket connection failures
+
+2. Key Technical Concepts:
+   - Rails 8.1 async architecture with Solid Queue
+   - Solid Cable for WebSocket persistence
+   - Action Cable for WebSocket connections
+   - Turbo Streams for real-time UI updates without page refresh
+   - Background job processing with ActiveJob
+   - Puma web server with WebSocket support vs Thruster (no WebSocket support)
+   - Traefik reverse proxy with dynamic configuration
+   - TLS/SSL certificates and self-signed certificates
+   - macOS Keychain certificate trust
+   - Docker Compose orchestration
+   - Sysbox containers with Docker-in-Docker
+
+3. Files and Code Sections:
+
+   - `db/migrate/20260213120000_add_job_tracking_to_sandboxes.rb` (NEW)
+     - Adds job tracking columns to sandboxes table
+     ```ruby
+     add_column :sandboxes, :job_status, :string
+     add_column :sandboxes, :job_error, :text
+     add_column :sandboxes, :job_started_at, :datetime
+     add_index :sandboxes, :job_status
+     add_index :sandboxes, [:user_id, :job_status]
+     ```
+
+   - `app/models/sandbox.rb` (MODIFIED)
+     - Added ActionView::RecordIdentifier for dom_id in Turbo broadcasts
+     - Added job tracking methods and Turbo Stream callbacks
+     ```ruby
+     include ActionView::RecordIdentifier  # For dom_id in Turbo broadcasts
+     
+     after_update_commit :broadcast_replace_to_dashboard
+     after_destroy_commit :broadcast_remove_from_dashboard
+     
+     def job_in_progress?
+       job_status.present?
+     end
+     
+     def start_job(status)
+       update!(job_status: status, job_started_at: Time.current, job_error: nil)
+     end
+     
+     def finish_job
+       update!(job_status: nil, job_started_at: nil)
+     end
+     
+     def fail_job(error_message)
+       update!(job_status: nil, job_error: error_message, job_started_at: nil)
+     end
+     
+     private
+     
+     def broadcast_replace_to_dashboard
+       broadcast_replace_to(
+         [user, "dashboard"],
+         partial: "dashboard/sandbox",
+         locals: { sandbox: self },
+         target: dom_id(self)
+       )
+     end
+     ```
+
+   - `app/services/sandbox_manager.rb` (REFACTORED)
+     - Fixed creation bug by calling ensure_mount_dirs BEFORE save
+     - Extracted public methods for job reuse
+     ```ruby
+     def create(user:, name:, image: DEFAULT_IMAGE, persistent: false, tailscale: false, mount_home: false, data_path: nil, temporary: false)
+       sandbox = user.sandboxes.build(...)
+       if persistent
+         sandbox.volume_path = "#{DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
+       end
+       sandbox.validate!
+       ensure_mount_dirs(user, sandbox)  # BEFORE save!
+       sandbox.save!
+       ensure_image(image)
+       create_container_and_start(sandbox: sandbox, user: user)
+       # ...
+     end
+     
+     # Made public for job usage
+     def ensure_mount_dirs(user, sandbox)
+       # ...
+     end
+     ```
+
+   - `app/jobs/sandbox_provision_job.rb` (ENHANCED)
+     ```ruby
+     def perform(sandbox_id:)
+       sandbox = Sandbox.find(sandbox_id)
+       return if sandbox.status == "running"
+       sandbox.start_job("creating")
+       manager = SandboxManager.new
+       begin
+         manager.ensure_mount_dirs(sandbox.user, sandbox)
+         manager.ensure_image(sandbox.image)
+         manager.create_container_and_start(sandbox: sandbox, user: sandbox.user)
+         if sandbox.tailscale? && sandbox.user.tailscale_enabled?
+           TailscaleManager.new.connect_sandbox(sandbox: sandbox)
+         end
+         sandbox.update!(status: "running")
+         sandbox.finish_job
+       rescue => e
+         Rails.logger.error("SandboxProvisionJob failed: #{e.message}")
+         sandbox.fail_job("Failed to create: #{e.message}")
+         sandbox.update!(status: "destroyed")
+         raise
+       end
+     end
+     ```
+
+   - `config/routes.rb` (MODIFIED)
+     - Added Action Cable mount (critical for WebSocket)
+     - Added retry route
+     ```ruby
+     Rails.application.routes.draw do
+       root "dashboard#index"
+       mount ActionCable.server => "/cable"  # CRITICAL FIX
+       
+       resources :sandboxes, only: [ :new, :create, :destroy ] do
+         member do
+           post :start
+           post :stop
+           post :retry  # NEW
+           # ...
+         end
+       end
+     end
+     ```
+
+   - `app/controllers/sandboxes_controller.rb` (MODIFIED)
+     - Changed to enqueue jobs instead of direct service calls
+     ```ruby
+     def create
+       authorize Sandbox
+       sandbox = Current.user.sandboxes.build(...)
+       if sandbox.save
+         SandboxProvisionJob.perform_later(sandbox_id: sandbox.id)
+         redirect_to root_path, notice: "Creating sandcastle #{sandbox.name}..."
+       end
+     end
+     
+     def retry
+       return unless @sandbox.job_failed?
+       @sandbox.update!(job_error: nil)
+       case @sandbox.status
+       when "stopped"
+         SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
+         redirect_to root_path, notice: "Retrying start..."
+       end
+     end
+     ```
+
+   - `app/views/dashboard/index.html.erb` (MODIFIED)
+     - Added Turbo Stream subscription for real-time updates
+     ```erb
+     <%= turbo_stream_from [Current.user, "dashboard"] %>
+     ```
+
+   - `app/views/dashboard/_sandbox.html.erb` (ENHANCED)
+     - Added job status indicators, loading animations, error display
+     ```erb
+     <% if sandbox.job_in_progress? %>
+       <span class="animate-pulse inline-flex items-center gap-1">
+         <svg class="animate-spin h-3 w-3">...</svg>
+         <%= sandbox.job_status.humanize %>
+       </span>
+     <% elsif sandbox.job_failed? %>
+       <div class="text-red-600 bg-red-50 p-3">
+         <%= sandbox.job_error %>
+       </div>
+       <%= button_to retry_sandbox_path(sandbox), method: :post %>
+     <% end %>
+     ```
+
+   - `Procfile.dev` (MODIFIED)
+     - Added Solid Queue worker
+     ```
+     web: bin/rails server
+     css: bin/rails tailwindcss:watch
+     queue: bin/rails solid_queue:start
+     ```
+
+   - `config/environments/production.rb` (MODIFIED)
+     - Added Action Cable configuration for WebSocket
+     ```ruby
+     config.action_cable.url = "wss://#{ENV.fetch('SANDCASTLE_HOST', 'localhost')}/cable"
+     config.action_cable.allowed_request_origins = [
+       "http://#{ENV.fetch('SANDCASTLE_HOST', 'localhost')}",
+       "https://#{ENV.fetch('SANDCASTLE_HOST', 'localhost')}",
+       /http:\/\/localhost.*/,
+       /https:\/\/localhost.*/
+     ]
+     ```
+
+   - `docker-compose.local.yml` (MODIFIED MULTIPLE TIMES)
+     - Added SOLID_QUEUE_IN_PUMA environment variable
+     - Changed command to run Puma directly instead of Thruster
+     - Updated SANDCASTLE_HOST to sandcastle.local
+     - Configured certificate mounting and Traefik TLS
+     ```yaml
+     web:
+       command: ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "80"]
+       environment:
+         SOLID_QUEUE_IN_PUMA: "true"
+         SANDCASTLE_HOST: sandcastle.local
+         SANDCASTLE_TERMINAL_URL: https://sandcastle.local
+     
+     init-traefik:
+       volumes:
+         - /tmp/sandcastle-traefik-certs:/certs:ro
+       command:
+         - sh
+         - -c
+         - |
+           cp /certs/cert.pem /data/certs/
+           cp /certs/key.pem /data/certs/
+           cat > /data/dynamic/rails.yml << 'EOFCONFIG'
+           http:
+             routers:
+               rails-http:
+                 rule: "HostRegexp(`.+`)"
+                 service: rails
+                 entryPoints: [web]
+               rails-https:
+                 rule: "HostRegexp(`.+`)"
+                 service: rails
+                 entryPoints: [websecure]
+                 tls: {}
+             services:
+               rails:
+                 loadBalancer:
+                   servers:
+                     - url: "http://sandcastle-web:80"
+                   passHostHeader: true
+           tls:
+             certificates:
+               - certFile: /data/certs/cert.pem
+                 keyFile: /data/certs/key.pem
+           EOFCONFIG
+     ```
+
+   - `app/views/sandboxes/new.html.erb` (MODIFIED)
+     - Fixed regex pattern for HTML5 validation
+     ```erb
+     <%= form.text_field :name,
+           required: true,
+           pattern: "[a-z][a-z0-9_\\-]*",
+           maxlength: 63 %>
+     ```
+
+4. Errors and fixes:
+   - **App stuck in "Creating..." state**: 
+     - Error: Solid Queue workers not running, jobs enqueued but never processed
+     - User feedback: "app is stuck in Creating sandcastle silent-panther..."
+     - Fix: Added `queue: bin/rails solid_queue:start` to Procfile.dev and `SOLID_QUEUE_IN_PUMA: "true"` to docker-compose files
+   
+   - **NoMethodError dom_id**: 
+     - Error: `undefined method 'dom_id' for an instance of Sandbox` in broadcast callbacks
+     - Fix: Added `include ActionView::RecordIdentifier` to Sandbox model
+   
+   - **WebSocket connection failures**:
+     - Error: `WebSocket connection to 'wss://localhost:8443/cable' failed`
+     - User feedback: "sandcastle was created dashboard was not updated"
+     - Root causes and fixes:
+       1. Action Cable not mounted: Added `mount ActionCable.server => "/cable"` to routes.rb
+       2. Thruster doesn't support WebSocket: Changed to run Puma directly with `command: ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "80"]`
+   
+   - **HTTP 404 on localhost:8080**:
+     - Error: Traefik returning 404 for HTTP requests
+     - User feedback: "http://localhost:8080 -> 404"
+     - Fix: Recreated init-traefik to regenerate config with both HTTP and HTTPS routers
+   
+   - **Regex validation error**:
+     - Error: `Pattern attribute value [a-z][a-z0-9_-]{0,62} is not a valid regular expression`
+     - Fix: Changed pattern to `[a-z][a-z0-9_\\-]*` with `maxlength: 63`
+   
+   - **Traefik using default certificate**:
+     - Error: Traefik showing "TRAEFIK DEFAULT CERT" instead of custom certificate
+     - User feedback: "its using the traefik default cert not ours!"
+     - Fix: Removed `certResolver: default` from Traefik dynamic config, keeping only `tls: {}`
+
+5. Problem Solving:
+   - Diagnosed Solid Queue not running by checking logs and running status commands
+   - Identified WebSocket failure by examining browser console errors
+   - Discovered Thruster limitation through log analysis and understanding Rails 8 server architecture
+   - Systematically debugged Traefik routing by inspecting dynamic configuration and network connectivity
+   - Generated self-signed certificate with proper SAN extensions for browser trust
+   - Configured macOS Keychain to trust certificate system-wide
+   - Currently troubleshooting Traefik certificate configuration to use custom cert instead of default
+
+6. All user messages:
+   - "Implement the following plan: [comprehensive async operations plan]"
+   - "app is stuck in [screenshot showing 'Creating sandcastle silent-panther...']"
+   - "maybe the runner is nozt running in docker?"
+   - "sandcastle was created dashboard was not updated. [screenshot]"
+   - "connection.js:39 WebSocket connection to 'wss://localhost:8443/cable' failed: [console errors] maybe we need to add it to traefik?"
+   - "still not updating - debug"
+   - "do it"
+   - "http://localhost:8080 -> 404"
+   - "work in http!"
+   - "lets add some host to /etc/hosts and create a self-sighed cert that we add to the keychain."
+   - "its using the traefik default cert not ours! [screenshot showing TRAEFIK DEFAULT CERT]"
+
+7. Pending Tasks:
+   - Verify custom certificate is now being used by Traefik (after latest fix)
+   - Test WebSocket connection over HTTPS with trusted certificate
+   - Confirm real-time Turbo Stream updates are working
+   - Test creating a new sandbox and observing real-time status updates
+
+8. Current Work:
+   Immediately before this summary request, I was fixing the Traefik certificate issue. The user reported seeing "TRAEFIK DEFAULT CERT" instead of the custom sandcastle.local certificate. I identified the problem in the docker-compose.local.yml Traefik dynamic configuration where `certResolver: default` was telling Traefik to use ACME resolver instead of the static certificates we provided. 
+
+   I just made the fix by editing docker-compose.local.yml to remove the `certResolver: default` line and keep only `tls: {}` in the rails-https router configuration. The complete TLS certificate configuration is in the separate `tls:` section at the root level:
+   
+   ```yaml
+   rails-https:
+     rule: "HostRegexp(`.+`)"
+     service: rails
+     entryPoints:
+       - websecure
+     tls: {}  # Changed from: tls: { certResolver: default }
+   
+   tls:
+     certificates:
+       - certFile: /data/certs/cert.pem
+         keyFile: /data/certs/key.pem
+   ```
+
+   I have recreated the init-traefik and traefik containers to apply this configuration change, and verified the certificate files are present in /data/certs/ and the dynamic configuration is correct.
+
+9. Optional Next Step:
+   Verify the custom certificate is now being served by checking the browser at https://sandcastle.local and confirming it shows the sandcastle.local certificate (CN=sandcastle.local, O=Sandcastle) instead of "TRAEFIK DEFAULT CERT". Then test the WebSocket connection to ensure it establishes successfully with the trusted certificate.
+   
+   Direct quote from most recent work: User said "its using the traefik default cert not ours!" and I identified "The problem is that `certResolver: default` tells Traefik to use ACME resolver instead of static certificates" and fixed by "Removed `certResolver: default` line from dynamic config, keeping only `tls: {}`"
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+commit in steps

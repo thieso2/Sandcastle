@@ -1,0 +1,52 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "218611a77fb0",
+  "session_id": "fa44cec4-681f-4ded-ac43-326bf25b0e6e",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-13T19:02:39.011353Z",
+  "branch": "main",
+  "checkpoints_count": 8,
+  "files_touched": [
+    "Dockerfile",
+    "Procfile.dev",
+    "app/assets/tailwind/application.css",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/jobs/sandbox_destroy_job.rb",
+    "app/jobs/sandbox_provision_job.rb",
+    "app/jobs/sandbox_start_job.rb",
+    "app/jobs/sandbox_stop_job.rb",
+    "app/jobs/stuck_job_cleanup_job.rb",
+    "app/jobs/terminal_open_job.rb",
+    "app/models/sandbox.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb",
+    "app/views/sandboxes/new.html.erb",
+    "config/deploy.yml",
+    "config/environments/production.rb",
+    "config/recurring.yml",
+    "config/routes.rb",
+    "db/migrate/20260213120000_add_job_tracking_to_sandboxes.rb",
+    "docker-compose.dev.yml",
+    "docker-compose.local.yml",
+    "mise.toml"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 1282,
+    "cache_creation_tokens": 183834,
+    "cache_read_tokens": 16476655,
+    "output_tokens": 19554,
+    "api_call_count": 157
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-13T19:02:38.89095Z",
+    "agent_lines": 740,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 740,
+    "agent_percentage": 100
+  }
+}
