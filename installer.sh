@@ -280,12 +280,12 @@ services:
       - "\${DOCKER_GID:-988}"
     volumes:
       - \${DOCKER_SOCK}:/var/run/docker.sock
-      - ${DATA_MOUNT}:/data
+      - ${DATA_MOUNT}:${DATA_MOUNT}
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: \${SECRET_KEY_BASE}
       SANDCASTLE_HOST: \${SANDCASTLE_HOST}
-      SANDCASTLE_DATA_DIR: /data
+      SANDCASTLE_DATA_DIR: ${DATA_MOUNT}
       SANDCASTLE_TLS_MODE: \${SANDCASTLE_TLS_MODE:-letsencrypt}
       SANDCASTLE_SUBNET: \${SANDCASTLE_SUBNET:-172.30.99.0/24}
       SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
