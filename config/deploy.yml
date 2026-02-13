@@ -39,6 +39,7 @@ env:
   clear:
     SANDCASTLE_HOST: demo.sandcastle.rocks
     SANDCASTLE_DATA_DIR: /data
+    SOLID_QUEUE_IN_PUMA: "true"
     DB_HOST: sandcastle-postgres
     DB_USER: sandcastle
   secret:

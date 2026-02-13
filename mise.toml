@@ -7,6 +7,50 @@ bin/rails db:prepare
 bin/dev
 """
 
+[tasks."deploy:dev"]
+description = "Run local development with live source mounting"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Starting development environment with live reload..."
+docker compose -f docker-compose.dev.yml up --build
+
+echo ""
+echo "Development server running at:"
+echo "  - https://localhost:8443 (via Traefik)"
+echo "  - http://localhost:8080 (via Traefik)"
+echo ""
+echo "Changes to Ruby/ERB files will reload automatically"
+echo "Tailwind CSS compiles on file changes"
+echo ""
+echo "Logs: docker compose -f docker-compose.dev.yml logs -f"
+"""
+
+[tasks."deploy:dev:down"]
+description = "Stop development docker-compose deployment"
+run = "docker compose -f docker-compose.dev.yml down"
+
+[tasks."deploy:dev:reset"]
+description = "Reset development docker-compose environment"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Removing WeTTY containers..."
+docker ps -a --filter "name=sc-wetty-" -q | xargs -r docker rm -f || true
+
+echo "Removing Tailscale containers..."
+docker ps -a --filter "name=sc-ts-" -q | xargs -r docker rm -f || true
+
+echo "Stopping and removing containers, volumes, and networks..."
+docker compose -f docker-compose.dev.yml down --volumes --remove-orphans
+
+echo ""
+echo "Development environment reset complete."
+echo "Run 'mise run deploy:dev' to rebuild and start fresh."
+"""
+
 [tasks."deploy:local"]
 description = "Build image and deploy locally via docker-compose.local.yml"
 run = """

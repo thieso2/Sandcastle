@@ -23,12 +23,18 @@ services:
     image: busybox
     volumes:
       - traefik-data:/data
+      - /tmp/sandcastle-traefik-certs:/certs:ro
     command:
       - sh
       - -c
       - |
         mkdir -p /data/dynamic /data/certs
         chown -R 220568:220568 /data
+
+        # Copy certificates
+        cp /certs/cert.pem /data/certs/
+        cp /certs/key.pem /data/certs/
+
         cat > /data/dynamic/rails.yml << 'EOFCONFIG'
         http:
           routers:
@@ -48,6 +54,12 @@ services:
               loadBalancer:
                 servers:
                   - url: "http://sandcastle-web:80"
+                passHostHeader: true
+
+        tls:
+          certificates:
+            - certFile: /data/certs/cert.pem
+              keyFile: /data/certs/key.pem
         EOFCONFIG
 
   postgres:
@@ -82,6 +94,7 @@ services:
         BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY}"
         BUILD_DATE: "${BUILD_DATE}"
     container_name: sandcastle-web
+    command: ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "80"]
     group_add:
       - "${DOCKER_GID:-0}"
     volumes:
@@ -94,10 +107,11 @@ services:
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: ${SANDCASTLE_HOST:-localhost}
+      SANDCASTLE_HOST: sandcastle.local
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
-      SANDCASTLE_TERMINAL_URL: https://localhost:8443
+      SANDCASTLE_TERMINAL_URL: https://sandcastle.local:8443
+      SOLID_QUEUE_IN_PUMA: "true"
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
