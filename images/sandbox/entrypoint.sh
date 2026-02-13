@@ -11,11 +11,17 @@ if ! id "$USERNAME" &>/dev/null; then
     chmod 0440 /etc/sudoers.d/sandcastle
 fi
 
-# Set up SSH authorized keys
+# Set up SSH authorized keys (append if not already present, preserving
+# any WeTTY keys that may have been injected for other sandboxes sharing
+# this user's home directory via bind mount).
 if [ -n "$SSH_KEY" ]; then
     SSH_DIR="/home/$USERNAME/.ssh"
     mkdir -p "$SSH_DIR"
-    echo "$SSH_KEY" > "$SSH_DIR/authorized_keys"
+    if [ -f "$SSH_DIR/authorized_keys" ]; then
+        grep -qF "$SSH_KEY" "$SSH_DIR/authorized_keys" || echo "$SSH_KEY" >> "$SSH_DIR/authorized_keys"
+    else
+        echo "$SSH_KEY" > "$SSH_DIR/authorized_keys"
+    fi
     chmod 700 "$SSH_DIR"
     chmod 600 "$SSH_DIR/authorized_keys"
     chown -R "$USERNAME:$USERNAME" "$SSH_DIR"

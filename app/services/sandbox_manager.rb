@@ -58,6 +58,12 @@ class SandboxManager
   end
 
   def destroy(sandbox:, keep_volume: false)
+    begin
+      TerminalManager.new.close(sandbox: sandbox)
+    rescue TerminalManager::Error, Docker::Error::DockerError
+      # best-effort terminal cleanup
+    end
+
     RouteManager.new.remove_all_routes(sandbox: sandbox) if sandbox.routed?
 
     if sandbox.tailscale?
@@ -99,6 +105,12 @@ class SandboxManager
 
   def stop(sandbox:)
     return sandbox if sandbox.status == "stopped"
+
+    begin
+      TerminalManager.new.close(sandbox: sandbox)
+    rescue TerminalManager::Error, Docker::Error::DockerError
+      # best-effort terminal cleanup
+    end
 
     RouteManager.new.suspend_routes(sandbox: sandbox) if sandbox.routed?
 
@@ -186,6 +198,12 @@ class SandboxManager
     was_tailscale = sandbox.tailscale?
 
     Docker::Image.get(image_ref)
+
+    begin
+      TerminalManager.new.close(sandbox: sandbox)
+    rescue TerminalManager::Error, Docker::Error::DockerError
+      # best-effort terminal cleanup
+    end
 
     if sandbox.tailscale?
       TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)

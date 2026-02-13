@@ -38,11 +38,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - sandcastle-data:/data
+    networks:
+      - default
+      - sandcastle-web
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
       SANDCASTLE_HOST: ${SANDCASTLE_HOST:-localhost}
       SANDCASTLE_DATA_DIR: /data
+      SANDCASTLE_TLS_MODE: selfsigned
+      SANDCASTLE_TERMINAL_URL: https://localhost:8443
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
@@ -65,6 +70,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+networks:
+  sandcastle-web:
+    external: true
 
 volumes:
   pgdata:

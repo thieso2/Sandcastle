@@ -20,8 +20,12 @@ Rails.application.routes.draw do
       post :start
       post :stop
       get :stats, controller: "dashboard", action: "stats"
+      post :terminal, controller: "terminal", action: "open"
+      delete :terminal, controller: "terminal", action: "close"
     end
   end
+
+  get "terminal/auth", to: "terminal#auth"
 
   resource :tailscale, only: [], controller: "tailscale" do
     get :show

@@ -1,0 +1,30 @@
+alice_running:
+  name: devbox
+  user: one
+  status: running
+  image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+  ssh_port: 2201
+  container_id: "abc123def456"
+
+bob_running:
+  name: workbox
+  user: two
+  status: running
+  image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+  ssh_port: 2202
+  container_id: "def456ghi789"
+
+alice_stopped:
+  name: stopped-box
+  user: one
+  status: stopped
+  image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+  ssh_port: 2203
+  container_id: "stopped123"
+
+alice_destroyed:
+  name: old-box
+  user: one
+  status: destroyed
+  image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+  ssh_port: 2204
