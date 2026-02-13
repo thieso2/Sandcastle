@@ -299,12 +299,22 @@ class SandboxManager
   end
 
   def ensure_mount_dirs(user, sandbox)
+    # Directories bind-mounted into Sysbox containers must be world-writable
+    # because Sysbox maps container root to a high host UID (via /etc/subuid)
+    # that won't match the directory owner.
     if sandbox.mount_home
-      FileUtils.mkdir_p("#{DATA_DIR}/users/#{user.name}/home")
+      dir = "#{DATA_DIR}/users/#{user.name}/home"
+      FileUtils.mkdir_p(dir)
+      FileUtils.chmod(0o777, dir)
     end
     if sandbox.data_path.present?
       dir = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
       FileUtils.mkdir_p(dir)
+      FileUtils.chmod(0o777, dir)
+    end
+    if sandbox.persistent_volume && sandbox.volume_path
+      FileUtils.mkdir_p(sandbox.volume_path)
+      FileUtils.chmod(0o777, sandbox.volume_path)
     end
   end
 

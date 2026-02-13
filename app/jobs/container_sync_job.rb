@@ -27,7 +27,14 @@ class ContainerSyncJob < ApplicationJob
 
   def sync_sandbox(sandbox)
     container = Docker::Container.get(sandbox.container_id)
-    actual_status = container.json.dig("State", "Running") ? "running" : "stopped"
+    state = container.json["State"] || {}
+    actual_status = if state["Restarting"]
+      "stopped"
+    elsif state["Running"]
+      "running"
+    else
+      "stopped"
+    end
 
     if sandbox.status != actual_status
       if actual_status == "stopped"

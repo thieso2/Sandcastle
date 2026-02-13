@@ -144,11 +144,24 @@ ensure_dirs() {
   mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty}
   mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
-  chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" \
+  # Own top-level data dirs (not -R: per-user subdirs are bind-mounted into
+  # Sysbox containers which use a different UID range via /etc/subuid).
+  chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" \
     "$SANDCASTLE_HOME"/data/users \
     "$SANDCASTLE_HOME"/data/sandboxes \
-    "$SANDCASTLE_HOME"/data/wetty \
+    "$SANDCASTLE_HOME"/data/wetty
+  chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" \
     "$SANDCASTLE_HOME"/data/traefik/dynamic
+  # Per-user dirs: own the user-level parent, then chmod 777 the bind-mount
+  # targets so Sysbox-mapped root can write to them.
+  for d in "$SANDCASTLE_HOME"/data/users/*; do
+    [ -d "$d" ] && chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$d"
+  done
+  for d in "$SANDCASTLE_HOME"/data/users/*/home \
+           "$SANDCASTLE_HOME"/data/users/*/data \
+           "$SANDCASTLE_HOME"/data/sandboxes/*/vol; do
+    [ -d "$d" ] && chmod 777 "$d"
+  done
   usermod -d "$SANDCASTLE_HOME" "$SANDCASTLE_USER" 2>/dev/null || true
   ok "Data directories verified"
 }
