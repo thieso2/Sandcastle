@@ -2,6 +2,10 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 require_relative "test_helpers/session_test_helper"
+require_relative "support/docker_mock"
+
+# Enable Docker mock for all tests
+DockerMock.enable!
 
 module ActiveSupport
   class TestCase
