@@ -2,10 +2,10 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "218611a77fb0",
   "strategy": "manual-commit",
-  "branch": "main",
+  "branch": "claude/issue-13-20260213-1425",
   "checkpoints_count": 2,
   "files_touched": [
-    ".github/workflows/claude.yml",
+    "app/controllers/sandboxes_controller.rb",
     "config/deploy.yml",
     "installer.sh"
   ],
@@ -26,10 +26,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 159,
-    "cache_creation_tokens": 13119,
-    "cache_read_tokens": 2692089,
-    "output_tokens": 2686,
+    "input_tokens": 170,
+    "cache_creation_tokens": 29482,
+    "cache_read_tokens": 2225965,
+    "output_tokens": 3244,
     "api_call_count": 21
   }
 }

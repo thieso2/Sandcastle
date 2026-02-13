@@ -3,30 +3,30 @@
   "checkpoint_id": "218611a77fb0",
   "session_id": "da0ad752-483c-4641-b217-5e8e504b9f37",
   "strategy": "manual-commit",
-  "created_at": "2026-02-13T14:23:50.257054Z",
-  "branch": "main",
+  "created_at": "2026-02-13T14:35:42.814777Z",
+  "branch": "claude/issue-13-20260213-1425",
   "checkpoints_count": 1,
   "files_touched": [
-    ".github/workflows/claude.yml"
+    "app/controllers/sandboxes_controller.rb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "da51588e-8fc2-4926-8f1f-b4e1b3e6d6a3",
-  "checkpoint_transcript_start": 643,
-  "transcript_lines_at_start": 643,
+  "transcript_identifier_at_start": "6c2a2be1-1ee8-4013-b9bd-721d05c68d74",
+  "checkpoint_transcript_start": 720,
+  "transcript_lines_at_start": 720,
   "token_usage": {
-    "input_tokens": 109,
-    "cache_creation_tokens": 9888,
-    "cache_read_tokens": 2312946,
-    "output_tokens": 2181,
+    "input_tokens": 120,
+    "cache_creation_tokens": 26251,
+    "cache_read_tokens": 1846822,
+    "output_tokens": 2739,
     "api_call_count": 15
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-13T14:23:50.157471Z",
-    "agent_lines": 2,
-    "human_added": 84,
-    "human_modified": 0,
+    "calculated_at": "2026-02-13T14:35:42.7073Z",
+    "agent_lines": 0,
+    "human_added": 187,
+    "human_modified": 1,
     "human_removed": 0,
-    "total_committed": 86,
-    "agent_percentage": 2.3255813953488373
+    "total_committed": 187,
+    "agent_percentage": 0
   }
 }

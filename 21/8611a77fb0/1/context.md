@@ -154,3 +154,30 @@ commit local changes and push
 
 check teh last action runs on GH - no PR no branch - still useless!
 
+### Prompt 31
+
+commit and push.
+
+### Prompt 32
+
+checkout claude/issue-13-20260213-1425 from remote
+
+### Prompt 33
+
+crating a sandcastle from web yields 500 - debug using chrome and local docker
+
+### Prompt 34
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Flash Layout Issues** (Messages 1-3)
+   - User showed screenshot of broken flash layout
+   - Fixed by removing `flex` class from main container
+   - Removed duplicate flash display from sessions view
+   - Later user requested flash be centered - wrapped in flex containers
+
+2. **Ins...
+
