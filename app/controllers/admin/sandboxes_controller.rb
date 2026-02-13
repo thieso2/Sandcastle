@@ -47,6 +47,8 @@ module Admin
       end
 
       render partial: "sandbox_stats", locals: { stats: @stats, sandbox: @sandbox }
+    rescue ActiveRecord::RecordNotFound
+      render partial: "sandbox_stats", locals: { stats: nil, sandbox: nil }
     rescue Docker::Error::DockerError
       render partial: "sandbox_stats", locals: { stats: nil, sandbox: @sandbox }
     end
