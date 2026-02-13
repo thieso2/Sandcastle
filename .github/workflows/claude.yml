@@ -41,5 +41,12 @@ jobs:
             actions: read
 
           # Allow git operations (commit, push, branch creation) without approval
-          claude_args: '--allowed-tools "Bash(git add *)" --allowed-tools "Bash(git commit *)" --allowed-tools "Bash(git push *)" --allowed-tools "Bash(git checkout *)" --allowed-tools "Bash(git branch *)"'
+          claude_args: |
+            --allowedTools "Bash(git add *)"
+            --allowedTools "Bash(git commit *)"
+            --allowedTools "Bash(git push *)"
+            --allowedTools "Bash(git checkout *)"
+            --allowedTools "Bash(git branch *)"
+            --allowedTools "Bash(git status *)"
+            --allowedTools "Bash(git diff *)"
 
