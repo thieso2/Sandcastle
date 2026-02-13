@@ -51,3 +51,6 @@ service-account.json
 # CLI binary
 vendor/sandcastle-cli/sandcastle
 .entire
+
+# Demo system documentation (contains sensitive info)
+SANDMAN.md
