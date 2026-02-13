@@ -5,7 +5,7 @@
   "branch": "claude/issue-13-20260213-1425",
   "checkpoints_count": 2,
   "files_touched": [
-    "app/controllers/sandboxes_controller.rb",
+    "app/views/sandboxes/new.html.erb",
     "config/deploy.yml",
     "installer.sh"
   ],
@@ -26,10 +26,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 170,
-    "cache_creation_tokens": 29482,
-    "cache_read_tokens": 2225965,
-    "output_tokens": 3244,
-    "api_call_count": 21
+    "input_tokens": 116,
+    "cache_creation_tokens": 13951,
+    "cache_read_tokens": 822090,
+    "output_tokens": 1598,
+    "api_call_count": 14
   }
 }
