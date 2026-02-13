@@ -67,6 +67,7 @@ Rails.application.routes.draw do
     resources :snapshots, only: [ :index, :destroy ], param: :name
     resources :users
     resource :status, only: :show
+    resource :info, only: :show
     resources :tokens, only: [ :index, :create, :destroy ]
     namespace :auth do
       post :device_code

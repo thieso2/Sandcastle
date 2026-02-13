@@ -61,6 +61,58 @@ type SystemStatus struct {
 	Resources []map[string]any `json:"resources"`
 }
 
+type ServerInfo struct {
+	Version   string           `json:"version"`
+	Rails     string           `json:"rails"`
+	Ruby      string           `json:"ruby"`
+	Host      ServerHostInfo   `json:"host"`
+	Sandboxes map[string]int   `json:"sandboxes"`
+	Docker    ServerDockerInfo `json:"docker"`
+	Users     ServerUserCounts `json:"users"`
+}
+
+type ServerHostInfo struct {
+	Memory    HostMemory `json:"memory"`
+	Disk      HostDisk   `json:"disk"`
+	Load      HostLoad   `json:"load"`
+	CPUCount  int        `json:"cpu_count"`
+	Uptime    string     `json:"uptime"`
+	Processes int        `json:"processes"`
+}
+
+type HostMemory struct {
+	TotalGB     float64 `json:"total_gb"`
+	UsedGB      float64 `json:"used_gb"`
+	AvailableGB float64 `json:"available_gb"`
+	Percent     float64 `json:"percent"`
+}
+
+type HostDisk struct {
+	TotalGB     float64 `json:"total_gb"`
+	UsedGB      float64 `json:"used_gb"`
+	AvailableGB float64 `json:"available_gb"`
+	Percent     float64 `json:"percent"`
+}
+
+type HostLoad struct {
+	One     float64 `json:"one"`
+	Five    float64 `json:"five"`
+	Fifteen float64 `json:"fifteen"`
+}
+
+type ServerDockerInfo struct {
+	Version           string   `json:"version"`
+	Containers        int      `json:"containers"`
+	ContainersRunning int      `json:"containers_running"`
+	Images            int      `json:"images"`
+	Runtimes          []string `json:"runtimes"`
+}
+
+type ServerUserCounts struct {
+	Total  int `json:"total"`
+	Admins int `json:"admins"`
+}
+
 type Snapshot struct {
 	Name      string    `json:"name"`
 	Image     string    `json:"image"`

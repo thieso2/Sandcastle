@@ -330,6 +330,14 @@ func (c *Client) DestroyUser(id int) error {
 	return c.do("DELETE", fmt.Sprintf("/api/users/%d", id), nil, nil)
 }
 
+// Info
+
+func (c *Client) Info() (*ServerInfo, error) {
+	var info ServerInfo
+	err := c.do("GET", "/api/info", nil, &info)
+	return &info, err
+}
+
 // Status
 
 func (c *Client) Status() (*SystemStatus, error) {
