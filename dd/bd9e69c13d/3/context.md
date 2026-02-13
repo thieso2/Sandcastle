@@ -10,3 +10,7 @@ look at @tasks.md - check what's done and what is not - continue and to the chro
 
 continue with the testing
 
+### Prompt 3
+
+fix the bugs
+
