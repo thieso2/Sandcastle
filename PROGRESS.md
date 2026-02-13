@@ -83,7 +83,7 @@
 - ✅ ~~Jobs page completely blank~~ - FIXED with skip_before_action and correct method names (commits af91e16, 1518f14, 779b243)
 - ✅ ~~Admin sandbox stats shows "Content missing"~~ - FIXED with correct partial path (commit 7b4efa9)
 - ✅ ~~Stats endpoint 500 error for destroyed sandboxes~~ - FIXED by skipping before_action and using direct find (commit 7edefce)
-- ✅ ~~Toast notifications not appearing~~ - FIXED by removing duplicate fixed positioning (commit 0da6851)
+- ⚠️ **Toast notifications not appearing** - PARTIALLY FIXED. Infrastructure works (Turbo Stream subscription, container, broadcasts) but toasts don't appear for start/stop/destroy actions because controllers redirect immediately after enqueueing jobs, disconnecting websocket before broadcast arrives. Need to either: (1) use Turbo responses instead of redirects, or (2) use flash messages for user-initiated actions and reserve toasts for truly async events
 - ❌ **Flash messages not appearing** - Tailscale settings update doesn't show flash (Turbo frame issue? - needs testing)
 - ✅ ~~Confirm dialogs block browser automation~~ - FIXED with custom HTML modals (commit c11f800)
 
