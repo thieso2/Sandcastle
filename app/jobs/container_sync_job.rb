@@ -15,6 +15,12 @@ class ContainerSyncJob < ApplicationJob
     rescue => e
       Rails.logger.error("ContainerSyncJob: route sync failed: #{e.message}")
     end
+
+    begin
+      TerminalManager.new.cleanup_orphaned
+    rescue => e
+      Rails.logger.error("ContainerSyncJob: terminal cleanup failed: #{e.message}")
+    end
   end
 
   private
@@ -24,10 +30,22 @@ class ContainerSyncJob < ApplicationJob
     actual_status = container.json.dig("State", "Running") ? "running" : "stopped"
 
     if sandbox.status != actual_status
+      if actual_status == "stopped"
+        begin
+          TerminalManager.new.close(sandbox: sandbox)
+        rescue TerminalManager::Error, Docker::Error::DockerError
+          # best-effort
+        end
+      end
       sandbox.update!(status: actual_status)
       Rails.logger.info("ContainerSyncJob: #{sandbox.full_name} status corrected to #{actual_status}")
     end
   rescue Docker::Error::NotFoundError
+    begin
+      TerminalManager.new.close(sandbox: sandbox)
+    rescue TerminalManager::Error, Docker::Error::DockerError
+      # best-effort
+    end
     sandbox.update!(status: "destroyed", container_id: nil)
     Rails.logger.warn("ContainerSyncJob: #{sandbox.full_name} container gone, marked destroyed")
   end

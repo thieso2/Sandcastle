@@ -66,9 +66,22 @@ sandcastle connect my-dev
 sandcastle ssh my-dev</code></pre>
   </section>
 
+  <%# ── Web Terminal ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">6. Web terminal</h2>
+    <p class="text-gray-700 mb-3">
+      Click the <strong>Terminal</strong> button on any running sandbox to open a browser-based shell.
+      No SSH client needed — just a web browser.
+    </p>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+      <strong>How it works:</strong> Sandcastle spins up an ephemeral WeTTY container that auto-connects to your sandbox via SSH.
+      The terminal session is protected by your existing login — no extra passwords required.
+    </div>
+  </section>
+
   <%# ── Manage ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">6. Manage sandboxes</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Manage sandboxes</h2>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle list              # Show all your sandboxes
 sandcastle stop my-dev       # Stop a running sandbox
 sandcastle start my-dev      # Start a stopped sandbox
@@ -77,7 +90,7 @@ sandcastle delete my-dev     # Permanently remove a sandbox</code></pre>
 
   <%# ── Routes ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Custom domain routes</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Custom domain routes</h2>
     <p class="text-gray-700 mb-3">
       Expose services running inside your sandbox on custom domains with automatic TLS.
       Each sandbox can have multiple routes pointing to different ports:
@@ -98,7 +111,7 @@ sandcastle route delete myapp app.example.com</code></pre>
 
   <%# ── Snapshots ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Snapshots</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Snapshots</h2>
     <p class="text-gray-700 mb-3">Save and restore the full state of a sandbox:</p>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Create a snapshot
 sandcastle snapshot create my-dev my-checkpoint
