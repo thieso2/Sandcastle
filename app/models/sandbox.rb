@@ -1,4 +1,6 @@
 class Sandbox < ApplicationRecord
+  include ActionView::RecordIdentifier  # For dom_id in Turbo broadcasts
+
   belongs_to :user
   has_many :routes, dependent: :destroy
 
@@ -18,6 +20,10 @@ class Sandbox < ApplicationRecord
 
   before_validation :assign_ssh_port, on: :create
 
+  # Turbo Streams for real-time UI updates
+  after_update_commit :broadcast_replace_to_dashboard
+  after_destroy_commit :broadcast_remove_from_dashboard
+
   def full_name
     "#{user.name}-#{name}"
   end
@@ -34,7 +40,41 @@ class Sandbox < ApplicationRecord
     temporary?
   end
 
+  # Job lifecycle management
+  def job_in_progress?
+    job_status.present?
+  end
+
+  def job_failed?
+    job_error.present?
+  end
+
+  def start_job(status)
+    update!(job_status: status, job_started_at: Time.current, job_error: nil)
+  end
+
+  def finish_job
+    update!(job_status: nil, job_started_at: nil)
+  end
+
+  def fail_job(error_message)
+    update!(job_status: nil, job_error: error_message, job_started_at: nil)
+  end
+
   private
+
+  def broadcast_replace_to_dashboard
+    broadcast_replace_to(
+      [user, "dashboard"],
+      partial: "dashboard/sandbox",
+      locals: { sandbox: self },
+      target: dom_id(self)
+    )
+  end
+
+  def broadcast_remove_from_dashboard
+    broadcast_remove_to([user, "dashboard"], target: dom_id(self))
+  end
 
   def assign_ssh_port
     return if ssh_port.present?
