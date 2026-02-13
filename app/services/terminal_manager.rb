@@ -23,10 +23,17 @@ class TerminalManager
     pull_image
     ensure_network
     connect_sandbox_to_network(sandbox)
+
+    # Write Traefik config early so it has time to detect the new route
+    # while we set up keypairs and start the WeTTY container.
+    write_traefik_config(sandbox)
+
     key_dir = generate_keypair(sandbox)
     inject_pubkey(sandbox, key_dir)
     create_wetty_container(sandbox: sandbox, user: user, key_dir: key_dir)
-    write_traefik_config(sandbox)
+
+    # Give Traefik a moment to load the dynamic config before redirecting.
+    sleep 1
 
     wetty_url(sandbox)
   rescue Docker::Error::DockerError => e
@@ -313,11 +320,13 @@ class TerminalManager
     begin
       container = Docker::Container.get(sandbox.container_id)
       username = sandbox.user.name
-      marker = "wetty-#{sandbox.full_name}"
-      # Use grep -vF (fixed string) to avoid regex injection via sed
+      # Match end-of-line to avoid substring collisions
+      # (e.g. "wetty-user-foo" must not also remove "wetty-user-foobar").
+      # Sandbox names are [a-z0-9_-] only, so safe for regex.
+      marker = "wetty-#{sandbox.full_name}$"
       container.exec([
         "sh", "-c",
-        "grep -vF '#{marker}' /home/#{username}/.ssh/authorized_keys > /tmp/ak_clean && " \
+        "grep -v '#{marker}' /home/#{username}/.ssh/authorized_keys > /tmp/ak_clean && " \
         "mv /tmp/ak_clean /home/#{username}/.ssh/authorized_keys || true"
       ])
     rescue Docker::Error::NotFoundError, Docker::Error::DockerError
