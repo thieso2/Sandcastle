@@ -55,6 +55,9 @@ export default class extends Controller {
         const confirmMessage = button.dataset.confirmMessage
         delete button.dataset.confirmMessage
 
+        console.log('[Confirm] Submitting form:', form.action, 'Method:', form.method)
+        console.log('[Confirm] Form _method field:', form.querySelector('input[name="_method"]')?.value)
+
         // Submit the form (Turbo will intercept it)
         form.requestSubmit(button)
 
