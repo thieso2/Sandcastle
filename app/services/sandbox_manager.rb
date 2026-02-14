@@ -305,14 +305,11 @@ class SandboxManager
       command: sandbox.connect_command(host: host)
     }
 
+    # Include Tailscale IP as metadata, but don't change host/port
+    # The bridge network IP is only for internal container-to-container communication
     if sandbox.tailscale?
       ts_ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
-      if ts_ip.present?
-        info[:host] = ts_ip
-        info[:port] = 22
-        info[:command] = "ssh #{user}@#{ts_ip}"
-        info[:tailscale_ip] = ts_ip
-      end
+      info[:tailscale_ip] = ts_ip if ts_ip.present?
     end
 
     info
