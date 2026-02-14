@@ -1,6 +1,7 @@
 class TerminalController < ApplicationController
   allow_unauthenticated_access only: :auth
   skip_before_action :require_password_change, only: :auth
+  skip_forgery_protection only: :open
 
   def open
     sandbox = find_sandbox
