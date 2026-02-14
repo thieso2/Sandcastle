@@ -4,20 +4,50 @@ module Admin
 
     def destroy
       authorize @sandbox
+      if @sandbox.job_in_progress?
+        redirect_to admin_dashboard_path, alert: "Operation already in progress"
+        return
+      end
+
+      @sandbox.start_job("destroying")
       SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
-      redirect_to admin_dashboard_path, notice: "Destroying sandbox #{@sandbox.name}..."
+
+      respond_to do |format|
+        format.html { redirect_to admin_dashboard_path, notice: "Destroying sandbox #{@sandbox.name}..." }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "admin/dashboard/sandbox", locals: { sandbox: @sandbox }) }
+      end
     end
 
     def start
       authorize @sandbox
+      if @sandbox.job_in_progress?
+        redirect_to admin_dashboard_path, alert: "Operation already in progress"
+        return
+      end
+
+      @sandbox.start_job("starting")
       SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
-      redirect_to admin_dashboard_path, notice: "Starting sandbox #{@sandbox.name}..."
+
+      respond_to do |format|
+        format.html { redirect_to admin_dashboard_path, notice: "Starting sandbox #{@sandbox.name}..." }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "admin/dashboard/sandbox", locals: { sandbox: @sandbox }) }
+      end
     end
 
     def stop
       authorize @sandbox
+      if @sandbox.job_in_progress?
+        redirect_to admin_dashboard_path, alert: "Operation already in progress"
+        return
+      end
+
+      @sandbox.start_job("stopping")
       SandboxStopJob.perform_later(sandbox_id: @sandbox.id)
-      redirect_to admin_dashboard_path, notice: "Stopping sandbox #{@sandbox.name}..."
+
+      respond_to do |format|
+        format.html { redirect_to admin_dashboard_path, notice: "Stopping sandbox #{@sandbox.name}..." }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "admin/dashboard/sandbox", locals: { sandbox: @sandbox }) }
+      end
     end
 
     def stats

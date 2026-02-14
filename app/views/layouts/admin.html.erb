@@ -22,18 +22,40 @@
   <body>
     <% if authenticated? %>
       <%= render "shared/navbar" %>
-      <%= turbo_stream_from "user_#{Current.user.id}" %>
     <% end %>
 
     <div class="pt-14">
       <%= render "admin/subnav" %>
     </div>
 
-    <main class="container mx-auto px-5 flex">
+    <main class="container mx-auto px-5 flex flex-col">
+      <% if flash[:alert] %>
+        <div class="flex justify-center mb-5">
+          <div data-controller="flash" data-flash-level-value="alert" class="relative flex items-center gap-3 py-2 px-3 pr-10 bg-red-50 text-red-500 font-medium rounded-lg" id="alert">
+            <%= flash[:alert] %>
+            <button type="button" data-action="click->flash#close" class="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      <% end %>
+      <% if flash[:notice] %>
+        <div class="flex justify-center mb-5">
+          <div data-controller="flash" data-flash-level-value="notice" class="relative flex items-center gap-3 py-2 px-3 pr-10 bg-green-50 text-green-500 font-medium rounded-lg" id="notice">
+            <%= flash[:notice] %>
+            <button type="button" data-action="click->flash#close" class="absolute right-2 top-1/2 -translate-y-1/2 text-green-400 hover:text-green-600 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      <% end %>
       <%= yield %>
     </main>
 
-    <div id="toasts" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
     <%= render "shared/confirm_modal" %>
 
     <footer class="container mx-auto px-5 py-8 text-center text-xs text-zinc-500">

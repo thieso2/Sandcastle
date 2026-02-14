@@ -1,12 +1,4 @@
 <div class="max-w-4xl mx-auto px-4 py-8">
-  <% if alert = flash[:alert] %>
-    <p class="py-2 px-3 bg-red-50 mb-5 text-red-500 font-medium rounded-lg inline-block" id="alert"><%= alert %></p>
-  <% end %>
-
-  <% if notice = flash[:notice] %>
-    <p class="py-2 px-3 bg-green-50 mb-5 text-green-500 font-medium rounded-lg inline-block" id="notice"><%= notice %></p>
-  <% end %>
-
   <h1 class="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
 
   <%= form_with model: @setting, url: admin_settings_path, method: :patch, class: "space-y-8" do |form| %>

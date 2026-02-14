@@ -54,8 +54,13 @@ class SandboxesController < ApplicationController
       return
     end
 
+    @sandbox.start_job("destroying")
     SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
-    redirect_to root_path, notice: "Destroying sandcastle #{@sandbox.name}..."
+
+    respond_to do |format|
+      format.html { redirect_to root_path, notice: "Destroying sandcastle #{@sandbox.name}..." }
+      format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "dashboard/sandbox", locals: { sandbox: @sandbox }) }
+    end
   end
 
   def start
@@ -64,8 +69,13 @@ class SandboxesController < ApplicationController
       return
     end
 
+    @sandbox.start_job("starting")
     SandboxStartJob.perform_later(sandbox_id: @sandbox.id)
-    redirect_to root_path, notice: "Starting sandcastle #{@sandbox.name}..."
+
+    respond_to do |format|
+      format.html { redirect_to root_path, notice: "Starting sandcastle #{@sandbox.name}..." }
+      format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "dashboard/sandbox", locals: { sandbox: @sandbox }) }
+    end
   end
 
   def stop
@@ -74,8 +84,13 @@ class SandboxesController < ApplicationController
       return
     end
 
+    @sandbox.start_job("stopping")
     SandboxStopJob.perform_later(sandbox_id: @sandbox.id)
-    redirect_to root_path, notice: "Stopping sandcastle #{@sandbox.name}..."
+
+    respond_to do |format|
+      format.html { redirect_to root_path, notice: "Stopping sandcastle #{@sandbox.name}..." }
+      format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "dashboard/sandbox", locals: { sandbox: @sandbox }) }
+    end
   end
 
   def retry

@@ -48,21 +48,40 @@ export default class extends Controller {
     if (this.triggeringElement) {
       // For button_to forms (which create a form with a button)
       if (this.triggeringElement.tagName === "BUTTON" && this.triggeringElement.form) {
-        // Remove the data-confirm-message to prevent re-triggering
-        this.triggeringElement.removeAttribute("data-confirm-message")
-        // Submit the form
-        this.triggeringElement.form.requestSubmit(this.triggeringElement)
+        const form = this.triggeringElement.form
+        const button = this.triggeringElement
+
+        // Remove the confirm message to prevent re-triggering
+        const confirmMessage = button.dataset.confirmMessage
+        delete button.dataset.confirmMessage
+
+        // Submit the form (Turbo will intercept it)
+        form.requestSubmit(button)
+
+        // Restore the confirm message for future use
+        setTimeout(() => {
+          if (confirmMessage) {
+            button.dataset.confirmMessage = confirmMessage
+          }
+        }, 100)
       }
       // For regular links with data-turbo-method
       else if (this.triggeringElement.hasAttribute("data-turbo-method")) {
-        // Remove the confirm attribute to prevent re-triggering
-        this.triggeringElement.removeAttribute("data-confirm-message")
+        const confirmMessage = this.triggeringElement.dataset.confirmMessage
+        delete this.triggeringElement.dataset.confirmMessage
+
         // Click the link (Turbo will handle it)
         this.triggeringElement.click()
+
+        // Restore the confirm message
+        setTimeout(() => {
+          if (confirmMessage) {
+            this.triggeringElement.dataset.confirmMessage = confirmMessage
+          }
+        }, 100)
       }
       // For regular links
       else {
-        this.triggeringElement.removeAttribute("data-confirm-message")
         this.triggeringElement.click()
       }
     }
