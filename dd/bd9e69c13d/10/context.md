@@ -20,3 +20,16 @@ so the installer needs to write to ~/.profile - do not touch /etc/profile
 uninstall.sh should also delete the group and user. 
 explore what we create in installer.sh and what does not get reverted on uninstall
 
+### Prompt 5
+
+yes fix all of them
+commit and push
+
+### Prompt 6
+
+[Request interrupted by user]
+
+### Prompt 7
+
+remove /etc/profile.d/sandcastle-path.sh
+
