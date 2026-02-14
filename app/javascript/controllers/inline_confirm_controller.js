@@ -54,25 +54,30 @@ export default class extends Controller {
 
     const formId = this.element.dataset.formId
     const form = formId ? document.getElementById(formId) : null
+    const originalHTML = this.element.dataset.originalHtml
 
-    if (form) {
+    if (form && originalHTML) {
       console.log('[InlineConfirm] Submitting form:', form.action)
       console.log('[InlineConfirm] Form method:', form.method)
       console.log('[InlineConfirm] _method field:', form.querySelector('input[name="_method"]')?.value)
 
-      // Find the submit button in the form
+      // Restore the original HTML to get the submit button back
+      this.element.innerHTML = originalHTML
+
+      // Now find and click the submit button
       const submitButton = form.querySelector('button[type="submit"]')
 
       if (submitButton) {
-        console.log('[InlineConfirm] Submitting with button')
-        form.requestSubmit(submitButton)
+        console.log('[InlineConfirm] Clicking submit button')
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          submitButton.click()
+        }, 10)
       } else {
-        console.log('[InlineConfirm] No submit button, using form.submit()')
-        // Fallback: just submit the form (won't trigger Turbo but will work)
-        form.submit()
+        console.error('[InlineConfirm] Submit button not found')
       }
     } else {
-      console.error('[InlineConfirm] Form not found for ID:', formId)
+      console.error('[InlineConfirm] Form or originalHTML not found')
     }
   }
 
