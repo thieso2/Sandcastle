@@ -3,30 +3,30 @@
   "checkpoint_id": "ddbd9e69c13d",
   "session_id": "5e98cdb4-1b98-49ff-ad6c-e4fb5d897bdf",
   "strategy": "manual-commit",
-  "created_at": "2026-02-14T07:52:30.960489Z",
+  "created_at": "2026-02-14T07:59:53.456406Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "installer.sh"
+    "images/sandbox/Dockerfile"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "51421e09-0995-4c7c-8c17-2a441c48b248",
-  "checkpoint_transcript_start": 314,
-  "transcript_lines_at_start": 314,
+  "transcript_identifier_at_start": "432463a8-a14c-4d9b-862c-f894e4454d6c",
+  "checkpoint_transcript_start": 414,
+  "transcript_lines_at_start": 414,
   "token_usage": {
-    "input_tokens": 165,
-    "cache_creation_tokens": 14539,
-    "cache_read_tokens": 2478863,
-    "output_tokens": 2956,
-    "api_call_count": 23
+    "input_tokens": 92,
+    "cache_creation_tokens": 5882,
+    "cache_read_tokens": 1435748,
+    "output_tokens": 1737,
+    "api_call_count": 12
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-14T07:52:30.893059Z",
+    "calculated_at": "2026-02-14T07:59:53.386224Z",
     "agent_lines": 0,
-    "human_added": 197,
-    "human_modified": 3,
+    "human_added": 0,
+    "human_modified": 4,
     "human_removed": 0,
-    "total_committed": 200,
+    "total_committed": 0,
     "agent_percentage": 0
   }
 }

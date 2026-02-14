@@ -16,7 +16,7 @@
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
     "docker-compose.yml",
-    "installer.sh",
+    "images/sandbox/Dockerfile",
     "research/COMPARISON.md",
     "research/QUICK_REFERENCE.md",
     "research/README.md",
@@ -93,10 +93,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1141,
-    "cache_creation_tokens": 242927,
-    "cache_read_tokens": 13755736,
-    "output_tokens": 24370,
-    "api_call_count": 142
+    "input_tokens": 1068,
+    "cache_creation_tokens": 234270,
+    "cache_read_tokens": 12712621,
+    "output_tokens": 23151,
+    "api_call_count": 131
   }
 }
