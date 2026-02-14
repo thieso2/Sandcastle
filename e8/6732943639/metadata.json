@@ -5,22 +5,12 @@
   "branch": "main",
   "checkpoints_count": 2,
   "files_touched": [
-    ".env.example",
-    "app/services/route_manager.rb",
-    "docker-compose.yml",
-    "install-defaults",
-    "installer.sh",
     "installer/README.md",
     "installer/build.sh",
-    "installer/sync-files.sh",
-    "installer/templates/banner.sh",
-    "installer/templates/docker-logs.sh",
+    "installer/create-template.py",
     "installer/templates/dockyard.env.template",
-    "installer/templates/rails-letsencrypt.yml",
-    "installer/templates/rails-selfsigned.yml",
     "installer/templates/sandcastle.env.template",
-    "installer/templates/traefik-letsencrypt.yml",
-    "installer/templates/traefik-selfsigned.yml"
+    "mise.toml"
   ],
   "sessions": [
     {
@@ -39,10 +29,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 419,
-    "cache_creation_tokens": 28681,
-    "cache_read_tokens": 5094942,
-    "output_tokens": 12452,
-    "api_call_count": 53
+    "input_tokens": 256,
+    "cache_creation_tokens": 15077,
+    "cache_read_tokens": 3709024,
+    "output_tokens": 8217,
+    "api_call_count": 35
   }
 }

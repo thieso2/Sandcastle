@@ -76,3 +76,16 @@ SANDCASTLE_TAILSCALE_IP does not work!
 ---
 
 we had this a few times (filed in the installer were not updated). the installer should be build from the original files via a task. extract all files from the installer and pace them in a dir installer create a mise task to build the actual installer.sh
+
+---
+
+commit and push
+
+---
+
+hwo do i generate installer.sh
+
+---
+
+- Create installer.sh.in with @@TEMPLATE:filename@@ markers
+  - Build script replaces markers with file contents
