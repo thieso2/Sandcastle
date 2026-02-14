@@ -119,3 +119,15 @@ Looking through the conversation chronologically:
 3. Fixed temp sandbox buttons - removed special case, added prominent TEMP badge
 4. Remo...
 
+### Prompt 23
+
+create GH issue to update installer to ad dthe .ssh key to the $SANDCASTLE_USER and also add the user to SUDO with no password. (remove all that on uninstall)
+
+### Prompt 24
+
+add to ISSUE to add export PATH=$REDACTED:$PATH to .bashrc
+
+### Prompt 25
+
+on startup of the app run a task that verifies all sandboxes - are they still in docker? if not - detroy them.
+

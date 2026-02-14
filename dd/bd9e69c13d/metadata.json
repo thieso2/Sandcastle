@@ -12,7 +12,7 @@
     "app/javascript/controllers/inline_confirm_controller.js",
     "app/jobs/sandbox_destroy_job.rb",
     "app/views/layouts/admin.html.erb",
-    "app/views/shared/_navbar.html.erb",
+    "config/initializers/container_sync.rb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
     "research/COMPARISON.md",
@@ -84,10 +84,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 984,
-    "cache_creation_tokens": 247142,
-    "cache_read_tokens": 11463856,
-    "output_tokens": 22894,
-    "api_call_count": 120
+    "input_tokens": 1020,
+    "cache_creation_tokens": 229752,
+    "cache_read_tokens": 11522477,
+    "output_tokens": 21875,
+    "api_call_count": 124
   }
 }
