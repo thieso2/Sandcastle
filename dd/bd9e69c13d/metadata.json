@@ -7,6 +7,7 @@
   "files_touched": [
     ".github/workflows/claude.yml",
     "DEPLOY.md",
+    "INSTALL_CLEANUP_ANALYSIS.md",
     "PROGRESS.md",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
@@ -109,10 +110,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 2125,
-    "cache_creation_tokens": 349355,
-    "cache_read_tokens": 25819082,
-    "output_tokens": 34383,
-    "api_call_count": 278
+    "input_tokens": 2067,
+    "cache_creation_tokens": 304327,
+    "cache_read_tokens": 25486416,
+    "output_tokens": 33361,
+    "api_call_count": 271
   }
 }
