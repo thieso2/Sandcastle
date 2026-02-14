@@ -56,3 +56,16 @@ create PR
 ---
 
 remove kamal from all environments - we only use traefik!
+
+---
+
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Started POST "/sandboxes/37/terminal" for 192.168.117.1 at 2026-02-14 06:31:39 +0000
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Processing by TerminalController#open as HTML
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02]   Parameters: {"id" => "37"}
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Can't verify CSRF token authenticity.
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Completed 422 Unprocessable Content in 4ms (ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02]
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] ActionController::InvalidAuthenticityToken (Can't verify CSRF token authenticity.):
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02]
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] actionpack (8.1.2) lib/action_controller/metal/request_forgery_protection.rb:321:in 'ActionController::RequestForgeryProtection::ProtectionMethods::Exception#handle_unverified_request'
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] actionpack (8.1.2) lib/action_controller/metal/request_forgery_protection.rb:415:in 'ActionController::RequestForgeryProtection#handle_unverified_request'

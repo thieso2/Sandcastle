@@ -56,3 +56,11 @@ create PR
 
 remove kamal from all environments - we only use traefik!
 
+### Prompt 13
+
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Started POST "/sandboxes/37/terminal" for 192.168.117.1 at 2026-02-14 06:31:39 +0000
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Processing by TerminalController#open as HTML
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02]   Parameters: {"id" => "37"}
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Can't verify CSRF token authenticity.
+sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Co...
+
