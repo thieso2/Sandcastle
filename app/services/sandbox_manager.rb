@@ -322,14 +322,24 @@ class SandboxManager
 
   private
 
-  def wait_for_tailscale_ip(sandbox:, max_attempts: 10, delay: 0.5)
-    # Wait for the Tailscale network IP to be assigned (can take a moment after network connect)
+  def wait_for_tailscale_ip(sandbox:, max_attempts: 30, delay: 0.5)
+    # Wait for the sandbox to be provisioned (background job) and Tailscale IP to be assigned
     max_attempts.times do
+      sandbox.reload # Refresh from DB to get latest status
+
+      # If sandbox isn't running yet, keep waiting (provision job in progress)
+      if sandbox.status != "running"
+        sleep delay
+        next
+      end
+
+      # Sandbox is running, try to get Tailscale IP
       ts_ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
       return ts_ip if ts_ip.present?
+
       sleep delay
     end
-    Rails.logger.warn("Tailscale IP not available for sandbox #{sandbox.id} after #{max_attempts} attempts")
+    Rails.logger.warn("Tailscale IP not available for sandbox #{sandbox.id} after #{max_attempts} attempts (status: #{sandbox.status})")
     nil
   end
 
