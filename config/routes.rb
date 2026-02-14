@@ -18,7 +18,7 @@ Rails.application.routes.draw do
     patch :update_password
     patch :toggle_tailscale
     post :generate_token
-    delete :revoke_token
+    delete "revoke_token/:id", action: :revoke_token, as: :revoke_token
   end
 
   get  "auth/device",              to: "device_auth#show",     as: :auth_device

@@ -1,7 +1,7 @@
 class SettingsController < ApplicationController
   def show
     @user = Current.user
-    @api_token = @user.api_tokens.active.first
+    @api_tokens = @user.api_tokens.active.order(created_at: :desc)
   end
 
   def update_profile
@@ -43,20 +43,20 @@ class SettingsController < ApplicationController
   def generate_token
     @user = Current.user
 
-    # Revoke existing token if present
-    @user.api_tokens.active.destroy_all
-
-    token, raw_token = ApiToken.generate_for(@user, name: "Web UI Token")
+    token_name = params[:name].presence || "Web UI Token"
+    token, raw_token = ApiToken.generate_for(@user, name: token_name)
 
     flash[:api_token] = raw_token
-    redirect_to settings_path, notice: "API token generated. Make sure to copy it now - you won't be able to see it again!"
+    redirect_to settings_path, notice: "API token '#{token_name}' generated. Make sure to copy it now - you won't be able to see it again!"
   end
 
   def revoke_token
     @user = Current.user
-    @user.api_tokens.active.destroy_all
+    token = @user.api_tokens.find(params[:id])
+    token_name = token.name
+    token.destroy!
 
-    redirect_to settings_path, notice: "API token revoked."
+    redirect_to settings_path, notice: "API token '#{token_name}' revoked."
   end
 
   private

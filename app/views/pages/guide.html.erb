@@ -166,11 +166,14 @@ sandcastle create my-dev-v2 --snapshot my-checkpoint</code></pre>
       <li><strong>Profile</strong> — Update your email address and change your password</li>
       <li><strong>Tailscale</strong> — View connection status and toggle auto-connect for new sandboxes</li>
       <li><strong>Browser</strong> — Toggle Chrome profile persistence across sandbox recreations</li>
-      <li><strong>API Token</strong> — Generate or revoke your API token for CLI authentication</li>
+      <li><strong>API Tokens</strong> — Create, list, and revoke multiple named API tokens for different devices or applications</li>
     </ul>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-sm text-blue-800">
-      <strong>Using API tokens:</strong> After generating a token in Settings, configure the CLI with<br>
-      <code class="bg-blue-100 px-1 rounded">sandcastle config set-token</code> and paste your token when prompted.
+      <strong>Using API tokens:</strong> Create tokens for different use cases (laptop, CI/CD, mobile).<br>
+      <strong>Via Web UI:</strong> Go to Settings → click "New Token" → give it a name → copy the token<br>
+      <strong>Via CLI:</strong> Run <code class="bg-blue-100 px-1 rounded">sandcastle token create laptop</code> to create a named token<br>
+      <code class="bg-blue-100 px-1 rounded">sandcastle token list</code> to view all your tokens<br>
+      <code class="bg-blue-100 px-1 rounded">sandcastle token revoke &lt;id&gt;</code> to revoke a specific token
     </div>
   </section>
 
