@@ -169,3 +169,17 @@ ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No
 ## Conventions
 
 - When features are changed or added, update the guide page at `app/views/pages/guide.html.erb` to reflect the new CLI commands and usage.
+
+## GitHub Actions Workflow
+
+When triggered via `@claude` comments in GitHub issues or PRs:
+
+- **Always complete the full workflow** without asking for approval to commit/push/create PRs
+- The workflow grants explicit permissions (`--allowedTools`) for git operations
+- After implementing changes:
+  1. Stage files with `git add`
+  2. Commit with descriptive message including `Co-authored-by` trailer
+  3. Push to the branch immediately
+  4. Provide a link to create a PR (or create it if you have the capability)
+- **Do not stop and ask for permission** — the `--allowedTools` configuration is the permission
+- Only ask for clarification if requirements are unclear, not for commit/push approval
