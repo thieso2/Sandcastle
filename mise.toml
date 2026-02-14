@@ -111,6 +111,12 @@ run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Check if HEAD already has a tag
+if git describe --exact-match --tags HEAD 2>/dev/null; then
+  echo "ERROR: Current commit already has a tag. Make new commits before releasing."
+  exit 1
+fi
+
 # Get the latest tag
 latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 echo "Current version: $latest"
@@ -138,6 +144,12 @@ run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Check if HEAD already has a tag
+if git describe --exact-match --tags HEAD 2>/dev/null; then
+  echo "ERROR: Current commit already has a tag. Make new commits before releasing."
+  exit 1
+fi
+
 latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 echo "Current version: $latest"
 
@@ -160,6 +172,12 @@ description = "Bump major version, tag, push, and wait for CI to build the relea
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Check if HEAD already has a tag
+if git describe --exact-match --tags HEAD 2>/dev/null; then
+  echo "ERROR: Current commit already has a tag. Make new commits before releasing."
+  exit 1
+fi
 
 latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
 echo "Current version: $latest"
