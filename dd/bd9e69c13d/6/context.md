@@ -38,3 +38,12 @@ also destry should not use a confirm dialog that covers the screen. just replace
 
 no browser consone log. action is not triggered.
 
+### Prompt 8
+
+destoy doesnt do anything. logg says:
+sandcastle-web     | [aa1980dd-f516-4cba-889f-5d8e2458978d] Started POST "/sandboxes/15" for 192.168.117.1 at 2026-02-14 05:19:34 +0000
+sandcastle-web     | [aa1980dd-f516-4cba-889f-5d8e2458978d]
+sandcastle-web     | [aa1980dd-f516-4cba-889f-5d8e2458978d] ActionController::RoutingError (No route matches [POST] "/sandboxes/15"):
+sandcastle-web     | [aa1980dd-f516-4cba-889f-5d8e2458978d]
+sandcastle-web     | [99222d30-38c6-4f87-af6b-f50780f8b6ae] Started GET ...
+
