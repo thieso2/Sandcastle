@@ -64,3 +64,7 @@ inline_confirm_controller-88374147.js:7 [InlineConfirm] Confirm clicked <button 
 
 
 but no action in the server-log!
+
+---
+
+when destroy is done the sandbox is not removed fro the screen.

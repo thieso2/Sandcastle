@@ -8,7 +8,7 @@
     ".github/workflows/claude.yml",
     "PROGRESS.md",
     "app/controllers/admin/sandboxes_controller.rb",
-    "app/javascript/controllers/inline_confirm_controller.js",
+    "app/models/sandbox.rb",
     "app/views/layouts/admin.html.erb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
@@ -74,10 +74,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 918,
-    "cache_creation_tokens": 223766,
-    "cache_read_tokens": 10834563,
-    "output_tokens": 19800,
-    "api_call_count": 112
+    "input_tokens": 950,
+    "cache_creation_tokens": 226100,
+    "cache_read_tokens": 11455771,
+    "output_tokens": 18394,
+    "api_call_count": 116
   }
 }

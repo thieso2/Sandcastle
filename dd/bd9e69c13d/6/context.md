@@ -65,3 +65,7 @@ inline_confirm_controller-88374147.js:60 [InlineConfirm] Form method: post
 inline_confirm_controller-88374147.js:61 [InlineConfirm] _method field: delete
 inline_confirm_controller-88374147.js:67 [InlineConfirm] Clicking submit butt...
 
+### Prompt 11
+
+when destroy is done the sandbox is not removed fro the screen.
+
