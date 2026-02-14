@@ -7,6 +7,7 @@
   "files_touched": [
     ".env.example",
     ".github/workflows/claude.yml",
+    ".github/workflows/release.yml",
     "DEPLOY.md",
     "INSTALL_CLEANUP_ANALYSIS.md",
     "PROGRESS.md",
@@ -23,7 +24,6 @@
     "images/sandbox/Dockerfile",
     "install-defaults",
     "installer.sh",
-    "mise.toml",
     "research/COMPARISON.md",
     "research/QUICK_REFERENCE.md",
     "research/README.md",
@@ -135,10 +135,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3478,
-    "cache_creation_tokens": 459344,
-    "cache_read_tokens": 19035921,
-    "output_tokens": 40243,
-    "api_call_count": 239
+    "input_tokens": 2300,
+    "cache_creation_tokens": 419382,
+    "cache_read_tokens": 19546081,
+    "output_tokens": 38631,
+    "api_call_count": 243
   }
 }
