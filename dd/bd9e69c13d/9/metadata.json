@@ -3,31 +3,30 @@
   "checkpoint_id": "ddbd9e69c13d",
   "session_id": "dcf19c3c-af3f-4503-9252-9fe514b06d4a",
   "strategy": "manual-commit",
-  "created_at": "2026-02-14T08:56:13.079389Z",
+  "created_at": "2026-02-14T09:03:40.306384Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "install-defaults",
     "installer.sh"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "8c207099-8f58-49d7-ae31-38baf4540ddb",
-  "checkpoint_transcript_start": 121,
-  "transcript_lines_at_start": 121,
+  "transcript_identifier_at_start": "4cb76c87-7992-443c-98f0-ec161ce7bc28",
+  "checkpoint_transcript_start": 815,
+  "transcript_lines_at_start": 815,
   "token_usage": {
-    "input_tokens": 973,
-    "cache_creation_tokens": 66908,
-    "cache_read_tokens": 12585336,
-    "output_tokens": 10200,
-    "api_call_count": 137
+    "input_tokens": 88,
+    "cache_creation_tokens": 7048,
+    "cache_read_tokens": 1586230,
+    "output_tokens": 143,
+    "api_call_count": 12
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-14T08:56:12.92754Z",
-    "agent_lines": 6,
-    "human_added": 0,
-    "human_modified": 8,
-    "human_removed": 9,
-    "total_committed": 14,
-    "agent_percentage": 42.857142857142854
+    "calculated_at": "2026-02-14T09:03:40.162447Z",
+    "agent_lines": 30,
+    "human_added": 7,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 37,
+    "agent_percentage": 81.08108108108108
   }
 }

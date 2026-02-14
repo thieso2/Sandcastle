@@ -75,3 +75,11 @@ Read the output file to retrieve the result: /private/tmp/claude-501/-Users-thie
 
 the nat servce needs to be created by dockyard, correct? its in ../dockyard - apply a fix!
 
+### Prompt 17
+
+have you fixed ../dockyard?
+
+### Prompt 18
+
+also make the docker.sock readble by sandcastle (add to gorup docker)
+
