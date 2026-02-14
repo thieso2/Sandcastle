@@ -64,3 +64,12 @@ sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02]   Parameters: {"id" 
 sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Can't verify CSRF token authenticity.
 sandcastle-web     | [b5bca66e-c60e-4f63-9b2d-8597e2dbec02] Co...
 
+### Prompt 14
+
+lot off stuff for open terminal:
+
+sandcastle-web     | [417c9f36-2e1a-4a2b-b4d3-34be6c9e20de] Started GET "/sandboxes/37/terminal/status" for 192.168.117.1 at 2026-02-14 06:34:05 +0000
+sandcastle-web     | [417c9f36-2e1a-4a2b-b4d3-34be6c9e20de] Processing by TerminalController#status as JSON
+sandcastle-web     | [417c9f36-2e1a-4a2b-b4d3-34be6c9e20de]   Parameters: {"id" => "37"}
+sandcastle-web     | [417c9f36-2e1a-4a2b-b4d3-34be6c9e20de] Completed 200 OK in 21ms (Views: 0.2ms | ActiveRecord: 2.0...
+
