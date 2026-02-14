@@ -59,6 +59,29 @@ services:
     networks:
       - sandcastle-web
 
+  worker:
+    image: ghcr.io/thieso2/sandcastle:latest
+    container_name: sandcastle-worker
+    command: ["./bin/jobs"]
+    group_add:
+      - "${DOCKER_GID:-988}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /data:/data
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      SANDCASTLE_DATA_DIR: /data
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - sandcastle-web
+
   migrate:
     image: ghcr.io/thieso2/sandcastle:latest
     command: ["./bin/rails", "db:prepare"]

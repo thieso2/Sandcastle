@@ -65,10 +65,11 @@ docker compose up -d --force-recreate
 
 All services defined in `docker-compose.yml`:
 
-- **sandcastle-web** - Rails app (Puma)
-- **sandcastle-worker** - Solid Queue worker
-- **sandcastle-postgres** - PostgreSQL 18 database
-- **sandcastle-traefik** - Traefik reverse proxy (HTTPS)
+- **web** (sandcastle-web) - Rails app (Puma)
+- **worker** (sandcastle-worker) - Solid Queue background job worker
+- **postgres** - PostgreSQL 18 database
+- **traefik** - Traefik reverse proxy (HTTPS)
+- **migrate** - One-time migration runner (runs before web/worker start)
 
 ### Networks
 
@@ -96,29 +97,29 @@ Required in `.env`:
 
 ### View logs
 ```bash
-docker compose logs -f sandcastle-web
-docker compose logs -f sandcastle-worker
+docker compose logs -f web
+docker compose logs -f worker
 ```
 
 ### Restart services
 ```bash
-docker compose restart sandcastle-web
-docker compose restart sandcastle-worker
+docker compose restart web
+docker compose restart worker
 ```
 
 ### Database console
 ```bash
-docker compose exec sandcastle-postgres psql -U sandcastle -d sandcastle_production
+docker compose exec postgres psql -U sandcastle -d sandcastle_production
 ```
 
 ### Rails console
 ```bash
-docker compose exec sandcastle-web bin/rails console
+docker compose exec web bin/rails console
 ```
 
 ### Run migrations
 ```bash
-docker compose exec sandcastle-web bin/rails db:migrate
+docker compose exec web bin/rails db:migrate
 ```
 
 ## Monitoring
