@@ -103,6 +103,8 @@ services:
       - sandcastle-web
     environment:
       RAILS_ENV: development
+      PORT: 80
+      BINDING: 0.0.0.0
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
       SANDCASTLE_HOST: ${SANDCASTLE_HOST:-localhost}
       SANDCASTLE_DATA_DIR: /data
