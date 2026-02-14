@@ -160,11 +160,11 @@ ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No
 
 - **Host**: `100.106.185.92` (Tailscale IP), SSH user `thies`
 - **Registry**: `ghcr.io/thieso2/sandcastle` (GitHub Container Registry)
-- **Deploy**: `kamal deploy` (config in `config/deploy.yml`), or `docker-compose up -d`
+- **Deploy**: `docker-compose up -d` (see `docker-compose.yml`)
 - **Host bootstrap**: `bootstrap/sandcastle-bootstrap.sh` (Docker, Sysbox, Caddy, UFW)
 - **Env vars**: `SECRET_KEY_BASE`, `RAILS_MASTER_KEY`, `SANDCASTLE_HOST`, `SANDCASTLE_DATA_DIR` (default `/data`)
-- **Proxy**: kamal-proxy with `response_timeout: 60` (needed for Tailscale login flow which blocks ~13s)
-- The Kamal app container needs `group-add: 988` for Docker socket access
+- **Proxy**: Traefik with `response_timeout: 60` (needed for Tailscale login flow which blocks ~13s)
+- The app container needs `group-add: 988` for Docker socket access
 
 ## Conventions
 
