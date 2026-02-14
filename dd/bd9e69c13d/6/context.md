@@ -47,3 +47,12 @@ sandcastle-web     | [aa1980dd-f516-4cba-889f-5d8e2458978d] ActionController::Ro
 sandcastle-web     | [aa1980dd-f516-4cba-889f-5d8e2458978d]
 sandcastle-web     | [99222d30-38c6-4f87-af6b-f50780f8b6ae] Started GET ...
 
+### Prompt 9
+
+[InlineConfirm] Yes clicked
+inline_confirm_controller-bc013d19.js:75 [InlineConfirm] Form not found for ID: form_f16b1lm1k
+yes @ inline_confirm_controller-bc013d19.js:75
+invokeWithEvent @ controller.ts:28
+handleEvent @ controller.ts:28
+handleEvent @ controller.ts:28Understand this error
+
