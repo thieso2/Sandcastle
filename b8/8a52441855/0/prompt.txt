@@ -1,0 +1,13 @@
+another GH job that did not preduce a branch or PR - check the permissuions _AGAIN_ and explain again whats not working!
+
+---
+
+[Request interrupted by user]
+
+---
+
+another GH job that did not preduce a branch or PR - check the permissuions _AGAIN_ and explain again whats not working! https://github.com/thieso2/Sandcastle/actions/runs/22016599781
+
+---
+
+how can i add this in a way to the repo that clause on GH knows it in the future
