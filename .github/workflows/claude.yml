@@ -41,6 +41,7 @@ jobs:
             actions: read
 
           # Allow git operations (commit, push, branch creation) without approval
+          # Allow running tests, linters, and build commands
           claude_args: |
             --allowedTools "Bash(git add *)"
             --allowedTools "Bash(git commit *)"
@@ -49,4 +50,10 @@ jobs:
             --allowedTools "Bash(git branch *)"
             --allowedTools "Bash(git status *)"
             --allowedTools "Bash(git diff *)"
+            --allowedTools "Bash(bin/rails test *)"
+            --allowedTools "Bash(bin/rubocop *)"
+            --allowedTools "Bash(bin/brakeman *)"
+            --allowedTools "Bash(bin/ci *)"
+            --allowedTools "Bash(bundle install *)"
+            --allowedTools "Bash(bundle exec *)"
 
