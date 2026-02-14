@@ -68,13 +68,14 @@
       <% if sandbox.job_in_progress? %>
         <span class="text-xs text-gray-500 italic">Processing...</span>
       <% elsif sandbox.temp? %>
-        <%= button_to "Remove", admin_sandbox_path(sandbox), method: :delete,
-              class: "text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
-              data: {
-                controller: "inline-confirm",
-                action: "click->inline-confirm#confirm",
-                confirm_message: "Remove? (data lost)"
-              } %>
+        <div data-controller="inline-confirm" class="inline-block">
+          <%= button_to "Remove", admin_sandbox_path(sandbox), method: :delete,
+                class: "text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
+                data: {
+                  action: "click->inline-confirm#confirm",
+                  confirm_message: "Remove? (data lost)"
+                } %>
+        </div>
       <% else %>
         <% if sandbox.status == "stopped" %>
           <%= button_to "Start", start_admin_sandbox_path(sandbox), method: :post,
@@ -92,13 +93,14 @@
           <%= button_to "Stop", stop_admin_sandbox_path(sandbox), method: :post,
                 class: "text-xs px-3 py-1.5 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors" %>
         <% end %>
-        <%= button_to "Destroy", admin_sandbox_path(sandbox), method: :delete,
-              class: "text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
-              data: {
-                controller: "inline-confirm",
-                action: "click->inline-confirm#confirm",
-                confirm_message: "Destroy?"
-              } %>
+        <div data-controller="inline-confirm" class="inline-block">
+          <%= button_to "Destroy", admin_sandbox_path(sandbox), method: :delete,
+                class: "text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
+                data: {
+                  action: "click->inline-confirm#confirm",
+                  confirm_message: "Destroy?"
+                } %>
+        </div>
       <% end %>
     </div>
   </div>

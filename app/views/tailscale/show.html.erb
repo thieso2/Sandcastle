@@ -83,14 +83,15 @@
       <% end %>
     </div>
 
-    <%= button_to "Disable Tailscale", disable_tailscale_path, method: :delete,
-          class: "px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm",
-          data: {
-            controller: "inline-confirm",
-            action: "click->inline-confirm#confirm",
-            confirm_message: "Disable? (disconnects sandboxes)",
-            turbo_submits_with: "Disabling..."
-          } %>
+    <div data-controller="inline-confirm" class="inline-block">
+      <%= button_to "Disable Tailscale", disable_tailscale_path, method: :delete,
+            class: "px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm",
+            data: {
+              action: "click->inline-confirm#confirm",
+              confirm_message: "Disable? (disconnects sandboxes)",
+              turbo_submits_with: "Disabling..."
+            } %>
+    </div>
 
   <% elsif Current.user.tailscale_pending? %>
     <%= render "tailscale/pending" %>
