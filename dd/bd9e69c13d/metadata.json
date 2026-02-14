@@ -9,7 +9,6 @@
     "PROGRESS.md",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
-    "app/controllers/terminal_controller.rb",
     "app/javascript/controllers/inline_confirm_controller.js",
     "app/jobs/sandbox_destroy_job.rb",
     "app/views/layouts/admin.html.erb",
@@ -84,10 +83,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 952,
-    "cache_creation_tokens": 236509,
-    "cache_read_tokens": 11394351,
-    "output_tokens": 21003,
-    "api_call_count": 116
+    "input_tokens": 1070,
+    "cache_creation_tokens": 246157,
+    "cache_read_tokens": 13965131,
+    "output_tokens": 23422,
+    "api_call_count": 132
   }
 }

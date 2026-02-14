@@ -231,3 +231,165 @@ sandcastle-web     | [cdd0928e-95ba-4cfa-b92e-28be82f33bc5] Completed 200 OK in 
 sandcastle-web     | [70f9e642-fa3e-4eb3-a754-39a7183e590a] Started GET "/cable" for 192.168.117.1 at 2026-02-14 06:34:06 +0000
 sandcastle-web     | [70f9e642-fa3e-4eb3-a754-39a7183e590a] Started GET "/cable" [WebSocket] for 192.168.117.1 at 2026-02-14 06:34:06 +0000
 sandcastle-web     | [70f9e642-fa3e-4eb3-a754-39a7183e590a] Successfully upgraded to WebSocket (REQUEST_METHOD: GET, HTTP_CONNECTION: Upgrade, HTTP_UPGRADE: websocket)
+
+---
+
+is this normal?
+traefik-1       | 2026-02-14T06:35:34Z WRN No domain found in rule HostRegexp(`.+`) && PathPrefix(`/terminal/37/wetty`), the TLS options applied for this router will depend on the SNI of each request entryPointName=websecure routerName=terminal-37@file
+
+---
+
+forst terminal startupo log:
+sandcastle-web     | Turbo::StreamsChannel is streaming from Z2lkOi8vc2FuZGNhc3RsZS9Vc2VyLzE:dashboard
+sandcastle-web     | [b4b8400a-85c5-48d2-8663-5d305f965345] Started POST "/sandboxes/37/terminal" for 192.168.117.1 at 2026-02-14 06:35:58 +0000
+sandcastle-web     | [b4b8400a-85c5-48d2-8663-5d305f965345] Processing by TerminalController#open as HTML
+sandcastle-web     | [b4b8400a-85c5-48d2-8663-5d305f965345]   Parameters: {"authenticity_token" => "[FILTERED]", "id" => "37"}
+sandcastle-web     | [b4b8400a-85c5-48d2-8663-5d305f965345] Redirected to https://sandcastle.local:8443/sandboxes/37/terminal/wait
+sandcastle-web     | [b4b8400a-85c5-48d2-8663-5d305f965345] Completed 303 See Other in 70ms (ActiveRecord: 5.0ms (4 queries, 1 cached) | GC: 8.3ms)
+sandcastle-web     | [48c1ddb0-f141-4b59-8ee2-0a0377de5074] Started GET "/sandboxes/37/terminal/wait" for 192.168.117.1 at 2026-02-14 06:35:59 +0000
+sandcastle-web     | [48c1ddb0-f141-4b59-8ee2-0a0377de5074] Processing by TerminalController#wait as HTML
+sandcastle-web     | [48c1ddb0-f141-4b59-8ee2-0a0377de5074]   Parameters: {"id" => "37"}
+sandcastle-web     | [48c1ddb0-f141-4b59-8ee2-0a0377de5074]   Rendered layout layouts/application.html.erb (Duration: 6.9ms | GC: 0.9ms)
+sandcastle-web     | [48c1ddb0-f141-4b59-8ee2-0a0377de5074] Completed 200 OK in 12ms (Views: 8.2ms | ActiveRecord: 0.4ms (3 queries, 0 cached) | GC: 0.9ms)
+sandcastle-web     | [e1b60761-bdb9-4f57-8a34-695599410566] Started GET "/sandboxes/37/terminal/status" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [e1b60761-bdb9-4f57-8a34-695599410566] Processing by TerminalController#status as JSON
+sandcastle-web     | [e1b60761-bdb9-4f57-8a34-695599410566]   Parameters: {"id" => "37"}
+sandcastle-web     | [e1b60761-bdb9-4f57-8a34-695599410566] Completed 200 OK in 17ms (Views: 0.3ms | ActiveRecord: 2.0ms (4 queries, 1 cached) | GC: 0.3ms)
+sandcastle-web     | [0061c8f0-cbc5-4eba-baf4-69fb9dfd32c7] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [0061c8f0-cbc5-4eba-baf4-69fb9dfd32c7] Processing by TerminalController#auth as HTML
+sandcastle-web     | [0061c8f0-cbc5-4eba-baf4-69fb9dfd32c7] Completed 200 OK in 5ms (ActiveRecord: 0.9ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [68b7674f-5796-4fe4-a545-680d37e3219a] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [68b7674f-5796-4fe4-a545-680d37e3219a] Processing by TerminalController#auth as HTML
+sandcastle-web     | [dd2428fb-a2cc-496f-bb04-0ccb726dea66] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [dd2428fb-a2cc-496f-bb04-0ccb726dea66] Processing by TerminalController#auth as HTML
+sandcastle-web     | [3fa9c344-fa25-4997-89c7-ad45a39681f6] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [3fa9c344-fa25-4997-89c7-ad45a39681f6] Processing by TerminalController#auth as HTML
+sandcastle-web     | [68b7674f-5796-4fe4-a545-680d37e3219a] Completed 200 OK in 18ms (ActiveRecord: 14.8ms (3 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [7428c5ce-668c-4d53-bd34-7e4a2a7e09ac] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [7428c5ce-668c-4d53-bd34-7e4a2a7e09ac] Processing by TerminalController#auth as HTML
+sandcastle-web     | [7428c5ce-668c-4d53-bd34-7e4a2a7e09ac] Completed 200 OK in 13ms (ActiveRecord: 2.2ms (3 queries, 0 cached) | GC: 2.2ms)
+sandcastle-web     | [c0e842d1-9da0-45b6-bab0-9d7f920bfd0f] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [c0e842d1-9da0-45b6-bab0-9d7f920bfd0f] Processing by TerminalController#auth as */*
+sandcastle-web     | [c0e842d1-9da0-45b6-bab0-9d7f920bfd0f] Completed 200 OK in 5ms (ActiveRecord: 3.6ms (3 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [ba64d2e7-e6f5-43c3-b4af-49fd2b2fd27b] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [ba64d2e7-e6f5-43c3-b4af-49fd2b2fd27b] Processing by TerminalController#auth as HTML
+sandcastle-web     | [ba64d2e7-e6f5-43c3-b4af-49fd2b2fd27b] Completed 200 OK in 3ms (ActiveRecord: 1.5ms (3 queries, 0 cached) | GC: 0.2ms)
+sandcastle-web     | [445591c7-a716-48b9-b7df-a49c691965ec] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [445591c7-a716-48b9-b7df-a49c691965ec] Processing by TerminalController#auth as HTML
+sandcastle-web     | [445591c7-a716-48b9-b7df-a49c691965ec] Completed 200 OK in 3ms (ActiveRecord: 1.4ms (3 queries, 0 cached) | GC: 0.2ms)
+sandcastle-web     | [3fa9c344-fa25-4997-89c7-ad45a39681f6] Completed 200 OK in 52ms (ActiveRecord: 67.7ms (3 queries, 0 cached) | GC: 2.7ms)
+sandcastle-web     | [dd2428fb-a2cc-496f-bb04-0ccb726dea66] Completed 200 OK in 61ms (ActiveRecord: 69.4ms (3 queries, 0 cached) | GC: 2.7ms)
+sandcastle-web     | [8fe9a449-2891-4fb6-8799-b5fd16eda7c3] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [8fe9a449-2891-4fb6-8799-b5fd16eda7c3] Processing by TerminalController#auth as */*
+sandcastle-web     | [2f1461c9-f109-403e-91b0-10292c6e02e7] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [2f1461c9-f109-403e-91b0-10292c6e02e7] Processing by TerminalController#auth as */*
+sandcastle-web     | [29594805-7f8e-4353-ba77-1e0e5d07ab05] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [29594805-7f8e-4353-ba77-1e0e5d07ab05] Processing by TerminalController#auth as */*
+sandcastle-web     | [8fe9a449-2891-4fb6-8799-b5fd16eda7c3] Completed 200 OK in 6ms (ActiveRecord: 4.2ms (3 queries, 0 cached) | GC: 0.2ms)
+sandcastle-web     | [2f1461c9-f109-403e-91b0-10292c6e02e7] Completed 200 OK in 5ms (ActiveRecord: 4.2ms (3 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [91b439d6-fd5b-460e-8373-e82c340bcc33] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [91b439d6-fd5b-460e-8373-e82c340bcc33] Processing by TerminalController#auth as */*
+sandcastle-web     | [3665b547-dd7a-4805-be67-6f5d887ce74e] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [3665b547-dd7a-4805-be67-6f5d887ce74e] Processing by TerminalController#auth as */*
+sandcastle-web     | [29594805-7f8e-4353-ba77-1e0e5d07ab05] Completed 200 OK in 11ms (ActiveRecord: 10.0ms (3 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [91b439d6-fd5b-460e-8373-e82c340bcc33] Completed 200 OK in 7ms (ActiveRecord: 4.4ms (3 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [3ead21b5-668e-4fd1-be7d-7f8754d32421] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [3ead21b5-668e-4fd1-be7d-7f8754d32421] Processing by TerminalController#auth as */*
+sandcastle-web     | [701036f0-5393-4a33-bbfb-1d20c1f9fec4] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [701036f0-5393-4a33-bbfb-1d20c1f9fec4] Processing by TerminalController#auth as */*
+sandcastle-web     | [3665b547-dd7a-4805-be67-6f5d887ce74e] Completed 200 OK in 12ms (ActiveRecord: 9.9ms (3 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [3ead21b5-668e-4fd1-be7d-7f8754d32421] Completed 200 OK in 8ms (ActiveRecord: 6.1ms (3 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [701036f0-5393-4a33-bbfb-1d20c1f9fec4] Completed 200 OK in 5ms (ActiveRecord: 3.0ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [05cbb14e-3750-4b23-9de4-6d94d82aa6de] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [05cbb14e-3750-4b23-9de4-6d94d82aa6de] Processing by TerminalController#auth as */*
+sandcastle-web     | [21544461-c8b0-43e6-a34b-92a173156802] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [21544461-c8b0-43e6-a34b-92a173156802] Processing by TerminalController#auth as */*
+sandcastle-web     | [8a520ae0-605e-416f-a98d-a573af4243bc] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [8a520ae0-605e-416f-a98d-a573af4243bc] Processing by TerminalController#auth as */*
+sandcastle-web     | [05cbb14e-3750-4b23-9de4-6d94d82aa6de] Completed 200 OK in 5ms (ActiveRecord: 4.1ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [21544461-c8b0-43e6-a34b-92a173156802] Completed 200 OK in 4ms (ActiveRecord: 3.3ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [8a520ae0-605e-416f-a98d-a573af4243bc] Completed 200 OK in 7ms (ActiveRecord: 3.7ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [f2a4c71e-a718-45be-a33c-83729e4bd52e] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [f2a4c71e-a718-45be-a33c-83729e4bd52e] Processing by TerminalController#auth as */*
+sandcastle-web     | [e39a2a95-ef67-451c-b6ee-1727d1021799] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [e39a2a95-ef67-451c-b6ee-1727d1021799] Processing by TerminalController#auth as */*
+sandcastle-web     | [370664a5-0371-4b20-8b21-3e6721d2c60e] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [370664a5-0371-4b20-8b21-3e6721d2c60e] Processing by TerminalController#auth as */*
+sandcastle-web     | [f2a4c71e-a718-45be-a33c-83729e4bd52e] Completed 200 OK in 9ms (ActiveRecord: 7.0ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [e39a2a95-ef67-451c-b6ee-1727d1021799] Completed 200 OK in 8ms (ActiveRecord: 7.0ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [370664a5-0371-4b20-8b21-3e6721d2c60e] Completed 200 OK in 6ms (ActiveRecord: 3.9ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [94acef05-558e-49d6-8762-0c36640ae3a0] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [94acef05-558e-49d6-8762-0c36640ae3a0] Processing by TerminalController#auth as */*
+sandcastle-web     | [051aee50-ff26-40ae-92da-54add3cb3e26] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [051aee50-ff26-40ae-92da-54add3cb3e26] Processing by TerminalController#auth as */*
+sandcastle-web     | [5d1f4544-e89a-44a3-8ce5-5ed5daacfc7a] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [5d1f4544-e89a-44a3-8ce5-5ed5daacfc7a] Processing by TerminalController#auth as */*
+sandcastle-web     | [94acef05-558e-49d6-8762-0c36640ae3a0] Completed 200 OK in 11ms (ActiveRecord: 6.3ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [051aee50-ff26-40ae-92da-54add3cb3e26] Completed 200 OK in 6ms (ActiveRecord: 4.1ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [5d1f4544-e89a-44a3-8ce5-5ed5daacfc7a] Completed 200 OK in 7ms (ActiveRecord: 5.4ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [1a7d7413-4019-47f5-91aa-495304260009] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [1a7d7413-4019-47f5-91aa-495304260009] Processing by TerminalController#auth as */*
+sandcastle-web     | [421538c1-30f7-46d4-8832-70263f27fdf0] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [421538c1-30f7-46d4-8832-70263f27fdf0] Processing by TerminalController#auth as */*
+sandcastle-web     | [2bba454f-8f71-4ffa-9bf1-9991532cfe6d] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [2bba454f-8f71-4ffa-9bf1-9991532cfe6d] Processing by TerminalController#auth as */*
+sandcastle-web     | [421538c1-30f7-46d4-8832-70263f27fdf0] Completed 200 OK in 5ms (ActiveRecord: 3.3ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [2bba454f-8f71-4ffa-9bf1-9991532cfe6d] Completed 200 OK in 2ms (ActiveRecord: 1.2ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [1a7d7413-4019-47f5-91aa-495304260009] Completed 200 OK in 7ms (ActiveRecord: 6.1ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [dc67c670-912c-441e-8c64-d38b52a8fff0] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [dc67c670-912c-441e-8c64-d38b52a8fff0] Processing by TerminalController#auth as */*
+sandcastle-web     | [67448ddd-2bd6-45d6-bdd9-6792551bce8c] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [67448ddd-2bd6-45d6-bdd9-6792551bce8c] Processing by TerminalController#auth as */*
+sandcastle-web     | [4f402de2-b54a-423c-9ae4-8757d2b80acf] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [4f402de2-b54a-423c-9ae4-8757d2b80acf] Processing by TerminalController#auth as */*
+sandcastle-web     | [dc67c670-912c-441e-8c64-d38b52a8fff0] Completed 200 OK in 4ms (ActiveRecord: 2.6ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [67448ddd-2bd6-45d6-bdd9-6792551bce8c] Completed 200 OK in 3ms (ActiveRecord: 2.7ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [de5b9616-e41a-4241-be6c-f08ebb6773dd] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [de5b9616-e41a-4241-be6c-f08ebb6773dd] Processing by TerminalController#auth as */*
+sandcastle-web     | [4f402de2-b54a-423c-9ae4-8757d2b80acf] Completed 200 OK in 3ms (ActiveRecord: 2.2ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [f2b413a1-d449-487c-8f84-00f4f12381cf] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [f2b413a1-d449-487c-8f84-00f4f12381cf] Processing by TerminalController#auth as */*
+sandcastle-web     | [c8d91e16-962c-426f-83cc-21e99973297b] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [c8d91e16-962c-426f-83cc-21e99973297b] Processing by TerminalController#auth as */*
+sandcastle-web     | [de5b9616-e41a-4241-be6c-f08ebb6773dd] Completed 200 OK in 8ms (ActiveRecord: 5.5ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [f2b413a1-d449-487c-8f84-00f4f12381cf] Completed 200 OK in 4ms (ActiveRecord: 2.9ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [929f06dc-664f-452d-befb-7b1f3e9db496] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [929f06dc-664f-452d-befb-7b1f3e9db496] Processing by TerminalController#auth as */*
+sandcastle-web     | [c8d91e16-962c-426f-83cc-21e99973297b] Completed 200 OK in 8ms (ActiveRecord: 6.1ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [89fe2958-f81f-4d60-aa7f-5237f548ed55] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [89fe2958-f81f-4d60-aa7f-5237f548ed55] Processing by TerminalController#auth as */*
+sandcastle-web     | [1ac4f0bd-fe18-4713-912a-b2ae8e9264b4] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [1ac4f0bd-fe18-4713-912a-b2ae8e9264b4] Processing by TerminalController#auth as */*
+sandcastle-web     | [929f06dc-664f-452d-befb-7b1f3e9db496] Completed 200 OK in 8ms (ActiveRecord: 6.7ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [1ac4f0bd-fe18-4713-912a-b2ae8e9264b4] Completed 200 OK in 2ms (ActiveRecord: 1.5ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [89fe2958-f81f-4d60-aa7f-5237f548ed55] Completed 200 OK in 5ms (ActiveRecord: 3.2ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [24f48af4-477a-45ff-a936-003e6e80ec41] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [24f48af4-477a-45ff-a936-003e6e80ec41] Processing by TerminalController#auth as */*
+sandcastle-web     | [24f48af4-477a-45ff-a936-003e6e80ec41] Completed 200 OK in 2ms (ActiveRecord: 0.9ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [3032c680-682c-478e-b8b1-ebe064b0244d] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [3032c680-682c-478e-b8b1-ebe064b0244d] Processing by TerminalController#auth as */*
+sandcastle-web     | [76a1d959-97cf-4223-a775-bf4241dc687c] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [76a1d959-97cf-4223-a775-bf4241dc687c] Processing by TerminalController#auth as */*
+sandcastle-web     | [97317333-e935-4423-85a9-16c632a410f1] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [97317333-e935-4423-85a9-16c632a410f1] Processing by TerminalController#auth as HTML
+sandcastle-web     | [3032c680-682c-478e-b8b1-ebe064b0244d] Completed 200 OK in 5ms (ActiveRecord: 3.0ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [76a1d959-97cf-4223-a775-bf4241dc687c] Completed 200 OK in 3ms (ActiveRecord: 2.4ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [97317333-e935-4423-85a9-16c632a410f1] Completed 200 OK in 3ms (ActiveRecord: 2.7ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [fcdc331c-7ae6-4d6a-9fbf-6c71f1842440] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [fcdc331c-7ae6-4d6a-9fbf-6c71f1842440] Processing by TerminalController#auth as */*
+sandcastle-web     | [c95587a7-640a-4265-89a1-7b38577dba8e] Started GET "/terminal/auth" for 192.168.117.1 at 2026-02-14 06:36:00 +0000
+sandcastle-web     | [c95587a7-640a-4265-89a1-7b38577dba8e] Processing by TerminalController#auth as */*
+sandcastle-web     | [fcdc331c-7ae6-4d6a-9fbf-6c71f1842440] Completed 200 OK in 2ms (ActiveRecord: 1.1ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [c95587a7-640a-4265-89a1-7b38577dba8e] Completed 200 OK in 1ms (ActiveRecord: 0.8ms (3 queries, 0 cached) | GC: 0.0ms)
+
+---
+
+commit and push
+
+---
+
+bb06aea did not work? then remove it anf force-push
+
+---
+
+fix the permissions in the last comment of https://github.com/thieso2/Sandcastle/issues/19

@@ -73,3 +73,28 @@ sandcastle-web     | [417c9f36-2e1a-4a2b-b4d3-34be6c9e20de] Processing by Termin
 sandcastle-web     | [417c9f36-2e1a-4a2b-b4d3-34be6c9e20de]   Parameters: {"id" => "37"}
 sandcastle-web     | [417c9f36-2e1a-4a2b-b4d3-34be6c9e20de] Completed 200 OK in 21ms (Views: 0.2ms | ActiveRecord: 2.0...
 
+### Prompt 15
+
+is this normal?
+traefik-1       | 2026-02-14T06:35:34Z WRN No domain found in rule HostRegexp(`.+`) && PathPrefix(`/terminal/37/wetty`), the TLS options applied for this router will depend on the SNI of each request entryPointName=websecure routerName=terminal-37@file
+
+### Prompt 16
+
+forst terminal startupo log:
+sandcastle-web     | Turbo::StreamsChannel is streaming from Z2lkOi8vc2FuZGNhc3RsZS9Vc2VyLzE:dashboard
+sandcastle-web     | [b4b8400a-85c5-48d2-8663-5d305f965345] Started POST "/sandboxes/37/terminal" for 192.168.117.1 at 2026-02-14 06:35:58 +0000
+sandcastle-web     | [b4b8400a-85c5-48d2-8663-5d305f965345] Processing by TerminalController#open as HTML
+sandcastle-web     | [b4b8400a-85c5-48d2-8663-5d305f965345]   Parameters: {"authenticity_token" => "[FILTERED]", "id"...
+
+### Prompt 17
+
+commit and push
+
+### Prompt 18
+
+bb06aea did not work? then remove it anf force-push
+
+### Prompt 19
+
+fix the permissions in the last comment of https://github.com/thieso2/Sandcastle/issues/19
+
