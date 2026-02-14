@@ -6,13 +6,15 @@
   "checkpoints_count": 8,
   "files_touched": [
     ".github/workflows/claude.yml",
+    "CLAUDE.md",
+    "DEPLOY.md",
+    "Gemfile",
     "PROGRESS.md",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
     "app/javascript/controllers/inline_confirm_controller.js",
     "app/jobs/sandbox_destroy_job.rb",
     "app/views/layouts/admin.html.erb",
-    "app/views/sandboxes/new.html.erb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
     "research/COMPARISON.md",
@@ -84,10 +86,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1026,
-    "cache_creation_tokens": 238798,
-    "cache_read_tokens": 12175452,
-    "output_tokens": 23508,
-    "api_call_count": 125
+    "input_tokens": 1116,
+    "cache_creation_tokens": 238184,
+    "cache_read_tokens": 13624061,
+    "output_tokens": 23618,
+    "api_call_count": 136
   }
 }

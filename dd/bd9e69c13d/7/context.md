@@ -44,3 +44,15 @@ add GH issue the sandcastle cli needs to send "alive" calls every 30 secs for te
 
 remove the temp from create box on web ui - makes no sense!
 
+### Prompt 10
+
+push
+
+### Prompt 11
+
+create PR
+
+### Prompt 12
+
+remove kamal from all environments - we only use traefik!
+
