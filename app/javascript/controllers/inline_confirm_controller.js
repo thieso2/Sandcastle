@@ -2,25 +2,31 @@ import { Controller } from "@hotwired/stimulus"
 
 // Inline confirmation controller - replaces buttons with "Are you sure? y/n"
 export default class extends Controller {
-  static targets = ["buttons", "form"]
-
   confirm(event) {
     event.preventDefault()
-    const button = event.currentTarget
-    const form = button.closest("form")
-    const message = button.dataset.confirmMessage || "Are you sure?"
+    console.log('[InlineConfirm] Confirm clicked', event.target)
 
-    // Store original button HTML
-    const container = button.parentElement
-    const originalHTML = container.innerHTML
+    // Find the form - event.target is the button inside the form
+    const form = event.target.closest("form")
+    if (!form) {
+      console.error('[InlineConfirm] No form found')
+      return
+    }
+
+    // Get message from the form's data attribute
+    const message = form.dataset.confirmMessage || event.target.dataset.confirmMessage || "Are you sure?"
+
+    console.log('[InlineConfirm] Message:', message, 'Form:', form.action)
+
+    // Store original HTML of the controller element (the wrapper div)
+    const originalHTML = this.element.innerHTML
 
     // Replace with inline confirmation
-    container.innerHTML = `
+    this.element.innerHTML = `
       <div class="flex items-center gap-2">
         <span class="text-xs text-gray-700">${message}</span>
         <button type="button"
                 data-action="click->inline-confirm#yes"
-                data-inline-confirm-form-param="${form ? 'true' : 'false'}"
                 class="text-xs px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
           Yes
         </button>
@@ -33,35 +39,41 @@ export default class extends Controller {
     `
 
     // Store original HTML and form for restoration
-    container.dataset.originalHtml = originalHTML
-    container.dataset.formId = form ? form.id || Math.random().toString(36) : null
-    if (form && !form.id) {
-      form.id = container.dataset.formId
+    this.element.dataset.originalHtml = originalHTML
+
+    // Assign unique ID to form if it doesn't have one
+    if (!form.id) {
+      form.id = `form_${Math.random().toString(36).substr(2, 9)}`
     }
+    this.element.dataset.formId = form.id
   }
 
   yes(event) {
     event.preventDefault()
-    const container = event.currentTarget.closest('[data-original-html]')
-    const formId = container.dataset.formId
+    console.log('[InlineConfirm] Yes clicked')
+
+    const formId = this.element.dataset.formId
     const form = formId ? document.getElementById(formId) : null
 
     if (form) {
-      // Submit the form
+      console.log('[InlineConfirm] Submitting form:', form.action)
       form.requestSubmit()
+    } else {
+      console.error('[InlineConfirm] Form not found for ID:', formId)
     }
   }
 
   no(event) {
     event.preventDefault()
-    const container = event.currentTarget.closest('[data-original-html]')
-    const originalHTML = container.dataset.originalHtml
+    console.log('[InlineConfirm] No clicked')
+
+    const originalHTML = this.element.dataset.originalHtml
 
     // Restore original buttons
     if (originalHTML) {
-      container.innerHTML = originalHTML
-      delete container.dataset.originalHtml
-      delete container.dataset.formId
+      this.element.innerHTML = originalHTML
+      delete this.element.dataset.originalHtml
+      delete this.element.dataset.formId
     }
   }
 }
