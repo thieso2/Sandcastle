@@ -244,9 +244,9 @@ setup_login_banner() {
 [[ -n "${SANDCASTLE_BANNER_SHOWN:-}" ]] && return 0
 export SANDCASTLE_BANNER_SHOWN=1
 
-# Get version from Rails if available
-if command -v docker >/dev/null 2>&1; then
-  VERSION=$(docker exec sandcastle-web 2>/dev/null rails runner 'puts Sandcastle.version' 2>/dev/null || echo "unknown")
+# Get version from image build metadata
+if [ -f /etc/sandcastle-version ]; then
+  VERSION=$(cat /etc/sandcastle-version)
 else
   VERSION="unknown"
 fi

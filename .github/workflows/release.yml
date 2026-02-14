@@ -181,6 +181,8 @@ jobs:
           context: images/sandbox
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            SANDCASTLE_VERSION=${{ github.ref_name }}
           cache-from: type=gha,scope=sandbox-${{ matrix.platform }}
           cache-to: type=gha,scope=sandbox-${{ matrix.platform }},mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/thieso2/sandcastle-sandbox,push-by-digest=true,name-canonical=true,push=true

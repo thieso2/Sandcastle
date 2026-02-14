@@ -1,5 +1,7 @@
 FROM ubuntu:25.10
 
+ARG SANDCASTLE_VERSION=dev
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # System tools
@@ -57,6 +59,9 @@ RUN ARCH="$(dpkg --print-architecture)" \
 RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
     && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
     && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc
+
+# Bake version into the image
+RUN echo "${SANDCASTLE_VERSION}" > /etc/sandcastle-version
 
 # SSH configuration (key-only auth) — use drop-in config for Ubuntu 25.10 compatibility
 RUN mkdir -p /var/run/sshd /etc/ssh/sshd_config.d \
