@@ -93,9 +93,28 @@ sandcastle ssh my-dev</code></pre>
     </div>
   </section>
 
+  <%# ── Browser ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Web browser</h2>
+    <p class="text-gray-700 mb-3">
+      Click the <strong>Browser</strong> button on any running sandbox to access Google Chrome with a graphical desktop environment.
+      Perfect for browser automation, visual testing, or running GUI applications.
+    </p>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 mb-3">
+      <strong>How it works:</strong> Each sandbox includes Google Chrome, Xvfb (virtual X server), and x11vnc.
+      Clicking Browser launches a noVNC container that connects to the sandbox's VNC server, giving you a full graphical browser in your web browser.
+    </div>
+    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800">
+      <strong>Chrome profile persistence:</strong> Go to Settings → Browser to enable Chrome profile persistence.
+      When enabled, your Chrome extensions, bookmarks, and settings are saved and persist across sandbox recreations.
+      If you use <strong>Mount Home</strong>, profiles are stored in <code class="bg-green-100 px-1 rounded">~/.config/google-chrome</code> alongside all your other home directory files.
+      Without Mount Home, profiles are stored separately in a dedicated directory.
+    </div>
+  </section>
+
   <%# ── Manage ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Manage sandboxes</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Manage sandboxes</h2>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle list              # Show all your sandboxes
 sandcastle stop my-dev       # Stop a running sandbox
 sandcastle start my-dev      # Start a stopped sandbox
@@ -104,7 +123,7 @@ sandcastle delete my-dev     # Permanently remove a sandbox</code></pre>
 
   <%# ── Routes ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Custom domain routes</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Custom domain routes</h2>
     <p class="text-gray-700 mb-3">
       Expose services running inside your sandbox on custom domains with automatic TLS.
       Each sandbox can have multiple routes pointing to different ports:
@@ -125,7 +144,7 @@ sandcastle route delete myapp app.example.com</code></pre>
 
   <%# ── Snapshots ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Snapshots</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">10. Snapshots</h2>
     <p class="text-gray-700 mb-3">Save and restore the full state of a sandbox:</p>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Create a snapshot
 sandcastle snapshot create my-dev my-checkpoint
@@ -139,13 +158,14 @@ sandcastle create my-dev-v2 --snapshot my-checkpoint</code></pre>
 
   <%# ── Settings ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">10. User settings</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">11. User settings</h2>
     <p class="text-gray-700 mb-3">
       Click <strong>Settings</strong> in the navbar to manage your account preferences:
     </p>
     <ul class="list-disc list-inside text-gray-700 ml-4 space-y-1 text-sm">
       <li><strong>Profile</strong> — Update your email address and change your password</li>
       <li><strong>Tailscale</strong> — View connection status and toggle auto-connect for new sandboxes</li>
+      <li><strong>Browser</strong> — Toggle Chrome profile persistence across sandbox recreations</li>
       <li><strong>API Token</strong> — Generate or revoke your API token for CLI authentication</li>
     </ul>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-sm text-blue-800">

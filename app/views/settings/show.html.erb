@@ -120,6 +120,25 @@
     </div>
   </div>
 
+  <%# ── Browser Section ── %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Browser</h2>
+
+    <div class="space-y-4">
+      <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
+        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <%= f.check_box :chrome_persist_profile,
+                onchange: "this.form.requestSubmit()",
+                class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+          Persist Chrome profile across sandbox recreations
+        </label>
+      <% end %>
+      <p class="text-xs text-gray-500 ml-6">
+        When enabled, your Chrome extensions, bookmarks, and settings are saved in <code class="bg-gray-100 px-1 py-0.5 rounded font-mono">~/.config/google-chrome</code> and persist when you destroy and recreate sandboxes.
+      </p>
+    </div>
+  </div>
+
   <%# ── API Token Section ── %>
   <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
     <h2 class="text-lg font-semibold text-gray-900 mb-4">API Token</h2>

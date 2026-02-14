@@ -36,10 +36,15 @@ Rails.application.routes.draw do
       get  "terminal/wait", controller: "terminal", action: "wait"
       get  "terminal/status", controller: "terminal", action: "status"
       delete :terminal, controller: "terminal", action: "close"
+      post :vnc, controller: "vnc", action: "open"
+      get  "vnc/wait", controller: "vnc", action: "wait", as: :vnc_wait
+      get  "vnc/status", controller: "vnc", action: "status", as: :vnc_status
+      delete :vnc, controller: "vnc", action: "close"
     end
   end
 
   get "terminal/auth", to: "terminal#auth"
+  get "vnc/auth", to: "vnc#auth"
 
   resource :tailscale, only: [], controller: "tailscale" do
     get :show

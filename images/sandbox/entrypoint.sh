@@ -68,5 +68,16 @@ else
     echo "Note: Docker-in-Docker not available (requires sysbox-runc runtime)" >&2
 fi
 
+# Start virtual X server and VNC server for browser access
+if command -v Xvfb &>/dev/null && command -v x11vnc &>/dev/null; then
+    # Start Xvfb on display :99 with 1920x1080 resolution and 24-bit color depth
+    Xvfb :99 -screen 0 1920x1080x24 &>/var/log/xvfb.log &
+    # Wait a moment for Xvfb to initialize
+    sleep 1
+    # Start x11vnc server: -shared allows multiple connections, -forever keeps running,
+    # -nopw allows connections without password (secured via Docker network isolation)
+    DISPLAY=:99 x11vnc -shared -forever -nopw -rfbport 5900 &>/var/log/x11vnc.log &
+fi
+
 # Start SSH daemon in foreground
 exec /usr/sbin/sshd -D -e

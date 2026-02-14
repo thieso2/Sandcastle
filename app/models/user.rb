@@ -50,4 +50,8 @@ class User < ApplicationRecord
   def tailscale_auto_connect?
     tailscale_auto_connect
   end
+
+  def chrome_persist_profile?
+    chrome_persist_profile
+  end
 end

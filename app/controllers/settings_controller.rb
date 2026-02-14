@@ -62,7 +62,7 @@ class SettingsController < ApplicationController
   private
 
   def profile_params
-    params.require(:user).permit(:email_address)
+    params.require(:user).permit(:email_address, :chrome_persist_profile)
   end
 
   def password_params

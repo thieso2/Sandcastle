@@ -21,6 +21,12 @@ class ContainerSyncJob < ApplicationJob
     rescue => e
       Rails.logger.error("ContainerSyncJob: terminal cleanup failed: #{e.message}")
     end
+
+    begin
+      VncManager.new.cleanup_orphaned
+    rescue => e
+      Rails.logger.error("ContainerSyncJob: VNC cleanup failed: #{e.message}")
+    end
   end
 
   private
@@ -43,6 +49,11 @@ class ContainerSyncJob < ApplicationJob
         rescue TerminalManager::Error, Docker::Error::DockerError
           # best-effort
         end
+        begin
+          VncManager.new.close(sandbox: sandbox)
+        rescue VncManager::Error, Docker::Error::DockerError
+          # best-effort
+        end
       end
       sandbox.update!(status: actual_status)
       Rails.logger.info("ContainerSyncJob: #{sandbox.full_name} status corrected to #{actual_status}")
@@ -51,6 +62,11 @@ class ContainerSyncJob < ApplicationJob
     begin
       TerminalManager.new.close(sandbox: sandbox)
     rescue TerminalManager::Error, Docker::Error::DockerError
+      # best-effort
+    end
+    begin
+      VncManager.new.close(sandbox: sandbox)
+    rescue VncManager::Error, Docker::Error::DockerError
       # best-effort
     end
     sandbox.update!(status: "destroyed", container_id: nil)

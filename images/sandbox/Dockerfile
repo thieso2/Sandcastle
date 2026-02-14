@@ -9,6 +9,17 @@ RUN apt-get update && apt-get install -y \
     jq ripgrep fd-find htop wget unzip ca-certificates net-tools iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
+# GUI tools: Xvfb (virtual X server), x11vnc, and Google Chrome
+RUN apt-get update && apt-get install -y \
+    xvfb x11vnc xfonts-base xfonts-100dpi xfonts-75dpi \
+    fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 \
+    libatk1.0-0 libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 libnspr4 libnss3 \
+    libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 xdg-utils \
+    && wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && apt-get install -y ./google-chrome-stable_current_amd64.deb \
+    && rm google-chrome-stable_current_amd64.deb \
+    && rm -rf /var/lib/apt/lists/*
+
 # Prefer IPv4 to avoid slow/broken IPv6 connections
 RUN sed -i 's/#precedence ::ffff:0:0\/96  100/precedence ::ffff:0:0\/96  100/' /etc/gai.conf
 
@@ -65,6 +76,6 @@ LABEL org.opencontainers.image.description="Sandcastle sandbox image — Ubuntu 
 LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /workspace
-EXPOSE 22
+EXPOSE 22 5900
 
 ENTRYPOINT ["/entrypoint.sh"]

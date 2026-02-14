@@ -100,6 +100,12 @@ class SandboxManager
       FileUtils.mkdir_p(sandbox.volume_path)
       FileUtils.chmod(0o777, sandbox.volume_path)
     end
+    # Chrome profile persistence: mount .config/google-chrome separately if not mounting full home
+    if user.chrome_persist_profile? && !sandbox.mount_home
+      dir = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
+      FileUtils.mkdir_p(dir)
+      FileUtils.chmod(0o777, dir)
+    end
   rescue Errno::EACCES, Errno::ENOENT => e
     raise Error, "Failed to create mount directories: #{e.message}"
   end
@@ -109,6 +115,12 @@ class SandboxManager
       TerminalManager.new.close(sandbox: sandbox)
     rescue TerminalManager::Error, Docker::Error::DockerError
       # best-effort terminal cleanup
+    end
+
+    begin
+      VncManager.new.close(sandbox: sandbox)
+    rescue VncManager::Error, Docker::Error::DockerError
+      # best-effort VNC cleanup
     end
 
     RouteManager.new.remove_all_routes(sandbox: sandbox) if sandbox.routed?
@@ -252,6 +264,12 @@ class SandboxManager
       # best-effort terminal cleanup
     end
 
+    begin
+      VncManager.new.close(sandbox: sandbox)
+    rescue VncManager::Error, Docker::Error::DockerError
+      # best-effort VNC cleanup
+    end
+
     if sandbox.tailscale?
       TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)
     end
@@ -376,6 +394,11 @@ class SandboxManager
     if sandbox.data_path.present?
       host_path = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
       binds << "#{host_path}:/data"
+    end
+    # Chrome profile persistence: mount separately if not mounting full home
+    if user.chrome_persist_profile? && !sandbox.mount_home
+      host_path = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
+      binds << "#{host_path}:/home/#{user.name}/.config/google-chrome"
     end
     binds
   end
