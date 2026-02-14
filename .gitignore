@@ -54,3 +54,6 @@ vendor/sandcastle-cli/sandcastle
 
 # Demo system documentation (contains sensitive info)
 SANDMAN.md
+
+# Claude Code local settings
+.claude/
