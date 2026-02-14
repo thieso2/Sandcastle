@@ -137,6 +137,86 @@ derive_vars() {
   fi
 }
 
+# ═══ setup_ssh_keys ══════════════════════════════════════════════════════
+# Copy deploying user's SSH keys to sandcastle user
+
+setup_ssh_keys() {
+  local deploying_user="${SUDO_USER:-}"
+
+  if [ -z "$deploying_user" ]; then
+    warn "No SUDO_USER found — skipping SSH key setup"
+    return
+  fi
+
+  local source_keys="/home/${deploying_user}/.ssh/authorized_keys"
+  local target_dir="${SANDCASTLE_HOME}/.ssh"
+  local target_keys="${target_dir}/authorized_keys"
+
+  if [ ! -f "$source_keys" ]; then
+    warn "No SSH keys found for user '${deploying_user}' — skipping SSH key setup"
+    return
+  fi
+
+  info "Setting up SSH keys for '${SANDCASTLE_USER}'..."
+
+  # Create .ssh directory if it doesn't exist
+  mkdir -p "$target_dir"
+  chmod 700 "$target_dir"
+  chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$target_dir"
+
+  # Copy authorized_keys
+  cp "$source_keys" "$target_keys"
+  chmod 600 "$target_keys"
+  chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$target_keys"
+
+  ok "SSH keys configured for '${SANDCASTLE_USER}'"
+}
+
+# ═══ setup_passwordless_sudo ══════════════════════════════════════════════
+# Add sandcastle user to sudoers with NOPASSWD:ALL
+
+setup_passwordless_sudo() {
+  local sudoers_file="/etc/sudoers.d/sandcastle"
+
+  info "Configuring passwordless sudo for '${SANDCASTLE_USER}'..."
+
+  echo "${SANDCASTLE_USER} ALL=(ALL) NOPASSWD:ALL" > "$sudoers_file"
+  chmod 440 "$sudoers_file"
+
+  # Validate sudoers syntax
+  if ! visudo -cf "$sudoers_file" &>/dev/null; then
+    rm -f "$sudoers_file"
+    warn "Failed to validate sudoers file — skipping passwordless sudo setup"
+    return
+  fi
+
+  wrote "$sudoers_file"
+  ok "Passwordless sudo configured for '${SANDCASTLE_USER}'"
+}
+
+# ═══ setup_bashrc_path ════════════════════════════════════════════════════
+# Add docker-runtime/bin to PATH in .bashrc (idempotent)
+
+setup_bashrc_path() {
+  local bashrc="${SANDCASTLE_HOME}/.bashrc"
+  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin/:\$PATH"
+
+  info "Configuring PATH in .bashrc..."
+
+  # Create .bashrc if it doesn't exist
+  touch "$bashrc"
+  chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$bashrc"
+
+  # Add PATH export if not already present (idempotent)
+  if ! grep -qF "$path_export" "$bashrc" 2>/dev/null; then
+    echo "$path_export" >> "$bashrc"
+    wrote "$bashrc"
+    ok "PATH configured in .bashrc"
+  else
+    ok "PATH already configured in .bashrc"
+  fi
+}
+
 # ═══ ensure_dirs ═════════════════════════════════════════════════════════
 # Create/fix data directories and ownership. Safe to run repeatedly.
 
@@ -513,6 +593,22 @@ cmd_destroy() {
     systemctl daemon-reload 2>/dev/null || true
   fi
 
+  # Remove sudoers file
+  if [ -f /etc/sudoers.d/sandcastle ]; then
+    rm -f /etc/sudoers.d/sandcastle
+    ok "Removed sudoers file"
+  fi
+
+  # Remove PATH export from .bashrc
+  if [ -f "$SANDCASTLE_HOME/.bashrc" ]; then
+    local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin/:\$PATH"
+    if grep -qF "$path_export" "$SANDCASTLE_HOME/.bashrc" 2>/dev/null; then
+      grep -vF "$path_export" "$SANDCASTLE_HOME/.bashrc" > "$SANDCASTLE_HOME/.bashrc.tmp"
+      mv "$SANDCASTLE_HOME/.bashrc.tmp" "$SANDCASTLE_HOME/.bashrc"
+      ok "Removed PATH export from .bashrc"
+    fi
+  fi
+
   # Remove Sandcastle files — keep user data (data/users, data/sandboxes, data/postgres)
   rm -f "$SANDCASTLE_HOME/.env"
   rm -f "$SANDCASTLE_HOME/docker-compose.yml"
@@ -621,6 +717,12 @@ DYEOF
   # ── Create directories ────────────────────────────────────────────────────
 
   ensure_dirs
+
+  # ── SSH & sudo setup ──────────────────────────────────────────────────────
+
+  setup_ssh_keys
+  setup_passwordless_sudo
+  setup_bashrc_path
 
   # ── Detect fresh install vs upgrade ─────────────────────────────────────
 
