@@ -407,6 +407,30 @@ services:
     networks:
       - sandcastle-web
 
+  worker:
+    image: ${APP_IMAGE}
+    runtime: runc
+    container_name: sandcastle-worker
+    command: ["./bin/jobs"]
+    group_add:
+      - "\${DOCKER_GID:-988}"
+    volumes:
+      - \${DOCKER_SOCK}:/var/run/docker.sock
+      - ${DATA_MOUNT}:${DATA_MOUNT}
+    environment:
+      RAILS_ENV: production
+      SECRET_KEY_BASE: \${SECRET_KEY_BASE}
+      SANDCASTLE_DATA_DIR: ${DATA_MOUNT}
+      DB_HOST: postgres
+      DB_USER: sandcastle
+      DB_PASSWORD: \${DB_PASSWORD}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - sandcastle-web
+
   migrate:
     image: ${APP_IMAGE}
     runtime: runc
