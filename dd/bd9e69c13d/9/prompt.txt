@@ -14,3 +14,57 @@ https://github.com/thieso2/Sandcastle/actions/runs/22013896414/job/63612458014
 ---
 
 the token is called HOMEBREW_TAP_TOKEN
+
+---
+
+app does not come up on production! debug login to sandman use /sandcastle/docker-runtime/bin/docker to analyze
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+ssh sandman!
+
+---
+
+[Request interrupted by user]
+
+---
+
+ssh sandman "/sandcastle/docker-runtime/bin/docker ps"
+
+---
+
+[Request interrupted by user]
+
+---
+
+it used to work a few commits back - what has changed in the config?
+
+---
+
+[Request interrupted by user]
+
+---
+
+rebooting the host.
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+<task-notification>
+<task-id>b114ae1</task-id>
+<output-file>/private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/tasks/b114ae1.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for reboot and check uptime" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/tasks/b114ae1.output
+
+---
+
+the nat servce needs to be created by dockyard, correct? its in ../dockyard - apply a fix!

@@ -3,10 +3,9 @@
   "checkpoint_id": "ddbd9e69c13d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 11,
+  "checkpoints_count": 10,
   "files_touched": [
     ".github/workflows/claude.yml",
-    ".github/workflows/release.yml",
     "DEPLOY.md",
     "PROGRESS.md",
     "app/controllers/admin/sandboxes_controller.rb",
@@ -18,6 +17,8 @@
     "config/initializers/mission_control_jobs.rb",
     "docker-compose.yml",
     "images/sandbox/Dockerfile",
+    "install-defaults",
+    "installer.sh",
     "research/COMPARISON.md",
     "research/QUICK_REFERENCE.md",
     "research/README.md",
@@ -26,8 +27,7 @@
     "research/flintlock.md",
     "research/gvisor.md",
     "research/kata-containers.md",
-    "scripts/generate-local-cert.sh",
-    "vendor/sandcastle-cli/.goreleaser.yaml"
+    "scripts/generate-local-cert.sh"
   ],
   "sessions": [
     {
@@ -102,10 +102,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1156,
-    "cache_creation_tokens": 250556,
-    "cache_read_tokens": 13361390,
-    "output_tokens": 24063,
-    "api_call_count": 143
+    "input_tokens": 2041,
+    "cache_creation_tokens": 301178,
+    "cache_read_tokens": 25297957,
+    "output_tokens": 33351,
+    "api_call_count": 268
   }
 }

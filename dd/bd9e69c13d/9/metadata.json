@@ -3,31 +3,31 @@
   "checkpoint_id": "ddbd9e69c13d",
   "session_id": "dcf19c3c-af3f-4503-9252-9fe514b06d4a",
   "strategy": "manual-commit",
-  "created_at": "2026-02-14T08:14:25.33938Z",
+  "created_at": "2026-02-14T08:56:13.079389Z",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 1,
   "files_touched": [
-    ".github/workflows/release.yml",
-    "vendor/sandcastle-cli/.goreleaser.yaml"
+    "install-defaults",
+    "installer.sh"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "21609ae3-d4ef-4bb3-bf79-2c8f367f140a",
-  "checkpoint_transcript_start": 58,
-  "transcript_lines_at_start": 58,
+  "transcript_identifier_at_start": "8c207099-8f58-49d7-ae31-38baf4540ddb",
+  "checkpoint_transcript_start": 121,
+  "transcript_lines_at_start": 121,
   "token_usage": {
-    "input_tokens": 88,
-    "cache_creation_tokens": 16286,
-    "cache_read_tokens": 648769,
-    "output_tokens": 912,
-    "api_call_count": 12
+    "input_tokens": 973,
+    "cache_creation_tokens": 66908,
+    "cache_read_tokens": 12585336,
+    "output_tokens": 10200,
+    "api_call_count": 137
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-14T08:14:25.233454Z",
-    "agent_lines": 1,
+    "calculated_at": "2026-02-14T08:56:12.92754Z",
+    "agent_lines": 6,
     "human_added": 0,
-    "human_modified": 0,
-    "human_removed": 0,
-    "total_committed": 1,
-    "agent_percentage": 100
+    "human_modified": 8,
+    "human_removed": 9,
+    "total_committed": 14,
+    "agent_percentage": 42.857142857142854
   }
 }
