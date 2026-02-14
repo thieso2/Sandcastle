@@ -1,6 +1,6 @@
 class VncManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
-  NOVNC_IMAGE = ENV.fetch("SANDCASTLE_NOVNC_IMAGE", "theasp/novnc:latest")
+  NOVNC_IMAGE = ENV.fetch("SANDCASTLE_NOVNC_IMAGE", "gotget/novnc:latest")
   NETWORK_NAME = "sandcastle-web"
   DYNAMIC_DIR = File.join(DATA_DIR, "traefik", "dynamic")
 
@@ -150,9 +150,8 @@ class VncManager
     end
 
     # Build environment variables for noVNC
+    # gotget/novnc expects: VNC_SERVER=host:port
     env_vars = [
-      "RUN_NOVNC=true",
-      "NOVNC_BASE_PATH=/vnc/#{sandbox.id}/novnc",
       "VNC_SERVER=#{sandbox.full_name}:5900"
     ]
 
@@ -163,6 +162,8 @@ class VncManager
       "NanoCpus" => 500_000_000 # 0.5 CPU
     }
 
+    # gotget/novnc doesn't support custom base paths out of the box
+    # We'll serve it at the root and Traefik will strip the prefix
     container = Docker::Container.create(
       "name" => container_name,
       "Image" => NOVNC_IMAGE,
@@ -199,7 +200,7 @@ class VncManager
             "service" => "vnc-#{id}",
             "entryPoints" => [ "websecure" ],
             "tls" => tls_config,
-            "middlewares" => [ "vnc-auth-#{id}" ],
+            "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
             "priority" => 100
           }
         },
@@ -208,6 +209,11 @@ class VncManager
             "forwardAuth" => {
               "address" => "http://sandcastle-web:80/vnc/auth",
               "trustForwardHeader" => true
+            }
+          },
+          "vnc-stripprefix-#{id}" => {
+            "stripPrefix" => {
+              "prefixes" => [ "/vnc/#{id}/novnc" ]
             }
           }
         },
