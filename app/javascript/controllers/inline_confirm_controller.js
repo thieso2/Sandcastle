@@ -38,46 +38,45 @@ export default class extends Controller {
       </div>
     `
 
-    // Store original HTML and form for restoration
+    // Store original HTML for restoration
     this.element.dataset.originalHtml = originalHTML
-
-    // Assign unique ID to form if it doesn't have one
-    if (!form.id) {
-      form.id = `form_${Math.random().toString(36).substr(2, 9)}`
-    }
-    this.element.dataset.formId = form.id
   }
 
   yes(event) {
     event.preventDefault()
     console.log('[InlineConfirm] Yes clicked')
 
-    const formId = this.element.dataset.formId
-    const form = formId ? document.getElementById(formId) : null
     const originalHTML = this.element.dataset.originalHtml
 
-    if (form && originalHTML) {
-      console.log('[InlineConfirm] Submitting form:', form.action)
-      console.log('[InlineConfirm] Form method:', form.method)
-      console.log('[InlineConfirm] _method field:', form.querySelector('input[name="_method"]')?.value)
-
+    if (originalHTML) {
       // Restore the original HTML to get the submit button back
       this.element.innerHTML = originalHTML
 
-      // Now find and click the submit button
-      const submitButton = form.querySelector('button[type="submit"]')
+      // Find the form in the restored HTML
+      const form = this.element.querySelector('form')
 
-      if (submitButton) {
-        console.log('[InlineConfirm] Clicking submit button')
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-          submitButton.click()
-        }, 10)
+      if (form) {
+        console.log('[InlineConfirm] Submitting form:', form.action)
+        console.log('[InlineConfirm] Form method:', form.method)
+        console.log('[InlineConfirm] _method field:', form.querySelector('input[name="_method"]')?.value)
+
+        // Find and click the submit button
+        const submitButton = form.querySelector('button[type="submit"]')
+
+        if (submitButton) {
+          console.log('[InlineConfirm] Clicking submit button')
+          // Small delay to ensure DOM is ready
+          setTimeout(() => {
+            submitButton.click()
+          }, 10)
+        } else {
+          console.error('[InlineConfirm] Submit button not found')
+        }
       } else {
-        console.error('[InlineConfirm] Submit button not found')
+        console.error('[InlineConfirm] Form not found in restored HTML')
       }
     } else {
-      console.error('[InlineConfirm] Form or originalHTML not found')
+      console.error('[InlineConfirm] Original HTML not found')
     }
   }
 
@@ -91,7 +90,6 @@ export default class extends Controller {
     if (originalHTML) {
       this.element.innerHTML = originalHTML
       delete this.element.dataset.originalHtml
-      delete this.element.dataset.formId
     }
   }
 }
