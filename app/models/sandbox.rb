@@ -21,6 +21,7 @@ class Sandbox < ApplicationRecord
   before_validation :assign_ssh_port, on: :create
 
   # Turbo Streams for real-time UI updates
+  after_create_commit :broadcast_prepend_to_dashboard
   after_update_commit :broadcast_replace_to_dashboard
   after_destroy_commit :broadcast_remove_from_dashboard
 
@@ -62,6 +63,15 @@ class Sandbox < ApplicationRecord
   end
 
   private
+
+  def broadcast_prepend_to_dashboard
+    broadcast_prepend_to(
+      [user, "dashboard"],
+      partial: "dashboard/sandbox",
+      locals: { sandbox: self },
+      target: "sandboxes"
+    )
+  end
 
   def broadcast_replace_to_dashboard
     # If sandbox is destroyed, remove it from the dashboard instead of replacing
