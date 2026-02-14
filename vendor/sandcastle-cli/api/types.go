@@ -28,10 +28,11 @@ type SandboxRoute struct {
 }
 
 type ConnectInfo struct {
-	Host    string `json:"host"`
-	Port    int    `json:"port"`
-	User    string `json:"user"`
-	Command string `json:"command"`
+	Host        string `json:"host"`
+	Port        int    `json:"port"`
+	User        string `json:"user"`
+	Command     string `json:"command"`
+	TailscaleIP string `json:"tailscale_ip,omitempty"`
 }
 
 type User struct {

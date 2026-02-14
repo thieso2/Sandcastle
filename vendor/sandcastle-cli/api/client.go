@@ -14,7 +14,11 @@ import (
 )
 
 func verbose() bool {
-	v := strings.ToLower(os.Getenv("SANDCASTLE_VERBOSE"))
+	// Check both VERBOSE and SANDCASTLE_VERBOSE
+	v := strings.ToLower(os.Getenv("VERBOSE"))
+	if v == "" {
+		v = strings.ToLower(os.Getenv("SANDCASTLE_VERBOSE"))
+	}
 	return v == "1" || v == "true"
 }
 

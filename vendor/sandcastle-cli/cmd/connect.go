@@ -108,12 +108,19 @@ func waitForSSH(host string, port int) error {
 	deadline := time.Now().Add(30 * time.Second)
 	printed := false
 
+	if os.Getenv("VERBOSE") == "1" {
+		fmt.Fprintf(os.Stderr, "\033[2m[verbose] Waiting for SSH at %s (timeout: 30s)\033[0m\n", addr)
+	}
+
 	for time.Now().Before(deadline) {
 		conn, err := net.DialTimeout("tcp", addr, time.Second)
 		if err == nil {
 			conn.Close()
 			if printed {
 				fmt.Println()
+			}
+			if os.Getenv("VERBOSE") == "1" {
+				fmt.Fprintf(os.Stderr, "\033[2m[verbose] SSH connection successful!\033[0m\n")
 			}
 			return nil
 		}

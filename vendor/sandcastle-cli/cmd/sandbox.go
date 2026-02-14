@@ -126,6 +126,13 @@ Flags explicitly passed on the command line take precedence over environment var
 			return err
 		}
 
+		if os.Getenv("VERBOSE") == "1" {
+			fmt.Fprintf(os.Stderr, "\033[2m[verbose] Connection info: host=%s port=%d user=%s\033[0m\n", info.Host, info.Port, info.User)
+			if info.TailscaleIP != "" {
+				fmt.Fprintf(os.Stderr, "\033[2m[verbose] Tailscale IP: %s\033[0m\n", info.TailscaleIP)
+			}
+		}
+
 		if err := waitForSSH(info.Host, info.Port); err != nil {
 			return err
 		}
