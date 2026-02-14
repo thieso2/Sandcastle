@@ -16,6 +16,7 @@ class SandboxesController < ApplicationController
     end
 
     # Build sandbox record
+    # Note: temporary sandboxes can only be created via CLI
     sandbox = Current.user.sandboxes.build(
       name: params.require(:name),
       status: "pending",
@@ -24,7 +25,7 @@ class SandboxesController < ApplicationController
       mount_home: params[:mount_home] == "1",
       data_path: params[:data_path].presence,
       tailscale: params[:tailscale] == "1",
-      temporary: params[:temporary] == "1"
+      temporary: false
     )
 
     if sandbox.persistent_volume

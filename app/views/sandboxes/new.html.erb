@@ -94,24 +94,6 @@
       </div>
     <% end %>
 
-    <%# Cleanup Options %>
-    <div class="bg-white rounded-lg border border-red-100 p-6 space-y-4">
-      <h2 class="text-lg font-semibold text-gray-900">Cleanup Options</h2>
-
-      <label class="flex items-start gap-3 cursor-pointer">
-        <%= form.check_box :temporary, class: "mt-1 h-4 w-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500" %>
-        <div class="flex-1">
-          <div class="text-sm font-medium text-gray-900 inline-flex items-center gap-1">
-            Temporary (auto-remove on exit)
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-amber-500">
-              <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
-            </svg>
-          </div>
-          <p class="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1 mt-1">Warning: This sandbox will be automatically deleted when you disconnect from it</p>
-        </div>
-      </label>
-    </div>
-
     <%# Actions %>
     <div class="flex items-center justify-between pt-4">
       <%= link_to "Cancel", root_path, class: "text-gray-600 hover:text-gray-900" %>
