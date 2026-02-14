@@ -30,3 +30,7 @@ Read the output file to retrieve the result: REDACTED.output
 
 start/stop are fin - destroy does not destroy! trace the code!
 
+### Prompt 6
+
+also destry should not use a confirm dialog that covers the screen. just replace the buttons with "destoy: are you sure y/n". that ways the screen stays visible
+
