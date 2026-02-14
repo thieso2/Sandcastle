@@ -195,26 +195,34 @@ setup_passwordless_sudo() {
 }
 
 # ═══ setup_bashrc_path ════════════════════════════════════════════════════
-# Add docker-runtime/bin to PATH in .bashrc (idempotent)
+# Add docker-runtime/bin to PATH in .profile and .bashrc (idempotent)
 
 setup_bashrc_path() {
+  local profile="${SANDCASTLE_HOME}/.profile"
   local bashrc="${SANDCASTLE_HOME}/.bashrc"
   local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
 
-  info "Configuring PATH in .bashrc..."
+  info "Configuring PATH in .profile and .bashrc..."
 
-  # Create .bashrc if it doesn't exist
+  # Add to .profile for SSH non-interactive shells
+  touch "$profile"
+  chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$profile"
+
+  if ! grep -qF "$path_export" "$profile" 2>/dev/null; then
+    echo "$path_export" >> "$profile"
+    wrote "$profile"
+  fi
+
+  # Add to .bashrc for interactive shells
   touch "$bashrc"
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$bashrc"
 
-  # Add PATH export if not already present (idempotent)
   if ! grep -qF "$path_export" "$bashrc" 2>/dev/null; then
     echo "$path_export" >> "$bashrc"
     wrote "$bashrc"
-    ok "PATH configured in .bashrc"
-  else
-    ok "PATH already configured in .bashrc"
   fi
+
+  ok "PATH configured in .profile and .bashrc"
 }
 
 # ═══ setup_login_banner ══════════════════════════════════════════════════
@@ -664,18 +672,21 @@ cmd_destroy() {
     ok "Removed sudoers file"
   fi
 
-  # Remove PATH export from .bashrc (try both old and new format for compatibility)
-  if [ -f "$SANDCASTLE_HOME/.bashrc" ]; then
-    local old_path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin/:\$PATH"
-    local new_path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
-    for path_export in "$old_path_export" "$new_path_export"; do
-      if grep -qF "$path_export" "$SANDCASTLE_HOME/.bashrc" 2>/dev/null; then
-        grep -vF "$path_export" "$SANDCASTLE_HOME/.bashrc" > "$SANDCASTLE_HOME/.bashrc.tmp"
-        mv "$SANDCASTLE_HOME/.bashrc.tmp" "$SANDCASTLE_HOME/.bashrc"
-        ok "Removed PATH export from .bashrc"
-      fi
-    done
-  fi
+  # Remove PATH export from .profile and .bashrc (try both old and new format for compatibility)
+  local old_path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin/:\$PATH"
+  local new_path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
+
+  for file in "$SANDCASTLE_HOME/.profile" "$SANDCASTLE_HOME/.bashrc"; do
+    if [ -f "$file" ]; then
+      for path_export in "$old_path_export" "$new_path_export"; do
+        if grep -qF "$path_export" "$file" 2>/dev/null; then
+          grep -vF "$path_export" "$file" > "${file}.tmp"
+          mv "${file}.tmp" "$file"
+          ok "Removed PATH export from $(basename "$file")"
+        fi
+      done
+    fi
+  done
 
   # Remove login banner
   if [ -f "/etc/profile.d/sandcastle-banner.sh" ]; then
@@ -786,6 +797,13 @@ DYEOF
       --home-dir "$SANDCASTLE_HOME" --shell /bin/bash "$SANDCASTLE_USER"
     CREATED_USER=true
     ok "Created user '${SANDCASTLE_USER}' (UID ${SANDCASTLE_UID})"
+  fi
+
+  # Add sandcastle user to docker group for socket access
+  DOCKER_GROUP=$(stat -c '%G' "$DOCKER_SOCK" 2>/dev/null || echo "docker")
+  if getent group "$DOCKER_GROUP" &>/dev/null; then
+    usermod -aG "$DOCKER_GROUP" "$SANDCASTLE_USER"
+    ok "Added '${SANDCASTLE_USER}' to group '${DOCKER_GROUP}'"
   fi
 
   # ── Create directories ────────────────────────────────────────────────────
