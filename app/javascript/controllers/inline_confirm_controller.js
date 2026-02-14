@@ -2,7 +2,17 @@ import { Controller } from "@hotwired/stimulus"
 
 // Inline confirmation controller - replaces buttons with "Are you sure? y/n"
 export default class extends Controller {
+  connect() {
+    this.confirmed = false
+  }
+
   confirm(event) {
+    // If already confirmed, let the form submit naturally
+    if (this.confirmed) {
+      console.log('[InlineConfirm] Already confirmed, allowing submission')
+      return
+    }
+
     event.preventDefault()
     console.log('[InlineConfirm] Confirm clicked', event.target)
 
@@ -65,6 +75,8 @@ export default class extends Controller {
 
         if (submitButton) {
           console.log('[InlineConfirm] Clicking submit button')
+          // Set flag to prevent re-triggering confirm handler
+          this.confirmed = true
           // Small delay to ensure DOM is ready
           setTimeout(() => {
             submitButton.click()
@@ -90,6 +102,8 @@ export default class extends Controller {
     if (originalHTML) {
       this.element.innerHTML = originalHTML
       delete this.element.dataset.originalHtml
+      // Reset confirmation flag
+      this.confirmed = false
     }
   }
 }
