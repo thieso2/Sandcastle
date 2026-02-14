@@ -34,3 +34,7 @@ start/stop are fin - destroy does not destroy! trace the code!
 
 also destry should not use a confirm dialog that covers the screen. just replace the buttons with "destoy: are you sure y/n". that ways the screen stays visible
 
+### Prompt 7
+
+no browser consone log. action is not triggered.
+

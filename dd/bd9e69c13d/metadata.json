@@ -13,7 +13,6 @@
     "app/views/admin/users/index.html.erb",
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/layouts/admin.html.erb",
-    "app/views/layouts/application.html.erb",
     "app/views/tailscale/show.html.erb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
@@ -79,10 +78,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 950,
-    "cache_creation_tokens": 228147,
-    "cache_read_tokens": 11336711,
-    "output_tokens": 18545,
-    "api_call_count": 116
+    "input_tokens": 926,
+    "cache_creation_tokens": 227837,
+    "cache_read_tokens": 10952284,
+    "output_tokens": 18304,
+    "api_call_count": 113
   }
 }
