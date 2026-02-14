@@ -26,3 +26,11 @@ use ask tool
 
 commit this
 
+### Prompt 4
+
+push
+
+### Prompt 5
+
+in installer fix the PATH that added to .bashrc and also add a banner on longin showing th sandcastle version
+

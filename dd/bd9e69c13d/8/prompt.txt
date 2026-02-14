@@ -82,3 +82,11 @@ use ask tool
 ---
 
 commit this
+
+---
+
+push
+
+---
+
+in installer fix the PATH that added to .bashrc and also add a banner on longin showing th sandcastle version
