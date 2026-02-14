@@ -82,7 +82,12 @@ class RouteManager
     rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
       "HostRegexp(`.+`)"
     else
-      "Host(`#{host}`)"
+      # Support both public domain and Tailscale IP
+      hosts = [ host ]
+      tailscale_ip = ENV["SANDCASTLE_TAILSCALE_IP"]
+      hosts << tailscale_ip if tailscale_ip.present?
+
+      hosts.map { |h| "Host(`#{h}`)" }.join(" || ")
     end
 
     config = {

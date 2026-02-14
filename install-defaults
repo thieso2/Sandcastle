@@ -26,6 +26,9 @@ SANDCASTLE_GID="220568"
 # Host IP or domain name (auto-detected by gen-env)
 # SANDCASTLE_HOST="sandbox.example.com"
 
+# Optional Tailscale IP for private network access
+# SANDCASTLE_TAILSCALE_IP="100.65.155.100"
+
 # TLS mode: "letsencrypt" or "selfsigned"
 SANDCASTLE_TLS_MODE="selfsigned"
 
