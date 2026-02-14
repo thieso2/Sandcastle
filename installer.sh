@@ -199,7 +199,7 @@ setup_passwordless_sudo() {
 
 setup_bashrc_path() {
   local bashrc="${SANDCASTLE_HOME}/.bashrc"
-  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin/:\$PATH"
+  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
 
   info "Configuring PATH in .bashrc..."
 
@@ -215,6 +215,54 @@ setup_bashrc_path() {
   else
     ok "PATH already configured in .bashrc"
   fi
+}
+
+# ═══ setup_login_banner ══════════════════════════════════════════════════
+# Create a login banner showing Sandcastle version and info
+
+setup_login_banner() {
+  local profile_d="/etc/profile.d/sandcastle-banner.sh"
+
+  info "Setting up login banner..."
+
+  cat > "$profile_d" <<'BANNER_SCRIPT'
+#!/bin/bash
+# Sandcastle login banner
+
+# Only show on interactive shells
+[[ $- == *i* ]] || return 0
+
+# Skip if already shown in this session
+[[ -n "${SANDCASTLE_BANNER_SHOWN:-}" ]] && return 0
+export SANDCASTLE_BANNER_SHOWN=1
+
+# Get version from Rails if available
+if command -v docker >/dev/null 2>&1; then
+  VERSION=$(docker exec sandcastle-web 2>/dev/null rails runner 'puts Sandcastle.version' 2>/dev/null || echo "unknown")
+else
+  VERSION="unknown"
+fi
+
+cat << 'EOF'
+
+  ███████╗ █████╗ ███╗   ██╗██████╗  ██████╗ █████╗ ███████╗████████╗██╗     ███████╗
+  ██╔════╝██╔══██╗████╗  ██║██╔══██╗██╔════╝██╔══██╗██╔════╝╚══██╔══╝██║     ██╔════╝
+  ███████╗███████║██╔██╗ ██║██║  ██║██║     ███████║███████╗   ██║   ██║     █████╗
+  ╚════██║██╔══██║██║╚██╗██║██║  ██║██║     ██╔══██║╚════██║   ██║   ██║     ██╔══╝
+  ███████║██║  ██║██║ ╚████║██████╔╝╚██████╗██║  ██║███████║   ██║   ███████╗███████╗
+  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚══════╝╚══════╝
+
+EOF
+
+echo "  Version: ${VERSION}"
+echo "  Docs:    https://github.com/thieso2/Sandcastle"
+echo ""
+
+BANNER_SCRIPT
+
+  chmod +x "$profile_d"
+  wrote "$profile_d"
+  ok "Login banner configured"
 }
 
 # ═══ ensure_dirs ═════════════════════════════════════════════════════════
@@ -623,14 +671,23 @@ cmd_destroy() {
     ok "Removed sudoers file"
   fi
 
-  # Remove PATH export from .bashrc
+  # Remove PATH export from .bashrc (try both old and new format for compatibility)
   if [ -f "$SANDCASTLE_HOME/.bashrc" ]; then
-    local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin/:\$PATH"
-    if grep -qF "$path_export" "$SANDCASTLE_HOME/.bashrc" 2>/dev/null; then
-      grep -vF "$path_export" "$SANDCASTLE_HOME/.bashrc" > "$SANDCASTLE_HOME/.bashrc.tmp"
-      mv "$SANDCASTLE_HOME/.bashrc.tmp" "$SANDCASTLE_HOME/.bashrc"
-      ok "Removed PATH export from .bashrc"
-    fi
+    local old_path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin/:\$PATH"
+    local new_path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
+    for path_export in "$old_path_export" "$new_path_export"; do
+      if grep -qF "$path_export" "$SANDCASTLE_HOME/.bashrc" 2>/dev/null; then
+        grep -vF "$path_export" "$SANDCASTLE_HOME/.bashrc" > "$SANDCASTLE_HOME/.bashrc.tmp"
+        mv "$SANDCASTLE_HOME/.bashrc.tmp" "$SANDCASTLE_HOME/.bashrc"
+        ok "Removed PATH export from .bashrc"
+      fi
+    done
+  fi
+
+  # Remove login banner
+  if [ -f "/etc/profile.d/sandcastle-banner.sh" ]; then
+    rm -f /etc/profile.d/sandcastle-banner.sh
+    ok "Removed login banner"
   fi
 
   # Remove Sandcastle files — keep user data (data/users, data/sandboxes, data/postgres)
@@ -747,6 +804,7 @@ DYEOF
   setup_ssh_keys
   setup_passwordless_sudo
   setup_bashrc_path
+  setup_login_banner
 
   # ── Detect fresh install vs upgrade ─────────────────────────────────────
 
