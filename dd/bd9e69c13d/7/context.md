@@ -98,3 +98,24 @@ bb06aea did not work? then remove it anf force-push
 
 fix the permissions in the last comment of https://github.com/thieso2/Sandcastle/issues/19
 
+### Prompt 20
+
+commit and push
+
+### Prompt 21
+
+open user setting when clicking the user-name
+fix the layout (use icons)
+
+### Prompt 22
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Looking through the conversation chronologically:
+
+1. Started with investigating terminal routing errors - found it was expected behavior when sandbox destroyed while terminal open
+2. Committed entrypoint.sh changes removing Docker daemon wait loop
+3. Fixed temp sandbox buttons - removed special case, added prominent TEMP badge
+4. Remo...
+
