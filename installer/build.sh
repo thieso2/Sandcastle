@@ -1,62 +1,72 @@
 #!/usr/bin/env bash
-# Build installer.sh from templates
+# Build installer.sh from installer.sh.in template
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"
+TEMPLATE_FILE="$SCRIPT_DIR/installer.sh.in"
 OUTPUT_FILE="$REPO_ROOT/installer.sh"
 
-echo "Building installer.sh..."
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Function to read and escape a template file for embedding in heredoc
-read_template() {
-  local file="$1"
-  cat "$file"
-}
+info() { echo -e "${GREEN}→${NC} $*" >&2; }
+warn() { echo -e "${YELLOW}⚠${NC} $*" >&2; }
+error() { echo -e "${RED}✗${NC} $*" >&2; }
+ok() { echo -e "${GREEN}✓${NC} $*" >&2; }
 
-# Read the base installer logic (everything before the first template injection point)
-# For now, we'll use a simpler approach: directly modify specific sections of installer.sh
-
-# Create a temporary working copy
-TEMP_INSTALLER=$(mktemp)
-cp "$OUTPUT_FILE" "$TEMP_INSTALLER"
-
-echo "  → Injecting docker-compose.yml from repo root..."
-# Extract docker-compose.yml section and replace it
-# This is complex, so for now we'll use a marker-based approach
-
-# For Phase 1: Just validate that critical files match
-echo "  → Validating docker/postgres/init-databases.sh..."
-if ! diff -q "$REPO_ROOT/docker/postgres/init-databases.sh" <(sed -n '/cat > "\$SANDCASTLE_HOME\/etc\/postgres\/init-databases\.sh" <<.INITDB./,/^INITDB$/p' "$OUTPUT_FILE" | sed '1d;$d') >/dev/null 2>&1; then
-  echo "  ⚠️  WARNING: docker/postgres/init-databases.sh differs from embedded version in installer.sh"
-  echo "             Run: installer/sync-postgres-init.sh to sync"
+if [ ! -f "$TEMPLATE_FILE" ]; then
+  error "Template file not found: $TEMPLATE_FILE"
+  error "Run: cp installer.sh installer/installer.sh.in"
+  error "Then replace heredocs with @@TEMPLATE:filename@@ markers"
+  exit 1
 fi
 
-echo "  → Validating docker-compose.yml..."
-# Extract the docker-compose.yml section from installer.sh and compare with root file
-# This is done by finding the heredoc and comparing
-INSTALLER_COMPOSE=$(mktemp)
-sed -n '/cat > "\$SANDCASTLE_HOME\/docker-compose\.yml" <<COMPOSE$/,/^COMPOSE$/p' "$OUTPUT_FILE" | sed '1d;$d' > "$INSTALLER_COMPOSE"
+info "Building installer.sh from template..."
 
-if ! diff -q "$REPO_ROOT/docker-compose.yml" "$INSTALLER_COMPOSE" >/dev/null 2>&1; then
-  echo "  ⚠️  WARNING: docker-compose.yml differs from embedded version in installer.sh"
-  echo "             Manual sync required - see installer/build.sh"
-  echo ""
-  echo "  Differences:"
-  diff -u "$REPO_ROOT/docker-compose.yml" "$INSTALLER_COMPOSE" || true
-fi
+# Create temporary output file
+TEMP_OUTPUT=$(mktemp)
 
-rm -f "$INSTALLER_COMPOSE"
+# Process the template line by line
+while IFS= read -r line; do
+  # Check for template markers: @@TEMPLATE:filename@@
+  if [[ "$line" =~ @@TEMPLATE:([^@]+)@@ ]]; then
+    template_file="${BASH_REMATCH[1]}"
 
-# For now, just copy the current installer.sh as-is
-# Future: implement full template replacement
-cp "$TEMP_INSTALLER" "$OUTPUT_FILE"
-rm -f "$TEMP_INSTALLER"
+    # Determine the full path to the template
+    if [[ "$template_file" == /* ]]; then
+      # Absolute path from repo root
+      full_path="$REPO_ROOT/${template_file#/}"
+    elif [[ "$template_file" == templates/* ]]; then
+      # Relative to installer/templates/
+      full_path="$TEMPLATES_DIR/${template_file#templates/}"
+    else
+      # Assume it's in templates/
+      full_path="$TEMPLATES_DIR/$template_file"
+    fi
 
-echo "✓ Build complete: $OUTPUT_FILE"
+    if [ ! -f "$full_path" ]; then
+      error "Template file not found: $full_path"
+      rm -f "$TEMP_OUTPUT"
+      exit 1
+    fi
+
+    info "  Injecting: $template_file"
+    cat "$full_path"
+  else
+    # Regular line, output as-is
+    echo "$line"
+  fi
+done < "$TEMPLATE_FILE" > "$TEMP_OUTPUT"
+
+# Move to final location
+mv "$TEMP_OUTPUT" "$OUTPUT_FILE"
+chmod +x "$OUTPUT_FILE"
+
+ok "Built: $OUTPUT_FILE"
 echo ""
-echo "Note: Full template injection not yet implemented."
-echo "      To sync files manually:"
-echo "      - docker-compose.yml: Update heredoc at line ~396 in installer.sh"
-echo "      - init-databases.sh: Update heredoc at line ~1085 in installer.sh"
+info "Verify the output and test before committing!"

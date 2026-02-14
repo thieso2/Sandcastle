@@ -196,10 +196,25 @@ echo "Tag $new_version pushed. GitHub Actions will build the release."
 echo "https://github.com/thieso2/Sandcastle/actions"
 """
 
-[tasks."installer:sync"]
-description = "Sync source files (docker-compose.yml, init-databases.sh) into installer.sh"
-run = "installer/sync-files.sh"
+[tasks."installer:build"]
+description = "Build installer.sh from installer.sh.in template and source files"
+run = "installer/build.sh"
 
 [tasks."installer:validate"]
-description = "Validate installer.sh is in sync with source files"
-run = "installer/build.sh"
+description = "Validate that installer.sh matches the built version"
+run = """
+#!/bin/bash
+set -euo pipefail
+TEMP=$(mktemp)
+installer/build.sh > /dev/null 2>&1
+cp installer.sh "$TEMP"
+if diff -q installer.sh "$TEMP" >/dev/null; then
+  echo "✓ installer.sh is up to date"
+  rm "$TEMP"
+  exit 0
+else
+  echo "✗ installer.sh is out of sync! Run: mise run installer:build"
+  rm "$TEMP"
+  exit 1
+fi
+"""
