@@ -1,0 +1,84 @@
+## Summary
+Add Google Chrome and the Claude Code Chrome extension to sandbox containers, with browser-based VNC access for users to interact with Chrome GUI.
+
+## Motivation
+- Enable users to run browser automation and testing in sandboxes
+- Provide Claude Code Chrome extension for enhanced development workflows
+- Allow visual interaction with Chrome through web-based VNC
+
+## Proposed Implementation
+
+### 1. Sandbox Image Updates
+- Install Chrome (stable) in `images/sandbox/Dockerfile`
+- Install Xvfb (virtual display)
+- Install x11vnc or similar VNC server
+- Consider Chrome headless mode as alternative for some use cases
+
+### 2. VNC Access Options
+**Recommended: noVNC** (similar to WeTTY architecture)
+- Sidecar container: `sc-vnc-{user}-{sandbox}`
+- Connect to sandbox's VNC server
+- Traefik routing: `/vnc/{sandbox_id}` or subdomain
+- ForwardAuth middleware for authentication
+- Resolution: configurable (default 1920x1080)
+
+**Alternative: Apache Guacamole** (more features, heavier)
+
+### 3. Chrome Extension Installation
+- Pre-install Claude Code extension in sandbox image
+- Mount extension data to persistent user home: `/data/users/{name}/.config/google-chrome`
+- Document extension setup in guide
+
+### 4. Service Layer
+New `VncManager` service class:
+- `#open(sandbox)` - Start VNC sidecar, generate Traefik config
+- `#close(sandbox)` - Stop VNC sidecar, cleanup config
+- Similar to `TerminalManager` pattern
+
+### 5. UI Integration
+- "Open Browser" button next to "Open Terminal" on sandbox show page
+- Display resolution selector
+- VNC connection status indicator
+
+## Technical Considerations
+- **Display:** Xvfb :99 (virtual X server)
+- **VNC Port:** Expose internally, not on host (noVNC container connects)
+- **Authentication:** Same ForwardAuth pattern as WeTTY
+- **Performance:** Consider websockify compression settings
+- **Network:** Use `sandcastle-web` network for noVNC sidecars
+- **Cleanup:** Background job to kill stale VNC sessions
+
+## Security Notes
+- VNC traffic stays within Docker network (not exposed to host)
+- Authentication required via Traefik forwardAuth
+- Consider view-only mode option
+- Rate limit VNC connection attempts
+
+## Files to Modify
+- `images/sandbox/Dockerfile` - Add Chrome, Xvfb, VNC server
+- `images/sandbox/entrypoint.sh` - Start Xvfb and VNC server
+- `app/services/vnc_manager.rb` - New service
+- `app/controllers/vnc_controller.rb` - New controller for auth
+- `app/views/sandboxes/show.html.erb` - Add "Open Browser" button
+- `app/models/sandbox.rb` - Track VNC state if needed
+- `config/routes.rb` - Add VNC auth route
+- `app/views/pages/guide.html.erb` - Document browser access
+
+## Open Questions
+1. Should VNC be always-on or on-demand like WeTTY?
+2. Display resolution: fixed or user-configurable?
+3. Support multiple concurrent VNC sessions per sandbox?
+4. Include other browsers (Firefox) or Chrome only?
+5. Headless mode option for automation without VNC overhead?
+
+## Related
+- Similar architecture to Web Terminal (WeTTY) implementation
+- Could share authentication patterns with `TerminalManager`
+
+---
+
+use ask tool
+
+---
+
+commit this

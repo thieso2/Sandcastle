@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "ddbd9e69c13d",
+  "session_id": "5e98cdb4-1b98-49ff-ad6c-e4fb5d897bdf",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-14T07:46:24.629943Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/controllers/settings_controller.rb",
+    "app/controllers/vnc_controller.rb",
+    "app/jobs/container_sync_job.rb",
+    "app/models/user.rb",
+    "app/services/sandbox_manager.rb",
+    "app/services/vnc_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "app/views/vnc/wait.html.erb",
+    "config/routes.rb",
+    "db/migrate/20260214071603_add_chrome_persist_profile_to_users.rb",
+    "images/sandbox/Dockerfile",
+    "images/sandbox/entrypoint.sh"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "8aacb841-1d19-471a-9128-29b27072f37d",
+  "token_usage": {
+    "input_tokens": 391,
+    "cache_creation_tokens": 85889,
+    "cache_read_tokens": 3920631,
+    "output_tokens": 7272,
+    "api_call_count": 55
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-14T07:46:24.579555Z",
+    "agent_lines": 506,
+    "human_added": 1,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 507,
+    "agent_percentage": 99.80276134122288
+  }
+}

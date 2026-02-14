@@ -3,19 +3,33 @@
   "checkpoint_id": "ddbd9e69c13d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 8,
+  "checkpoints_count": 9,
   "files_touched": [
     ".github/workflows/claude.yml",
     "DEPLOY.md",
     "PROGRESS.md",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
+    "app/controllers/settings_controller.rb",
+    "app/controllers/vnc_controller.rb",
     "app/javascript/controllers/inline_confirm_controller.js",
+    "app/jobs/container_sync_job.rb",
     "app/jobs/sandbox_destroy_job.rb",
+    "app/models/user.rb",
+    "app/services/sandbox_manager.rb",
+    "app/services/vnc_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
     "app/views/layouts/admin.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "app/views/vnc/wait.html.erb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
+    "config/routes.rb",
+    "db/migrate/20260214071603_add_chrome_persist_profile_to_users.rb",
     "docker-compose.yml",
+    "images/sandbox/Dockerfile",
+    "images/sandbox/entrypoint.sh",
     "research/COMPARISON.md",
     "research/QUICK_REFERENCE.md",
     "research/README.md",
@@ -82,13 +96,20 @@
       "context": "/dd/bd9e69c13d/7/context.md",
       "content_hash": "/dd/bd9e69c13d/7/content_hash.txt",
       "prompt": "/dd/bd9e69c13d/7/prompt.txt"
+    },
+    {
+      "metadata": "/dd/bd9e69c13d/8/metadata.json",
+      "transcript": "/dd/bd9e69c13d/8/full.jsonl",
+      "context": "/dd/bd9e69c13d/8/context.md",
+      "content_hash": "/dd/bd9e69c13d/8/content_hash.txt",
+      "prompt": "/dd/bd9e69c13d/8/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 976,
-    "cache_creation_tokens": 228388,
-    "cache_read_tokens": 11276873,
-    "output_tokens": 21414,
-    "api_call_count": 119
+    "input_tokens": 1367,
+    "cache_creation_tokens": 314277,
+    "cache_read_tokens": 15197504,
+    "output_tokens": 28686,
+    "api_call_count": 174
   }
 }
