@@ -3,7 +3,7 @@
   "checkpoint_id": "ddbd9e69c13d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 11,
+  "checkpoints_count": 12,
   "files_touched": [
     ".github/workflows/claude.yml",
     "DEPLOY.md",
@@ -13,6 +13,7 @@
     "app/controllers/sandboxes_controller.rb",
     "app/javascript/controllers/inline_confirm_controller.js",
     "app/jobs/sandbox_destroy_job.rb",
+    "app/services/vnc_manager.rb",
     "app/views/layouts/admin.html.erb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
@@ -106,13 +107,20 @@
       "context": "/dd/bd9e69c13d/10/context.md",
       "content_hash": "/dd/bd9e69c13d/10/content_hash.txt",
       "prompt": "/dd/bd9e69c13d/10/prompt.txt"
+    },
+    {
+      "metadata": "/dd/bd9e69c13d/11/metadata.json",
+      "transcript": "/dd/bd9e69c13d/11/full.jsonl",
+      "context": "/dd/bd9e69c13d/11/context.md",
+      "content_hash": "/dd/bd9e69c13d/11/content_hash.txt",
+      "prompt": "/dd/bd9e69c13d/11/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1264,
-    "cache_creation_tokens": 249763,
-    "cache_read_tokens": 15227196,
-    "output_tokens": 26408,
-    "api_call_count": 156
+    "input_tokens": 1780,
+    "cache_creation_tokens": 288305,
+    "cache_read_tokens": 16808759,
+    "output_tokens": 29789,
+    "api_call_count": 187
   }
 }

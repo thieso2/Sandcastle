@@ -1,0 +1,16 @@
+regarding VNC - i see https://hq.sandcastle.rocks/vnc/10/novnc 
+Error response
+Error code: 404
+
+Message: File not found.
+
+Error code explanation: HTTPStatus.NOT_FOUND - Nothing matches the given URI.
+
+---
+
+traefik is runnind 
+ssh sandman  "/sandcastle/docker-runtime/bin/docker ps"
+
+---
+
+commit and push
