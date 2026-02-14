@@ -11,3 +11,13 @@ Error: buildx failed with: ERROR: failed to build: failed to solve: process "/bi
 
 commit and push
 
+### Prompt 3
+
+check why this failed:
+
+https://github.com/thieso2/Sandcastle/actions/runs/22013896414/job/63612458014
+
+### Prompt 4
+
+the token is called HOMEBREW_TAP_TOKEN
+
