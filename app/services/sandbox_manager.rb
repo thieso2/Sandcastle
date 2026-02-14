@@ -305,10 +305,10 @@ class SandboxManager
       command: sandbox.connect_command(host: host)
     }
 
-    # If Tailscale is enabled, use the bridge network IP for direct SSH access
+    # If Tailscale is enabled, wait for and use the bridge network IP for direct SSH access
     # This works if the client is on the same Tailscale network (routes advertised by sidecar)
     if sandbox.tailscale?
-      ts_ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
+      ts_ip = wait_for_tailscale_ip(sandbox: sandbox)
       if ts_ip.present?
         info[:host] = ts_ip
         info[:port] = 22
@@ -321,6 +321,17 @@ class SandboxManager
   end
 
   private
+
+  def wait_for_tailscale_ip(sandbox:, max_attempts: 10, delay: 0.5)
+    # Wait for the Tailscale network IP to be assigned (can take a moment after network connect)
+    max_attempts.times do
+      ts_ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
+      return ts_ip if ts_ip.present?
+      sleep delay
+    end
+    Rails.logger.warn("Tailscale IP not available for sandbox #{sandbox.id} after #{max_attempts} attempts")
+    nil
+  end
 
   def container_env(user)
     env = [
