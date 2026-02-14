@@ -36,3 +36,11 @@ created vi  cli - buttons are incerrect!
 
 a temp sandbox shoudl ony have Stop and destroy and also show clearly that its temp...
 
+### Prompt 8
+
+add GH issue the sandcastle cli needs to send "alive" calls every 30 secs for temp boxes? and the cleanup should destroy temp boxes when no alive was received in 2 minutes. the sandbox cli would have to stay alive while still having exected the ssh  command. research
+
+### Prompt 9
+
+remove the temp from create box on web ui - makes no sense!
+

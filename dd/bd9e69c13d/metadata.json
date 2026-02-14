@@ -11,8 +11,8 @@
     "app/controllers/sandboxes_controller.rb",
     "app/javascript/controllers/inline_confirm_controller.js",
     "app/jobs/sandbox_destroy_job.rb",
-    "app/views/dashboard/_sandbox.html.erb",
     "app/views/layouts/admin.html.erb",
+    "app/views/sandboxes/new.html.erb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
     "research/COMPARISON.md",
@@ -84,10 +84,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1392,
-    "cache_creation_tokens": 292992,
-    "cache_read_tokens": 14821954,
-    "output_tokens": 25825,
-    "api_call_count": 170
+    "input_tokens": 1026,
+    "cache_creation_tokens": 238798,
+    "cache_read_tokens": 12175452,
+    "output_tokens": 23508,
+    "api_call_count": 125
   }
 }
