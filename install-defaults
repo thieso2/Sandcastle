@@ -36,8 +36,7 @@ SANDCASTLE_TLS_MODE="selfsigned"
 SANDCASTLE_HTTP_PORT="80"
 SANDCASTLE_HTTPS_PORT="443"
 
-# Docker network subnet for the sandcastle-web bridge (auto-detected if empty)
-# SANDCASTLE_SUBNET="172.20.5.0/24"
+# NOTE: sandcastle-web network is allocated from DOCKYARD_POOL_BASE (no custom subnet needed)
 
 # ─── Admin account (required for fresh install) ─────────────────────────────
 

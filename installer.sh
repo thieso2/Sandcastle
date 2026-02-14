@@ -436,7 +436,6 @@ services:
       SANDCASTLE_HOST: \${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: ${DATA_MOUNT}
       SANDCASTLE_TLS_MODE: \${SANDCASTLE_TLS_MODE:-letsencrypt}
-      SANDCASTLE_SUBNET: \${SANDCASTLE_SUBNET:-172.30.99.0/24}
       SANDCASTLE_ADMIN_USER: \${SANDCASTLE_ADMIN_USER:-admin}
       SANDCASTLE_ADMIN_EMAIL: \${SANDCASTLE_ADMIN_EMAIL:-}
       SANDCASTLE_ADMIN_PASSWORD: \${SANDCASTLE_ADMIN_PASSWORD:-}
@@ -563,7 +562,6 @@ SANDCASTLE_TLS_MODE=${tls_mode}
 #ACME_EMAIL=admin@example.com
 SANDCASTLE_HTTP_PORT=${http_port}
 SANDCASTLE_HTTPS_PORT=${https_port}
-#SANDCASTLE_SUBNET=
 
 # ─── Admin account (required for fresh install) ─────────────────────────────
 SANDCASTLE_ADMIN_USER=${admin_user}
@@ -658,12 +656,7 @@ cmd_destroy() {
     ok "Removed group '${SANDCASTLE_GROUP}'"
   fi
 
-  # Remove NAT service
-  if [ -f /etc/systemd/system/sandcastle-nat.service ]; then
-    systemctl disable --now sandcastle-nat 2>/dev/null || true
-    rm -f /etc/systemd/system/sandcastle-nat.service
-    systemctl daemon-reload 2>/dev/null || true
-  fi
+  # sandcastle-nat.service no longer used (dockyard handles NAT for user-defined networks)
 
   # Remove sudoers file
   if [ -f /etc/sudoers.d/sandcastle ]; then
@@ -819,10 +812,7 @@ DYEOF
     [ -z "${SANDCASTLE_ADMIN_PASSWORD:-}" ] && die "SANDCASTLE_ADMIN_PASSWORD is required (set in sandcastle.env or use SANDCASTLE_ADMIN_PASSWORD_FILE)"
     [ ${#SANDCASTLE_ADMIN_PASSWORD} -lt 6 ] && die "SANDCASTLE_ADMIN_PASSWORD must be at least 6 characters"
 
-    if [ -z "${SANDCASTLE_SUBNET:-}" ]; then
-      SANDCASTLE_SUBNET=$(find_free_subnet)
-      info "Auto-detected subnet: $SANDCASTLE_SUBNET"
-    fi
+    # SANDCASTLE_SUBNET no longer needed - networks allocated from dockyard pool
 
     SECRET_KEY_BASE=$(openssl rand -hex 64)
     DOCKER_GID=$(stat -c '%g' "$DOCKER_SOCK" 2>/dev/null || echo "988")
@@ -855,7 +845,6 @@ DB_PASSWORD="${DB_PASSWORD}"
 SANDCASTLE_ADMIN_USER="${SANDCASTLE_ADMIN_USER}"
 SANDCASTLE_ADMIN_EMAIL="${SANDCASTLE_ADMIN_EMAIL}"
 SANDCASTLE_ADMIN_PASSWORD="${SANDCASTLE_ADMIN_PASSWORD}"
-SANDCASTLE_SUBNET="${SANDCASTLE_SUBNET}"
 SANDCASTLE_ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-}"
 DOCKER_GID="${DOCKER_GID}"
 DOCKER_SOCK="${DOCKER_SOCK}"
@@ -875,10 +864,6 @@ EOF
   source "$SANDCASTLE_HOME/.env"
 
   # Backfill vars that may be missing in older .env files
-  if [ -z "${SANDCASTLE_SUBNET:-}" ]; then
-    SANDCASTLE_SUBNET=$(find_free_subnet)
-    echo "SANDCASTLE_SUBNET=$SANDCASTLE_SUBNET" >> "$SANDCASTLE_HOME/.env"
-  fi
   if [ -z "${DOCKER_SOCK:-}" ]; then
     DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
     echo "DOCKER_SOCK=$DOCKER_SOCK" >> "$SANDCASTLE_HOME/.env"
@@ -908,7 +893,6 @@ SANDCASTLE_HOST="${SANDCASTLE_HOST}"
 SANDCASTLE_TLS_MODE="${SANDCASTLE_TLS_MODE}"
 SANDCASTLE_HTTP_PORT="${SANDCASTLE_HTTP_PORT}"
 SANDCASTLE_HTTPS_PORT="${SANDCASTLE_HTTPS_PORT}"
-SANDCASTLE_SUBNET="${SANDCASTLE_SUBNET}"
 SANDCASTLE_ADMIN_USER="${SANDCASTLE_ADMIN_USER}"
 SANDCASTLE_ADMIN_EMAIL="${SANDCASTLE_ADMIN_EMAIL:-}"
 SANDCASTLE_ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-}"
@@ -1054,47 +1038,16 @@ TEOF
 
   # ── Docker network ────────────────────────────────────────────────────────
 
+  # ── Create sandcastle-web network (allocated from dockyard pool) ────────────
+  # Let dockyard allocate the subnet from its address pool (DOCKYARD_POOL_BASE)
+  # so dockyard's own iptables rules handle NAT/forwarding automatically.
+  # No separate sandcastle-nat service needed.
   if $DOCKER network inspect sandcastle-web &>/dev/null; then
     ok "sandcastle-web network exists"
   else
-    $DOCKER network create --subnet "$SANDCASTLE_SUBNET" sandcastle-web >/dev/null
-    ok "sandcastle-web network created ($SANDCASTLE_SUBNET)"
+    $DOCKER network create sandcastle-web >/dev/null
+    ok "sandcastle-web network created"
   fi
-
-  # ── NAT & forwarding for sandcastle networks ─────────────────────────────
-  # Dockyard runs with --iptables=false, so user-defined networks (sandcastle-web,
-  # per-user Tailscale bridges) have no MASQUERADE or FORWARD rules.
-  # Cover all of them with a single /16 derived from SANDCASTLE_SUBNET.
-
-  SANDCASTLE_NAT_CIDR=$(echo "$SANDCASTLE_SUBNET" | awk -F'[./]' '{print $1"."$2".0.0/16"}')
-
-  iptables -t nat -C POSTROUTING -s "$SANDCASTLE_NAT_CIDR" -j MASQUERADE 2>/dev/null || \
-    iptables -t nat -A POSTROUTING -s "$SANDCASTLE_NAT_CIDR" -j MASQUERADE
-  iptables -C FORWARD -s "$SANDCASTLE_NAT_CIDR" -j ACCEPT 2>/dev/null || \
-    iptables -I FORWARD -s "$SANDCASTLE_NAT_CIDR" -j ACCEPT
-  iptables -C FORWARD -d "$SANDCASTLE_NAT_CIDR" -j ACCEPT 2>/dev/null || \
-    iptables -I FORWARD -d "$SANDCASTLE_NAT_CIDR" -j ACCEPT
-  ok "NAT rules added for $SANDCASTLE_NAT_CIDR"
-
-  # Persist across reboots via systemd
-  cat > /etc/systemd/system/sandcastle-nat.service <<NATEOF
-[Unit]
-Description=Sandcastle NAT and forwarding rules
-After=${DOCKYARD_DOCKER_PREFIX}docker.service
-
-[Service]
-Type=oneshot
-ExecStart=/bin/sh -c 'iptables -t nat -C POSTROUTING -s ${SANDCASTLE_NAT_CIDR} -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s ${SANDCASTLE_NAT_CIDR} -j MASQUERADE'
-ExecStart=/bin/sh -c 'iptables -C FORWARD -s ${SANDCASTLE_NAT_CIDR} -j ACCEPT 2>/dev/null || iptables -I FORWARD -s ${SANDCASTLE_NAT_CIDR} -j ACCEPT'
-ExecStart=/bin/sh -c 'iptables -C FORWARD -d ${SANDCASTLE_NAT_CIDR} -j ACCEPT 2>/dev/null || iptables -I FORWARD -d ${SANDCASTLE_NAT_CIDR} -j ACCEPT'
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-NATEOF
-  systemctl daemon-reload
-  systemctl enable sandcastle-nat >/dev/null 2>&1
-  wrote "/etc/systemd/system/sandcastle-nat.service"
 
   # ── Pull images ───────────────────────────────────────────────────────────
 
