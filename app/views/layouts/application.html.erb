@@ -28,9 +28,6 @@
       <%= render "shared/navbar" %>
     <% end %>
 
-    <%# Confirmation modal %>
-    <%= render "shared/confirm_modal" %>
-
     <main class="container mx-auto px-5 <%= authenticated? ? 'pt-20' : 'mt-28' %>">
       <% if flash[:alert] %>
         <div class="flex justify-center mb-5">
