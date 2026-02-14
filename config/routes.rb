@@ -13,6 +13,14 @@ Rails.application.routes.draw do
   get  "auth/failure",            to: "oauth_callbacks#failure"
   resource :change_password, only: [ :show, :update ]
 
+  resource :settings, only: :show do
+    patch :update_profile
+    patch :update_password
+    patch :toggle_tailscale
+    post :generate_token
+    delete :revoke_token
+  end
+
   get  "auth/device",              to: "device_auth#show",     as: :auth_device
   post "auth/device/verify",       to: "device_auth#verify",   as: :auth_device_verify
   get  "auth/device/approve/:id",  to: "device_auth#confirm",  as: :auth_device_confirm

@@ -33,7 +33,7 @@
       <span class="mx-2 h-5 w-px bg-gray-200"></span>
 
       <span class="text-sm text-gray-500"><%= Current.user.name %></span>
-      <%= link_to "Password", change_password_path,
+      <%= link_to "Settings", settings_path,
             class: "text-sm text-gray-400 hover:text-gray-600 transition-colors" %>
       <%= button_to "Log out", session_path, method: :delete,
             class: "text-sm text-gray-400 hover:text-gray-600 transition-colors" %>
