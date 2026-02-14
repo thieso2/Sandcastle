@@ -6,15 +6,16 @@
   "checkpoints_count": 8,
   "files_touched": [
     ".github/workflows/claude.yml",
+    "DEPLOY.md",
     "PROGRESS.md",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
     "app/javascript/controllers/inline_confirm_controller.js",
     "app/jobs/sandbox_destroy_job.rb",
     "app/views/layouts/admin.html.erb",
-    "config/initializers/container_sync.rb",
     "config/initializers/mission_control.rb",
     "config/initializers/mission_control_jobs.rb",
+    "docker-compose.yml",
     "research/COMPARISON.md",
     "research/QUICK_REFERENCE.md",
     "research/README.md",
@@ -84,10 +85,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1020,
-    "cache_creation_tokens": 229752,
-    "cache_read_tokens": 11522477,
-    "output_tokens": 21875,
-    "api_call_count": 124
+    "input_tokens": 976,
+    "cache_creation_tokens": 228388,
+    "cache_read_tokens": 11276873,
+    "output_tokens": 21414,
+    "api_call_count": 119
   }
 }

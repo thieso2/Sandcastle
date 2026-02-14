@@ -131,3 +131,7 @@ add to ISSUE to add export PATH=$REDACTED:$PATH to .bashrc
 
 on startup of the app run a task that verifies all sandboxes - are they still in docker? if not - detroy them.
 
+### Prompt 26
+
+in production we have not added the worker container!
+
