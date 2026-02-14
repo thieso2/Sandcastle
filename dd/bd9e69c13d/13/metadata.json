@@ -3,32 +3,30 @@
   "checkpoint_id": "ddbd9e69c13d",
   "session_id": "86a1085e-1abb-4c1e-8c41-0041e9874709",
   "strategy": "manual-commit",
-  "created_at": "2026-02-14T11:33:01.17861Z",
+  "created_at": "2026-02-14T11:38:21.79935Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    ".github/workflows/release.yml",
-    "images/sandbox/Dockerfile",
     "installer.sh"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "dac3ff31-5b60-4675-8318-d047348a53a5",
-  "checkpoint_transcript_start": 129,
-  "transcript_lines_at_start": 129,
+  "transcript_identifier_at_start": "62e6eb5d-3be0-4df1-8f62-50e539aa776b",
+  "checkpoint_transcript_start": 248,
+  "transcript_lines_at_start": 248,
   "token_usage": {
-    "input_tokens": 180,
-    "cache_creation_tokens": 12673,
-    "cache_read_tokens": 1236436,
-    "output_tokens": 3114,
-    "api_call_count": 22
+    "input_tokens": 74,
+    "cache_creation_tokens": 10027,
+    "cache_read_tokens": 611732,
+    "output_tokens": 2238,
+    "api_call_count": 9
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-14T11:33:01.147788Z",
+    "calculated_at": "2026-02-14T11:38:21.76467Z",
     "agent_lines": 0,
-    "human_added": 7,
+    "human_added": 2,
     "human_modified": 3,
     "human_removed": 0,
-    "total_committed": 7,
+    "total_committed": 5,
     "agent_percentage": 0
   }
 }

@@ -30,3 +30,7 @@ the login banner does not show the version.
 
   Version: unknown
   Docs:    https://github.com/thieso2/Sandcastle
+
+---
+
+SANDCASTLE_TAILSCALE_IP="100.65.155.100" was not added to /sandcastle/etc/sandcastle.env but was added to /sandcastle/.env (why do we have two files)?

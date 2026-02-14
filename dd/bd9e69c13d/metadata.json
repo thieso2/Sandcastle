@@ -7,7 +7,6 @@
   "files_touched": [
     ".env.example",
     ".github/workflows/claude.yml",
-    ".github/workflows/release.yml",
     "DEPLOY.md",
     "Dockerfile",
     "INSTALL_CLEANUP_ANALYSIS.md",
@@ -143,10 +142,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 2344,
-    "cache_creation_tokens": 449048,
-    "cache_read_tokens": 19725049,
-    "output_tokens": 39515,
-    "api_call_count": 248
+    "input_tokens": 2238,
+    "cache_creation_tokens": 446402,
+    "cache_read_tokens": 19100345,
+    "output_tokens": 38639,
+    "api_call_count": 235
   }
 }
