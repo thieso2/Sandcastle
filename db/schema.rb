@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_074301) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_071603) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -69,6 +69,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_074301) do
     t.datetime "created_at", null: false
     t.string "data_path"
     t.string "image", default: "ghcr.io/thieso2/sandcastle-sandbox:latest", null: false
+    t.text "job_error"
+    t.datetime "job_started_at"
+    t.string "job_status"
     t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
     t.boolean "persistent_volume", default: false, null: false
@@ -80,7 +83,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_074301) do
     t.integer "user_id", null: false
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
+    t.index ["job_status"], name: "index_sandboxes_on_job_status"
     t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "((status)::text <> 'destroyed'::text)"
+    t.index ["user_id", "job_status"], name: "index_sandboxes_on_user_id_and_job_status"
     t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "((status)::text <> 'destroyed'::text)"
     t.index ["user_id"], name: "index_sandboxes_on_user_id"
   end
@@ -112,6 +117,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_074301) do
 
   create_table "users", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
+    t.boolean "chrome_persist_profile", default: true, null: false
     t.datetime "created_at", null: false
     t.string "email_address", null: false
     t.string "full_name"

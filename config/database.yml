@@ -8,8 +8,21 @@ default: &default
   password: <%= ENV.fetch("DB_PASSWORD", "sandcastle") %>
 
 development:
-  <<: *default
-  database: sandcastle_development
+  primary:
+    <<: *default
+    database: sandcastle_development
+  cache:
+    <<: *default
+    database: sandcastle_development_cache
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *default
+    database: sandcastle_development_queue
+    schema_directory: db
+  cable:
+    <<: *default
+    database: sandcastle_development_cable
+    migrations_paths: db/cable_migrate
 
 test:
   <<: *default
