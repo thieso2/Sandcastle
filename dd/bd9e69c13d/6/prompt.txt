@@ -51,3 +51,16 @@ yes @ inline_confirm_controller-bc013d19.js:75
 invokeWithEvent @ controller.ts:28
 handleEvent @ controller.ts:28
 handleEvent @ controller.ts:28Understand this error
+
+---
+
+[InlineConfirm] Message: Destroy? Form: https://sandcastle.local:8443/sandboxes/15
+inline_confirm_controller-88374147.js:47 [InlineConfirm] Yes clicked
+inline_confirm_controller-88374147.js:59 [InlineConfirm] Submitting form: https://sandcastle.local:8443/sandboxes/15
+inline_confirm_controller-88374147.js:60 [InlineConfirm] Form method: post
+inline_confirm_controller-88374147.js:61 [InlineConfirm] _method field: delete
+inline_confirm_controller-88374147.js:67 [InlineConfirm] Clicking submit button
+inline_confirm_controller-88374147.js:7 [InlineConfirm] Confirm clicked <button class=​"text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:​bg-red-700 transition-colors" data-action=​"click->inline-confirm#confirm" data-confirm-message=​"Destroy?" type=​"submit">​Destroy​</button>​
+
+
+but no action in the server-log!

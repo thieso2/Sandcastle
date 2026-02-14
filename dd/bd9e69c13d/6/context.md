@@ -56,3 +56,12 @@ invokeWithEvent @ controller.ts:28
 handleEvent @ controller.ts:28
 handleEvent @ controller.ts:28Understand this error
 
+### Prompt 10
+
+[InlineConfirm] Message: Destroy? Form: https://sandcastle.local:8443/sandboxes/15
+inline_confirm_controller-88374147.js:47 [InlineConfirm] Yes clicked
+inline_confirm_controller-88374147.js:59 [InlineConfirm] Submitting form: https://sandcastle.local:8443/sandboxes/15
+inline_confirm_controller-88374147.js:60 [InlineConfirm] Form method: post
+inline_confirm_controller-88374147.js:61 [InlineConfirm] _method field: delete
+inline_confirm_controller-88374147.js:67 [InlineConfirm] Clicking submit butt...
+
