@@ -59,17 +59,11 @@ fi
 ssh-keygen -A
 
 # Start Docker daemon in background (requires Sysbox runtime for isolated /var/lib/docker)
+# Don't wait for it to be ready - users can check with `docker info` after SSH login
 if command -v dockerd &>/dev/null && [ -e /dev/fuse ]; then
     # Match inner Docker bridge MTU to container's eth0 to avoid packet fragmentation
     ETH0_MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
     dockerd --storage-driver=overlay2 --mtu="$ETH0_MTU" &>/var/log/dockerd.log &
-    # Wait briefly for Docker daemon to be ready
-    for i in $(seq 1 30); do
-        if docker info &>/dev/null; then
-            break
-        fi
-        sleep 1
-    done
 else
     echo "Note: Docker-in-Docker not available (requires sysbox-runc runtime)" >&2
 fi
