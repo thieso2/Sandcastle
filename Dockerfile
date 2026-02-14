@@ -92,6 +92,10 @@ ENV RAILS_ENV="development" \
 
 # Install all gems (including development/test)
 COPY Gemfile Gemfile.lock ./
+# Install libyaml-dev for psych gem
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y libyaml-dev && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 RUN bundle install
 
 # Set working directory

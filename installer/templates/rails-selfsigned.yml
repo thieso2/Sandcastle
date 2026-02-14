@@ -1,0 +1,13 @@
+http:
+  routers:
+    rails:
+      rule: "HostRegexp(`.+`)"
+      service: rails
+      entryPoints:
+        - websecure
+      tls: {}
+  services:
+    rails:
+      loadBalancer:
+        servers:
+          - url: "http://sandcastle-web:80"

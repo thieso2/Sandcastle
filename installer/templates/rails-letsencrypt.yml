@@ -1,0 +1,14 @@
+http:
+  routers:
+    rails:
+      rule: "Host(`${SANDCASTLE_HOST}`)"
+      service: rails
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+  services:
+    rails:
+      loadBalancer:
+        servers:
+          - url: "http://sandcastle-web:80"
