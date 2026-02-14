@@ -1,0 +1,38 @@
+i see this in the log:
+explain:
+sandcastle-web     | [39a9548d-4732-4552-a989-2d2a3d68d522] Started GET "/terminal/19/wetty/socket.io/?EIO=4&transport=polling&t=PnQelzn" for 192.168.117.1 at 2026-02-14 05:32:37 +0000
+sandcastle-web     | [39a9548d-4732-4552-a989-2d2a3d68d522]
+sandcastle-web     | [39a9548d-4732-4552-a989-2d2a3d68d522] ActionController::RoutingError (No route matches [GET] "/terminal/19/wetty/socket.io"):
+sandcastle-web     | [39a9548d-4732-4552-a989-2d2a3d68d522]
+sandcastle-web     | [46adbd7f-7178-47e3-a995-0da698a71dcc] Started GET "/terminal/19/wetty/socket.io/?EIO=4&transport=polling&t=PnQenBv" for 192.168.117.1 at 2026-02-14 05:32:42 +0000
+sandcastle-web     | [46adbd7f-7178-47e3-a995-0da698a71dcc]
+sandcastle-web     | [46adbd7f-7178-47e3-a995-0da698a71dcc] ActionController::RoutingError (No route matches [GET] "/terminal/19/wetty/socket.io"):
+sandcastle-web     | [46adbd7f-7178-47e3-a995-0da698a71dcc]
+sandcastle-web     | [616a2710-2a08-4356-a811-d84066544593] Started GET "/terminal/19/wetty/socket.io/?EIO=4&transport=polling&t=PnQeofg" for 192.168.117.1 at 2026-02-14 05:32:48 +0000
+sandcastle-web     | [616a2710-2a08-4356-a811-d84066544593]
+sandcastle-web     | [616a2710-2a08-4356-a811-d84066544593] ActionController::RoutingError (No route matches [GET] "/terminal/19/wetty/socket.io"):
+sandcastle-web     | [616a2710-2a08-4356-a811-d84066544593]
+
+---
+
+[Request interrupted by user]
+
+---
+
+commit work
+
+---
+
+commit
+
+---
+
+created vi  cli - buttons are incerrect!
+
+---
+
+[Request interrupted by user]
+
+---
+
+a temp sandbox shoudl ony have Stop and destroy and also show clearly that its temp...
