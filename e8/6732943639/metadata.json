@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "e86732943639",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "installer/templates/dockyard.env.template",
+    "installer/templates/sandcastle.env.template"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e8/6732943639/0/metadata.json",
+      "transcript": "/e8/6732943639/0/full.jsonl",
+      "context": "/e8/6732943639/0/context.md",
+      "content_hash": "/e8/6732943639/0/content_hash.txt",
+      "prompt": "/e8/6732943639/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 65,
+    "cache_creation_tokens": 2784,
+    "cache_read_tokens": 519849,
+    "output_tokens": 957,
+    "api_call_count": 9
+  }
+}

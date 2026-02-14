@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "e86732943639",
+  "session_id": "08cb7cd3-275e-44e6-9d18-6b34cb197a1a",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-14T11:58:25.633615Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "installer/templates/dockyard.env.template",
+    "installer/templates/sandcastle.env.template"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "0740818a-eabc-45a9-a06a-6bbc84adace9",
+  "checkpoint_transcript_start": 76,
+  "transcript_lines_at_start": 76,
+  "token_usage": {
+    "input_tokens": 65,
+    "cache_creation_tokens": 2784,
+    "cache_read_tokens": 519849,
+    "output_tokens": 957,
+    "api_call_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-14T11:58:25.60671Z",
+    "agent_lines": 0,
+    "human_added": 72,
+    "human_modified": 48,
+    "human_removed": 0,
+    "total_committed": 120,
+    "agent_percentage": 0
+  }
+}
