@@ -68,3 +68,7 @@ but no action in the server-log!
 ---
 
 when destroy is done the sandbox is not removed fro the screen.
+
+---
+
+remove logging

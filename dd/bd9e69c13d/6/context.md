@@ -69,3 +69,7 @@ inline_confirm_controller-88374147.js:67 [InlineConfirm] Clicking submit butt...
 
 when destroy is done the sandbox is not removed fro the screen.
 
+### Prompt 12
+
+remove logging
+

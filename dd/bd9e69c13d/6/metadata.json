@@ -3,30 +3,32 @@
   "checkpoint_id": "ddbd9e69c13d",
   "session_id": "660c8564-00fa-4de6-beb6-1a5be6b95826",
   "strategy": "manual-commit",
-  "created_at": "2026-02-14T05:27:03.795871Z",
+  "created_at": "2026-02-14T05:29:27.489814Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "app/models/sandbox.rb"
+    "app/controllers/sandboxes_controller.rb",
+    "app/javascript/controllers/inline_confirm_controller.js",
+    "app/jobs/sandbox_destroy_job.rb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "5a6407f7-46ca-42ec-a122-a08b2246fb1e",
-  "checkpoint_transcript_start": 666,
-  "transcript_lines_at_start": 666,
+  "transcript_identifier_at_start": "4765d39e-3fff-40cd-b45e-5dfaba540923",
+  "checkpoint_transcript_start": 702,
+  "transcript_lines_at_start": 702,
   "token_usage": {
-    "input_tokens": 50,
-    "cache_creation_tokens": 4217,
-    "cache_read_tokens": 921205,
-    "output_tokens": 99,
-    "api_call_count": 6
+    "input_tokens": 18,
+    "cache_creation_tokens": 2728,
+    "cache_read_tokens": 313085,
+    "output_tokens": 2431,
+    "api_call_count": 2
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-14T05:27:03.719139Z",
-    "agent_lines": 0,
-    "human_added": 5,
-    "human_modified": 6,
+    "calculated_at": "2026-02-14T05:29:27.404459Z",
+    "agent_lines": 3,
+    "human_added": 91,
+    "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 5,
-    "agent_percentage": 0
+    "total_committed": 94,
+    "agent_percentage": 3.1914893617021276
   }
 }
