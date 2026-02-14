@@ -64,12 +64,17 @@ class Sandbox < ApplicationRecord
   private
 
   def broadcast_replace_to_dashboard
-    broadcast_replace_to(
-      [user, "dashboard"],
-      partial: "dashboard/sandbox",
-      locals: { sandbox: self },
-      target: dom_id(self)
-    )
+    # If sandbox is destroyed, remove it from the dashboard instead of replacing
+    if status == "destroyed"
+      broadcast_remove_to([user, "dashboard"], target: dom_id(self))
+    else
+      broadcast_replace_to(
+        [user, "dashboard"],
+        partial: "dashboard/sandbox",
+        locals: { sandbox: self },
+        target: dom_id(self)
+      )
+    end
   end
 
   def broadcast_remove_from_dashboard
