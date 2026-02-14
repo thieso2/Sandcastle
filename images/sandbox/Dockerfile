@@ -58,12 +58,11 @@ RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
     && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
     && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc
 
-# SSH configuration (key-only auth)
-RUN mkdir /var/run/sshd \
-    && sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config \
-    && sed -i 's/#PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config \
-    && sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+# SSH configuration (key-only auth) — use drop-in config for Ubuntu 25.10 compatibility
+RUN mkdir -p /var/run/sshd /etc/ssh/sshd_config.d \
+    && echo "PermitRootLogin no" > /etc/ssh/sshd_config.d/10-sandcastle.conf \
+    && echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config.d/10-sandcastle.conf \
+    && echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
@@ -72,7 +71,7 @@ COPY tmux.conf /etc/tmux.conf
 COPY gitconfig /etc/gitconfig
 
 LABEL org.opencontainers.image.source="https://github.com/thieso2/sandcastle"
-LABEL org.opencontainers.image.description="Sandcastle sandbox image — Ubuntu 24.04 with Docker-in-Docker, SSH, and dev tools"
+LABEL org.opencontainers.image.description="Sandcastle sandbox image — Ubuntu 25.10 with Docker-in-Docker, SSH, and dev tools"
 LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /workspace
