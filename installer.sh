@@ -635,6 +635,12 @@ cmd_destroy() {
       $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" --env-file "$SANDCASTLE_HOME/.env" down --rmi all --volumes --remove-orphans 2>/dev/null || true
     fi
     $DOCKER network rm sandcastle-web 2>/dev/null || true
+
+    # Remove sandbox image explicitly (not removed by compose down)
+    if [ -n "${SANDBOX_IMAGE:-}" ]; then
+      info "Removing sandbox image: $SANDBOX_IMAGE"
+      $DOCKER rmi "$SANDBOX_IMAGE" 2>/dev/null || true
+    fi
   fi
 
   # Destroy Dockyard
@@ -654,39 +660,32 @@ cmd_destroy() {
     ok "Dockyard destroyed"
   fi
 
-  # Remove user/group if we created them
-  if [ "${CREATED_USER:-}" = "true" ] && id "$SANDCASTLE_USER" &>/dev/null; then
-    userdel "$SANDCASTLE_USER" 2>/dev/null || true
+  # Remove user and group
+  if id "$SANDCASTLE_USER" &>/dev/null; then
+    userdel -r "$SANDCASTLE_USER" 2>/dev/null || true
     ok "Removed user '${SANDCASTLE_USER}'"
   fi
-  if [ "${CREATED_GROUP:-}" = "true" ] && getent group "$SANDCASTLE_GROUP" &>/dev/null; then
+  if getent group "$SANDCASTLE_GROUP" &>/dev/null; then
     groupdel "$SANDCASTLE_GROUP" 2>/dev/null || true
     ok "Removed group '${SANDCASTLE_GROUP}'"
   fi
 
   # sandcastle-nat.service no longer used (dockyard handles NAT for user-defined networks)
 
+  # Revert UFW firewall rules
+  if command -v ufw &>/dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
+    info "Reverting firewall rules..."
+    ufw delete allow "${SANDCASTLE_HTTP_PORT:-80}/tcp" >/dev/null 2>&1 || true
+    ufw delete allow "${SANDCASTLE_HTTPS_PORT:-443}/tcp" >/dev/null 2>&1 || true
+    ufw delete allow 2201:2299/tcp >/dev/null 2>&1 || true
+    ok "Firewall rules reverted"
+  fi
+
   # Remove sudoers file
   if [ -f /etc/sudoers.d/sandcastle ]; then
     rm -f /etc/sudoers.d/sandcastle
     ok "Removed sudoers file"
   fi
-
-  # Remove PATH export from .profile and .bashrc (try both old and new format for compatibility)
-  local old_path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin/:\$PATH"
-  local new_path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
-
-  for file in "$SANDCASTLE_HOME/.profile" "$SANDCASTLE_HOME/.bashrc"; do
-    if [ -f "$file" ]; then
-      for path_export in "$old_path_export" "$new_path_export"; do
-        if grep -qF "$path_export" "$file" 2>/dev/null; then
-          grep -vF "$path_export" "$file" > "${file}.tmp"
-          mv "${file}.tmp" "$file"
-          ok "Removed PATH export from $(basename "$file")"
-        fi
-      done
-    fi
-  done
 
   # Remove login banner
   if [ -f "/etc/profile.d/sandcastle-banner.sh" ]; then
