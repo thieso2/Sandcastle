@@ -57,7 +57,20 @@ export default class extends Controller {
 
     if (form) {
       console.log('[InlineConfirm] Submitting form:', form.action)
-      form.requestSubmit()
+      console.log('[InlineConfirm] Form method:', form.method)
+      console.log('[InlineConfirm] _method field:', form.querySelector('input[name="_method"]')?.value)
+
+      // Find the submit button in the form
+      const submitButton = form.querySelector('button[type="submit"]')
+
+      if (submitButton) {
+        console.log('[InlineConfirm] Submitting with button')
+        form.requestSubmit(submitButton)
+      } else {
+        console.log('[InlineConfirm] No submit button, using form.submit()')
+        // Fallback: just submit the form (won't trigger Turbo but will work)
+        form.submit()
+      }
     } else {
       console.error('[InlineConfirm] Form not found for ID:', formId)
     }
