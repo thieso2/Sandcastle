@@ -26,3 +26,7 @@ Read the output file to retrieve the result: REDACTED.output
 
 "stopping" does not terminate - does the background job return work?
 
+### Prompt 5
+
+start/stop are fin - destroy does not destroy! trace the code!
+
