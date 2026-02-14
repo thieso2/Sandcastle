@@ -195,3 +195,11 @@ echo ""
 echo "Tag $new_version pushed. GitHub Actions will build the release."
 echo "https://github.com/thieso2/Sandcastle/actions"
 """
+
+[tasks."installer:sync"]
+description = "Sync source files (docker-compose.yml, init-databases.sh) into installer.sh"
+run = "installer/sync-files.sh"
+
+[tasks."installer:validate"]
+description = "Validate installer.sh is in sync with source files"
+run = "installer/build.sh"
