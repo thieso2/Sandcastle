@@ -89,3 +89,11 @@ hwo do i generate installer.sh
 
 - Create installer.sh.in with @@TEMPLATE:filename@@ markers
   - Build script replaces markers with file contents
+
+---
+
+commit and push
+
+---
+
+explain teh exact diffrences between the deploy:local and the server deploy (via installer.sh) explore and creaete a table.

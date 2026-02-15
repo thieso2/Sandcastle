@@ -10,12 +10,9 @@
     "config/environments/development.rb",
     "config/puma.rb",
     "docker-compose.dev.yml",
-    "installer/README.md",
-    "installer/build.sh",
-    "installer/create-template.py",
+    "docs/deployment-comparison.md",
     "installer/templates/dockyard.env.template",
     "installer/templates/sandcastle.env.template",
-    "mise.toml",
     "tmp/pids/server.pid"
   ],
   "sessions": [
@@ -42,10 +39,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 826,
-    "cache_creation_tokens": 104238,
-    "cache_read_tokens": 8817160,
-    "output_tokens": 20725,
-    "api_call_count": 106
+    "input_tokens": 723,
+    "cache_creation_tokens": 412054,
+    "cache_read_tokens": 6478755,
+    "output_tokens": 14006,
+    "api_call_count": 89
   }
 }

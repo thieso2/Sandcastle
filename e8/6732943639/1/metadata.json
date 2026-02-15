@@ -3,33 +3,30 @@
   "checkpoint_id": "e86732943639",
   "session_id": "86a1085e-1abb-4c1e-8c41-0041e9874709",
   "strategy": "manual-commit",
-  "created_at": "2026-02-14T12:18:47.868457Z",
+  "created_at": "2026-02-15T14:52:42.072012Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "installer/README.md",
-    "installer/build.sh",
-    "installer/create-template.py",
-    "mise.toml"
+    "docs/deployment-comparison.md"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "0a2b0495-2cf5-43e3-a2d0-2a275e2ed7cc",
-  "checkpoint_transcript_start": 745,
-  "transcript_lines_at_start": 745,
+  "transcript_identifier_at_start": "0e1255d4-2fb3-4594-a8ee-bcc2c6f11770",
+  "checkpoint_transcript_start": 882,
+  "transcript_lines_at_start": 882,
   "token_usage": {
-    "input_tokens": 191,
-    "cache_creation_tokens": 12293,
-    "cache_read_tokens": 3189175,
-    "output_tokens": 7260,
-    "api_call_count": 26
+    "input_tokens": 88,
+    "cache_creation_tokens": 320109,
+    "cache_read_tokens": 850770,
+    "output_tokens": 541,
+    "api_call_count": 9
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-14T12:18:47.706647Z",
+    "calculated_at": "2026-02-15T14:52:41.900416Z",
     "agent_lines": 0,
-    "human_added": 1424,
-    "human_modified": 1,
+    "human_added": 306,
+    "human_modified": 191,
     "human_removed": 0,
-    "total_committed": 1425,
+    "total_committed": 491,
     "agent_percentage": 0
   }
 }
