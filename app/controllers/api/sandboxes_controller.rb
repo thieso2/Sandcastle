@@ -84,8 +84,20 @@ module Api
     end
 
     def connect
+      # Allow pending sandboxes to return connect info (they may still be provisioning)
       info = SandboxManager.new.connect_info(sandbox: @sandbox)
       render json: info
+    rescue SandboxManager::Error => e
+      # If sandbox isn't ready yet, return helpful error
+      if @sandbox.status == "pending"
+        render json: {
+          error: "Sandbox is still being provisioned",
+          status: @sandbox.status,
+          job_status: @sandbox.job_status
+        }, status: :accepted
+      else
+        raise
+      end
     end
 
     def snapshot
@@ -113,6 +125,20 @@ module Api
     def set_sandbox
       @sandbox = policy_scope(Sandbox).find(params[:id])
       authorize @sandbox
+    rescue ActiveRecord::RecordNotFound
+      # Check if sandbox exists but is out of scope (destroyed or wrong user)
+      sandbox = Sandbox.find_by(id: params[:id])
+      if sandbox.nil?
+        raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} not found"
+      elsif sandbox.status == "destroyed"
+        raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} has been destroyed"
+      elsif sandbox.user_id != current_user.id && !current_user.admin?
+        raise Pundit::NotAuthorizedError, "You don't have access to this sandbox"
+      else
+        # Sandbox exists and belongs to user, but not in policy scope - this shouldn't happen
+        Rails.logger.error("Sandbox #{params[:id]} exists (status: #{sandbox.status}, user: #{sandbox.user_id}) but not in policy_scope for user #{current_user.id} (admin: #{current_user.admin?})")
+        raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} is not accessible (status: #{sandbox.status})"
+      end
     end
 
     def sandbox_json(sandbox)
