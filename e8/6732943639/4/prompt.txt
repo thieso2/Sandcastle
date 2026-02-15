@@ -1,0 +1,44 @@
+ctrea a file LOCAL.md taht desribes the local dev-env (mise run deploy:local) with all commands ho to start stop, inspect axamine the local env. i want too feed this file into claude when doing local debuggin session.
+
+---
+
+[Request interrupted by user]
+
+---
+
+continue
+
+---
+
+now debug VNC connection:
+thsi is what happens right now:
+sandcastle-web     | [51d6b49c-ed86-4245-bf0a-d143d34c6a99] Started POST "/sandboxes/38/vnc" for 192.168.117.1 at 2026-02-15 14:52:01 +0000
+sandcastle-web     | [51d6b49c-ed86-4245-bf0a-d143d34c6a99] Processing by VncController#open as HTML
+sandcastle-web     | [51d6b49c-ed86-4245-bf0a-d143d34c6a99]   Parameters: {"authenticity_token" => "[FILTERED]", "id" => "38"}
+traefik-1          | 2026-02-15T14:52:42Z WRN No domain found in rule HostRegexp(`.+`), the TLS options applied for this router will depend on the SNI of each request entryPointName=websecure routerName=rails-https@file
+traefik-1          | 2026-02-15T14:52:42Z WRN No domain found in rule HostRegexp(`.+`) && PathPrefix(`/vnc/38/novnc`), the TLS options applied for this router will depend on the SNI of each request entryPointName=websecure routerName=vnc-38@file
+sandcastle-web     | [51d6b49c-ed86-4245-bf0a-d143d34c6a99] Redirected to https://sandcastle.local:8443/sandboxes/38/vnc/wait
+sandcastle-web     | [51d6b49c-ed86-4245-bf0a-d143d34c6a99] Completed 303 See Other in 44770ms (ActiveRecord: 2.6ms (4 queries, 1 cached) | GC: 262.6ms)
+sandcastle-web     | [9bc407e9-4868-47c5-b07f-f4e57ca59e6a] Started GET "/sandboxes/38/vnc/wait" for 192.168.117.1 at 2026-02-15 14:52:46 +0000
+sandcastle-web     | [9bc407e9-4868-47c5-b07f-f4e57ca59e6a] Processing by VncController#wait as HTML
+sandcastle-web     | [9bc407e9-4868-47c5-b07f-f4e57ca59e6a]   Parameters: {"id" => "38"}
+sandcastle-web     | [9bc407e9-4868-47c5-b07f-f4e57ca59e6a]   Rendered layout layouts/application.html.erb (Duration: 7.1ms | GC: 0.0ms)
+sandcastle-web     | [9bc407e9-4868-47c5-b07f-f4e57ca59e6a] Completed 200 OK in 20ms (Views: 9.1ms | ActiveRecord: 1.2ms (3 queries, 0 cached) | GC: 0.2ms)
+sandcastle-web     | [1e83cbd8-2405-403a-97b7-72d44226d14c] Started GET "/sandboxes/38/vnc/status" for 192.168.117.1 at 2026-02-15 14:52:47 +0000
+sandcastle-web     | [1e83cbd8-2405-403a-97b7-72d44226d14c] Processing by VncController#status as JSON
+sandcastle-web     | [1e83cbd8-2405-403a-97b7-72d44226d14c]   Parameters: {"id" => "38"}
+sandcastle-web     | [1e83cbd8-2405-403a-97b7-72d44226d14c] Completed 200 OK in 14ms (Views: 0.4ms | ActiveRecord: 1.2ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [31dd01dd-1e82-4ea0-8e60-55f45ee761d8] Started GET "/vnc/auth" for 192.168.117.1 at 2026-02-15 14:52:47 +0000
+sandcastle-web     | [31dd01dd-1e82-4ea0-8e60-55f45ee761d8] Processing by VncController#auth as HTML
+sandcastle-web     | [31dd01dd-1e82-4ea0-8e60-55f45ee761d8] Completed 200 OK in 4ms (ActiveRecord: 0.5ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [274bbaca-5188-4210-9634-7baa64df0e3f] Started GET "/favicon.ico" for 192.168.117.1 at 2026-02-15 14:52:47 +0000
+sandcastle-web     | [274bbaca-5188-4210-9634-7baa64df0e3f]
+sandcastle-web     | [274bbaca-5188-4210-9634-7baa64df0e3f] ActionController::RoutingError (No route matches [GET] "/favicon.ico"):
+sandcastle-web     | [274bbaca-5188-4210-9634-7baa64df0e3f]
+sandcastle-web     | [53a4690d-e2a3-458b-bbda-28c3abcb87be] Started GET "/vnc/auth" for 192.168.117.1 at 2026-02-15 14:53:16 +0000
+sandcastle-web     | [53a4690d-e2a3-458b-bbda-28c3abcb87be] Processing by VncController#auth as HTML
+sandcastle-web     | [53a4690d-e2a3-458b-bbda-28c3abcb87be] Completed 200 OK in 8ms (ActiveRecord: 1.0ms (3 queries, 0 cached) | GC: 0.0ms)
+
+---
+
+yes

@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "e86732943639",
+  "session_id": "4ba4e355-06b3-4a3d-80e9-9d41946b4f21",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-15T16:16:58.756603Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "LOCAL.md",
+    "app/services/vnc_manager.rb",
+    "images/sandbox/Dockerfile"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "9ed41452-a92a-4a49-be9a-0481513151a9",
+  "token_usage": {
+    "input_tokens": 1518,
+    "cache_creation_tokens": 117337,
+    "cache_read_tokens": 5046370,
+    "output_tokens": 11243,
+    "api_call_count": 73
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-15T16:16:58.639446Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 135,
+    "human_removed": 358,
+    "total_committed": 135,
+    "agent_percentage": 0
+  }
+}

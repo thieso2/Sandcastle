@@ -3,15 +3,18 @@
   "checkpoint_id": "e86732943639",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 7,
   "files_touched": [
+    "LOCAL.md",
     "Procfile.dev",
     "app/controllers/api/sandboxes_controller.rb",
+    "app/services/vnc_manager.rb",
     "config/database.yml",
     "config/environments/development.rb",
     "config/puma.rb",
     "docker-compose.dev.yml",
     "docs/deployment-comparison.md",
+    "images/sandbox/Dockerfile",
     "installer/templates/dockyard.env.template",
     "installer/templates/sandcastle.env.template",
     "tmp/pids/server.pid"
@@ -44,13 +47,20 @@
       "context": "/e8/6732943639/3/context.md",
       "content_hash": "/e8/6732943639/3/content_hash.txt",
       "prompt": "/e8/6732943639/3/prompt.txt"
+    },
+    {
+      "metadata": "/e8/6732943639/4/metadata.json",
+      "transcript": "/e8/6732943639/4/full.jsonl",
+      "context": "/e8/6732943639/4/context.md",
+      "content_hash": "/e8/6732943639/4/content_hash.txt",
+      "prompt": "/e8/6732943639/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1118,
-    "cache_creation_tokens": 437291,
-    "cache_read_tokens": 9300979,
-    "output_tokens": 20402,
-    "api_call_count": 121
+    "input_tokens": 2636,
+    "cache_creation_tokens": 554628,
+    "cache_read_tokens": 14347349,
+    "output_tokens": 31645,
+    "api_call_count": 194
   }
 }
