@@ -79,10 +79,16 @@ class RouteManager
   def write_rails_config(host:)
     FileUtils.mkdir_p(DYNAMIC_DIR)
 
+    # Build host list: main host + optional alternative hostnames
+    hosts = [ host ]
+    alt_hostnames = ENV["SANDCASTLE_ALT_HOSTNAMES"].to_s.split(",").map(&:strip).reject(&:empty?)
+    hosts += alt_hostnames
+
     rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
       "HostRegexp(`.+`)"
     else
-      "Host(`#{host}`)"
+      host_rules = hosts.map { |h| "`#{h}`" }.join(", ")
+      "Host(#{host_rules})"
     end
 
     config = {
@@ -112,20 +118,34 @@ class RouteManager
 
     # Add TLS certificates section for self-signed mode
     if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
-      config["tls"] = {
-        "certificates" => [
-          {
-            "certFile" => "/data/certs/cert.pem",
-            "keyFile" => "/data/certs/key.pem"
-          }
-        ]
-      }
+      certs = [
+        {
+          "certFile" => "/data/certs/cert.pem",
+          "keyFile" => "/data/certs/key.pem"
+        }
+      ]
+
+      # Add custom certificates if configured
+      if custom_cert_configured?
+        certs << {
+          "certFile" => "/data/certs/custom-cert.pem",
+          "keyFile" => "/data/certs/custom-key.pem"
+        }
+      end
+
+      config["tls"] = { "certificates" => certs }
     end
 
     File.write(File.join(DYNAMIC_DIR, "rails.yml"), config.to_yaml)
   end
 
   private
+
+  def custom_cert_configured?
+    cert_path = File.join(DATA_DIR, "traefik", "certs", "custom-cert.pem")
+    key_path = File.join(DATA_DIR, "traefik", "certs", "custom-key.pem")
+    File.exist?(cert_path) && File.exist?(key_path)
+  end
 
   def config_path(sandbox)
     File.join(DYNAMIC_DIR, "sandbox-#{sandbox.id}.yml")
