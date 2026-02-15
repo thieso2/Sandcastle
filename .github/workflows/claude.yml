@@ -19,11 +19,11 @@ jobs:
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
     permissions:
-      contents: write        # Allow creating branches, commits, and pushes
-      pull-requests: write   # Allow creating and updating pull requests
-      issues: write          # Allow updating issues
+      contents: write
+      pull-requests: write
+      issues: write
       id-token: write
-      actions: read          # Required for Claude to read CI results on PRs
+      actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
           additional_permissions: |
             actions: read
 
-          # Allow git operations (commit, push, branch creation) without approval
+          # Allow git operations (commit, push, branch creation) and PR creation without approval
           # Allow running tests, linters, and build commands
           claude_args: |
             --allowedTools "Bash(git add *)"
@@ -50,6 +50,11 @@ jobs:
             --allowedTools "Bash(git branch *)"
             --allowedTools "Bash(git status *)"
             --allowedTools "Bash(git diff *)"
+            --allowedTools "Bash(git log *)"
+            --allowedTools "Bash(git restore *)"
+            --allowedTools "Bash(gh pr create *)"
+            --allowedTools "Bash(gh pr view *)"
+            --allowedTools "Bash(gh pr list *)"
             --allowedTools "Bash(bin/rails test *)"
             --allowedTools "Bash(bin/rubocop *)"
             --allowedTools "Bash(bin/brakeman *)"
