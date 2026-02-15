@@ -570,6 +570,13 @@ SANDCASTLE_TLS_MODE=${tls_mode}
 SANDCASTLE_HTTP_PORT=${http_port}
 SANDCASTLE_HTTPS_PORT=${https_port}
 
+# ─── Alternative Hostnames & Custom Certificates ───────────────────────────
+# Comma-separated list of alternative domain names (e.g., "sandcastle.internal,sc.local")
+#SANDCASTLE_ALT_HOSTNAMES=
+# Path to custom certificate and key files (e.g., from mkcert)
+#SANDCASTLE_CUSTOM_CERT_PATH=
+#SANDCASTLE_CUSTOM_KEY_PATH=
+
 # ─── Admin account (required for fresh install) ─────────────────────────────
 SANDCASTLE_ADMIN_USER=${admin_user}
 SANDCASTLE_ADMIN_EMAIL=${admin_email}
@@ -893,6 +900,13 @@ EOF
     echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
   grep -q '^GOOGLE_CLIENT_SECRET=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}" >> "$SANDCASTLE_HOME/.env"
+  # Backfill alternative hostname vars
+  grep -q '^SANDCASTLE_ALT_HOSTNAMES=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "SANDCASTLE_ALT_HOSTNAMES=${SANDCASTLE_ALT_HOSTNAMES:-}" >> "$SANDCASTLE_HOME/.env"
+  grep -q '^SANDCASTLE_CUSTOM_CERT_PATH=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "SANDCASTLE_CUSTOM_CERT_PATH=${SANDCASTLE_CUSTOM_CERT_PATH:-}" >> "$SANDCASTLE_HOME/.env"
+  grep -q '^SANDCASTLE_CUSTOM_KEY_PATH=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "SANDCASTLE_CUSTOM_KEY_PATH=${SANDCASTLE_CUSTOM_KEY_PATH:-}" >> "$SANDCASTLE_HOME/.env"
 
   # ── Write installed sandcastle.env ────────────────────────────────────────
 
@@ -934,6 +948,25 @@ EOF
   # ── Traefik config ────────────────────────────────────────────────────────
 
   TRAEFIK_DIR="$SANDCASTLE_HOME/data/traefik"
+
+  # ── Copy custom certificates if provided ─────────────────────────────────
+
+  if [ -n "${SANDCASTLE_CUSTOM_CERT_PATH:-}" ] && [ -n "${SANDCASTLE_CUSTOM_KEY_PATH:-}" ]; then
+    if [ ! -f "$SANDCASTLE_CUSTOM_CERT_PATH" ]; then
+      die "Custom certificate not found: $SANDCASTLE_CUSTOM_CERT_PATH"
+    fi
+    if [ ! -f "$SANDCASTLE_CUSTOM_KEY_PATH" ]; then
+      die "Custom key not found: $SANDCASTLE_CUSTOM_KEY_PATH"
+    fi
+
+    info "Copying custom certificates..."
+    cp "$SANDCASTLE_CUSTOM_CERT_PATH" "$TRAEFIK_DIR/certs/custom-cert.pem"
+    cp "$SANDCASTLE_CUSTOM_KEY_PATH" "$TRAEFIK_DIR/certs/custom-key.pem"
+    chmod 644 "$TRAEFIK_DIR/certs/custom-cert.pem"
+    chmod 600 "$TRAEFIK_DIR/certs/custom-key.pem"
+    chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$TRAEFIK_DIR/certs/custom-cert.pem" "$TRAEFIK_DIR/certs/custom-key.pem"
+    ok "Custom certificates copied to $TRAEFIK_DIR/certs/"
+  fi
 
   if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
     if [ ! -f "$TRAEFIK_DIR/certs/cert.pem" ]; then

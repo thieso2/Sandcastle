@@ -45,6 +45,7 @@ services:
       SANDCASTLE_HOST: ${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: ${SANDCASTLE_TLS_MODE:-letsencrypt}
+      SANDCASTLE_ALT_HOSTNAMES: ${SANDCASTLE_ALT_HOSTNAMES:-}
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
