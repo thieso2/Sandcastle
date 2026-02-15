@@ -305,12 +305,13 @@ class TailscaleManager
   end
 
   def subnet_for(user)
-    base = ENV.fetch("SANDCASTLE_SUBNET", "172.30.99.0/24")
-    # Derive per-user /24 by offsetting the third octet from the base
-    # e.g. base 172.19.142.0/24, user_id 1 → 172.19.143.0/24
+    base = ENV.fetch("DOCKYARD_POOL_BASE", "172.89.0.0/16")
+    # Derive per-user /24 from the /16 pool allocated by dockyard
+    # e.g. base 172.89.0.0/16, user_id 1 → 172.89.1.0/24, user_id 2 → 172.89.2.0/24
+    # This ensures Tailscale networks are within DOCKYARD_POOL_BASE so dockyard's NAT rules apply
     parts = base.split("/").first.split(".").map(&:to_i)
-    offset = 1 + (user.id % 100)
-    parts[2] = (parts[2] + offset) % 256
+    offset = 1 + (user.id % 255)  # 1-255 to avoid .0 subnet collision
+    parts[2] = offset
     "#{parts[0]}.#{parts[1]}.#{parts[2]}.0/24"
   end
 
