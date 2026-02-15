@@ -3,11 +3,10 @@
   "checkpoint_id": "e86732943639",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 4,
   "files_touched": [
     "Procfile.dev",
-    "SANDMAN.md",
-    "app/services/tailscale_manager.rb",
+    "app/controllers/api/sandboxes_controller.rb",
     "config/database.yml",
     "config/environments/development.rb",
     "config/puma.rb",
@@ -48,10 +47,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1080,
-    "cache_creation_tokens": 542859,
-    "cache_read_tokens": 8175185,
-    "output_tokens": 26638,
-    "api_call_count": 118
+    "input_tokens": 1118,
+    "cache_creation_tokens": 437291,
+    "cache_read_tokens": 9300979,
+    "output_tokens": 20402,
+    "api_call_count": 121
   }
 }

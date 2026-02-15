@@ -11,3 +11,25 @@ also check ../dockyard for changes.
 ---
 
 fix it
+
+---
+
+pull main with rebase
+
+---
+
+fix:
+
+~/Projects/GitHub/Sandcastle [main] % VERBOSE=1 sandcastle create thies --home --data
+server: hq (https://hq.sandcastle.rocks)
+Server: hq (https://hq.sandcastle.rocks)
+→ POST https://hq.sandcastle.rocks/api/sandboxes
+  request: {"name":"thies","image":"ghcr.io/thieso2/sandcastle-sandbox:latest","mount_home":true,"data_path":"."}
+← 201 (377 bytes)
+  response: {"id":1,"name":"thies","full_name":"thies-thies","status":"pending","image":"ghcr.io/thieso2/sandcastle-sandbox:latest","ssh_port":2201,"persistent_volume":false,"mount_home":true,"data_path":".","temporary":false,"tailscale":false,"routes":[],"created_at":"2026-02-15T15:29:41.395Z","connect_command":"ssh -p 2201 thies@hq.sandcastle.rocks","job_status":null,"job_error":null}
+Sandbox "thies" created.
+  Home:      mounted (~/ persisted)
+  Data:      mounted (user data root → /data)
+→ POST https://hq.sandcastle.rocks/api/sandboxes/1/connect
+← 404 (21 bytes)
+  response: {"error":"Not found"}
