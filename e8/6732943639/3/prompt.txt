@@ -1,0 +1,13 @@
+create SNADMAN.md woth completre deploy, explore, inspect and debug instructtions for my sancasele isntallation on sandman.
+
+---
+
+explain and debug what broke the network connectivity of the tailscale sc-ts-thies container. it used to work - what broke it?
+
+---
+
+also check ../dockyard for changes.
+
+---
+
+fix it
