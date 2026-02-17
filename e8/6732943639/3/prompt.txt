@@ -33,3 +33,88 @@ Sandbox "thies" created.
 → POST https://hq.sandcastle.rocks/api/sandboxes/1/connect
 ← 404 (21 bytes)
   response: {"error":"Not found"}
+
+---
+
+test on hq
+
+---
+
+<task-notification>
+<task-id>b098d36</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Try connecting to the sandbox" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+[Request interrupted by user]
+
+---
+
+update SANDMAN.md with instruction hos to patch raild and confg files into the running sandcaste so we do not have to reinstall from images for small fixes.
+
+---
+
+hot patch production
+
+---
+
+<task-notification>
+<task-id>b214cac</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Test sandbox creation with patched code" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+no routing for tailkscale container::
+
+thies@sandman:~$ /sandcastle/docker-runtime/bin/docker exec -ti sc-ts-thies ash
+/ # ping heise.de
+PING heise.de (193.99.144.80) 56(84) bytes of data.
+^C
+--- heise.de ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1009ms
+
+---
+
+[Request interrupted by user]
+
+---
+
+can i simply remove  sc-ts-thies
+
+---
+
+[Request interrupted by user]
+
+---
+
+i removed and recreated   sc-ts-thies still no network.
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+continue
+
+---
+
+<task-notification>
+<task-id>b9cf6e5</task-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Start Tailscale login" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+commit and push
