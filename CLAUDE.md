@@ -55,6 +55,30 @@ CLI version is injected at build time via ldflags (`-X github.com/sandcastle/cli
 
 ## Architecture
 
+### BTRFS Support
+
+Sandcastle automatically detects and uses BTRFS subvolumes when the filesystem supports it:
+
+**Installer** (`setup_btrfs_subvolumes()` in `installer.sh`):
+- Detects if `$SANDCASTLE_HOME` is on BTRFS
+- Creates subvolumes for:
+  - `$SANDCASTLE_HOME/data/users` (all user data)
+  - `$SANDCASTLE_HOME/data/sandboxes` (sandbox volumes)
+  - `$SANDCASTLE_HOME/data/postgres` (database)
+  - `$SANDCASTLE_HOME/data/wetty` (terminal keys)
+  - `$SANDCASTLE_HOME/data/traefik` (proxy config)
+  - `$DOCKYARD_ROOT/docker` (Docker data)
+
+**Rails** (`BtrfsHelper` service):
+- Creates per-user subvolumes: `/data/users/<username>`
+- Creates per-data-path subvolumes: `/data/users/<username>/data/<path>`
+- Falls back gracefully to regular directories if BTRFS operations fail
+- Uses `sudo -n /usr/bin/btrfs subvolume {show,create}` (restricted passwordless sudo)
+
+**Security**: Passwordless sudo limited to BTRFS subvolume commands only (`/etc/sudoers.d/sandcastle`).
+
+Benefits: efficient snapshots, better CoW performance, per-directory quotas.
+
 ### Two Auth Systems
 
 - **Web UI**: Session-based via `Authentication` concern → cookie `session_id`

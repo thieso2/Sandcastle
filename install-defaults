@@ -4,6 +4,11 @@
 #
 # Config file search order (override with SANDCASTLE_ENV):
 #   ./sandcastle.env → <script_dir>/sandcastle.env → $SANDCASTLE_HOME/etc/sandcastle.env
+#
+# NOTE: If SANDCASTLE_HOME is on a BTRFS filesystem, the installer will automatically
+#       create BTRFS subvolumes for data directories (users, sandboxes, postgres, wetty,
+#       traefik) and the Docker data directory. This enables efficient snapshots and
+#       better copy-on-write performance. No configuration is needed — detection is automatic.
 
 # ─── Paths & images ─────────────────────────────────────────────────────────
 

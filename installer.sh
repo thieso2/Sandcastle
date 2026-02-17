@@ -178,9 +178,18 @@ setup_ssh_keys() {
 setup_passwordless_sudo() {
   local sudoers_file="/etc/sudoers.d/sandcastle"
 
-  info "Configuring passwordless sudo for '${SANDCASTLE_USER}'..."
+  info "Configuring passwordless sudo for BTRFS commands..."
 
-  echo "${SANDCASTLE_USER} ALL=(ALL) NOPASSWD:ALL" > "$sudoers_file"
+  # Grant passwordless sudo only for BTRFS subvolume operations
+  # This allows Rails to create per-user and per-data-path subvolumes
+  # without granting full root access
+  cat > "$sudoers_file" <<SUDOERS
+# Allow ${SANDCASTLE_USER} to manage BTRFS subvolumes without password
+${SANDCASTLE_USER} ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume show *
+${SANDCASTLE_USER} ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume create *
+${SANDCASTLE_USER} ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume delete *
+${SANDCASTLE_USER} ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume snapshot *
+SUDOERS
   chmod 440 "$sudoers_file"
 
   # Validate sudoers syntax
@@ -191,7 +200,7 @@ setup_passwordless_sudo() {
   fi
 
   wrote "$sudoers_file"
-  ok "Passwordless sudo configured for '${SANDCASTLE_USER}'"
+  ok "Passwordless sudo configured for BTRFS commands"
 }
 
 # ═══ setup_bashrc_path ════════════════════════════════════════════════════
@@ -270,6 +279,104 @@ BANNER_SCRIPT
   chmod +x "$profile_d"
   wrote "$profile_d"
   ok "Login banner configured"
+}
+
+# ═══ BTRFS Support ═══════════════════════════════════════════════════════
+# Detect BTRFS filesystem and create subvolumes for data directories
+
+is_btrfs() {
+  local path="$1"
+  # Get the mount point's filesystem type
+  local fstype=$(stat -f -c %T "$path" 2>/dev/null || echo "unknown")
+  [ "$fstype" = "btrfs" ]
+}
+
+setup_btrfs_subvolumes() {
+  # Only proceed if SANDCASTLE_HOME is on BTRFS
+  if ! is_btrfs "$SANDCASTLE_HOME"; then
+    return 0
+  fi
+
+  info "BTRFS filesystem detected — creating subvolumes..."
+
+  # Create parent data directory first (as regular dir, not subvolume)
+  mkdir -p "$SANDCASTLE_HOME/data"
+
+  # Create subvolumes for each data category
+  # These allow independent snapshots, quotas, and better CoW management
+  local subvols=(
+    "$SANDCASTLE_HOME/data/users"
+    "$SANDCASTLE_HOME/data/sandboxes"
+    "$SANDCASTLE_HOME/data/postgres"
+    "$SANDCASTLE_HOME/data/wetty"
+    "$SANDCASTLE_HOME/data/traefik"
+  )
+
+  for subvol in "${subvols[@]}"; do
+    if [ -d "$subvol" ] && btrfs subvolume show "$subvol" &>/dev/null; then
+      # Already a subvolume
+      continue
+    elif [ -d "$subvol" ] && [ -n "$(ls -A "$subvol" 2>/dev/null)" ]; then
+      # Directory exists and has content — convert to subvolume
+      warn "Converting existing directory to BTRFS subvolume: $subvol"
+      local tmp_backup="${subvol}.btrfs-backup"
+      mv "$subvol" "$tmp_backup"
+      btrfs subvolume create "$subvol"
+      cp -a "$tmp_backup/." "$subvol/"
+      rm -rf "$tmp_backup"
+      ok "Converted: $subvol"
+    else
+      # Create new subvolume
+      btrfs subvolume create "$subvol"
+      ok "Created BTRFS subvolume: $subvol"
+    fi
+  done
+
+  # Create docker subvolume in DOCKYARD_ROOT if it's also on BTRFS
+  local docker_data="$DOCKYARD_ROOT/docker"
+  if [ "$DOCKYARD_ROOT" != "$SANDCASTLE_HOME" ] && is_btrfs "$DOCKYARD_ROOT"; then
+    if [ ! -d "$docker_data" ]; then
+      btrfs subvolume create "$docker_data"
+      ok "Created BTRFS subvolume: $docker_data"
+    elif ! btrfs subvolume show "$docker_data" &>/dev/null; then
+      # Docker dir exists but isn't a subvolume yet
+      if [ -n "$(ls -A "$docker_data" 2>/dev/null)" ]; then
+        warn "Converting Docker data directory to BTRFS subvolume: $docker_data"
+        local tmp_backup="${docker_data}.btrfs-backup"
+        mv "$docker_data" "$tmp_backup"
+        btrfs subvolume create "$docker_data"
+        cp -a "$tmp_backup/." "$docker_data/"
+        rm -rf "$tmp_backup"
+        ok "Converted: $docker_data"
+      else
+        rmdir "$docker_data" 2>/dev/null || true
+        btrfs subvolume create "$docker_data"
+        ok "Created BTRFS subvolume: $docker_data"
+      fi
+    fi
+  elif [ "$DOCKYARD_ROOT" = "$SANDCASTLE_HOME" ] && is_btrfs "$SANDCASTLE_HOME"; then
+    # DOCKYARD_ROOT is same as SANDCASTLE_HOME
+    if [ ! -d "$docker_data" ]; then
+      btrfs subvolume create "$docker_data"
+      ok "Created BTRFS subvolume: $docker_data"
+    elif ! btrfs subvolume show "$docker_data" &>/dev/null; then
+      if [ -n "$(ls -A "$docker_data" 2>/dev/null)" ]; then
+        warn "Converting Docker data directory to BTRFS subvolume: $docker_data"
+        local tmp_backup="${docker_data}.btrfs-backup"
+        mv "$docker_data" "$tmp_backup"
+        btrfs subvolume create "$docker_data"
+        cp -a "$tmp_backup/." "$docker_data/"
+        rm -rf "$tmp_backup"
+        ok "Converted: $docker_data"
+      else
+        rmdir "$docker_data" 2>/dev/null || true
+        btrfs subvolume create "$docker_data"
+        ok "Created BTRFS subvolume: $docker_data"
+      fi
+    fi
+  fi
+
+  ok "BTRFS subvolumes configured"
 }
 
 # ═══ ensure_dirs ═════════════════════════════════════════════════════════
@@ -570,13 +677,6 @@ SANDCASTLE_TLS_MODE=${tls_mode}
 SANDCASTLE_HTTP_PORT=${http_port}
 SANDCASTLE_HTTPS_PORT=${https_port}
 
-# ─── Alternative Hostnames & Custom Certificates ───────────────────────────
-# Comma-separated list of alternative domain names (e.g., "sandcastle.internal,sc.local")
-#SANDCASTLE_ALT_HOSTNAMES=
-# Path to custom certificate and key files (e.g., from mkcert)
-#SANDCASTLE_CUSTOM_CERT_PATH=
-#SANDCASTLE_CUSTOM_KEY_PATH=
-
 # ─── Admin account (required for fresh install) ─────────────────────────────
 SANDCASTLE_ADMIN_USER=${admin_user}
 SANDCASTLE_ADMIN_EMAIL=${admin_email}
@@ -735,6 +835,18 @@ cmd_install() {
   show_image_info "sandcastle-sandbox"
   echo ""
 
+  # ── Stop system sysbox services (conflicts with dockyard's bundled sysbox) ─
+
+  for svc in sysbox.service sysbox-fs.service sysbox-mgr.service; do
+    if systemctl is-active --quiet "$svc" 2>/dev/null; then
+      info "Stopping system $svc (dockyard manages its own sysbox)..."
+      systemctl stop "$svc" 2>/dev/null || true
+    fi
+    if systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+      systemctl disable "$svc" 2>/dev/null || true
+    fi
+  done
+
   # ── Install Dockyard ──────────────────────────────────────────────────────
 
   if [ -S "$DOCKER_SOCK" ]; then
@@ -813,6 +925,7 @@ DYEOF
 
   # ── Create directories ────────────────────────────────────────────────────
 
+  setup_btrfs_subvolumes
   ensure_dirs
 
   # ── SSH & sudo setup ──────────────────────────────────────────────────────
@@ -900,13 +1013,6 @@ EOF
     echo "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
   grep -q '^GOOGLE_CLIENT_SECRET=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}" >> "$SANDCASTLE_HOME/.env"
-  # Backfill alternative hostname vars
-  grep -q '^SANDCASTLE_ALT_HOSTNAMES=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
-    echo "SANDCASTLE_ALT_HOSTNAMES=${SANDCASTLE_ALT_HOSTNAMES:-}" >> "$SANDCASTLE_HOME/.env"
-  grep -q '^SANDCASTLE_CUSTOM_CERT_PATH=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
-    echo "SANDCASTLE_CUSTOM_CERT_PATH=${SANDCASTLE_CUSTOM_CERT_PATH:-}" >> "$SANDCASTLE_HOME/.env"
-  grep -q '^SANDCASTLE_CUSTOM_KEY_PATH=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
-    echo "SANDCASTLE_CUSTOM_KEY_PATH=${SANDCASTLE_CUSTOM_KEY_PATH:-}" >> "$SANDCASTLE_HOME/.env"
 
   # ── Write installed sandcastle.env ────────────────────────────────────────
 
@@ -948,25 +1054,6 @@ EOF
   # ── Traefik config ────────────────────────────────────────────────────────
 
   TRAEFIK_DIR="$SANDCASTLE_HOME/data/traefik"
-
-  # ── Copy custom certificates if provided ─────────────────────────────────
-
-  if [ -n "${SANDCASTLE_CUSTOM_CERT_PATH:-}" ] && [ -n "${SANDCASTLE_CUSTOM_KEY_PATH:-}" ]; then
-    if [ ! -f "$SANDCASTLE_CUSTOM_CERT_PATH" ]; then
-      die "Custom certificate not found: $SANDCASTLE_CUSTOM_CERT_PATH"
-    fi
-    if [ ! -f "$SANDCASTLE_CUSTOM_KEY_PATH" ]; then
-      die "Custom key not found: $SANDCASTLE_CUSTOM_KEY_PATH"
-    fi
-
-    info "Copying custom certificates..."
-    cp "$SANDCASTLE_CUSTOM_CERT_PATH" "$TRAEFIK_DIR/certs/custom-cert.pem"
-    cp "$SANDCASTLE_CUSTOM_KEY_PATH" "$TRAEFIK_DIR/certs/custom-key.pem"
-    chmod 644 "$TRAEFIK_DIR/certs/custom-cert.pem"
-    chmod 600 "$TRAEFIK_DIR/certs/custom-key.pem"
-    chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$TRAEFIK_DIR/certs/custom-cert.pem" "$TRAEFIK_DIR/certs/custom-key.pem"
-    ok "Custom certificates copied to $TRAEFIK_DIR/certs/"
-  fi
 
   if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
     if [ ! -f "$TRAEFIK_DIR/certs/cert.pem" ]; then
@@ -1224,6 +1311,7 @@ cmd_update() {
   show_image_info "sandcastle-sandbox"
   echo ""
 
+  setup_btrfs_subvolumes
   ensure_dirs
 
   info "Pulling images..."

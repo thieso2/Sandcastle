@@ -86,12 +86,19 @@ class SandboxManager
     # Directories bind-mounted into Sysbox containers must be world-writable
     # because Sysbox maps container root to a high host UID (via /etc/subuid)
     # that won't match the directory owner.
+
+    # Create BTRFS subvolume for user directory if on BTRFS
+    BtrfsHelper.create_user_subvolume(user.name)
+
     if sandbox.mount_home
       dir = "#{DATA_DIR}/users/#{user.name}/home"
       FileUtils.mkdir_p(dir)
       FileUtils.chmod(0o777, dir)
     end
     if sandbox.data_path.present?
+      # Create BTRFS subvolume for data directory if on BTRFS
+      BtrfsHelper.create_user_data_subvolume(user.name, sandbox.data_path)
+
       dir = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
       FileUtils.mkdir_p(dir)
       FileUtils.chmod(0o777, dir)
