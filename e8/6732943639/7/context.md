@@ -47,3 +47,7 @@ sandcastle-worker  | /rails/app/services/sandbox...
 
 sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [8523999f-27a2-4a42-a334-3059b2cc9151] Error performing SandboxProvisionJob (Job ID: 8523999f-27a2-4a42-a334-3059b2cc9151) from SolidQueue(default) in 258.2ms: SandboxManager::Error (Failed to create mount directories: Permission denied @ dir_s_mkdir - /sandcastle/data/users/thies/chrome-profile):
 
+### Prompt 11
+
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [6057f0dc-3025-46a0-9631-177a6e17428d] Error performing SandboxProvisionJob (Job ID: 6057f0dc-3025-46a0-9631-177a6e17428d) from SolidQueue(default) in 271.14ms: SandboxManager::Error (Failed to create mount directories: Permission denied @ dir_s_mkdir - /sandcastle/data/users/thies/chrome-profile):
+
