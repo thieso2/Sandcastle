@@ -25,6 +25,7 @@ class BtrfsHelper
       # Check if already a subvolume
       if subvolume?(user_dir)
         Rails.logger.debug("User directory is already a BTRFS subvolume: #{user_dir}")
+        ensure_owned(user_dir)
         return true
       end
 
@@ -49,6 +50,7 @@ class BtrfsHelper
       # Check if already a subvolume
       if subvolume?(data_dir)
         Rails.logger.debug("Data directory is already a BTRFS subvolume: #{data_dir}")
+        ensure_owned(data_dir)
         return true
       end
 
@@ -87,7 +89,7 @@ class BtrfsHelper
         raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
       end
 
-      run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{path}")
+      ensure_owned(path)
 
       Rails.logger.info("Created BTRFS subvolume: #{path}")
       true
@@ -96,6 +98,13 @@ class BtrfsHelper
       # Fall back to regular directory
       FileUtils.mkdir_p(path) unless Dir.exist?(path)
       false
+    end
+
+    # Ensure the path is owned by the current process user
+    def ensure_owned(path)
+      return if File.stat(path).uid == Process.uid
+
+      run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{path}")
     end
 
     # Run a command with sudo
