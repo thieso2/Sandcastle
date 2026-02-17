@@ -131,7 +131,7 @@ RUN groupadd --system --gid 220568 sandcastle && \
     useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/bash && \
     groupadd --system docker && \
     usermod -aG docker sandcastle && \
-    printf 'sandcastle ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume *\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chown 220568:220568 *\n' > /etc/sudoers.d/sandcastle && \
+    printf 'sandcastle ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume *\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chown\n' > /etc/sudoers.d/sandcastle && \
     chmod 0440 /etc/sudoers.d/sandcastle
 USER 220568:220568
 
