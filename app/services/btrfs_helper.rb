@@ -87,6 +87,8 @@ class BtrfsHelper
         raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
       end
 
+      run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{path}")
+
       Rails.logger.info("Created BTRFS subvolume: #{path}")
       true
     rescue StandardError => e
