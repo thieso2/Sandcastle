@@ -98,7 +98,10 @@ class VncManager
   end
 
   def vnc_url(sandbox)
-    "/vnc/#{sandbox.id}/novnc"
+    # Point directly at vnc.html so Traefik's stripPrefix (/vnc/id/novnc)
+    # yields /vnc.html — avoids relying on a redirectRegex that would need
+    # to match the full URL (scheme+host+path) to work correctly.
+    "/vnc/#{sandbox.id}/novnc/vnc.html"
   end
 
   def container_running?(name)
@@ -195,7 +198,7 @@ class VncManager
             "service" => "vnc-#{id}",
             "entryPoints" => [ "websecure" ],
             "tls" => tls_config,
-            "middlewares" => [ "vnc-auth-#{id}", "vnc-redirect-#{id}", "vnc-stripprefix-#{id}" ],
+            "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
             "priority" => 100
           }
         },
@@ -204,13 +207,6 @@ class VncManager
             "forwardAuth" => {
               "address" => "http://sandcastle-web:80/vnc/auth",
               "trustForwardHeader" => true
-            }
-          },
-          "vnc-redirect-#{id}" => {
-            "redirectRegex" => {
-              "regex" => "^/vnc/#{id}/novnc/?$",
-              "replacement" => "/vnc/#{id}/novnc/vnc.html",
-              "permanent" => false
             }
           },
           "vnc-stripprefix-#{id}" => {
