@@ -51,3 +51,8 @@ sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [8523999f-27a2-4a42-a334-
 
 sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [6057f0dc-3025-46a0-9631-177a6e17428d] Error performing SandboxProvisionJob (Job ID: 6057f0dc-3025-46a0-9631-177a6e17428d) from SolidQueue(default) in 271.14ms: SandboxManager::Error (Failed to create mount directories: Permission denied @ dir_s_mkdir - /sandcastle/data/users/thies/chrome-profile):
 
+### Prompt 12
+
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [b7392b1f-3e42-4420-869f-8e8b81875528] [SolidCable::TrimJob] [233e07f6-3f98-44de-ae74-8da54a5d3d52] Performed SolidCable::TrimJob (Job ID: 233e07f6-3f98-44de-ae74-8da54a5d3d52) from SolidQueue(default) in 2.88ms
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [b7392b1f-3e42-4420-869f-8e8b81875528] Failed to create BTRFS subvolume /sandcastle/data/users/thies: Failed to create BTRFS subvolume /sandcastle/data/users/thies: /etc/sudoers....
+

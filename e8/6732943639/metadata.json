@@ -6,6 +6,7 @@
   "checkpoints_count": 12,
   "files_touched": [
     "CLAUDE.md",
+    "Dockerfile",
     "LOCAL.md",
     "Procfile.dev",
     "SANDMAN.md",
@@ -83,10 +84,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3935,
-    "cache_creation_tokens": 965487,
-    "cache_read_tokens": 28288429,
-    "output_tokens": 48603,
-    "api_call_count": 325
+    "input_tokens": 3932,
+    "cache_creation_tokens": 965967,
+    "cache_read_tokens": 28079765,
+    "output_tokens": 49908,
+    "api_call_count": 322
   }
 }
