@@ -1,0 +1,3 @@
+after the last sysbox fix in dockyrad i cannot create sandcales:
+
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [ea4678b5-c4f5-406e-a915-2a8211dbfa8c] Error performing SandboxProvisionJob (Job ID: ea4678b5-c4f5-406e-a915-2a8211dbfa8c) from SolidQueue(default) in 734.41ms: Docker::Error::ClientError ({"message":"failed to create task for container: failed to create shim task: OCI runtime create failed: failed to get config from sysbox-fs: failed to get sysbox-fs mountpoint: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial unix /run/sysbox/sysfs.sock: connect: no such file or directory\""}
