@@ -8,3 +8,17 @@ after the last sysbox fix in dockyrad i cannot create sandcales:
 
 sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [ea4678b5-c4f5-406e-a915-2a8211dbfa8c] Error performing SandboxProvisionJob (Job ID: ea4678b5-c4f5-406e-a915-2a8211dbfa8c) from SolidQueue(default) in 734.41ms: Docker::Error::ClientError ({"message":"failed to create task for container: failed to create shim task: OCI runtime create failed: failed to get config from sysbox-fs: failed to get sysbox-fs mountpoint: rpc error: co...
 
+### Prompt 2
+
+<task-notification>
+<task-id>b11da8c</task-id>
+<output-file>/private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/tasks/b11da8c.output</output-file>
+<status>completed</status>
+<summary>Background command "Find all docker sockets on the system" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/tasks/b11da8c.output
+
+### Prompt 3
+
+sandcastel installer shoudl not interfere with sytsem  sysbox services. why is that needed?
+
