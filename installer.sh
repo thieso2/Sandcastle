@@ -835,18 +835,6 @@ cmd_install() {
   show_image_info "sandcastle-sandbox"
   echo ""
 
-  # ── Stop system sysbox services (conflicts with dockyard's bundled sysbox) ─
-
-  for svc in sysbox.service sysbox-fs.service sysbox-mgr.service; do
-    if systemctl is-active --quiet "$svc" 2>/dev/null; then
-      info "Stopping system $svc (dockyard manages its own sysbox)..."
-      systemctl stop "$svc" 2>/dev/null || true
-    fi
-    if systemctl is-enabled --quiet "$svc" 2>/dev/null; then
-      systemctl disable "$svc" 2>/dev/null || true
-    fi
-  done
-
   # ── Install Dockyard ──────────────────────────────────────────────────────
 
   if [ -S "$DOCKER_SOCK" ]; then
