@@ -220,7 +220,7 @@ class VncManager
         "services" => {
           "vnc-#{id}" => {
             "loadBalancer" => {
-              "servers" => [ { "url" => "http://#{container_name}:8080" } ]
+              "servers" => [ { "url" => "http://#{container_name}:6080" } ]
             }
           }
         }
