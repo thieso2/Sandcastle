@@ -149,12 +149,6 @@ class VncManager
       # No existing container
     end
 
-    # Build environment variables for noVNC
-    # gotget/novnc expects: VNC_SERVER=host:port
-    env_vars = [
-      "VNC_SERVER=#{sandbox.full_name}:5900"
-    ]
-
     host_config = {
       "NetworkMode" => NETWORK_NAME,
       "RestartPolicy" => { "Name" => "no" },
@@ -162,12 +156,13 @@ class VncManager
       "NanoCpus" => 500_000_000 # 0.5 CPU
     }
 
-    # gotget/novnc doesn't support custom base paths out of the box
-    # We'll serve it at the root and Traefik will strip the prefix
+    # gotget/novnc uses launch.sh which takes --vnc HOST:PORT as CLI args,
+    # not an environment variable. Pass it explicitly so websockify connects
+    # to the sandbox container rather than defaulting to localhost:5900.
     container = Docker::Container.create(
       "name" => container_name,
       "Image" => NOVNC_IMAGE,
-      "Env" => env_vars,
+      "Cmd" => [ "--vnc", "#{sandbox.full_name}:5900" ],
       "HostConfig" => host_config,
       "Labels" => {
         "sandcastle.sandbox_id" => sandbox.id.to_s,
