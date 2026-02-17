@@ -64,3 +64,103 @@ sandcastle-worker  | /etc/sudoers.d/sandcastle:2:62: syntax error
 sandcastle-worker  | sandcastle ALL=(root) NOPASSWD: /usr/bin/chown 220568:220568 *
 sandcastle-worker  |                                                              ^
 sandcastle-worker  | ERROR: Could not create subvolume: File exists
+
+---
+
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] [SolidCable::TrimJob] [fb7c59bf-7cc9-4a1f-be9f-dd065abdbe7e] Performing SolidCable::TrimJob (Job ID: fb7c59bf-7cc9-4a1f-be9f-dd065abdbe7e) from SolidQueue(default)
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] [SolidCable::TrimJob] [fb7c59bf-7cc9-4a1f-be9f-dd065abdbe7e] Performed SolidCable::TrimJob (Job ID: fb7c59bf-7cc9-4a1f-be9f-dd065abdbe7e) from SolidQueue(default) in 0.24ms
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] Skipping BTRFS subvolume conversion for existing directory: /sandcastle/data/users/thies
+sandcastle-web     | [997024f1-d5e2-4a2c-8da7-3c26a29905f4] Started GET "/" for 172.89.0.2 at 2026-02-17 19:46:06 +0000
+sandcastle-web     | [997024f1-d5e2-4a2c-8da7-3c26a29905f4] Processing by DashboardController#index as HTML
+sandcastle-web     | [997024f1-d5e2-4a2c-8da7-3c26a29905f4]   Rendered layout layouts/application.html.erb (Duration: 11.6ms | GC: 0.0ms)
+sandcastle-web     | [997024f1-d5e2-4a2c-8da7-3c26a29905f4] Completed 200 OK in 13ms (Views: 11.1ms | ActiveRecord: 1.0ms (6 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | {"time":"2026-02-17T19:46:06.394453989Z","level":"INFO","msg":"Request","path":"/","status":200,"dur":15,"method":"GET","req_content_length":0,"req_content_type":"","resp_content_length":3156,"resp_content_type":"text/html; charset=utf-8","remote_addr":"172.89.0.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36","cache":"miss","query":"","proto":"HTTP/1.1"}
+sandcastle-web     | {"time":"2026-02-17T19:46:06.426152371Z","level":"INFO","msg":"Request","path":"/cable","status":101,"dur":28113,"method":"GET","req_content_length":0,"req_content_type":"","resp_content_length":0,"resp_content_type":"","remote_addr":"172.89.0.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36","cache":"bypass","query":"","proto":"HTTP/1.1"}
+sandcastle-web     | Finished "/cable" [WebSocket] for 172.89.0.2 at 2026-02-17 19:46:06 +0000
+sandcastle-web     | Turbo::StreamsChannel stopped streaming from Z2lkOi8vc2FuZGNhc3RsZS9Vc2VyLzE:dashboard
+sandcastle-web     | [b952fdaa-c11c-4b16-839d-0b5aba832418] Started GET "/cable" for 172.89.0.2 at 2026-02-17 19:46:06 +0000
+sandcastle-web     | [b952fdaa-c11c-4b16-839d-0b5aba832418] Started GET "/cable" [WebSocket] for 172.89.0.2 at 2026-02-17 19:46:06 +0000
+sandcastle-web     | [b952fdaa-c11c-4b16-839d-0b5aba832418] Successfully upgraded to WebSocket (REQUEST_METHOD: GET, HTTP_CONNECTION: Upgrade, HTTP_UPGRADE: websocket)
+sandcastle-web     | Registered connection (Z2lkOi8vc2FuZGNhc3RsZS9Vc2VyLzE)
+sandcastle-web     | Turbo::StreamsChannel is streaming from Z2lkOi8vc2FuZGNhc3RsZS9Vc2VyLzE:dashboard
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] SandboxProvisionJob failed: Container failed to start (state: created)
+sandcastle-worker  | /rails/app/services/sandbox_manager.rb:73:in 'SandboxManager#create_container_and_start'
+sandcastle-worker  | /rails/app/jobs/sandbox_provision_job.rb:19:in 'SandboxProvisionJob#perform'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution.rb:68:in 'block in ActiveJob::Execution#_perform_job'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:101:in 'ActiveSupport::Callbacks#run_callbacks'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution.rb:67:in 'ActiveJob::Execution#_perform_job'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:44:in 'ActiveJob::Instrumentation#_perform_job'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution.rb:51:in 'ActiveJob::Execution#perform_now'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:26:in 'block in ActiveJob::Instrumentation#perform_now'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activerecord-8.1.2/lib/active_record/railties/job_runtime.rb:12:in 'block in ActiveRecord::Railties::JobRuntime#instrument'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:34:in 'block in ActiveJob::Instrumentation#instrument'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/notifications.rb:210:in 'block in ActiveSupport::Notifications.instrument'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/notifications/instrumenter.rb:58:in 'ActiveSupport::Notifications::Instrumenter#instrument'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/notifications.rb:210:in 'ActiveSupport::Notifications.instrument'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:33:in 'ActiveJob::Instrumentation#instrument'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activerecord-8.1.2/lib/active_record/railties/job_runtime.rb:10:in 'ActiveRecord::Railties::JobRuntime#instrument'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:26:in 'ActiveJob::Instrumentation#perform_now'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/logging.rb:32:in 'block in ActiveJob::Logging#perform_now'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/tagged_logging.rb:143:in 'block in ActiveSupport::TaggedLogging#tagged'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/tagged_logging.rb:38:in 'ActiveSupport::TaggedLogging::Formatter#tagged'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/tagged_logging.rb:143:in 'ActiveSupport::TaggedLogging#tagged'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/broadcast_logger.rb:228:in 'ActiveSupport::BroadcastLogger#method_missing'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/logging.rb:39:in 'ActiveJob::Logging#tag_logger'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/logging.rb:32:in 'ActiveJob::Logging#perform_now'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution_state.rb:7:in 'block (2 levels) in ActiveJob::ExecutionState#perform_now'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/core_ext/time/zones.rb:65:in 'Time.use_zone'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution_state.rb:7:in 'block in ActiveJob::ExecutionState#perform_now'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/i18n-1.14.8/lib/i18n.rb:354:in 'I18n::Base#with_locale'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution_state.rb:6:in 'ActiveJob::ExecutionState#perform_now'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution.rb:29:in 'block in ActiveJob::Execution::ClassMethods#execute'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:121:in 'block in ActiveSupport::Callbacks#run_callbacks'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/railtie.rb:86:in 'block (4 levels) in <class:Railtie>'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/reloader.rb:77:in 'block in ActiveSupport::Reloader.wrap'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/execution_wrapper.rb:87:in 'ActiveSupport::ExecutionWrapper.wrap'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/reloader.rb:74:in 'ActiveSupport::Reloader.wrap'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/railtie.rb:85:in 'block (3 levels) in <class:Railtie>'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:130:in 'BasicObject#instance_exec'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:130:in 'block in ActiveSupport::Callbacks#run_callbacks'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:141:in 'ActiveSupport::Callbacks#run_callbacks'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution.rb:27:in 'ActiveJob::Execution::ClassMethods#execute'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/solid_queue-1.3.1/app/models/solid_queue/claimed_execution.rb:104:in 'SolidQueue::ClaimedExecution#execute'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/solid_queue-1.3.1/app/models/solid_queue/claimed_execution.rb:66:in 'SolidQueue::ClaimedExecution#perform'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/solid_queue-1.3.1/lib/solid_queue/pool.rb:23:in 'block (2 levels) in SolidQueue::Pool#post'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/execution_wrapper.rb:91:in 'ActiveSupport::ExecutionWrapper.wrap'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/solid_queue-1.3.1/lib/solid_queue/app_executor.rb:7:in 'SolidQueue::AppExecutor#wrap_in_app_executor'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/solid_queue-1.3.1/lib/solid_queue/pool.rb:22:in 'block in SolidQueue::Pool#post'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/promises.rb:1593:in 'Concurrent::Promises::AbstractPromise#evaluate_to'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/promises.rb:1776:in 'block in Concurrent::Promises::ChainPromise#on_resolvable'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:382:in 'Concurrent::RubyThreadPoolExecutor::Worker#run_task'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:372:in 'block (3 levels) in Concurrent::RubyThreadPoolExecutor::Worker#create_worker'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:361:in 'Kernel#loop'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:361:in 'block (2 levels) in Concurrent::RubyThreadPoolExecutor::Worker#create_worker'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:358:in 'Kernel#catch'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:358:in 'block in Concurrent::RubyThreadPoolExecutor::Worker#create_worker'
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] [SolidCable::TrimJob] [cb64218a-c1d8-4803-8030-91b65290403d] Performing SolidCable::TrimJob (Job ID: cb64218a-c1d8-4803-8030-91b65290403d) from SolidQueue(default)
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] [SolidCable::TrimJob] [cb64218a-c1d8-4803-8030-91b65290403d] Performed SolidCable::TrimJob (Job ID: cb64218a-c1d8-4803-8030-91b65290403d) from SolidQueue(default) in 0.24ms
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] [SolidCable::TrimJob] [3fb73bb4-0843-4bcd-ad90-f664cb082b52] Performing SolidCable::TrimJob (Job ID: 3fb73bb4-0843-4bcd-ad90-f664cb082b52) from SolidQueue(default)
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] [SolidCable::TrimJob] [3fb73bb4-0843-4bcd-ad90-f664cb082b52] Performed SolidCable::TrimJob (Job ID: 3fb73bb4-0843-4bcd-ad90-f664cb082b52) from SolidQueue(default) in 0.18ms
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [781a124b-f38c-4bba-b95d-ab6ab53dd87c] Error performing SandboxProvisionJob (Job ID: 781a124b-f38c-4bba-b95d-ab6ab53dd87c) from SolidQueue(default) in 20855.11ms: SandboxManager::Error (Container failed to start (state: created)):
+sandcastle-worker  | app/services/sandbox_manager.rb:73:in 'SandboxManager#create_container_and_start'
+sandcastle-worker  | app/jobs/sandbox_provision_job.rb:19:in 'SandboxProvisionJob#perform'
+sandcastle-worker  | SolidQueue-1.3.1 Error in thread (0.0ms)  error: "SandboxManager::Error Container failed to start (state: created)"
+
+---
+
+comntainer still fails to start - log into the docker container 
+ssh sandman -l sandcastle
+docker exec -ti sandcastle-web bash
+sandcastle@fcb090f1cb97:/rails$ docker run -ti alpine ash
+Unable to find image 'alpine:latest' locally
+latest: Pulling from library/alpine
+589002ba0eae: Pull complete
+Digest: sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+Status: Downloaded newer image for alpine:latest
+docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: failed to pre-register with sysbox-fs: failed to pre-register container with sysbox-fs: rpc error: code = DeadlineExceeded desc = context deadline exceeded
+
+so this is a dockyard problem! docker (with sysbiox) does not work!
+
+---
+
+debug an dfix the vnc terminal. https://hase.sandcastle.rocks/vnc/13/novnc gets Bad Gateway. use chrome to debug.
