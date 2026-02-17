@@ -28,13 +28,13 @@ class BtrfsHelper
         return true
       end
 
-      # If directory exists with content, convert it to a subvolume
       if Dir.exist?(user_dir) && !Dir.empty?(user_dir)
-        convert_to_subvolume(user_dir)
-      else
-        # Create new subvolume
-        create_subvolume(user_dir)
+        # Directory already has content — skip conversion to avoid root-ownership issues
+        Rails.logger.info("Skipping BTRFS subvolume conversion for existing directory: #{user_dir}")
+        return false
       end
+
+      create_subvolume(user_dir)
     end
 
     # Create a BTRFS subvolume for a user's data subdirectory
@@ -52,13 +52,13 @@ class BtrfsHelper
         return true
       end
 
-      # If directory exists with content, convert it to a subvolume
       if Dir.exist?(data_dir) && !Dir.empty?(data_dir)
-        convert_to_subvolume(data_dir)
-      else
-        # Create new subvolume
-        create_subvolume(data_dir)
+        # Directory already has content — skip conversion to avoid root-ownership issues
+        Rails.logger.info("Skipping BTRFS subvolume conversion for existing directory: #{data_dir}")
+        return false
       end
+
+      create_subvolume(data_dir)
     end
 
     private
@@ -93,31 +93,6 @@ class BtrfsHelper
       Rails.logger.error("Failed to create BTRFS subvolume #{path}: #{e.message}")
       # Fall back to regular directory
       FileUtils.mkdir_p(path) unless Dir.exist?(path)
-      false
-    end
-
-    # Convert an existing directory to a BTRFS subvolume
-    def convert_to_subvolume(path)
-      backup = "#{path}.btrfs-backup"
-
-      # Move existing directory to backup
-      FileUtils.mv(path, backup)
-
-      # Create subvolume
-      create_subvolume(path)
-
-      # Copy contents back
-      FileUtils.cp_r("#{backup}/.", path)
-
-      # Remove backup
-      FileUtils.rm_rf(backup)
-
-      Rails.logger.info("Converted directory to BTRFS subvolume: #{path}")
-      true
-    rescue StandardError => e
-      # Restore backup if conversion failed
-      FileUtils.mv(backup, path) if Dir.exist?(backup)
-      Rails.logger.error("Failed to convert #{path} to BTRFS subvolume: #{e.message}")
       false
     end
 
