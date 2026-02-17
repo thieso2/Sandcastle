@@ -1,0 +1,1 @@
+debug and fix the vnc terminal. https://hase.sandcastle.rocks/vnc/13/novnc does not open teh vcns sesson.
