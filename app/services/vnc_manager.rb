@@ -200,7 +200,7 @@ class VncManager
             "service" => "vnc-#{id}",
             "entryPoints" => [ "websecure" ],
             "tls" => tls_config,
-            "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
+            "middlewares" => [ "vnc-auth-#{id}", "vnc-redirect-#{id}", "vnc-stripprefix-#{id}" ],
             "priority" => 100
           }
         },
@@ -209,6 +209,13 @@ class VncManager
             "forwardAuth" => {
               "address" => "http://sandcastle-web:80/vnc/auth",
               "trustForwardHeader" => true
+            }
+          },
+          "vnc-redirect-#{id}" => {
+            "redirectRegex" => {
+              "regex" => "^/vnc/#{id}/novnc/?$",
+              "replacement" => "/vnc/#{id}/novnc/vnc.html",
+              "permanent" => false
             }
           },
           "vnc-stripprefix-#{id}" => {
