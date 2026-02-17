@@ -3,10 +3,9 @@
   "checkpoint_id": "e86732943639",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 15,
+  "checkpoints_count": 12,
   "files_touched": [
     "CLAUDE.md",
-    "Dockerfile",
     "LOCAL.md",
     "Procfile.dev",
     "SANDMAN.md",
@@ -17,7 +16,6 @@
     "config/environments/development.rb",
     "config/puma.rb",
     "docker-compose.dev.yml",
-    "docker-compose.yml",
     "docs/deployment-comparison.md",
     "images/sandbox/Dockerfile",
     "install-defaults",
@@ -85,10 +83,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3979,
-    "cache_creation_tokens": 988108,
-    "cache_read_tokens": 29596507,
-    "output_tokens": 54259,
-    "api_call_count": 357
+    "input_tokens": 3937,
+    "cache_creation_tokens": 971980,
+    "cache_read_tokens": 28340470,
+    "output_tokens": 47787,
+    "api_call_count": 327
   }
 }

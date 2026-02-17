@@ -36,3 +36,12 @@ sandcastle-web     | [e2373f50-63a1-41ca-9577-be7d9f162077] Completed 200 OK in 
 ---
 
 commit and release
+
+---
+
+better - now:
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [7d149d07-50da-462e-b33d-6cd97e985622] Created BTRFS subvolume: /sandcastle/data/users/thies
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [7d149d07-50da-462e-b33d-6cd97e985622] SandboxProvisionJob failed: Failed to create mount directories: Permission denied @ rb_file_s_rename - (/sandcastle/data/users/thies.btrfs-backup, /sandcastle/data/users/thies/thies.btrfs-backup)
+sandcastle-worker  | /rails/app/services/sandbox_manager.rb:117:in 'SandboxManager#ensure_mount_dirs'
+sandcastle-worker  | /rails/app/jobs/sandbox_provision_job.rb:13:in 'SandboxProvisionJob#perform'
+sandcastle-worker  | /usr/local/bundle/ruby/4.0.0/gems/activejob-8.1.2/lib/active_job/execution.rb:68:in 'block in ActiveJob::Execution#_perform_job'
