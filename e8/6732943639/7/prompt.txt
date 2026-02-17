@@ -1,0 +1,38 @@
+in the BTRFS admin use the full path for sudo.
+
+---
+
+patch on live
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+when patchin live use uisert sandcastle - leave a not in CLAUDE.md
+
+---
+
+login as user sandcastle@sandman and patch the file!
+
+---
+
+forget uisert
+
+---
+
+still :
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [224ae6da-bab4-4fd3-bb12-a3464968e08a] [SolidCable::TrimJob] [76dd7eba-8f27-49f3-b196-e3d04b5e2542] Performing SolidCable::TrimJob (Job ID: 76dd7eba-8f27-49f3-b196-e3d04b5e2542) from SolidQueue(default)
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [224ae6da-bab4-4fd3-bb12-a3464968e08a] [SolidCable::TrimJob] [76dd7eba-8f27-49f3-b196-e3d04b5e2542] Performed SolidCable::TrimJob (Job ID: 76dd7eba-8f27-49f3-b196-e3d04b5e2542) from SolidQueue(default) in 0.28ms
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [224ae6da-bab4-4fd3-bb12-a3464968e08a] Failed to create BTRFS subvolume /sandcastle/data/users/thies: Failed to create BTRFS subvolume /sandcastle/data/users/thies: sh: 1: sudo: not found
+sandcastle-worker  |
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [224ae6da-bab4-4fd3-bb12-a3464968e08a] Converted directory to BTRFS subvolume: /sandcastle/data/users/thies
+sandcastle-web     | [e2373f50-63a1-41ca-9577-be7d9f162077] Started GET "/" for 172.89.0.3 at 2026-02-17 15:43:41 +0000
+sandcastle-web     | [e2373f50-63a1-41ca-9577-be7d9f162077] Processing by DashboardController#index as TURBO_STREAM
+sandcastle-web     | [e2373f50-63a1-41ca-9577-be7d9f162077]   Rendered layout layouts/application.html.erb (Duration: 31.4ms | GC: 0.1ms)
+sandcastle-web     | [e2373f50-63a1-41ca-9577-be7d9f162077] Completed 200 OK in 39ms (Views: 30.9ms | ActiveRecord: 1.2ms (6 queries, 0 cached) | GC: 0.1ms)
+
+---
+
+commit and release
