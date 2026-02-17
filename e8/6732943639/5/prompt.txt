@@ -1,0 +1,56 @@
+Loading /sandcastle/etc/dockyard.env...
+Installing dockyard docker...
+  DOCKYARD_ROOT:          /sandcastle
+  DOCKYARD_DOCKER_PREFIX: sc_
+  DOCKYARD_BRIDGE_CIDR:   172.42.89.1/24
+  DOCKYARD_FIXED_CIDR:    172.42.89.0/24
+  DOCKYARD_POOL_BASE:     172.89.0.0/16
+  DOCKYARD_POOL_SIZE:     24
+
+  bridge:      sc_docker0
+  exec-root:   /run/sc_docker
+  service:     sc_docker.service
+  runtime:     /sandcastle/docker-runtime
+  data:        /sandcastle/docker
+  socket:      /sandcastle/docker.sock
+
+Downloading artifacts...
+  cached: docker-29.2.1.tgz
+  cached: docker-rootless-extras-29.2.1.tgz
+  cached: docker-compose-linux-x86_64
+  cached: buildx-v0.31.1.linux-amd64
+  cached: sysbox-ce_0.6.7-0.linux_amd64.deb
+Extracting Docker binaries...
+Extracting Docker rootless extras...
+Extracting sysbox from .deb...
+Installing Docker Compose...
+Installing Docker Buildx...
+Installed binaries to /sandcastle/docker-runtime/bin/
+Installed config to /sandcastle/docker-runtime/etc/daemon.json
+Installed env to /sandcastle/docker-runtime/etc/dockyard.env
+Installed dockyardctl to /sandcastle/docker-runtime/bin/dockyardctl
+
+Installing sc_docker.service...
+Created symlink '/etc/systemd/system/multi-user.target.wants/sc_docker.service' → '/etc/systemd/system/sc_docker.service'.
+  enabled sc_docker.service (will start on boot)
+
+  sudo systemctl start sc_docker    # start
+  sudo systemctl status sc_docker   # check status
+  sudo journalctl -u sc_docker -f   # follow logs
+
+Starting via systemd...
+Failed to start sc_docker.service: Unit sysbox.service not found.
+
+i did fix soleting in ../dockyard - check if teh fix is in
+
+---
+
+in installer: if $SANDCASTLE_HOME is BTRFS - create btrfs subvolumnes for /sandcastle/data/* and /sandcastle/docker
+
+---
+
+also in sandcaste if the underlying fs is BTRFS create subvolumnes for /sandcastle/data/users/<username> and the users data dir. how can we do that without being root
+
+---
+
+add passwordless sudo just for btrfs commands!
