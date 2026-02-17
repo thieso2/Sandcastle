@@ -43,3 +43,7 @@ sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [7d149d07-50da-462e-b33d-
 sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [7d149d07-50da-462e-b33d-6cd97e985622] SandboxProvisionJob failed: Failed to create mount directories: Permission denied @ rb_file_s_rename - (/sandcastle/data/users/thies.btrfs-backup, /sandcastle/data/users/thies/thies.btrfs-backup)
 sandcastle-worker  | /rails/app/services/sandbox...
 
+### Prompt 10
+
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [8523999f-27a2-4a42-a334-3059b2cc9151] Error performing SandboxProvisionJob (Job ID: 8523999f-27a2-4a42-a334-3059b2cc9151) from SolidQueue(default) in 258.2ms: SandboxManager::Error (Failed to create mount directories: Permission denied @ dir_s_mkdir - /sandcastle/data/users/thies/chrome-profile):
+
