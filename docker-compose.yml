@@ -36,6 +36,8 @@ services:
     container_name: sandcastle-web
     group_add:
       - "${DOCKER_GID:-988}"
+    cap_add:
+      - SYS_ADMIN
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /data:/data
@@ -66,6 +68,8 @@ services:
     command: ["./bin/jobs"]
     group_add:
       - "${DOCKER_GID:-988}"
+    cap_add:
+      - SYS_ADMIN
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /data:/data

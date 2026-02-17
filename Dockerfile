@@ -123,14 +123,16 @@ RUN apt-get update -qq && \
     chmod a+r /etc/apt/keyrings/docker.asc && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list && \
     apt-get update -qq && \
-    apt-get install --no-install-recommends -y docker-ce-cli && \
+    apt-get install --no-install-recommends -y docker-ce-cli sudo btrfs-progs && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 220568 sandcastle && \
     useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/bash && \
     groupadd --system docker && \
-    usermod -aG docker sandcastle
+    usermod -aG docker sandcastle && \
+    echo "sandcastle ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume *" > /etc/sudoers.d/sandcastle && \
+    chmod 0440 /etc/sudoers.d/sandcastle
 USER 220568:220568
 
 # Copy built artifacts: gems, application

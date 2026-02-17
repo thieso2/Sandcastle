@@ -32,6 +32,15 @@ cd vendor/sandcastle-cli && go build ./...  # Quick compile check
 
 Go module path is `github.com/sandcastle/cli`. When adding a new feature: add types to `api/types.go`, client methods to `api/client.go`, then the Cobra command in `cmd/`.
 
+### Patching Live
+
+To apply a single file change directly to the running production instance without a full redeploy:
+
+```bash
+scp path/to/file.rb sandcastle@sandman:/tmp/file.rb
+ssh sandcastle@sandman 'docker cp /tmp/file.rb sandcastle-web:/rails/path/to/file.rb && docker restart sandcastle-web'
+```
+
 ### Full CI
 
 ```bash

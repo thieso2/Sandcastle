@@ -67,7 +67,7 @@ class BtrfsHelper
     def subvolume?(path)
       return false unless Dir.exist?(path)
 
-      result = system("sudo /usr/bin/btrfs subvolume show #{path} >/dev/null 2>&1")
+      result = system("/usr/bin/sudo /usr/bin/btrfs subvolume show #{path} >/dev/null 2>&1")
       result == true
     rescue StandardError => e
       Rails.logger.warn("BTRFS subvolume check failed for #{path}: #{e.message}")
@@ -123,7 +123,7 @@ class BtrfsHelper
 
     # Run a command with sudo
     def run_sudo_command(command)
-      full_command = "sudo -n #{command}"
+      full_command = "/usr/bin/sudo -n #{command}"
       output = `#{full_command} 2>&1`
       [ output, $? ]
     rescue StandardError => e
