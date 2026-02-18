@@ -64,7 +64,8 @@ class SandboxManager
           "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
         },
         "Binds" => volume_binds(user, sandbox),
-        "RestartPolicy" => { "Name" => "unless-stopped" }
+        "RestartPolicy" => { "Name" => "unless-stopped" },
+        "ShmSize" => 2 * 1024 * 1024 * 1024 # 2GB for Chrome/Chromium shared memory
       }
     )
 
@@ -302,7 +303,8 @@ class SandboxManager
           "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
         },
         "Binds" => volume_binds(user, sandbox),
-        "RestartPolicy" => { "Name" => "unless-stopped" }
+        "RestartPolicy" => { "Name" => "unless-stopped" },
+        "ShmSize" => 2 * 1024 * 1024 * 1024 # 2GB for Chrome/Chromium shared memory
       }
     )
 
