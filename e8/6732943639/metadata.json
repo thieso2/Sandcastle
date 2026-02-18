@@ -19,9 +19,9 @@
     "docker-compose.dev.yml",
     "docs/deployment-comparison.md",
     "images/sandbox/Dockerfile",
+    "images/sandbox/entrypoint.sh",
     "install-defaults",
     "installer.sh",
-    "installer/installer.sh.in",
     "installer/templates/dockyard.env.template",
     "installer/templates/sandcastle.env.template",
     "tmp/pids/server.pid"
@@ -99,10 +99,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3964,
-    "cache_creation_tokens": 985576,
-    "cache_read_tokens": 30464082,
-    "output_tokens": 48575,
-    "api_call_count": 348
+    "input_tokens": 3982,
+    "cache_creation_tokens": 997313,
+    "cache_read_tokens": 31862191,
+    "output_tokens": 50425,
+    "api_call_count": 363
   }
 }

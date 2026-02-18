@@ -158,3 +158,36 @@ sc-ts-net-thies
 [OK] Dockyard destroyed
 [OK] Removed use...
 
+### Prompt 30
+
+Error: DOCKYARD_POOL_BASE 10.89.0.0/16 overlaps with existing routes:
+  10.89.1.0/24 dev br-a61d7b547130 proto kernel scope link src 10.89.1.1 linkdown
+
+are we not deteing "out" bridge when destoying a dockyard? check ../dockyard
+
+### Prompt 31
+
+do so, commit and push
+
+### Prompt 32
+
+thies@thies-slow-lynx:~$ df /dev/shm/
+Filesystem     1K-blocks  Used Available Use% Mounted on
+shm                65536     0     65536   0% /dev/shm
+
+the shm fix is not working. examine
+
+### Prompt 33
+
+root@thies-slow-lynx:~#   mount -o remount,size=2g /dev/shm && df /dev/shm/ || echo "FAILED: $?"
+mount: /dev/shm: mount point not mounted or bad option.
+       dmesg(1) may have more information after failed mount system call.
+FAILED: 32
+
+
+thies@sandman:~$ /sandcastle/docker-runtime/bin/docker inspect thies-slow-lynx | grep -i runtime
+            "Runtime": "sysbox-runc",
+            "CpuRealtimeRuntime": 0,
+
+thies@sandman:~$ /sandcastle/docker-runtime/bin/docker inspect thies-slow-lynx | grep -...
+

@@ -3,30 +3,30 @@
   "checkpoint_id": "e86732943639",
   "session_id": "d68a4429-f322-42fa-b68f-b6826af6a13b",
   "strategy": "manual-commit",
-  "created_at": "2026-02-18T10:00:13.588585Z",
+  "created_at": "2026-02-18T10:23:34.915587Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "installer/installer.sh.in"
+    "images/sandbox/entrypoint.sh"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "f8c7dd45-532d-4036-afb0-d348d55c3536",
-  "checkpoint_transcript_start": 1083,
-  "transcript_lines_at_start": 1083,
+  "transcript_identifier_at_start": "9fedff8d-ddef-4942-b1f6-59ce4487f87e",
+  "checkpoint_transcript_start": 1122,
+  "transcript_lines_at_start": 1122,
   "token_usage": {
-    "input_tokens": 14,
-    "cache_creation_tokens": 7139,
-    "cache_read_tokens": 715983,
-    "output_tokens": 411,
-    "api_call_count": 10
+    "input_tokens": 32,
+    "cache_creation_tokens": 18876,
+    "cache_read_tokens": 2114092,
+    "output_tokens": 2261,
+    "api_call_count": 25
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-18T10:00:13.395341Z",
+    "calculated_at": "2026-02-18T10:23:34.683114Z",
     "agent_lines": 0,
-    "human_added": 11,
-    "human_modified": 3,
+    "human_added": 2,
+    "human_modified": 4,
     "human_removed": 0,
-    "total_committed": 13,
+    "total_committed": 2,
     "agent_percentage": 0
   }
 }
