@@ -34,3 +34,14 @@ create NETWORKING.md with that info and how to set it during install!
 
 add  a mermaid graph to illustrate the network setup
 
+### Prompt 9
+
+crate GH issue "ensure that ininstall/install keeps user data!"
+
+### Prompt 10
+
+we're back to permission problems.
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [6afaddc0-0632-4aba-b759-37b1f1fbdc14] Skipping BTRFS subvolume conversion for existing directory: /sandcastle/data/users/thies
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [6afaddc0-0632-4aba-b759-37b1f1fbdc14] SandboxProvisionJob failed: Failed to create mount directories: Permission denied @ dir_s_mkdir - /sandcastle/data/users/thies/chrome-profile
+sandcastle-worker  | /rails/app/services/sandb...
+
