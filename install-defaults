@@ -75,7 +75,13 @@ DB_NAME="sandcastle_production"
 
 DOCKYARD_ROOT="/sandcastle"
 DOCKYARD_DOCKER_PREFIX="sc_"
-DOCKYARD_BRIDGE_CIDR="10.42.89.1/24"
-DOCKYARD_FIXED_CIDR="10.42.89.0/24"
-DOCKYARD_POOL_BASE="10.89.0.0/16"
+
+# Private /16 network for all Sandcastle Docker networking.
+# Must be an RFC 1918 private range: 10.x.x.x, 172.16-31.x.x, or 192.168.x.x.
+# The installer derives bridge and pool CIDRs automatically from this value.
+# Override DOCKYARD_BRIDGE_CIDR / DOCKYARD_FIXED_CIDR / DOCKYARD_POOL_BASE individually for fine-grained control.
+SANDCASTLE_PRIVATE_NET="10.89.0.0/16"
+# DOCKYARD_BRIDGE_CIDR="10.89.0.1/24"   # derived: first /24 of SANDCASTLE_PRIVATE_NET
+# DOCKYARD_FIXED_CIDR="10.89.0.0/24"    # derived: same /24 network
+# DOCKYARD_POOL_BASE="10.89.0.0/16"     # derived: same as SANDCASTLE_PRIVATE_NET
 DOCKYARD_POOL_SIZE="24"

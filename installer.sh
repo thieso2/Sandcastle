@@ -120,9 +120,15 @@ derive_vars() {
 
   DOCKYARD_ROOT="${DOCKYARD_ROOT:-$SANDCASTLE_HOME}"
   DOCKYARD_DOCKER_PREFIX="${DOCKYARD_DOCKER_PREFIX:-sc_}"
-  DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR:-10.42.89.1/24}"
-  DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-10.42.89.0/24}"
-  DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-10.89.0.0/16}"
+
+  # Single RFC 1918 /16 from which all Sandcastle Docker networks are carved.
+  # Must be a private range (10.x.x.x, 172.16-31.x.x, or 192.168.x.x).
+  SANDCASTLE_PRIVATE_NET="${SANDCASTLE_PRIVATE_NET:-10.89.0.0/16}"
+  _priv_base="${SANDCASTLE_PRIVATE_NET%%/*}"        # e.g. "10.89.0.0"
+  _priv_prefix="${_priv_base%.*.*}"                  # e.g. "10.89"
+  DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR:-${_priv_prefix}.0.1/24}"
+  DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-${_priv_prefix}.0.0/24}"
+  DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-${SANDCASTLE_PRIVATE_NET}}"
   DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
 
   DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
@@ -543,9 +549,11 @@ cmd_gen_env() {
 
   local dy_root="${DOCKYARD_ROOT:-$home}"
   local dy_prefix="${DOCKYARD_DOCKER_PREFIX:-sc_}"
-  local dy_bridge="${DOCKYARD_BRIDGE_CIDR:-10.42.89.1/24}"
-  local dy_fixed="${DOCKYARD_FIXED_CIDR:-10.42.89.0/24}"
-  local dy_pool="${DOCKYARD_POOL_BASE:-10.89.0.0/16}"
+  local priv_net="${SANDCASTLE_PRIVATE_NET:-10.89.0.0/16}"
+  local _pb="${priv_net%%/*}"; local _pp="${_pb%.*.*}"
+  local dy_bridge="${DOCKYARD_BRIDGE_CIDR:-${_pp}.0.1/24}"
+  local dy_fixed="${DOCKYARD_FIXED_CIDR:-${_pp}.0.0/24}"
+  local dy_pool="${DOCKYARD_POOL_BASE:-${priv_net}}"
   local dy_pool_size="${DOCKYARD_POOL_SIZE:-24}"
 
   cat > "$out" <<EOF
@@ -586,9 +594,14 @@ SANDCASTLE_ADMIN_EMAIL=${admin_email}
 # ─── Dockyard (Docker + Sysbox) ─────────────────────────────────────────────
 DOCKYARD_ROOT=${dy_root}
 DOCKYARD_DOCKER_PREFIX=${dy_prefix}
-DOCKYARD_BRIDGE_CIDR=${dy_bridge}
-DOCKYARD_FIXED_CIDR=${dy_fixed}
-DOCKYARD_POOL_BASE=${dy_pool}
+
+# Private /16 from which all Sandcastle Docker networks are carved.
+# Must be RFC 1918: 10.x.x.x, 172.16-31.x.x, or 192.168.x.x.
+# Bridge and pool CIDRs are derived from this (override individually below if needed).
+SANDCASTLE_PRIVATE_NET=${priv_net}
+#DOCKYARD_BRIDGE_CIDR=${dy_bridge}
+#DOCKYARD_FIXED_CIDR=${dy_fixed}
+#DOCKYARD_POOL_BASE=${dy_pool}
 DOCKYARD_POOL_SIZE=${dy_pool_size}
 EOF
 
@@ -915,6 +928,7 @@ SANDCASTLE_ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-}"
 ACME_EMAIL="${ACME_EMAIL:-}"
 DOCKYARD_ROOT="${DOCKYARD_ROOT}"
 DOCKYARD_DOCKER_PREFIX="${DOCKYARD_DOCKER_PREFIX}"
+SANDCASTLE_PRIVATE_NET="${SANDCASTLE_PRIVATE_NET}"
 DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR}"
 DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR}"
 DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE}"
