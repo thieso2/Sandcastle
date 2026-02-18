@@ -84,6 +84,10 @@ if command -v Xvnc &>/dev/null; then
     Xvnc :99 -rfbport 5900 -SecurityTypes None -AlwaysShared \
         -geometry 1920x1080 -depth 24 \
         &>/var/log/xvnc.log &
+    # Start Openbox window manager once the display is ready
+    if command -v openbox &>/dev/null; then
+        DISPLAY=:99 openbox &>/var/log/openbox.log &
+    fi
 fi
 
 # Start SSH daemon in foreground
