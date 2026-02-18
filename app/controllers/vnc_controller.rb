@@ -15,7 +15,7 @@ class VncController < ApplicationController
   def wait
     @sandbox = find_sandbox
     id = @sandbox.id
-    @vnc_url = vnc_redirect_url("/vnc/#{id}/novnc/vnc.html?path=vnc/#{id}/novnc/websockify")
+    @vnc_url = vnc_redirect_url("/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify")
   end
 
   def status
@@ -57,7 +57,7 @@ class VncController < ApplicationController
   # login (which Traefik passes through to the browser).
   def auth
     forwarded_uri = request.headers["X-Forwarded-Uri"] || ""
-    match = forwarded_uri.match(%r{/vnc/(\d+)/novnc})
+    match = forwarded_uri.match(%r{/vnc/(\d+)})
     head(:unauthorized) and return unless match
 
     session_record = find_session_by_cookie
