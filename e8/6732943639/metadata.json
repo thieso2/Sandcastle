@@ -17,7 +17,6 @@
     "config/environments/development.rb",
     "config/puma.rb",
     "docker-compose.dev.yml",
-    "docker-compose.yml",
     "docs/deployment-comparison.md",
     "images/sandbox/Dockerfile",
     "install-defaults",
@@ -100,10 +99,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 4000,
-    "cache_creation_tokens": 1022340,
-    "cache_read_tokens": 33292980,
-    "output_tokens": 55104,
-    "api_call_count": 380
+    "input_tokens": 3964,
+    "cache_creation_tokens": 985576,
+    "cache_read_tokens": 30464082,
+    "output_tokens": 48575,
+    "api_call_count": 348
   }
 }

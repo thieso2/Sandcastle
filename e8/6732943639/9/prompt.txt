@@ -587,3 +587,33 @@ Summary:
 
 If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
 Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+commit and push
+
+---
+
+thies@sandman:~$ sudo ./installer.sh uninstall
+[INFO] Loaded /home/thies/sandcastle.env
+[WARN] This will remove Sandcastle from /sandcastle (containers, config, services)
+Are you sure? (yes to confirm): yes
+[INFO] Tearing down Sandcastle...
+[INFO] Removing Tailscale sidecar: sc-ts-thies
+sc-ts-thies
+[INFO] Removing network: sc-ts-net-thies
+sc-ts-net-thies
+[INFO] Removing sandbox image: ghcr.io/thieso2/sandcastle-sandbox:latest
+[INFO] Destroying Dockyard...
+[OK] Dockyard destroyed
+[OK] Removed user 'sandcastle'
+[INFO] Reverting firewall rules...
+[OK] Firewall rules reverted
+[OK] Removed sudoers file
+[OK] Removed login banner
+[OK] Sandcastle destroyed
+
+thies@sandman:~$ ls -la /sandcastle
+ls: cannot access '/sandcastle': No such file or directory
+
+_ALL_ data was detroyed!

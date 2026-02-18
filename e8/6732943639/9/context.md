@@ -138,3 +138,23 @@ Let me chronologically analyze this conversation which is a continuation from a 
 
 The conversation started mid-session with context from a previous conversation that had been compacted. The previous session had worked on VNC, installer networking, and BTRFS fixes. The current session contin...
 
+### Prompt 28
+
+commit and push
+
+### Prompt 29
+
+thies@sandman:~$ sudo ./installer.sh uninstall
+[INFO] Loaded /home/thies/sandcastle.env
+[WARN] This will remove Sandcastle from /sandcastle (containers, config, services)
+Are you sure? (yes to confirm): yes
+[INFO] Tearing down Sandcastle...
+[INFO] Removing Tailscale sidecar: sc-ts-thies
+sc-ts-thies
+[INFO] Removing network: sc-ts-net-thies
+sc-ts-net-thies
+[INFO] Removing sandbox image: ghcr.io/thieso2/sandcastle-sandbox:latest
+[INFO] Destroying Dockyard...
+[OK] Dockyard destroyed
+[OK] Removed use...
+
