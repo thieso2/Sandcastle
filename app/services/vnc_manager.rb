@@ -99,12 +99,12 @@ class VncManager
 
   def vnc_url(sandbox)
     id = sandbox.id
-    # noVNC builds the WebSocket URL as wss://host/<path setting>.
-    # Default path is "websockify". Without ?path=..., noVNC would try
-    # wss://host/websockify which Traefik has no route for.
-    # Pass the full routed path so Traefik's stripPrefix reduces it to
-    # /websockify before websockify receives the connection.
-    "/vnc/#{id}/novnc/vnc.html?path=vnc/#{id}/novnc/websockify"
+    # Strip prefix is /vnc/{id}, so all requests under /vnc/{id}/* are forwarded
+    # to the noVNC container with the prefix removed. This keeps noVNC's relative
+    # asset paths (package.json, core/*.js) resolving correctly within the prefix.
+    # The ?path= tells noVNC where to connect the WebSocket; Traefik strips
+    # /vnc/{id} leaving /websockify which websockify handles.
+    "/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify"
   end
 
   def container_running?(name)
@@ -164,7 +164,7 @@ class VncManager
 
     # Run the noVNC image using its built-in launch.sh, which starts both the
     # mini-webserver (noVNC HTML/JS) and websockify (WS→RFB proxy) on port 6080.
-    # Traefik routes everything under /vnc/{id}/novnc to this container; after
+    # Traefik routes everything under /vnc/{id} to this container; after
     # stripPrefix the websockify path becomes /websockify as noVNC expects.
     container = Docker::Container.create(
       "name" => container_name,
@@ -190,15 +190,16 @@ class VncManager
     sandbox_name   = sandbox.full_name
 
     base_rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
-      "HostRegexp(`.+`) && PathPrefix(`/vnc/#{id}/novnc`)"
+      "HostRegexp(`.+`) && PathPrefix(`/vnc/#{id}`)"
     else
-      "Host(`#{host}`) && PathPrefix(`/vnc/#{id}/novnc`)"
+      "Host(`#{host}`) && PathPrefix(`/vnc/#{id}`)"
     end
 
-    # Single router: all traffic under /vnc/{id}/novnc goes to the noVNC sidecar.
+    # Single router: all traffic under /vnc/{id} goes to the noVNC sidecar.
     # The noVNC container (gotget/novnc launch.sh) serves static HTML/JS on /
     # and proxies WebSocket VNC frames via websockify on /websockify, both on
-    # port 6080. stripPrefix removes the /vnc/{id}/novnc prefix before forwarding.
+    # port 6080. stripPrefix removes /vnc/{id} before forwarding, so noVNC's
+    # relative asset paths (package.json, core/*.js, /websockify) resolve correctly.
     config = {
       "http" => {
         "routers" => {
@@ -220,7 +221,7 @@ class VncManager
           },
           "vnc-stripprefix-#{id}" => {
             "stripPrefix" => {
-              "prefixes" => [ "/vnc/#{id}/novnc" ]
+              "prefixes" => [ "/vnc/#{id}" ]
             }
           }
         },
