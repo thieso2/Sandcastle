@@ -19,7 +19,7 @@
     "docker-compose.dev.yml",
     "docs/deployment-comparison.md",
     "images/sandbox/Dockerfile",
-    "images/sandbox/entrypoint.sh",
+    "images/sandbox/startchrome.sh",
     "install-defaults",
     "installer.sh",
     "installer/templates/dockyard.env.template",
@@ -99,10 +99,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3982,
-    "cache_creation_tokens": 997313,
-    "cache_read_tokens": 31862191,
-    "output_tokens": 50425,
-    "api_call_count": 363
+    "input_tokens": 3957,
+    "cache_creation_tokens": 981925,
+    "cache_read_tokens": 30335230,
+    "output_tokens": 48457,
+    "api_call_count": 344
   }
 }

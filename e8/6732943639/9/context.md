@@ -191,3 +191,19 @@ thies@sandman:~$ /sandcastle/docker-runtime/bin/docker inspect thies-slow-lynx |
 
 thies@sandman:~$ /sandcastle/docker-runtime/bin/docker inspect thies-slow-lynx | grep -...
 
+### Prompt 34
+
+add a startchome.sh script to the sandbox-container :
+# Verzeichnisse sicherstellen
+mkdir -p /tmp/chrome-config /tmp/chrome-cache
+
+# Variablen setzen und Chrome starten
+export REDACTED
+export XDG_CACHE_HOME=/tmp/chrome-cache
+
+DISPLAY=:99 google-chrome \
+  --no-sandbox \
+  --disable-dev-shm-usage \
+  --disable-gpu \
+  --disable-software-rasterizer
+

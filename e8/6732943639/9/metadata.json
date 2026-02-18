@@ -3,30 +3,31 @@
   "checkpoint_id": "e86732943639",
   "session_id": "d68a4429-f322-42fa-b68f-b6826af6a13b",
   "strategy": "manual-commit",
-  "created_at": "2026-02-18T10:23:34.915587Z",
+  "created_at": "2026-02-18T10:29:26.311486Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "images/sandbox/entrypoint.sh"
+    "images/sandbox/Dockerfile",
+    "images/sandbox/startchrome.sh"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "9fedff8d-ddef-4942-b1f6-59ce4487f87e",
-  "checkpoint_transcript_start": 1122,
-  "transcript_lines_at_start": 1122,
+  "transcript_identifier_at_start": "29e690b9-7133-4236-90ff-8ed327bae4b9",
+  "checkpoint_transcript_start": 1222,
+  "transcript_lines_at_start": 1222,
   "token_usage": {
-    "input_tokens": 32,
-    "cache_creation_tokens": 18876,
-    "cache_read_tokens": 2114092,
-    "output_tokens": 2261,
-    "api_call_count": 25
+    "input_tokens": 7,
+    "cache_creation_tokens": 3488,
+    "cache_read_tokens": 587131,
+    "output_tokens": 293,
+    "api_call_count": 6
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-18T10:23:34.683114Z",
+    "calculated_at": "2026-02-18T10:29:26.085897Z",
     "agent_lines": 0,
-    "human_added": 2,
-    "human_modified": 4,
+    "human_added": 19,
+    "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 2,
+    "total_committed": 19,
     "agent_percentage": 0
   }
 }

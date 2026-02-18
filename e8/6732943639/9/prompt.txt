@@ -657,3 +657,19 @@ thies@sandman:~$ /sandcastle/docker-runtime/bin/docker inspect thies-slow-lynx |
             "Image": "ghcr.io/thieso2/sandcastle-sandbox:latest",
             "Volumes": null,
             "WorkingDir": "/workspace",
+
+---
+
+add a startchome.sh script to the sandbox-container :
+# Verzeichnisse sicherstellen
+mkdir -p /tmp/chrome-config /tmp/chrome-cache
+
+# Variablen setzen und Chrome starten
+export REDACTED
+export XDG_CACHE_HOME=/tmp/chrome-cache
+
+DISPLAY=:99 google-chrome \
+  --no-sandbox \
+  --disable-dev-shm-usage \
+  --disable-gpu \
+  --disable-software-rasterizer
