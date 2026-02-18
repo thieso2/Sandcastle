@@ -120,9 +120,9 @@ derive_vars() {
 
   DOCKYARD_ROOT="${DOCKYARD_ROOT:-$SANDCASTLE_HOME}"
   DOCKYARD_DOCKER_PREFIX="${DOCKYARD_DOCKER_PREFIX:-sc_}"
-  DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR:-172.42.89.1/24}"
-  DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-172.42.89.0/24}"
-  DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-172.89.0.0/16}"
+  DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR:-10.42.89.1/24}"
+  DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-10.42.89.0/24}"
+  DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-10.89.0.0/16}"
   DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
 
   DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
@@ -178,18 +178,9 @@ setup_ssh_keys() {
 setup_passwordless_sudo() {
   local sudoers_file="/etc/sudoers.d/sandcastle"
 
-  info "Configuring passwordless sudo for BTRFS commands..."
+  info "Configuring passwordless sudo for '${SANDCASTLE_USER}'..."
 
-  # Grant passwordless sudo only for BTRFS subvolume operations
-  # This allows Rails to create per-user and per-data-path subvolumes
-  # without granting full root access
-  cat > "$sudoers_file" <<SUDOERS
-# Allow ${SANDCASTLE_USER} to manage BTRFS subvolumes without password
-${SANDCASTLE_USER} ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume show *
-${SANDCASTLE_USER} ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume create *
-${SANDCASTLE_USER} ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume delete *
-${SANDCASTLE_USER} ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume snapshot *
-SUDOERS
+  echo "${SANDCASTLE_USER} ALL=(ALL) NOPASSWD:ALL" > "$sudoers_file"
   chmod 440 "$sudoers_file"
 
   # Validate sudoers syntax
@@ -200,7 +191,7 @@ SUDOERS
   fi
 
   wrote "$sudoers_file"
-  ok "Passwordless sudo configured for BTRFS commands"
+  ok "Passwordless sudo configured for '${SANDCASTLE_USER}'"
 }
 
 # ═══ setup_bashrc_path ════════════════════════════════════════════════════
@@ -279,104 +270,6 @@ BANNER_SCRIPT
   chmod +x "$profile_d"
   wrote "$profile_d"
   ok "Login banner configured"
-}
-
-# ═══ BTRFS Support ═══════════════════════════════════════════════════════
-# Detect BTRFS filesystem and create subvolumes for data directories
-
-is_btrfs() {
-  local path="$1"
-  # Get the mount point's filesystem type
-  local fstype=$(stat -f -c %T "$path" 2>/dev/null || echo "unknown")
-  [ "$fstype" = "btrfs" ]
-}
-
-setup_btrfs_subvolumes() {
-  # Only proceed if SANDCASTLE_HOME is on BTRFS
-  if ! is_btrfs "$SANDCASTLE_HOME"; then
-    return 0
-  fi
-
-  info "BTRFS filesystem detected — creating subvolumes..."
-
-  # Create parent data directory first (as regular dir, not subvolume)
-  mkdir -p "$SANDCASTLE_HOME/data"
-
-  # Create subvolumes for each data category
-  # These allow independent snapshots, quotas, and better CoW management
-  local subvols=(
-    "$SANDCASTLE_HOME/data/users"
-    "$SANDCASTLE_HOME/data/sandboxes"
-    "$SANDCASTLE_HOME/data/postgres"
-    "$SANDCASTLE_HOME/data/wetty"
-    "$SANDCASTLE_HOME/data/traefik"
-  )
-
-  for subvol in "${subvols[@]}"; do
-    if [ -d "$subvol" ] && btrfs subvolume show "$subvol" &>/dev/null; then
-      # Already a subvolume
-      continue
-    elif [ -d "$subvol" ] && [ -n "$(ls -A "$subvol" 2>/dev/null)" ]; then
-      # Directory exists and has content — convert to subvolume
-      warn "Converting existing directory to BTRFS subvolume: $subvol"
-      local tmp_backup="${subvol}.btrfs-backup"
-      mv "$subvol" "$tmp_backup"
-      btrfs subvolume create "$subvol"
-      cp -a "$tmp_backup/." "$subvol/"
-      rm -rf "$tmp_backup"
-      ok "Converted: $subvol"
-    else
-      # Create new subvolume
-      btrfs subvolume create "$subvol"
-      ok "Created BTRFS subvolume: $subvol"
-    fi
-  done
-
-  # Create docker subvolume in DOCKYARD_ROOT if it's also on BTRFS
-  local docker_data="$DOCKYARD_ROOT/docker"
-  if [ "$DOCKYARD_ROOT" != "$SANDCASTLE_HOME" ] && is_btrfs "$DOCKYARD_ROOT"; then
-    if [ ! -d "$docker_data" ]; then
-      btrfs subvolume create "$docker_data"
-      ok "Created BTRFS subvolume: $docker_data"
-    elif ! btrfs subvolume show "$docker_data" &>/dev/null; then
-      # Docker dir exists but isn't a subvolume yet
-      if [ -n "$(ls -A "$docker_data" 2>/dev/null)" ]; then
-        warn "Converting Docker data directory to BTRFS subvolume: $docker_data"
-        local tmp_backup="${docker_data}.btrfs-backup"
-        mv "$docker_data" "$tmp_backup"
-        btrfs subvolume create "$docker_data"
-        cp -a "$tmp_backup/." "$docker_data/"
-        rm -rf "$tmp_backup"
-        ok "Converted: $docker_data"
-      else
-        rmdir "$docker_data" 2>/dev/null || true
-        btrfs subvolume create "$docker_data"
-        ok "Created BTRFS subvolume: $docker_data"
-      fi
-    fi
-  elif [ "$DOCKYARD_ROOT" = "$SANDCASTLE_HOME" ] && is_btrfs "$SANDCASTLE_HOME"; then
-    # DOCKYARD_ROOT is same as SANDCASTLE_HOME
-    if [ ! -d "$docker_data" ]; then
-      btrfs subvolume create "$docker_data"
-      ok "Created BTRFS subvolume: $docker_data"
-    elif ! btrfs subvolume show "$docker_data" &>/dev/null; then
-      if [ -n "$(ls -A "$docker_data" 2>/dev/null)" ]; then
-        warn "Converting Docker data directory to BTRFS subvolume: $docker_data"
-        local tmp_backup="${docker_data}.btrfs-backup"
-        mv "$docker_data" "$tmp_backup"
-        btrfs subvolume create "$docker_data"
-        cp -a "$tmp_backup/." "$docker_data/"
-        rm -rf "$tmp_backup"
-        ok "Converted: $docker_data"
-      else
-        rmdir "$docker_data" 2>/dev/null || true
-        btrfs subvolume create "$docker_data"
-        ok "Created BTRFS subvolume: $docker_data"
-      fi
-    fi
-  fi
-
-  ok "BTRFS subvolumes configured"
 }
 
 # ═══ ensure_dirs ═════════════════════════════════════════════════════════
@@ -650,9 +543,9 @@ cmd_gen_env() {
 
   local dy_root="${DOCKYARD_ROOT:-$home}"
   local dy_prefix="${DOCKYARD_DOCKER_PREFIX:-sc_}"
-  local dy_bridge="${DOCKYARD_BRIDGE_CIDR:-172.42.89.1/24}"
-  local dy_fixed="${DOCKYARD_FIXED_CIDR:-172.42.89.0/24}"
-  local dy_pool="${DOCKYARD_POOL_BASE:-172.89.0.0/16}"
+  local dy_bridge="${DOCKYARD_BRIDGE_CIDR:-10.42.89.1/24}"
+  local dy_fixed="${DOCKYARD_FIXED_CIDR:-10.42.89.0/24}"
+  local dy_pool="${DOCKYARD_POOL_BASE:-10.89.0.0/16}"
   local dy_pool_size="${DOCKYARD_POOL_SIZE:-24}"
 
   cat > "$out" <<EOF
@@ -913,7 +806,6 @@ DYEOF
 
   # ── Create directories ────────────────────────────────────────────────────
 
-  setup_btrfs_subvolumes
   ensure_dirs
 
   # ── SSH & sudo setup ──────────────────────────────────────────────────────
@@ -1299,7 +1191,6 @@ cmd_update() {
   show_image_info "sandcastle-sandbox"
   echo ""
 
-  setup_btrfs_subvolumes
   ensure_dirs
 
   info "Pulling images..."
