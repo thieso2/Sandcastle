@@ -74,6 +74,9 @@ RUN mkdir -p /var/run/sshd /etc/ssh/sshd_config.d \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+COPY startchrome.sh /usr/local/bin/startchrome
+RUN chmod +x /usr/local/bin/startchrome
+
 COPY tmux.conf /etc/tmux.conf
 COPY gitconfig /etc/gitconfig
 
