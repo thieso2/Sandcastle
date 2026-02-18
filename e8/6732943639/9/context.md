@@ -30,3 +30,7 @@ explain all teh networks and IP set in sandcastle.env
 
 create NETWORKING.md with that info and how to set it during install!
 
+### Prompt 8
+
+add  a mermaid graph to illustrate the network setup
+

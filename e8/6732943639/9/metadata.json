@@ -3,30 +3,30 @@
   "checkpoint_id": "e86732943639",
   "session_id": "d68a4429-f322-42fa-b68f-b6826af6a13b",
   "strategy": "manual-commit",
-  "created_at": "2026-02-18T05:04:20.85496Z",
+  "created_at": "2026-02-18T05:09:37.053427Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
     "docs/NETWORKING.md"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "36ef2e34-0c8c-4c00-ba3f-6d02f91630e3",
-  "checkpoint_transcript_start": 284,
-  "transcript_lines_at_start": 284,
+  "transcript_identifier_at_start": "bec7ad5c-3707-4ecf-a79c-75f7cf365c2b",
+  "checkpoint_transcript_start": 323,
+  "transcript_lines_at_start": 323,
   "token_usage": {
-    "input_tokens": 11,
-    "cache_creation_tokens": 9826,
-    "cache_read_tokens": 675803,
-    "output_tokens": 2210,
-    "api_call_count": 7
+    "input_tokens": 13,
+    "cache_creation_tokens": 19319,
+    "cache_read_tokens": 1267252,
+    "output_tokens": 3958,
+    "api_call_count": 11
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-18T05:04:20.772722Z",
+    "calculated_at": "2026-02-18T05:09:36.966692Z",
     "agent_lines": 0,
-    "human_added": 163,
+    "human_added": 190,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 163,
+    "total_committed": 190,
     "agent_percentage": 0
   }
 }
