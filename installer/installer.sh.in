@@ -253,7 +253,7 @@ BANNER_SCRIPT
 
 ensure_dirs() {
   mkdir -p "$SANDCASTLE_HOME"/etc
-  mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty}
+  mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty,postgres}
   mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
   # Own top-level data dirs (not -R: per-user subdirs are bind-mounted into
@@ -500,8 +500,8 @@ cmd_destroy() {
       $DOCKER network rm "$net" 2>/dev/null || true
     done
     if [ -f "$SANDCASTLE_HOME/docker-compose.yml" ]; then
-      # Do NOT pass --volumes: the pgdata named volume holds the postgres database
-      # and must survive uninstall so data is preserved across reinstalls.
+      # Do NOT pass --volumes: postgres data lives in a bind-mount under
+      # $SANDCASTLE_HOME/data/postgres which must survive uninstall.
       $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" --env-file "$SANDCASTLE_HOME/.env" down --rmi all --remove-orphans 2>/dev/null || true
     fi
     $DOCKER network rm sandcastle-web 2>/dev/null || true
@@ -575,8 +575,9 @@ cmd_destroy() {
   if [ -d "$SANDCASTLE_HOME/data/users" ] || [ -d "$SANDCASTLE_HOME/data/sandboxes" ] || [ -d "$SANDCASTLE_HOME/data/postgres" ]; then
     warn "User data preserved in $SANDCASTLE_HOME/data/ — remove manually if no longer needed"
   fi
+  # Legacy: older installs stored postgres in a Docker named volume 'pgdata'
   if $DOCKER volume inspect pgdata &>/dev/null 2>&1; then
-    warn "Postgres data preserved in Docker volume 'pgdata' — run '$DOCKER volume rm pgdata' to delete it"
+    warn "Legacy Docker volume 'pgdata' still exists — run '$DOCKER volume rm pgdata' to delete it"
   fi
 
   ok "Sandcastle destroyed"
