@@ -12,16 +12,14 @@
     "app/controllers/vnc_controller.rb",
     "app/services/btrfs_helper.rb",
     "app/services/sandbox_manager.rb",
-    "app/services/tailscale_manager.rb",
     "app/services/vnc_manager.rb",
     "config/database.yml",
     "config/environments/development.rb",
     "config/puma.rb",
     "docker-compose.dev.yml",
-    "docs/NETWORKING.md",
+    "docker-compose.yml",
     "docs/deployment-comparison.md",
     "images/sandbox/Dockerfile",
-    "images/sandbox/entrypoint.sh",
     "install-defaults",
     "installer.sh",
     "installer/installer.sh.in",
@@ -102,10 +100,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3960,
-    "cache_creation_tokens": 1121851,
-    "cache_read_tokens": 30832090,
-    "output_tokens": 48991,
-    "api_call_count": 346
+    "input_tokens": 4000,
+    "cache_creation_tokens": 1022340,
+    "cache_read_tokens": 33292980,
+    "output_tokens": 55104,
+    "api_call_count": 380
   }
 }

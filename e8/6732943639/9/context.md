@@ -117,3 +117,24 @@ now i see Failed to start: {"message":"failed to create task for container: fail
 
 do we actually need the seperate container for the webvnc, could this be hosted in the main web app (same for wetty?) explore and explain. create a plan if it's feasible with no security implications.
 
+### Prompt 24
+
+create two GH issues for this!
+
+### Prompt 25
+
+commit and push
+
+### Prompt 26
+
+./installer.sh uninstall should ensure that the pg data ise not deleted.
+
+### Prompt 27
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze this conversation which is a continuation from a previous session about the Sandcastle project.
+
+The conversation started mid-session with context from a previous conversation that had been compacted. The previous session had worked on VNC, installer networking, and BTRFS fixes. The current session contin...
+

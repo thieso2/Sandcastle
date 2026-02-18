@@ -366,3 +366,224 @@ now i see Failed to start: {"message":"failed to create task for container: fail
 ---
 
 do we actually need the seperate container for the webvnc, could this be hosted in the main web app (same for wetty?) explore and explain. create a plan if it's feasible with no security implications.
+
+---
+
+create two GH issues for this!
+
+---
+
+commit and push
+
+---
+
+./installer.sh uninstall should ensure that the pg data ise not deleted.
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze this conversation which is a continuation from a previous session about the Sandcastle project.
+
+The conversation started mid-session with context from a previous conversation that had been compacted. The previous session had worked on VNC, installer networking, and BTRFS fixes. The current session continued debugging VNC connectivity issues and then addressed several new features/fixes.
+
+**Session continuity context:**
+- VNC was broken: `/vnc/3/package.json` returned 404
+- The URL had `/novnc/` in the path causing off-by-one path resolution
+- x11vnc was running but not sending RFB banner
+
+**Chronological flow:**
+
+1. **VNC path fix**: Changed stripPrefix from `/vnc/{id}/novnc` to `/vnc/{id}` and URL from `/vnc/3/novnc/vnc.html` to `/vnc/3/vnc.html`
+2. **Traefik restart question**: User asked "do i need to restart traefik?" - answered NO, hot-reloads
+3. **VNC still not connecting**: User tested with `nc -v localhost 5900` - connects but no answer
+4. **x11vnc debugging**: Found x11vnc 0.9.17 has WebSocket detection that waits for client data first, deadlocking with websockify
+5. **Solution**: Switched from x11vnc + Xvfb to TigerVNC's Xvnc
+6. **shm-size**: User asked to add `--shm-size=2g` to sandbox Docker start
+7. **ShmSize failure**: Sysbox doesn't support ShmSize HostConfig key, causes "permission denied" error. Fixed by moving to `mount -o remount,size=2g /dev/shm` in entrypoint.sh
+8. **VNC browser test**: User shared screenshot showing VNC connected (black screen, noVNC toolbar visible)
+9. **Architecture exploration**: User asked about eliminating noVNC and WeTTY sidecars
+10. **Auth regex bug**: Found VncController regex `/vnc/(\d+)/novnc` was broken - fixed to `/vnc/(\d+)`
+11. **GitHub issues**: Created #35 (noVNC sidecar) and #36 (WeTTY sidecar)
+12. **Commit and push**: All changes committed
+13. **Uninstall postgres preservation**: User asked that `installer.sh uninstall` not delete postgres data - found `--volumes` in `docker compose down` destroys pgdata named volume
+
+Key files modified:
+- `app/services/vnc_manager.rb` - path fix, stripPrefix fix
+- `images/sandbox/Dockerfile` - x11vnc → tigervnc-standalone-server
+- `images/sandbox/entrypoint.sh` - Xvfb+x11vnc → Xvnc, added shm remount
+- `app/services/sandbox_manager.rb` - ShmSize added then reverted
+- `app/controllers/vnc_controller.rb` - auth regex fix, wait URL fix
+- `installer/installer.sh.in` - remove `--volumes`, add pgdata warning
+
+The final work was editing installer.sh.in to fix the postgres data deletion issue. The installer.sh (generated file) still needs to be regenerated from installer.sh.in.
+
+Summary:
+1. Primary Request and Intent:
+   - **VNC path fix** (continuing from previous session): Fix `/vnc/3/package.json` 404 by correcting the stripPrefix and URL path — the `/novnc/` segment caused noVNC JS to resolve `package.json` one level too high
+   - **Traefik restart question**: Answer whether Traefik needed restarting (no — it hot-reloads)
+   - **VNC "not answering"**: Debug x11vnc refusing to send RFB banner on connection
+   - **Switch VNC server**: Replace x11vnc + Xvfb with TigerVNC's Xvnc to fix protocol deadlock
+   - **shm-size=2g**: Add 2GB shared memory to sandbox containers for Chrome
+   - **Browser VNC test**: User confirmed VNC connected (screenshot showing noVNC toolbar + black desktop)
+   - **Architecture exploration**: Explore whether noVNC and WeTTY sidecars could be eliminated by running inside the sandbox or main app; create a plan if feasible with no security implications
+   - **Create two GitHub issues**: For noVNC sidecar elimination (#35) and WeTTY sidecar elimination (#36)
+   - **Commit and push**: All changes
+   - **Uninstall postgres preservation**: Ensure `installer.sh uninstall` does not delete postgres data
+
+2. Key Technical Concepts:
+   - **RFB protocol**: Server speaks first (sends `RFB 003.008\n` banner immediately on connection)
+   - **x11vnc 0.9.17 WebSocket detection**: New behavior reads client data first before sending RFB banner — creates deadlock with websockify (which also waits for server to speak first)
+   - **TigerVNC Xvnc**: Combined X display + VNC server in a single process; sends RFB banner immediately; flags: `-rfbport 5900 -SecurityTypes None -AlwaysShared -geometry 1920x1080 -depth 24`
+   - **websockify**: WebSocket→raw TCP proxy; converts browser WebSocket frames to raw RFB for x11vnc/Xvnc
+   - **gotget/novnc image**: Old 2019 image with bundled websockify that was not converting WS→TCP properly (sending WebSocket handshake to x11vnc)
+   - **Traefik stripPrefix**: `/vnc/{id}` (not `/vnc/{id}/novnc`) so noVNC asset relative paths resolve correctly
+   - **Sysbox runtime**: Does NOT support Docker's `ShmSize` HostConfig key — causes "permission denied" on entrypoint; workaround is `mount -o remount,size=2g /dev/shm` inside container
+   - **Sysbox isolated kernel**: Each sandbox container gets its own kernel view, so remounting tmpfs works
+   - **VncController forwardAuth**: Traefik calls `/vnc/auth` with `X-Forwarded-Uri`; regex must match current URL scheme
+   - **noVNC sidecar architecture**: Runs websockify + serves static files; connects to `sandcastle-web` network; routes to `sc-vnc-{name}:6080`
+   - **WeTTY sidecar architecture**: Node.js SSH→WebSocket bridge; ephemeral ed25519 keypair injected via `docker exec`; routes to `sc-wetty-{name}:3000`
+   - **ttyd**: Lightweight C binary alternative to WeTTY; runs shell command over WebSocket; no Node.js required
+   - **pgdata Docker named volume**: Stores postgres data; destroyed by `docker compose down --volumes`
+
+3. Files and Code Sections:
+
+   - **`app/services/vnc_manager.rb`**
+     - Critical: VNC session management service
+     - Changed `vnc_url` to remove `/novnc/` segment: `/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify`
+     - Changed Traefik route rule from `PathPrefix(/vnc/#{id}/novnc)` → `PathPrefix(/vnc/#{id})`
+     - Changed stripPrefix from `/vnc/#{id}/novnc` → `/vnc/#{id}`
+     - Changed Traefik service URL from `http://sc-vnc-{name}:6080` (unchanged in this session — points to noVNC container)
+     ```ruby
+     def vnc_url(sandbox)
+       id = sandbox.id
+       "/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify"
+     end
+     ```
+     ```yaml
+     # Traefik config now uses:
+     rule: Host(`host`) && PathPrefix(`/vnc/3`)
+     stripPrefix:
+       prefixes: ["/vnc/3"]
+     ```
+
+   - **`images/sandbox/Dockerfile`**
+     - Replaced `xvfb x11vnc` with `tigervnc-standalone-server`
+     ```dockerfile
+     # GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined), and Google Chrome
+     # Xvnc sends the RFB banner immediately on connect, unlike x11vnc 0.9.17+ which waits
+     # for client data first (breaking websockify's server-speaks-first expectation).
+     RUN apt-get update && apt-get install -y \
+         tigervnc-standalone-server xfonts-base xfonts-100dpi xfonts-75dpi \
+     ```
+
+   - **`images/sandbox/entrypoint.sh`**
+     - Replaced Xvfb+x11vnc with Xvnc
+     - Added `/dev/shm` remount for Chrome
+     ```bash
+     # Resize /dev/shm to 2GB for Chrome — Sysbox gives each container an isolated
+     # kernel so remounting tmpfs works. Docker's ShmSize HostConfig key is not
+     # supported by sysbox-runc, so we do it here instead.
+     mount -o remount,size=2g /dev/shm 2>/dev/null || true
+
+     # Start virtual X + VNC server for browser access.
+     # Xvnc (TigerVNC) combines Xvfb and a VNC server in a single process and sends
+     # the RFB banner immediately on connect — required for websockify compatibility.
+     if command -v Xvnc &>/dev/null; then
+         Xvnc :99 -rfbport 5900 -SecurityTypes None -AlwaysShared \
+             -geometry 1920x1080 -depth 24 \
+             &>/var/log/xvnc.log &
+     fi
+     ```
+
+   - **`app/services/sandbox_manager.rb`**
+     - `ShmSize` was added then reverted (Sysbox doesn't support it)
+     - File is now at its pre-ShmSize state with two `HostConfig` blocks (no ShmSize)
+
+   - **`app/controllers/vnc_controller.rb`**
+     - Fixed auth regex: `%r{/vnc/(\d+)/novnc}` → `%r{/vnc/(\d+)}`
+     - Fixed wait URL: removed `/novnc/` from path
+     ```ruby
+     def wait
+       @sandbox = find_sandbox
+       id = @sandbox.id
+       @vnc_url = vnc_redirect_url("/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify")
+     end
+
+     def auth
+       forwarded_uri = request.headers["X-Forwarded-Uri"] || ""
+       match = forwarded_uri.match(%r{/vnc/(\d+)})
+       head(:unauthorized) and return unless match
+       # ...
+     end
+     ```
+
+   - **`installer/installer.sh.in`**
+     - Removed `--volumes` from `docker compose down` to preserve pgdata
+     - Added warning message about pgdata Docker volume
+     ```bash
+     # Do NOT pass --volumes: the pgdata named volume holds the postgres database
+     # and must survive uninstall so data is preserved across reinstalls.
+     $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" --env-file "$SANDCASTLE_HOME/.env" down --rmi all --remove-orphans 2>/dev/null || true
+     ```
+     ```bash
+     if $DOCKER volume inspect pgdata &>/dev/null 2>&1; then
+       warn "Postgres data preserved in Docker volume 'pgdata' — run '$DOCKER volume rm pgdata' to delete it"
+     fi
+     ```
+
+4. Errors and Fixes:
+
+   - **`/vnc/3/package.json` 404**: noVNC JS resolves `package.json` relative to page URL. With stripPrefix `/vnc/{id}/novnc`, browser base was `/vnc/{id}/novnc/` but JS went one level up to `/vnc/{id}/package.json`. Fixed by removing `/novnc` from both the URL and the stripPrefix.
+
+   - **VNC connects but no RFB banner**: x11vnc 0.9.17 (2025) added WebSocket detection that reads client data before sending the RFB banner. Websockify waits for server to speak first (per RFB spec). Deadlock — connection hangs indefinitely. Fixed by switching to TigerVNC's Xvnc which sends banner immediately (confirmed: `Banner received in 0ms: b'RFB 003.008\n'`).
+
+   - **`webSocketsHandshake: unknown connection error` in x11vnc log**: The old websockify in gotget/novnc (2019) was forwarding WebSocket protocol to x11vnc instead of converting it to raw TCP. The `--volumes` on `docker compose down` was the postgres issue.
+
+   - **`ShmSize` causes "permission denied" on entrypoint**: Sysbox-runc doesn't support `ShmSize` in HostConfig. Error: `OCI runtime create failed: container_linux.go:439: starting container process caused: exec: "/entrypoint.sh": permission denied`. Fixed by reverting ShmSize from sandbox_manager.rb and instead using `mount -o remount,size=2g /dev/shm` in entrypoint.sh (works because Sysbox provides isolated kernel per container).
+
+   - **`-nohttp` flag not recognized by x11vnc**: Attempted to disable x11vnc WebSocket detection with `-nohttp` but it's a runtime remote-control option, not a startup flag. Abandoned approach, switched to Xvnc instead.
+
+   - **VncController auth regex broken**: After removing `/novnc/` from URL scheme, the regex `%r{/vnc/(\d+)/novnc}` never matched, causing 401 for all VNC requests. Fixed to `%r{/vnc/(\d+)}`. Also fixed the `wait` action URL which still had the old `/novnc/` path.
+
+   - **pgdata destroyed on uninstall**: `docker compose down --volumes` destroys all named volumes including `pgdata` (postgres data). Fixed by removing `--volumes` flag.
+
+5. Problem Solving:
+
+   - **VNC full stack debugging**: Traced the entire stack (browser → Traefik → noVNC container → websockify → x11vnc → Xvfb) to find multiple layered issues: wrong path stripping, old websockify WS-forwarding bug, x11vnc 0.9.17 protocol deadlock. Each was fixed systematically.
+   - **Live testing**: Used `docker exec sc-vnc-thies-slow-tiger python3 -c "..."` to test raw TCP connections and measure banner response time.
+   - **Installed TigerVNC live**: `docker exec thies-slow-tiger apt-get install -y tigervnc-standalone-server` and started Xvnc live to verify fix before committing Dockerfile changes.
+   - **Architecture analysis**: Used Explore agent to fully map WeTTY and noVNC sidecar lifecycles, then identified that both could run inside sandbox containers (websockify/ttyd), eliminating sidecars entirely.
+
+6. All User Messages:
+   - "do i need to restart taeffik?" (continued from previous session, while VNC was being debugged)
+   - "thies@thies-slow-tiger:~$ nc -v localhost 5900 / Connection to localhost (127.0.0.1) 5900 port [tcp/*] succeeded! / vnc does connect but not answer..."
+   - "try opening the vnc session in the browser" (with screenshot showing working noVNC connection with black screen)
+   - "add --shm-size=2g to the sandcastlel docker start."
+   - "now i see Failed to start: {"message":"failed to create task for container: failed to create shim task: OCI runtime create failed: container_linux.go:439: starting container process caused: exec: \"/entrypoint.sh\": permission denied"}"
+   - "do we actually need the seperate container for the webvnc, could this be hosted in the main web app (same for wetty?) explore and explain. create a plan if it's feasible with no security implications."
+   - "create two GH issues for this!"
+   - "commit and push"
+   - "installer.sh uninstall should ensure that the pg data ise not deleted."
+
+7. Pending Tasks:
+   - **Regenerate `installer.sh` from `installer/installer.sh.in`**: The `.in` file was edited but `installer.sh` (the generated output) has not been regenerated yet. Per project convention, `installer.sh` must never be edited directly and must be regenerated after changes to `installer.sh.in`.
+   - **GitHub issues #35 and #36**: Implementation not started — these are tracked as future work.
+
+8. Current Work:
+   The most recent work was fixing `installer/installer.sh.in` to prevent postgres data deletion during `installer.sh uninstall`.
+
+   Root cause: postgres data is stored in a Docker named volume called `pgdata` (defined in `docker-compose.yml`). The uninstall function `cmd_destroy` called `docker compose down --rmi all --volumes --remove-orphans`, and the `--volumes` flag destroys all named volumes including `pgdata`.
+
+   Two changes were made to `installer/installer.sh.in`:
+   1. Removed `--volumes` from the `docker compose down` call
+   2. Added a warning message that pgdata is preserved and how to remove it manually
+
+   The file `installer.sh` (generated from `installer.sh.in`) has NOT been regenerated yet.
+
+9. Optional Next Step:
+   Regenerate `installer.sh` from `installer/installer.sh.in` and commit+push. Per the project convention stated in CLAUDE.md: "Never edit `installer.sh` directly — it is generated from `installer/installer.sh.in`." The `.in` file was edited but the generated `installer.sh` still has the old `--volumes` flag and missing pgdata warning. The command to regenerate needs to be run, then both files committed together.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
