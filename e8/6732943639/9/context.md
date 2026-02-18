@@ -224,3 +224,7 @@ add xterm to the sandbox
 thies@thies-slow-lynx:~$ sudo add-apt-repository universe && sudo apt-get update && sudo apt-get install -y hyprland
 sudo-rs: 'add-apt-repository': command not found
 
+### Prompt 39
+
+remove software-properties-common again - add openbox
+
