@@ -673,3 +673,7 @@ DISPLAY=:99 google-chrome \
   --disable-dev-shm-usage \
   --disable-gpu \
   --disable-software-rasterizer
+
+---
+
+add this as /usr/local/bin/google-chrome and write to stderr that this is the wrapper to make it work on docker.
