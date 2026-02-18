@@ -676,7 +676,9 @@ cmd_destroy() {
 
   # Remove user and group
   if id "$SANDCASTLE_USER" &>/dev/null; then
-    userdel -r "$SANDCASTLE_USER" 2>/dev/null || true
+    # Do NOT use -r: the user's home ($SANDCASTLE_HOME) contains data that
+    # must be preserved across reinstalls. Directories are cleaned up explicitly below.
+    userdel "$SANDCASTLE_USER" 2>/dev/null || true
     ok "Removed user '${SANDCASTLE_USER}'"
   fi
   if getent group "$SANDCASTLE_GROUP" &>/dev/null; then
