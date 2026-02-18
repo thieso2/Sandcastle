@@ -500,7 +500,9 @@ cmd_destroy() {
       $DOCKER network rm "$net" 2>/dev/null || true
     done
     if [ -f "$SANDCASTLE_HOME/docker-compose.yml" ]; then
-      $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" --env-file "$SANDCASTLE_HOME/.env" down --rmi all --volumes --remove-orphans 2>/dev/null || true
+      # Do NOT pass --volumes: the pgdata named volume holds the postgres database
+      # and must survive uninstall so data is preserved across reinstalls.
+      $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" --env-file "$SANDCASTLE_HOME/.env" down --rmi all --remove-orphans 2>/dev/null || true
     fi
     $DOCKER network rm sandcastle-web 2>/dev/null || true
 
@@ -572,6 +574,9 @@ cmd_destroy() {
 
   if [ -d "$SANDCASTLE_HOME/data/users" ] || [ -d "$SANDCASTLE_HOME/data/sandboxes" ] || [ -d "$SANDCASTLE_HOME/data/postgres" ]; then
     warn "User data preserved in $SANDCASTLE_HOME/data/ — remove manually if no longer needed"
+  fi
+  if $DOCKER volume inspect pgdata &>/dev/null 2>&1; then
+    warn "Postgres data preserved in Docker volume 'pgdata' — run '$DOCKER volume rm pgdata' to delete it"
   fi
 
   ok "Sandcastle destroyed"
