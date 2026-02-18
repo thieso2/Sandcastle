@@ -94,3 +94,10 @@ Let me chronologically analyze the conversation to capture all technical details
 3. SANDCASTLE_PRIVATE_NET variable - user asked for a single option for private nets
 4. CLAUDE.md not...
 
+### Prompt 19
+
+thies@thies-slow-tiger:~$ nc -v localhost 5900
+Connection to localhost (127.0.0.1) 5900 port [tcp/*] succeeded!
+
+vnc does connect but not answer...
+
