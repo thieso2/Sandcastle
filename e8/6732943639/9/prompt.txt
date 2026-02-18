@@ -40,3 +40,28 @@ sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [6afaddc0-0632-4aba-b759-
 sandcastle-worker  | /rails/app/services/sandbox_manager.rb:117:in 'SandboxManager#ensure_mount_dirs'
 sandcastle-worker  | /rails/app/jobs/sandbox_provision_job.rb:13:in 'SandboxProvisionJob#perform'
 this time create a compete fix in teh code and fix the running container
+
+---
+
+vnc still does not work - in the container i see:
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.0  10888  7716 ?        Ss   05:16   0:00 sshd: /usr/sbin/sshd -D -e [listener] 0 of 10-100 startups
+root         104  0.0  0.0  27584 20532 ?        S    05:16   0:00 Xvfb :99 -screen 0 1920x1080x24
+root         273  0.0  0.0  18068 11364 ?        Ss   05:17   0:00 sshd-session: thies [priv]
+thies        297  0.1  0.0  18328  7460 ?        S    05:17   0:00 sshd-session: thies@pts/0
+thies        298  0.0  0.0  21148  6896 pts/0    Ss+  05:17   0:00 tmux new-session -A -s main
+thies        300  0.1  0.0  21156  5552 ?        Ss   05:17   0:00 tmux new-session -A -s main
+thies        301  0.0  0.0   7080  6208 pts/1    Ss   05:17   0:00 -bash
+thies        376  0.0  0.0   7272  4280 pts/1    R+   05:17   0:00 ps auxww
+
+thies@thies-slow-tiger:~$ netstat -an
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State      
+tcp        0      0 127.0.0.11:37509        0.0.0.0:*               LISTEN     
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN     
+tcp        0      0 10.89.1.6:22            10.89.1.7:51678         ESTABLISHED
+tcp        0    208 10.89.2.3:22            10.89.2.2:56544         ESTABLISHED
+tcp6       0      0 :::22                   :::*                    LISTEN     
+udp        0      0 127.0.0.11:33643        0.0.0.0:*                          
+
+no vnc server!
