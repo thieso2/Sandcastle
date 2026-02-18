@@ -58,10 +58,12 @@ fi
 # Generate SSH host keys if missing
 ssh-keygen -A
 
-# Resize /dev/shm to 2GB for Chrome — Sysbox gives each container an isolated
-# kernel so remounting tmpfs works. Docker's ShmSize HostConfig key is not
-# supported by sysbox-runc, so we do it here instead.
-mount -o remount,size=2g /dev/shm 2>/dev/null || true
+# Resize /dev/shm to 2GB for Chrome. Docker's ShmSize HostConfig key is not
+# supported by sysbox-runc, so we do it here instead. The runtime bind-mounts
+# /dev/shm from a small constrained shm, so "remount,size=" fails; unmounting
+# it and mounting a fresh tmpfs works.
+umount /dev/shm 2>/dev/null || true
+mount -t tmpfs -o size=2g,mode=1777 tmpfs /dev/shm 2>/dev/null || true
 
 # Start Docker daemon in background (requires Sysbox runtime for isolated /var/lib/docker)
 # Don't wait for it to be ready - users can check with `docker info` after SSH login
