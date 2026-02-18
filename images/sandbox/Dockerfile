@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     openssh-server sudo curl git tmux vim neovim \
     build-essential \
     jq ripgrep fd-find htop wget unzip ca-certificates net-tools iputils-ping \
+    software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
 # GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined), and Google Chrome
