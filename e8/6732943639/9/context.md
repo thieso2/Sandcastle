@@ -109,3 +109,7 @@ try opening the vnc session in the browser
 
 add --shm-size=2g to the sandcastlel docker start.
 
+### Prompt 22
+
+now i see Failed to start: {"message":"failed to create task for container: failed to create shim task: OCI runtime create failed: container_linux.go:439: starting container process caused: exec: \"/entrypoint.sh\": permission denied"}
+
