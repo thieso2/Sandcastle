@@ -11,3 +11,7 @@ also meke sure that we do not create non-private ips in installer for any of the
 ---
 
 the installer shoudl have an option for what private nets to use.
+
+---
+
+add a note to CLAUDE.md not to update install.sh direct - it's generated from installer.sh.in

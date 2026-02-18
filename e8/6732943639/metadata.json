@@ -12,7 +12,6 @@
     "app/controllers/vnc_controller.rb",
     "app/services/btrfs_helper.rb",
     "app/services/sandbox_manager.rb",
-    "app/services/tailscale_manager.rb",
     "app/services/vnc_manager.rb",
     "config/database.yml",
     "config/environments/development.rb",
@@ -22,7 +21,6 @@
     "images/sandbox/Dockerfile",
     "install-defaults",
     "installer.sh",
-    "installer/installer.sh.in",
     "installer/templates/dockyard.env.template",
     "installer/templates/sandcastle.env.template",
     "tmp/pids/server.pid"
@@ -100,10 +98,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 4002,
-    "cache_creation_tokens": 1051299,
-    "cache_read_tokens": 32343716,
-    "output_tokens": 60459,
-    "api_call_count": 382
+    "input_tokens": 3961,
+    "cache_creation_tokens": 981135,
+    "cache_read_tokens": 30541248,
+    "output_tokens": 48596,
+    "api_call_count": 347
   }
 }
