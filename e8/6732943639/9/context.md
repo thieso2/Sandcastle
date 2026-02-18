@@ -113,3 +113,7 @@ add --shm-size=2g to the sandcastlel docker start.
 
 now i see Failed to start: {"message":"failed to create task for container: failed to create shim task: OCI runtime create failed: container_linux.go:439: starting container process caused: exec: \"/entrypoint.sh\": permission denied"}
 
+### Prompt 23
+
+do we actually need the seperate container for the webvnc, could this be hosted in the main web app (same for wetty?) explore and explain. create a plan if it's feasible with no security implications.
+
