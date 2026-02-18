@@ -219,3 +219,8 @@ commit and push
 
 add xterm to the sandbox
 
+### Prompt 38
+
+thies@thies-slow-lynx:~$ sudo add-apt-repository universe && sudo apt-get update && sudo apt-get install -y hyprland
+sudo-rs: 'add-apt-repository': command not found
+
