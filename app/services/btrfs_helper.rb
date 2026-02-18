@@ -15,52 +15,61 @@ class BtrfsHelper
       @is_btrfs = false
     end
 
-    # Create a BTRFS subvolume for a user's directory
-    # This creates the parent user directory as a subvolume
+    # Ensure a user's base directory exists and is owned by the current process.
+    # On BTRFS, creates a subvolume; on regular filesystems, creates a plain directory.
+    # Always safe to call even if the directory already exists.
     def create_user_subvolume(username)
-      return false unless btrfs?
-
       user_dir = "#{DATA_DIR}/users/#{username}"
 
-      # Check if already a subvolume
-      if subvolume?(user_dir)
-        Rails.logger.debug("User directory is already a BTRFS subvolume: #{user_dir}")
+      if btrfs?
+        if subvolume?(user_dir)
+          Rails.logger.debug("User directory is already a BTRFS subvolume: #{user_dir}")
+          ensure_owned(user_dir)
+          return true
+        end
+
+        if Dir.exist?(user_dir)
+          # Exists but not a subvolume (e.g. created by root during install) —
+          # skip conversion but still fix ownership so Rails can write into it.
+          Rails.logger.info("Fixing ownership of existing user directory: #{user_dir}")
+          ensure_owned(user_dir)
+          return false
+        end
+
+        create_subvolume(user_dir)
+      else
+        FileUtils.mkdir_p(user_dir) unless Dir.exist?(user_dir)
         ensure_owned(user_dir)
-        return true
+        false
       end
-
-      if Dir.exist?(user_dir) && !Dir.empty?(user_dir)
-        # Directory already has content — skip conversion to avoid root-ownership issues
-        Rails.logger.info("Skipping BTRFS subvolume conversion for existing directory: #{user_dir}")
-        return false
-      end
-
-      create_subvolume(user_dir)
     end
 
     # Create a BTRFS subvolume for a user's data subdirectory
     def create_user_data_subvolume(username, data_path)
-      return false unless btrfs?
-
-      # Ensure parent user directory exists as subvolume
+      # Ensure parent user directory exists and is owned
       create_user_subvolume(username)
 
       data_dir = "#{DATA_DIR}/users/#{username}/data/#{data_path}".chomp("/")
 
-      # Check if already a subvolume
-      if subvolume?(data_dir)
-        Rails.logger.debug("Data directory is already a BTRFS subvolume: #{data_dir}")
+      if btrfs?
+        if subvolume?(data_dir)
+          Rails.logger.debug("Data directory is already a BTRFS subvolume: #{data_dir}")
+          ensure_owned(data_dir)
+          return true
+        end
+
+        if Dir.exist?(data_dir)
+          Rails.logger.info("Fixing ownership of existing data directory: #{data_dir}")
+          ensure_owned(data_dir)
+          return false
+        end
+
+        create_subvolume(data_dir)
+      else
+        FileUtils.mkdir_p(data_dir) unless Dir.exist?(data_dir)
         ensure_owned(data_dir)
-        return true
+        false
       end
-
-      if Dir.exist?(data_dir) && !Dir.empty?(data_dir)
-        # Directory already has content — skip conversion to avoid root-ownership issues
-        Rails.logger.info("Skipping BTRFS subvolume conversion for existing directory: #{data_dir}")
-        return false
-      end
-
-      create_subvolume(data_dir)
     end
 
     private
