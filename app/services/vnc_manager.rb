@@ -98,10 +98,13 @@ class VncManager
   end
 
   def vnc_url(sandbox)
-    # Point directly at vnc.html so Traefik's stripPrefix (/vnc/id/novnc)
-    # yields /vnc.html — avoids relying on a redirectRegex that would need
-    # to match the full URL (scheme+host+path) to work correctly.
-    "/vnc/#{sandbox.id}/novnc/vnc.html"
+    id = sandbox.id
+    # noVNC builds the WebSocket URL as wss://host/<path setting>.
+    # Default path is "websockify". Without ?path=..., noVNC would try
+    # wss://host/websockify which Traefik has no route for.
+    # Pass the full routed path so Traefik's stripPrefix reduces it to
+    # /websockify before websockify receives the connection.
+    "/vnc/#{id}/novnc/vnc.html?path=vnc/#{id}/novnc/websockify"
   end
 
   def container_running?(name)

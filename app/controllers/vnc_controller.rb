@@ -14,7 +14,8 @@ class VncController < ApplicationController
 
   def wait
     @sandbox = find_sandbox
-    @vnc_url = vnc_redirect_url("/vnc/#{@sandbox.id}/novnc/vnc.html")
+    id = @sandbox.id
+    @vnc_url = vnc_redirect_url("/vnc/#{id}/novnc/vnc.html?path=vnc/#{id}/novnc/websockify")
   end
 
   def status
