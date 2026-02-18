@@ -9,6 +9,7 @@
     "LOCAL.md",
     "Procfile.dev",
     "SANDMAN.md",
+    "app/controllers/vnc_controller.rb",
     "app/services/btrfs_helper.rb",
     "app/services/sandbox_manager.rb",
     "app/services/vnc_manager.rb",
@@ -90,10 +91,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3953,
-    "cache_creation_tokens": 982436,
-    "cache_read_tokens": 29803837,
-    "output_tokens": 51713,
-    "api_call_count": 341
+    "input_tokens": 3942,
+    "cache_creation_tokens": 1052784,
+    "cache_read_tokens": 28919319,
+    "output_tokens": 47748,
+    "api_call_count": 330
   }
 }
