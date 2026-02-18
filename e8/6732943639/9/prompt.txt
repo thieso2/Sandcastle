@@ -65,3 +65,281 @@ tcp6       0      0 :::22                   :::*                    LISTEN
 udp        0      0 127.0.0.11:33643        0.0.0.0:*                          
 
 no vnc server!
+
+---
+
+try opening a vnc session
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+try opening a vnc session
+
+---
+
+[Request interrupted by user]
+
+---
+
+try opening a vnc session
+
+---
+
+no connection!
+sandcastle-web     | [06f233d1-a94f-4a4c-9a02-c7212957beaf] Started GET "/vnc/auth" for 10.89.1.1 at 2026-02-18 05:26:18 +0000
+sandcastle-web     | [06f233d1-a94f-4a4c-9a02-c7212957beaf] Processing by VncController#auth as HTML
+sandcastle-web     | [06f233d1-a94f-4a4c-9a02-c7212957beaf] Completed 200 OK in 1ms (ActiveRecord: 0.4ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | {"time":"2026-02-18T05:26:18.739584829Z","level":"INFO","msg":"Request","path":"/vnc/auth","status":200,"dur":7,"method":"GET","req_content_length":0,"req_content_type":"","resp_content_length":0,"resp_content_type":"text/html","remote_addr":"10.89.1.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36","cache":"miss","query":"","proto":"HTTP/1.1"}
+sandcastle-web     | [7c49b28b-a3bb-4991-a6e1-848222f95c73] Started GET "/vnc/3/package.json" for 10.89.1.1 at 2026-02-18 05:26:18 +0000
+sandcastle-web     | [7c49b28b-a3bb-4991-a6e1-848222f95c73]
+sandcastle-web     | [7c49b28b-a3bb-4991-a6e1-848222f95c73] ActionController::RoutingError (No route matches [GET] "/vnc/3/package.json"):
+sandcastle-web     | [7c49b28b-a3bb-4991-a6e1-848222f95c73]
+sandcastle-web     | {"time":"2026-02-18T05:26:18.837082346Z","level":"INFO","msg":"Request","path":"/vnc/3/package.json","status":404,"dur":1,"method":"GET","req_content_length":0,"req_content_type":"","resp_content_length":2215,"resp_content_type":"text/html; charset=UTF-8","remote_addr":"10.89.1.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36","cache":"miss","query":"","proto":"HTTP/1.1"}
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation to capture all technical details.
+
+1. Initial commit/push request - user asked to commit and push changes
+2. Private IP fix - user asked to ensure DOCKYARD_* networks use private IPs only
+3. SANDCASTLE_PRIVATE_NET variable - user asked for a single option for private nets
+4. CLAUDE.md note - user asked to add note about installer.sh being generated
+5. NETWORKING.md creation - user asked to create docs with network info and install instructions
+6. Mermaid diagram - user asked to add mermaid graph to NETWORKING.md
+7. GitHub issue creation - user asked to create GH issue about preserving user data
+8. Permission fix - btrfs_helper.rb fix for root-owned directories
+9. VNC debugging - x11vnc not starting due to unsupported -wsport flag
+10. VNC session test - user asked to try opening VNC session, ongoing issue with package.json 404
+
+Key files modified:
+- installer.sh (generated from installer.sh.in)
+- installer/installer.sh.in
+- install-defaults
+- app/services/btrfs_helper.rb
+- app/services/vnc_manager.rb
+- images/sandbox/entrypoint.sh
+- CLAUDE.md
+- docs/NETWORKING.md (created)
+
+Current issue: noVNC loads but requests `/vnc/3/package.json` (missing `/novnc` in path) → 404. The gotget/novnc container IS serving correctly, no redirects. The issue must be in how the noVNC JavaScript resolves paths.
+
+The gotget/novnc image is from 2019 (old websockify version). The noVNC HTML is the old version that uses `?host=HOST&port=PORT` style parameters, not the `?path=` style. This might be the root cause.
+
+User's last two messages during VNC debugging:
+1. "no connection!" with logs showing `/vnc/3/package.json` 404
+2. "do i need to restart traeffik?" (sent while I was working)
+
+The noVNC container serves `/vnc.html` (200 OK, no redirect). The issue: noVNC's old JS code from 2019 computes `package.json` relative to its base. When Traefik strips `/vnc/3/novnc` from `/vnc/3/novnc/vnc.html`, the browser still thinks the page is at `/vnc/3/novnc/vnc.html`. But noVNC's package.json request goes to `/vnc/3/package.json` - this suggests the base path is `/vnc/3/` not `/vnc/3/novnc/`. 
+
+Actually thinking more carefully: The `gotget/novnc` is an OLD version (2019) of noVNC. In this version, `vnc.html` is at the root of the web server, and `package.json` is also at the root. So relative URL `package.json` from `vnc.html` would be correct. BUT when the browser accesses `/vnc/3/novnc/vnc.html` and Traefik strips `/vnc/3/novnc`, the CONTAINER serves vnc.html from the root. But the BROWSER thinks the page is at `/vnc/3/novnc/vnc.html`, so relative `package.json` resolves to `/vnc/3/novnc/package.json`.
+
+Wait but the log shows `/vnc/3/package.json` NOT `/vnc/3/novnc/package.json`. So somehow the base path doesn't include `/novnc`. 
+
+This is very confusing. Let me reconsider. Maybe the issue is that the noVNC page is loaded from the REDIRECT URL. For instance, the user might navigate to `/vnc/3` or `/sandboxes/3/vnc` which then redirects to `/vnc/3/novnc/vnc.html`. If there's some further redirect happening from within the container...
+
+Actually: I just noticed that the curl test shows the container serves `vnc.html` with 200 directly at `/vnc.html`. But the noVNC JS might fetch `package.json` as a relative URL from the ACTUAL URL that the browser navigated to. 
+
+If the user navigated to `/vnc/3/novnc/` (with trailing slash), Traefik strips `/vnc/3/novnc` leaving `/`. The container serves `index.html` or redirects. But then... let me think about the URL: the vnc_url returns `/vnc/3/novnc/vnc.html?path=...`. So the browser navigates to that explicit URL.
+
+I think the key issue might be that noVNC (2019 version) uses `../package.json` or computes the path differently. Or maybe the stripPrefix middleware causes the browser to see the page at a different base.
+
+For the summary, I should note that the current investigation is ongoing - the noVNC HTML loads but package.json 404s, and we need to fix the path routing.
+
+The user also asked "do i need to restart traefik?" which is relevant - probably not, since Traefik watches the dynamic config file and hot-reloads. But worth noting.
+
+Summary:
+1. Primary Request and Intent:
+   - Commit and push multiple pending changes across VNC, installer networking, and BTRFS fixes
+   - Fix DOCKYARD_* network defaults to use RFC 1918 private IPs (was using non-private 172.42.x/172.89.x ranges)
+   - Add a single `SANDCASTLE_PRIVATE_NET` installer option to configure all Docker networking from one variable
+   - Add CLAUDE.md note that installer.sh is generated and must not be edited directly
+   - Create docs/NETWORKING.md explaining all network settings and how to configure during install, with a mermaid diagram
+   - Create GitHub issue #34 about preserving user data during uninstall/reinstall
+   - Fix permission denied error when creating user subdirectories (chrome-profile, home) under root-owned user dirs
+   - Fix VNC not working: x11vnc wasn't starting due to unsupported `-wsport` flag
+   - Test opening a live VNC session (ongoing, currently debugging asset path issue)
+
+2. Key Technical Concepts:
+   - Sandcastle: Rails 8.1 + Go CLI, Docker + Sysbox sandbox platform
+   - Dockyard: isolated Docker daemon separate from system Docker, configured via `DOCKYARD_BRIDGE_CIDR`, `DOCKYARD_FIXED_CIDR`, `DOCKYARD_POOL_BASE`, `DOCKYARD_POOL_SIZE`
+   - RFC 1918 private ranges: 10.0.0.0/8, 172.16.0.0/12 (172.16–172.31 only), 192.168.0.0/16
+   - `SANDCASTLE_PRIVATE_NET`: new single /16 variable from which all DOCKYARD_* CIDRs are derived via bash string manipulation (`${var%%/*}`, `${var%.*.*}`)
+   - BTRFS subvolumes: `sudo btrfs subvolume create`, ownership fixed via `sudo chown` inside Rails container
+   - `ensure_owned`: runs `sudo -n chown` inside the Rails container (uid 220568); works because sudoers now set to NOPASSWD:ALL
+   - VNC stack: Xvfb (virtual display :99) + x11vnc (RFB port 5900) + gotget/novnc sidecar (websockify on 6080 proxying to sandbox:5900) + Traefik single router with forwardAuth + stripPrefix
+   - x11vnc 0.9.17 does NOT support `-wsport` flag — exits immediately with "unrecognized option"
+   - gotget/novnc image: uses built-in `launch.sh` which runs websockify+webserver on port 6080, called with `--vnc sandbox:5900 --listen 6080`
+   - Traefik dynamic config: hot-reloaded from `/data/traefik/dynamic/vnc-{id}.yml`
+   - noVNC URL pattern: `/vnc/{id}/novnc/vnc.html?path=vnc/{id}/novnc/websockify`
+   - installer.sh is GENERATED from `installer/installer.sh.in` — never edit directly
+
+3. Files and Code Sections:
+
+   - **installer/installer.sh.in** and **installer.sh** (generated):
+     - Added `SANDCASTLE_PRIVATE_NET` with derivation of DOCKYARD_* vars:
+     ```bash
+     SANDCASTLE_PRIVATE_NET="${SANDCASTLE_PRIVATE_NET:-10.89.0.0/16}"
+     _priv_base="${SANDCASTLE_PRIVATE_NET%%/*}"        # e.g. "10.89.0.0"
+     _priv_prefix="${_priv_base%.*.*}"                  # e.g. "10.89"
+     DOCKYARD_BRIDGE_CIDR="${DOCKYARD_BRIDGE_CIDR:-${_priv_prefix}.0.1/24}"
+     DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-${_priv_prefix}.0.0/24}"
+     DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-${SANDCASTLE_PRIVATE_NET}}"
+     DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
+     ```
+     - Removed old hardcoded 172.42.89.x and 172.89.x.x addresses (non-private)
+     - gen-env template updated: DOCKYARD_BRIDGE/FIXED/POOL shown as commented-out overrides
+     - Installed sandcastle.env template includes `SANDCASTLE_PRIVATE_NET`
+     - Sudoers changed from BTRFS-specific commands to NOPASSWD:ALL
+     - BTRFS subvolume setup removed entirely
+
+   - **install-defaults**:
+     - Added `SANDCASTLE_PRIVATE_NET="10.89.0.0/16"` with documentation
+     - Individual DOCKYARD_* shown as commented-out override examples
+
+   - **app/services/tailscale_manager.rb**:
+     - Fallback default changed from `172.89.0.0/16` to `10.89.0.0/16`
+     - Comment updated to reflect new IPs
+
+   - **app/services/btrfs_helper.rb** — key fix for permission denied:
+     ```ruby
+     def create_user_subvolume(username)
+       user_dir = "#{DATA_DIR}/users/#{username}"
+       if btrfs?
+         if subvolume?(user_dir)
+           ensure_owned(user_dir)
+           return true
+         end
+         if Dir.exist?(user_dir)
+           # Was root-owned — fix ownership so Rails can write subdirs
+           Rails.logger.info("Fixing ownership of existing user directory: #{user_dir}")
+           ensure_owned(user_dir)
+           return false
+         end
+         create_subvolume(user_dir)
+       else
+         FileUtils.mkdir_p(user_dir) unless Dir.exist?(user_dir)
+         ensure_owned(user_dir)
+         false
+       end
+     end
+     ```
+     - Same fix applied to `create_user_data_subvolume`
+     - Previously: returned false without calling `ensure_owned` when dir existed → chrome-profile mkdir failed
+
+   - **images/sandbox/entrypoint.sh**:
+     ```bash
+     # Removed -wsport 5901 (not supported by x11vnc 0.9.17)
+     DISPLAY=:99 x11vnc -shared -forever -nopw -rfbport 5900 &>/var/log/x11vnc.log &
+     ```
+
+   - **app/services/vnc_manager.rb**:
+     - Reverted from split html/ws routers back to single router
+     - noVNC container now uses default `launch.sh` entrypoint with `--vnc sandbox:5900`
+     - Resource limits: 128MB / 0.25 CPU (was 64MB/0.1 for static-only serving)
+     ```ruby
+     "Cmd" => [ "--vnc", "#{sandbox.full_name}:5900", "--listen", "6080" ],
+     ```
+     - Single Traefik router:
+     ```ruby
+     "vnc-#{id}" => {
+       "rule" => base_rule,
+       "service" => "vnc-#{id}",
+       "entryPoints" => [ "websecure" ],
+       "tls" => tls_config,
+       "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
+       "priority" => 100
+     }
+     ```
+     - Single service pointing to noVNC container port 6080
+
+   - **CLAUDE.md**: Added to Conventions section:
+     > **Never edit `installer.sh` directly** — it is generated from `installer/installer.sh.in`.
+
+   - **docs/NETWORKING.md** (new file):
+     - Explains SANDCASTLE_PRIVATE_NET, all DOCKYARD_* vars, runtime networks
+     - Tables for sandcastle-web and sc-ts-net-{user} containers
+     - Mermaid diagram (validated via mmdc SVG render):
+     ```mermaid
+     graph TB
+         internet(["Internet\nHTTPS"])
+         tailnet(["User Tailnet"])
+         subgraph host["Host Server"]
+             traefik["Traefik\nReverse Proxy"]
+             subgraph private["SANDCASTLE_PRIVATE_NET — 10.89.x.x"]
+                 subgraph bridge_net["sc_docker0 — default bridge — 10.89.0.x"]
+                     def_containers["Sandbox containers\ndefault network"]
+                 end
+                 subgraph web_net["sandcastle-web — pool-allocated, e.g. 10.89.1.x"]
+                     rails["sandcastle-web\nRails app"]
+                     wetty["sc-wetty-user-sandbox\nWeTTY terminal sidecar"]
+                     novnc["sc-novnc-sandbox\nnoVNC browser sidecar"]
+                     sb_web["Sandbox container\njoined on demand"]
+                 end
+                 subgraph ts_net["sc-ts-net-user — per-user, e.g. 10.89.2.x"]
+                     ts_sidecar["sc-ts-user\nTailscale sidecar\nadvertises subnet route"]
+                     sb_ts["Sandbox container\nTailscale enabled"]
+                 end
+             end
+         end
+         internet -->|"HTTPS"| traefik
+         traefik -->|"route"| rails
+         traefik -->|"route"| wetty
+         traefik -->|"route"| novnc
+         tailnet -->|"subnet route"| ts_sidecar
+     ```
+     - Install instructions: quickstart sed one-liner, manual editing, fine-grained overrides, reset warning
+
+4. Errors and fixes:
+   - **Non-private IPs in DOCKYARD_* defaults**: 172.42.89.x and 172.89.x.x are outside RFC 1918 (172.16-172.31 only). Fixed by moving all to 10.x.x.x space initially, then replaced entirely with `SANDCASTLE_PRIVATE_NET` derivation.
+   - **Permission denied creating chrome-profile**: `/sandcastle/data/users/thies/` was root:root 755; Rails container (uid 220568) couldn't write. Root cause: `create_user_subvolume` returned without calling `ensure_owned` when dir existed. Fixed by always calling `ensure_owned` regardless; live fix via `sudo chown 220568:220568 /sandcastle/data/users/thies`.
+   - **x11vnc exits immediately**: `-wsport 5901` is not a valid flag in x11vnc 0.9.17 (Ubuntu 25.10). x11vnc logged "unrecognized option" and exited. Fixed by removing the flag from entrypoint.sh.
+   - **noVNC container serving static files only**: Previous refactor changed noVNC container to `python3 -m http.server` (static only) and routed WebSocket to x11vnc port 5901 directly. Since x11vnc has no native WS and the static server has no websockify, VNC didn't work. Fixed by reverting to gotget/novnc's `launch.sh` with `--vnc sandbox:5900`.
+   - **Current issue — `/vnc/3/package.json` 404**: Browser requests `package.json` at wrong path (missing `/novnc/` segment). Auth passes (200), then asset fetch fails. gotget/novnc container confirmed serving correctly (no redirects, 200 on all assets). Root cause under investigation.
+
+5. Problem Solving:
+   - All networking/IP issues resolved and committed
+   - BTRFS permission fix deployed to live server and committed
+   - VNC x11vnc startup fixed; websockify confirmed proxying (`connecting to: thies-slow-tiger:5900`)
+   - VNC asset path issue (`/vnc/3/package.json` 404) currently being debugged — noVNC JS resolves `package.json` relative to wrong base path
+
+6. All user messages:
+   - "commit and push"
+   - "also meke sure that we do not create non-private ips in installer for any of the DOCKYARD_* NETWORS/IPS!"
+   - "the installer shoudl have an option for what private nets to use."
+   - "add a note to CLAUDE.md not to update install.sh direct - it's generated from installer.sh.in"
+   - "create NETWORKING.md with that info and how to set it during install!"
+   - "add a mermaid graph to illustrate the network setup"
+   - "crate GH issue 'ensure that ininstall/install keeps user data!'"
+   - "we're back to permission problems. [logs showing chrome-profile mkdir Permission denied]"
+   - "vnc still does not work - in the container i see: [ps showing no x11vnc, netstat showing no 5900/5901]"
+   - "try opening a vnc session" (twice)
+   - "no connection! [logs showing /vnc/3/package.json 404]"
+   - "do i need to restart taeffik?" (sent while working)
+
+7. Pending Tasks:
+   - Fix VNC asset path issue: `/vnc/3/package.json` 404 (should be `/vnc/3/novnc/package.json` or the routing needs adjustment)
+   - Answer user question: "do i need to restart traefik?"
+
+8. Current Work:
+   Debugging VNC session connectivity. The VNC stack is running correctly:
+   - x11vnc listening on sandbox port 5900 ✓
+   - gotget/novnc container proxying `:6080 → thies-slow-tiger:5900` ✓
+   - WebSocket connections reaching websockify ✓
+   - Traefik single-router config in place ✓
+   - forwardAuth returning 200 ✓
+   
+   But the browser's noVNC page makes a request to `/vnc/3/package.json` (missing `/novnc/`) which Rails returns 404 for. Investigation via curl confirmed the gotget/novnc container serves files with no redirects. The `gotget/novnc` image is from 2019 (Python 3.8.0, old websockify). The old noVNC JS uses `?host=HOST&port=PORT` style not `?path=` style.
+
+   User asked: "do i need to restart traefik?"
+
+9. Optional Next Step:
+   Address the user's question "do i need to restart taeffik?" — Traefik does NOT need a restart as it hot-reloads dynamic config. Then fix the `/vnc/3/package.json` 404 by adjusting the noVNC URL or the Traefik path structure so that noVNC's relative asset requests resolve correctly. The core issue: the old gotget/novnc image's `vnc.html` fetches `package.json` as a relative URL, which the browser resolves to `/vnc/3/package.json` instead of `/vnc/3/novnc/package.json`, suggesting the browser's effective base URL is `/vnc/3/` not `/vnc/3/novnc/`. This likely means there's a redirect happening from `/vnc/3/novnc/vnc.html` that changes the browser URL, or the `?path=` parameter in the URL combined with Traefik's behavior causes an unexpected base path.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
