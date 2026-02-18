@@ -158,17 +158,18 @@ class VncManager
     host_config = {
       "NetworkMode" => NETWORK_NAME,
       "RestartPolicy" => { "Name" => "no" },
-      "Memory" => 64 * 1024 * 1024, # 64MB — just serving static HTML
-      "NanoCpus" => 100_000_000 # 0.1 CPU
+      "Memory" => 128 * 1024 * 1024, # 128MB — noVNC static files + websockify proxy
+      "NanoCpus" => 250_000_000 # 0.25 CPU
     }
 
-    # Run the noVNC image as a plain HTTP file server for noVNC static assets.
-    # WebSocket VNC connections are routed by Traefik directly to x11vnc's
-    # native WebSocket port (5901) in the sandbox — no websockify needed.
+    # Run the noVNC image using its built-in launch.sh, which starts both the
+    # mini-webserver (noVNC HTML/JS) and websockify (WS→RFB proxy) on port 6080.
+    # Traefik routes everything under /vnc/{id}/novnc to this container; after
+    # stripPrefix the websockify path becomes /websockify as noVNC expects.
     container = Docker::Container.create(
       "name" => container_name,
       "Image" => NOVNC_IMAGE,
-      "Entrypoint" => [ "python3", "-m", "http.server", "--directory", "/usr/src/app/noVNC", "6080" ],
+      "Cmd" => [ "--vnc", "#{sandbox.full_name}:5900", "--listen", "6080" ],
       "HostConfig" => host_config,
       "Labels" => {
         "sandcastle.sandbox_id" => sandbox.id.to_s,
@@ -194,29 +195,20 @@ class VncManager
       "Host(`#{host}`) && PathPrefix(`/vnc/#{id}/novnc`)"
     end
 
-    # Two routers on the same path prefix:
-    # - HTTP router  → noVNC static files container (port 6080)
-    # - WebSocket router → x11vnc native WebSocket in the sandbox (port 5901)
-    # Splitting avoids routing WebSocket traffic through the old gotget/novnc
-    # websockify, which sends raw WS frames that x11vnc 0.9.17 misidentifies.
+    # Single router: all traffic under /vnc/{id}/novnc goes to the noVNC sidecar.
+    # The noVNC container (gotget/novnc launch.sh) serves static HTML/JS on /
+    # and proxies WebSocket VNC frames via websockify on /websockify, both on
+    # port 6080. stripPrefix removes the /vnc/{id}/novnc prefix before forwarding.
     config = {
       "http" => {
         "routers" => {
-          "vnc-html-#{id}" => {
-            "rule" => "#{base_rule} && !HeaderRegexp(`Upgrade`, `websocket`)",
-            "service" => "vnc-html-#{id}",
+          "vnc-#{id}" => {
+            "rule" => base_rule,
+            "service" => "vnc-#{id}",
             "entryPoints" => [ "websecure" ],
             "tls" => tls_config,
             "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
-            "priority" => 101
-          },
-          "vnc-ws-#{id}" => {
-            "rule" => "#{base_rule} && HeaderRegexp(`Upgrade`, `websocket`)",
-            "service" => "vnc-ws-#{id}",
-            "entryPoints" => [ "websecure" ],
-            "tls" => tls_config,
-            "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
-            "priority" => 101
+            "priority" => 100
           }
         },
         "middlewares" => {
@@ -233,16 +225,9 @@ class VncManager
           }
         },
         "services" => {
-          # noVNC HTML/JS/CSS static files
-          "vnc-html-#{id}" => {
+          "vnc-#{id}" => {
             "loadBalancer" => {
               "servers" => [ { "url" => "http://#{container_name}:6080" } ]
-            }
-          },
-          # x11vnc native WebSocket (bypasses websockify translation layer)
-          "vnc-ws-#{id}" => {
-            "loadBalancer" => {
-              "servers" => [ { "url" => "http://#{sandbox_name}:5901" } ]
             }
           }
         }
