@@ -90,23 +90,50 @@ Because these subnets sit within `DOCKYARD_POOL_BASE`, dockyard's iptables NAT r
 
 ## Network layout (default)
 
-```
-SANDCASTLE_PRIVATE_NET: 10.89.0.0/16
-│
-├── sc_docker0  (dockyard default bridge)
-│   ├── gateway (DOCKYARD_BRIDGE_CIDR):    10.89.0.1/24
-│   └── containers (DOCKYARD_FIXED_CIDR):  10.89.0.x
-│
-├── sandcastle-web  (pool-allocated, e.g. 10.89.1.0/24)
-│   ├── sandcastle-web container  (Rails app)
-│   ├── sc-wetty-*                (terminal sidecars)
-│   ├── sc-novnc-*                (VNC sidecars)
-│   └── sandbox containers        (joined on demand)
-│
-└── sc-ts-net-{user}  (explicit /24 per user)
-    ├── e.g. user_id=1 → 10.89.2.0/24
-    ├── sc-ts-{username}      (Tailscale sidecar)
-    └── sandbox containers    (if tailscale_auto_connect)
+```mermaid
+graph TB
+    internet(["Internet
+HTTPS"])
+    tailnet(["User Tailnet"])
+
+    subgraph host["Host Server"]
+        traefik["Traefik
+Reverse Proxy"]
+
+        subgraph private["SANDCASTLE_PRIVATE_NET — 10.89.x.x"]
+
+            subgraph bridge_net["sc_docker0 — default bridge — 10.89.0.x"]
+                def_containers["Sandbox containers
+default network"]
+            end
+
+            subgraph web_net["sandcastle-web — pool-allocated, e.g. 10.89.1.x"]
+                rails["sandcastle-web
+Rails app"]
+                wetty["sc-wetty-user-sandbox
+WeTTY terminal sidecar"]
+                novnc["sc-novnc-sandbox
+noVNC browser sidecar"]
+                sb_web["Sandbox container
+joined on demand"]
+            end
+
+            subgraph ts_net["sc-ts-net-user — per-user, e.g. 10.89.2.x"]
+                ts_sidecar["sc-ts-user
+Tailscale sidecar
+advertises subnet route"]
+                sb_ts["Sandbox container
+Tailscale enabled"]
+            end
+
+        end
+    end
+
+    internet -->|"HTTPS"| traefik
+    traefik -->|"route"| rails
+    traefik -->|"route"| wetty
+    traefik -->|"route"| novnc
+    tailnet -->|"subnet route"| ts_sidecar
 ```
 
 ---
