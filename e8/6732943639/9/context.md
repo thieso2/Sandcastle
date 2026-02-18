@@ -101,3 +101,11 @@ Connection to localhost (127.0.0.1) 5900 port [tcp/*] succeeded!
 
 vnc does connect but not answer...
 
+### Prompt 20
+
+try opening the vnc session in the browser
+
+### Prompt 21
+
+add --shm-size=2g to the sandcastlel docker start.
+
