@@ -211,3 +211,11 @@ DISPLAY=:99 google-chrome \
 
 add this as /usr/local/bin/google-chrome and write to stderr that this is the wrapper to make it work on docker.
 
+### Prompt 36
+
+commit and push
+
+### Prompt 37
+
+add xterm to the sandbox
+
