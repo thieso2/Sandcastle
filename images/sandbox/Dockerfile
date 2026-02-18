@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 # Xvnc sends the RFB banner immediately on connect, unlike x11vnc 0.9.17+ which waits
 # for client data first (breaking websockify's server-speaks-first expectation).
 RUN apt-get update && apt-get install -y \
-    tigervnc-standalone-server xfonts-base xfonts-100dpi xfonts-75dpi \
+    tigervnc-standalone-server xterm xfonts-base xfonts-100dpi xfonts-75dpi \
     fonts-liberation libappindicator3-1 libasound2t64 libatk-bridge2.0-0t64 \
     libatk1.0-0t64 libcups2t64 libdbus-1-3 libgdk-pixbuf-2.0-0 libnspr4 libnss3 \
     libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 xdg-utils \
