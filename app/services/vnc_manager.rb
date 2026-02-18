@@ -158,17 +158,17 @@ class VncManager
     host_config = {
       "NetworkMode" => NETWORK_NAME,
       "RestartPolicy" => { "Name" => "no" },
-      "Memory" => 256 * 1024 * 1024, # 256MB
-      "NanoCpus" => 500_000_000 # 0.5 CPU
+      "Memory" => 64 * 1024 * 1024, # 64MB — just serving static HTML
+      "NanoCpus" => 100_000_000 # 0.1 CPU
     }
 
-    # gotget/novnc uses launch.sh which takes --vnc HOST:PORT as CLI args,
-    # not an environment variable. Pass it explicitly so websockify connects
-    # to the sandbox container rather than defaulting to localhost:5900.
+    # Run the noVNC image as a plain HTTP file server for noVNC static assets.
+    # WebSocket VNC connections are routed by Traefik directly to x11vnc's
+    # native WebSocket port (5901) in the sandbox — no websockify needed.
     container = Docker::Container.create(
       "name" => container_name,
       "Image" => NOVNC_IMAGE,
-      "Cmd" => [ "--vnc", "#{sandbox.full_name}:5900" ],
+      "Entrypoint" => [ "python3", "-m", "http.server", "--directory", "/usr/src/app/noVNC", "6080" ],
       "HostConfig" => host_config,
       "Labels" => {
         "sandcastle.sandbox_id" => sandbox.id.to_s,
@@ -186,23 +186,37 @@ class VncManager
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
     id = sandbox.id
     container_name = vnc_container_name(sandbox)
+    sandbox_name   = sandbox.full_name
 
-    rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+    base_rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
       "HostRegexp(`.+`) && PathPrefix(`/vnc/#{id}/novnc`)"
     else
       "Host(`#{host}`) && PathPrefix(`/vnc/#{id}/novnc`)"
     end
 
+    # Two routers on the same path prefix:
+    # - HTTP router  → noVNC static files container (port 6080)
+    # - WebSocket router → x11vnc native WebSocket in the sandbox (port 5901)
+    # Splitting avoids routing WebSocket traffic through the old gotget/novnc
+    # websockify, which sends raw WS frames that x11vnc 0.9.17 misidentifies.
     config = {
       "http" => {
         "routers" => {
-          "vnc-#{id}" => {
-            "rule" => rule,
-            "service" => "vnc-#{id}",
+          "vnc-html-#{id}" => {
+            "rule" => "#{base_rule} && !HeaderRegexp(`Upgrade`, `websocket`)",
+            "service" => "vnc-html-#{id}",
             "entryPoints" => [ "websecure" ],
             "tls" => tls_config,
             "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
-            "priority" => 100
+            "priority" => 101
+          },
+          "vnc-ws-#{id}" => {
+            "rule" => "#{base_rule} && HeaderRegexp(`Upgrade`, `websocket`)",
+            "service" => "vnc-ws-#{id}",
+            "entryPoints" => [ "websecure" ],
+            "tls" => tls_config,
+            "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
+            "priority" => 101
           }
         },
         "middlewares" => {
@@ -219,9 +233,16 @@ class VncManager
           }
         },
         "services" => {
-          "vnc-#{id}" => {
+          # noVNC HTML/JS/CSS static files
+          "vnc-html-#{id}" => {
             "loadBalancer" => {
               "servers" => [ { "url" => "http://#{container_name}:6080" } ]
+            }
+          },
+          # x11vnc native WebSocket (bypasses websockify translation layer)
+          "vnc-ws-#{id}" => {
+            "loadBalancer" => {
+              "servers" => [ { "url" => "http://#{sandbox_name}:5901" } ]
             }
           }
         }

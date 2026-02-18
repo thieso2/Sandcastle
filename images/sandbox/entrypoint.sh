@@ -76,7 +76,9 @@ if command -v Xvfb &>/dev/null && command -v x11vnc &>/dev/null; then
     sleep 1
     # Start x11vnc server: -shared allows multiple connections, -forever keeps running,
     # -nopw allows connections without password (secured via Docker network isolation)
-    DISPLAY=:99 x11vnc -shared -forever -nopw -rfbport 5900 &>/var/log/x11vnc.log &
+    # -wsport 5901 enables x11vnc's native WebSocket listener (avoids needing websockify
+    # as a translation layer, which conflicts with x11vnc 0.9.17's WS auto-detection)
+    DISPLAY=:99 x11vnc -shared -forever -nopw -rfbport 5900 -wsport 5901 &>/var/log/x11vnc.log &
 fi
 
 # Start SSH daemon in foreground
