@@ -22,3 +22,11 @@ the installer shoudl have an option for what private nets to use.
 
 add a note to CLAUDE.md not to update install.sh direct - it's generated from installer.sh.in
 
+### Prompt 6
+
+explain all teh networks and IP set in sandcastle.env
+
+### Prompt 7
+
+create NETWORKING.md with that info and how to set it during install!
+
