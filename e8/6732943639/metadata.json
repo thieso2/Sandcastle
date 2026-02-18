@@ -3,7 +3,7 @@
   "checkpoint_id": "e86732943639",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 13,
+  "checkpoints_count": 14,
   "files_touched": [
     "CLAUDE.md",
     "LOCAL.md",
@@ -12,6 +12,7 @@
     "app/controllers/vnc_controller.rb",
     "app/services/btrfs_helper.rb",
     "app/services/sandbox_manager.rb",
+    "app/services/tailscale_manager.rb",
     "app/services/vnc_manager.rb",
     "config/database.yml",
     "config/environments/development.rb",
@@ -21,6 +22,7 @@
     "images/sandbox/Dockerfile",
     "install-defaults",
     "installer.sh",
+    "installer/installer.sh.in",
     "installer/templates/dockyard.env.template",
     "installer/templates/sandcastle.env.template",
     "tmp/pids/server.pid"
@@ -88,13 +90,20 @@
       "context": "/e8/6732943639/8/context.md",
       "content_hash": "/e8/6732943639/8/content_hash.txt",
       "prompt": "/e8/6732943639/8/prompt.txt"
+    },
+    {
+      "metadata": "/e8/6732943639/9/metadata.json",
+      "transcript": "/e8/6732943639/9/full.jsonl",
+      "context": "/e8/6732943639/9/context.md",
+      "content_hash": "/e8/6732943639/9/content_hash.txt",
+      "prompt": "/e8/6732943639/9/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3950,
-    "cache_creation_tokens": 978437,
-    "cache_read_tokens": 29748099,
-    "output_tokens": 48164,
-    "api_call_count": 338
+    "input_tokens": 4002,
+    "cache_creation_tokens": 1051299,
+    "cache_read_tokens": 32343716,
+    "output_tokens": 60459,
+    "api_call_count": 382
   }
 }

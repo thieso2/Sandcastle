@@ -1,0 +1,13 @@
+commit and push
+
+---
+
+also meke sure that we do not create non-private ips in installer for any of the DOCKYARD_* NETWORS/IPS!
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+the installer shoudl have an option for what private nets to use.
