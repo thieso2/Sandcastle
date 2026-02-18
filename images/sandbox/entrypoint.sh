@@ -68,16 +68,15 @@ else
     echo "Note: Docker-in-Docker not available (requires sysbox-runc runtime)" >&2
 fi
 
-# Start virtual X server and VNC server for browser access
-if command -v Xvfb &>/dev/null && command -v x11vnc &>/dev/null; then
-    # Start Xvfb on display :99 with 1920x1080 resolution and 24-bit color depth
-    Xvfb :99 -screen 0 1920x1080x24 &>/var/log/xvfb.log &
-    # Wait a moment for Xvfb to initialize
-    sleep 1
-    # Start x11vnc server: -shared allows multiple connections, -forever keeps running,
-    # -nopw allows connections without password (secured via Docker network isolation)
-    # WebSocket translation is handled by the gotget/novnc sidecar (websockify).
-    DISPLAY=:99 x11vnc -shared -forever -nopw -rfbport 5900 &>/var/log/x11vnc.log &
+# Start virtual X + VNC server for browser access.
+# Xvnc (TigerVNC) combines Xvfb and a VNC server in a single process and sends
+# the RFB banner immediately on connect — required for websockify compatibility.
+# x11vnc 0.9.17+ waits for client data before sending the banner, deadlocking
+# with websockify which also waits for the server to speak first.
+if command -v Xvnc &>/dev/null; then
+    Xvnc :99 -rfbport 5900 -SecurityTypes None -AlwaysShared \
+        -geometry 1920x1080 -depth 24 \
+        &>/var/log/xvnc.log &
 fi
 
 # Start SSH daemon in foreground
