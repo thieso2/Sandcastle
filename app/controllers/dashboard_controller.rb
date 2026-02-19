@@ -6,7 +6,7 @@ class DashboardController < ApplicationController
   def card
     sandbox = policy_scope(Sandbox).includes(:user, :routes).find(params[:id])
     authorize sandbox
-    render turbo_stream: turbo_stream.replace(dom_id(sandbox), partial: "dashboard/sandbox", locals: { sandbox: sandbox })
+    render turbo_stream: turbo_stream.replace(helpers.dom_id(sandbox), partial: "dashboard/sandbox", locals: { sandbox: sandbox })
   end
 
   def stats
