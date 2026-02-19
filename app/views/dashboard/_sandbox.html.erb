@@ -121,15 +121,6 @@
             </svg>
             Browser
           <% end %>
-          <% if local_assigns[:vnc_active] %>
-            <%= button_to vnc_sandbox_path(sandbox), method: :delete,
-                  class: "text-xs px-2 py-1.5 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition-colors inline-flex items-center gap-1" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
-                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-              </svg>
-              Close
-            <% end %>
-          <% end %>
           <button type="button"
                   onclick="(function(){var d=new Date();var ts='snap-'+d.getFullYear()+(String(d.getMonth()+1).padStart(2,'0'))+(String(d.getDate()).padStart(2,'0'))+'-'+(String(d.getHours()).padStart(2,'0'))+(String(d.getMinutes()).padStart(2,'0'))+(String(d.getSeconds()).padStart(2,'0'));document.getElementById('snap-name-<%= sandbox.id %>').value=ts;document.getElementById('snap-modal-<%= sandbox.id %>').classList.remove('hidden');document.getElementById('snap-name-<%= sandbox.id %>').select();})()"
                   class="text-xs px-2 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors inline-flex items-center gap-1">

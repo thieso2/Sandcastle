@@ -14,24 +14,22 @@ class SnapshotsController < ApplicationController
 
     layers = params[:layers].present? ? Array(params[:layers]) : nil
 
-    SandboxManager.new.create_snapshot(
-      sandbox: sandbox,
+    SnapshotCreateJob.perform_later(
+      sandbox_id: sandbox.id,
       name: params.require(:name),
       label: params[:label].presence,
       layers: layers,
       data_subdir: params[:data_subdir].presence
     )
 
-    redirect_to sandbox_path(sandbox), notice: "Snapshot created."
-  rescue SandboxManager::Error => e
-    redirect_back_or_to root_path, alert: "Failed to create snapshot: #{e.message}"
+    redirect_back_or_to root_path, notice: "Snapshot queued — it will appear shortly."
+  rescue ActionController::ParameterMissing => e
+    redirect_back_or_to root_path, alert: "Missing parameter: #{e.param}"
   end
 
   def destroy
-    SandboxManager.new.destroy_snapshot(user: Current.user, name: params[:name])
-    redirect_back_or_to root_path, notice: "Snapshot deleted."
-  rescue SandboxManager::Error => e
-    redirect_back_or_to root_path, alert: "Failed to delete snapshot: #{e.message}"
+    SnapshotDestroyJob.perform_later(user_id: Current.user.id, snapshot_name: params[:name])
+    redirect_back_or_to root_path, notice: "Snapshot deletion queued."
   end
 
   # POST /snapshots/:name/clone — redirect to new sandbox form pre-filled with snapshot
