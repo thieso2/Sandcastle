@@ -90,3 +90,11 @@ Let me chronologically analyze the conversation:
 3. **VNC diagnosis** - Xvnc not running because sandbox uses old image (pre-VNC)
 4. **D...
 
+### Prompt 17
+
+also move the sandbox detail page snapshot creation to background
+
+### Prompt 18
+
+in vnc mode export DISPLAY=:99 to the env.
+

@@ -337,3 +337,11 @@ Summary:
 
 If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
 Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+also move the sandbox detail page snapshot creation to background
+
+---
+
+in vnc mode export DISPLAY=:99 to the env.
