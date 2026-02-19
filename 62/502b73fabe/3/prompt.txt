@@ -1,0 +1,43 @@
+fix rake db:migrate
+
+---
+
+Container sandcastle-migrate-1 Waiting
+migrate-1       | DEPRECATION WARNING: ActiveSupport::Configurable is deprecated without replacement, and will be removed in Rails 8.2.
+migrate-1       |
+migrate-1       | You can emulate the previous behavior with `class_attribute`.
+migrate-1       |  (called from <main> at /rails/config/application.rb:7)
+Container sandcastle-init-data-1 Exited
+Container sandcastle-init-data-1 Exited
+postgres-1      | 2026-02-19 17:20:54.112 UTC [53] ERROR:  relation "snapshots" already exists
+postgres-1      | 2026-02-19 17:20:54.112 UTC [53] STATEMENT:  CREATE TABLE "snapshots" ("id" bigserial primary key, "user_id" bigint NOT NULL, "name" character varying NOT NULL, "label" character varying, "source_sandbox" character varying, "docker_image" character varying, "home_snapshot" character varying, "data_snapshot" character varying, "data_subdir" character varying, "docker_size" bigint, "home_size" bigint, "data_size" bigint, "created_at" timestamp(6) NOT NULL, "updated_at" timestamp(6) NOT NULL, CONSTRAINT "fk_rails_e2a968f854"
+postgres-1      |     FOREIGN KEY ("user_id")
+postgres-1      |       REFERENCES "users" ("id")
+postgres-1      |     )
+migrate-1       | bin/rails aborted!
+migrate-1       | StandardError: An error has occurred, this and all later migrations canceled: (StandardError)
+migrate-1       |
+migrate-1       | PG::DuplicateTable: ERROR:  relation "snapshots" already exists
+migrate-1       | /rails/db/migrate/20260219000002_create_snapshots.rb:3:in 'CreateSnapshots#change'
+migrate-1       | /rails/bin/rails:4:in '<main>'
+migrate-1       |
+migrate-1       | Caused by:
+migrate-1       | ActiveRecord::StatementInvalid: PG::DuplicateTable: ERROR:  relation "snapshots" already exists (ActiveRecord::StatementInvalid)
+migrate-1       | /rails/db/migrate/20260219000002_create_snapshots.rb:3:in 'CreateSnapshots#change'
+migrate-1       | /rails/bin/rails:4:in '<main>'
+migrate-1       |
+migrate-1       | Caused by:
+migrate-1       | PG::DuplicateTable: ERROR:  relation "snapshots" already exists (PG::DuplicateTable)
+migrate-1       | /rails/db/migrate/20260219000002_create_snapshots.rb:3:in 'CreateSnapshots#change'
+migrate-1       | /rails/bin/rails:4:in '<main>'
+migrate-1       | Tasks: TOP => db:prepare
+migrate-1       | (See full trace by running task with --trace)
+migrate-1       | Migrating to CreateSnapshots (20260219000002)
+migrate-1       | == 20260219000002 CreateSnapshots: migrating ==================================
+migrate-1       | -- create_table(:snapshots)
+migrate-1 exited with code 1
+Container sandcastle-migrate-1 Error service "migrate" didn't complete successfully: exit 1
+
+---
+
+[Request interrupted by user]
