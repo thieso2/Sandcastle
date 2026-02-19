@@ -95,6 +95,8 @@ if command -v Xvnc &>/dev/null && [ "$VNC_ENABLED" = "1" ]; then
         su -s /bin/bash "$USERNAME" -c \
             'DISPLAY=:99 openbox &>/var/log/openbox.log &'
     fi
+    # Export DISPLAY for all SSH sessions via PAM environment
+    echo "DISPLAY=:99" >> /etc/environment
 fi
 
 # Start SSH daemon in foreground
