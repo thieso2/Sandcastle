@@ -31,7 +31,7 @@
 <script>
   (function() {
     var statusUrl = "<%= vnc_status_sandbox_path(@sandbox) %>";
-    var vncUrl = <%= @vnc_url.to_json %>;
+    var vncUrl = <%= raw @vnc_url.to_json %>;
     var elapsed = 0;
     var timeout = 30;
 
