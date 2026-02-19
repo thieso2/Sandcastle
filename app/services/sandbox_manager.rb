@@ -57,7 +57,7 @@ class SandboxManager
       "name" => sandbox.full_name,
       "Image" => sandbox.image,
       "Hostname" => sandbox.full_name,
-      "Env" => container_env(user),
+      "Env" => container_env(user, sandbox),
       "HostConfig" => {
         "Runtime" => container_runtime,
         "PortBindings" => {
@@ -439,7 +439,7 @@ class SandboxManager
       "name" => sandbox.full_name,
       "Image" => final_image,
       "Hostname" => sandbox.full_name,
-      "Env" => container_env(user),
+      "Env" => container_env(user, sandbox),
       "HostConfig" => {
         "Runtime" => container_runtime,
         "PortBindings" => {
@@ -551,13 +551,16 @@ class SandboxManager
     nil
   end
 
-  def container_env(user)
+  def container_env(user, sandbox)
     env = [
       "SANDCASTLE_USER=#{user.name}",
       "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
     ]
     env << "USER_EMAIL=#{user.email_address}" if user.email_address.present?
     env << "USER_FULLNAME=#{user.full_name}" if user.full_name.present?
+    env << "SANDCASTLE_VNC_ENABLED=#{sandbox.vnc_enabled? ? '1' : '0'}"
+    env << "SANDCASTLE_VNC_GEOMETRY=#{sandbox.vnc_geometry}"
+    env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
     env
   end
 

@@ -11,18 +11,26 @@ RUN apt-get update && apt-get install -y \
     jq ripgrep fd-find htop wget unzip ca-certificates net-tools iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
-# GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined), and Google Chrome
+# GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined), and browser
 # Xvnc sends the RFB banner immediately on connect, unlike x11vnc 0.9.17+ which waits
 # for client data first (breaking websockify's server-speaks-first expectation).
 RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server openbox xterm xfonts-base xfonts-100dpi xfonts-75dpi \
-    fonts-liberation libappindicator3-1 libasound2t64 libatk-bridge2.0-0t64 \
-    libatk1.0-0t64 libcups2t64 libdbus-1-3 libgdk-pixbuf-2.0-0 libnspr4 libnss3 \
-    libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 xdg-utils \
-    && wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-    && apt-get install -y ./google-chrome-stable_current_amd64.deb \
-    && rm google-chrome-stable_current_amd64.deb \
     && rm -rf /var/lib/apt/lists/*
+
+# Google Chrome (amd64) or Chromium (arm64) — Google doesn't ship a Chrome deb for arm64
+ARG TARGETARCH
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+      apt-get update \
+      && wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+      && apt-get install -y ./google-chrome-stable_current_amd64.deb \
+      && rm google-chrome-stable_current_amd64.deb \
+      && rm -rf /var/lib/apt/lists/*; \
+    else \
+      apt-get update \
+      && apt-get install -y chromium \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # Prefer IPv4 to avoid slow/broken IPv6 connections
 RUN sed -i 's/#precedence ::ffff:0:0\/96  100/precedence ::ffff:0:0\/96  100/' /etc/gai.conf

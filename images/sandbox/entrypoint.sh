@@ -80,13 +80,20 @@ fi
 # the RFB banner immediately on connect — required for websockify compatibility.
 # x11vnc 0.9.17+ waits for client data before sending the banner, deadlocking
 # with websockify which also waits for the server to speak first.
-if command -v Xvnc &>/dev/null; then
-    Xvnc :99 -rfbport 5900 -SecurityTypes None -AlwaysShared \
-        -geometry 1920x1080 -depth 24 \
-        &>/var/log/xvnc.log &
+# Both processes run as $USERNAME (not root) for proper display ownership.
+VNC_ENABLED="${SANDCASTLE_VNC_ENABLED:-1}"
+VNC_GEOMETRY="${SANDCASTLE_VNC_GEOMETRY:-1280x900}"
+VNC_DEPTH="${SANDCASTLE_VNC_DEPTH:-24}"
+
+if command -v Xvnc &>/dev/null && [ "$VNC_ENABLED" = "1" ]; then
+    touch /var/log/xvnc.log /var/log/openbox.log
+    chown "$USERNAME:$USERNAME" /var/log/xvnc.log /var/log/openbox.log
+    su -s /bin/bash "$USERNAME" -c \
+        "Xvnc :99 -rfbport 5900 -SecurityTypes None -AlwaysShared -geometry ${VNC_GEOMETRY} -depth ${VNC_DEPTH} &>/var/log/xvnc.log &"
     # Start Openbox window manager once the display is ready
     if command -v openbox &>/dev/null; then
-        DISPLAY=:99 openbox &>/var/log/openbox.log &
+        su -s /bin/bash "$USERNAME" -c \
+            'DISPLAY=:99 openbox &>/var/log/openbox.log &'
     fi
 fi
 

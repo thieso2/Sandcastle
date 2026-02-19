@@ -24,6 +24,9 @@ var (
 	sandboxRemove        bool
 	sandboxHome          bool
 	sandboxData          string
+	sandboxNoVNC         bool
+	sandboxVNCGeometry   string
+	sandboxVNCDepth      int
 )
 
 func init() {
@@ -46,6 +49,9 @@ func init() {
 	createCmd.Flags().BoolVar(&sandboxHome, "home", false, "Mount persistent home directory (env: SANDCASTLE_HOME)")
 	createCmd.Flags().StringVar(&sandboxData, "data", "", "Mount user data directory (or subpath) to /data (env: SANDCASTLE_DATA)")
 	createCmd.Flags().Lookup("data").NoOptDefVal = "."
+	createCmd.Flags().BoolVar(&sandboxNoVNC, "no-vnc", false, "Disable VNC display server")
+	createCmd.Flags().StringVar(&sandboxVNCGeometry, "vnc-geometry", "", "VNC screen resolution (e.g. 1920x1080)")
+	createCmd.Flags().IntVar(&sandboxVNCDepth, "vnc-depth", 0, "VNC color depth: 8, 16, 24, or 32")
 }
 
 var createCmd = &cobra.Command{
@@ -122,6 +128,9 @@ Flags explicitly passed on the command line take precedence over environment var
 			MountHome:     sandboxHome,
 			DataPath:      sandboxData,
 			Temporary:     sandboxRemove,
+			VNCEnabled:    !sandboxNoVNC,
+			VNCGeometry:   sandboxVNCGeometry,
+			VNCDepth:      sandboxVNCDepth,
 		})
 		if err != nil {
 			return err
@@ -134,7 +143,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		// Print active options (use local flags — they reflect what was actually requested)
-		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove || fromSnap != "" {
+		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 {
 			if sandboxHome {
 				fmt.Println("  Home:      mounted (~/ persisted)")
 			}
@@ -156,6 +165,19 @@ Flags explicitly passed on the command line take precedence over environment var
 			}
 			if fromSnap != "" {
 				fmt.Printf("  Snapshot:  restored from %q\n", fromSnap)
+			}
+			if sandboxNoVNC {
+				fmt.Println("  VNC:       disabled")
+			} else if sandboxVNCGeometry != "" || sandboxVNCDepth != 0 {
+				geom := sandbox.VNCGeometry
+				if geom == "" {
+					geom = "1280x900"
+				}
+				depth := sandbox.VNCDepth
+				if depth == 0 {
+					depth = 24
+				}
+				fmt.Printf("  VNC:       %s @ %d-bit\n", geom, depth)
 			}
 		}
 
