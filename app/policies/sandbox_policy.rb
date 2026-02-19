@@ -7,6 +7,7 @@ class SandboxPolicy < ApplicationPolicy
   def start?                 = owner_or_admin?
   def stop?                  = owner_or_admin?
   def stats?                 = owner_or_admin?
+  def card?                  = owner_or_admin?
   def connect?               = owner_or_admin?
   def snapshot?              = owner_or_admin?
   def restore?               = owner_or_admin?

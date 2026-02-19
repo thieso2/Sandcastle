@@ -32,6 +32,7 @@ Rails.application.routes.draw do
       post :stop
       post :retry
       get :stats, controller: "dashboard", action: "stats"
+      get :card, controller: "dashboard", action: "card"
       post :terminal, controller: "terminal", action: "open"
       get  "terminal/wait", controller: "terminal", action: "wait"
       get  "terminal/status", controller: "terminal", action: "status"

@@ -1,7 +1,11 @@
 <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-3 transition-all duration-200 hover:shadow-md
             <%= 'animate-pulse border-blue-300' if sandbox.job_in_progress? %>
             <%= 'border-red-300' if sandbox.job_failed? %>"
-     id="<%= dom_id(sandbox) %>">
+     id="<%= dom_id(sandbox) %>"
+     <% if sandbox.job_in_progress? %>
+       data-controller="sandbox-polling"
+       data-sandbox-polling-url-value="<%= card_sandbox_path(sandbox) %>"
+     <% end %>>
 
   <%# Line 1: Status, name, pills %>
   <div class="flex items-center justify-between gap-4">
