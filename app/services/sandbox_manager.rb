@@ -204,66 +204,183 @@ class SandboxManager
     { state: "not_found" }
   end
 
-  def snapshot(sandbox:, name: nil)
+  # Create a composite snapshot (Docker image + optional BTRFS layers).
+  # Returns a Snapshot ActiveRecord object.
+  #
+  # layers: array of "container", "home", "data", "workspace"
+  #   nil means "all available" based on sandbox config
+  def create_snapshot(sandbox:, name:, label: nil, layers: nil, data_subdir: nil)
     raise Error, "Sandbox has no running container" if sandbox.container_id.blank?
 
-    name ||= Date.today.iso8601
     user = sandbox.user
-    repo = "sc-snap-#{user.name}"
+    name = name.presence || Date.today.iso8601
+    requested_layers = layers&.map(&:to_s) || %w[container home data workspace]
 
-    container = Docker::Container.get(sandbox.container_id)
-    image = container.commit(
-      repo: repo,
-      tag: name,
-      comment: "sandbox:#{sandbox.name}"
+    snap = Snapshot.new(
+      user: user,
+      name: name,
+      label: label,
+      source_sandbox: sandbox.name,
+      data_subdir: data_subdir
     )
 
-    {
-      name: name,
-      image: "#{repo}:#{name}",
-      sandbox: sandbox.name,
-      created_at: Time.current
-    }
+    # ── Container layer ──────────────────────────────────────────────────────
+    if requested_layers.include?("container")
+      repo = "sc-snap-#{user.name}"
+      container = Docker::Container.get(sandbox.container_id)
+      image = container.commit(
+        repo: repo,
+        tag: name,
+        comment: "sandbox:#{sandbox.name}"
+      )
+      snap.docker_image = "#{repo}:#{name}"
+      snap.docker_size  = image.info["Size"]
+    end
+
+    # ── Home layer (BTRFS only) ───────────────────────────────────────────────
+    if requested_layers.include?("home") && sandbox.mount_home? && BtrfsHelper.btrfs?
+      home_src  = "#{DATA_DIR}/users/#{user.name}/home"
+      home_dest = "#{DATA_DIR}/snapshots/#{user.name}/#{name}/home"
+      if Dir.exist?(home_src)
+        BtrfsHelper.snapshot_subvolume(home_src, home_dest)
+        snap.home_snapshot = home_dest
+        snap.home_size     = BtrfsHelper.subvolume_size(home_dest)
+      end
+    end
+
+    # ── Data layer (BTRFS only) ───────────────────────────────────────────────
+    if requested_layers.include?("data") && sandbox.data_path.present? && BtrfsHelper.btrfs?
+      if data_subdir.present?
+        data_src  = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}/#{data_subdir}".chomp("/")
+      else
+        data_src  = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
+      end
+      data_dest = "#{DATA_DIR}/snapshots/#{user.name}/#{name}/data"
+      if Dir.exist?(data_src)
+        BtrfsHelper.snapshot_subvolume(data_src, data_dest)
+        snap.data_snapshot = data_dest
+        snap.data_size     = BtrfsHelper.subvolume_size(data_dest)
+      end
+    end
+
+    # ── Workspace layer (BTRFS only) ─────────────────────────────────────────
+    if requested_layers.include?("workspace") && sandbox.persistent_volume? && sandbox.volume_path.present? && BtrfsHelper.btrfs?
+      workspace_src  = sandbox.volume_path
+      workspace_dest = "#{DATA_DIR}/snapshots/#{user.name}/#{name}/workspace"
+      if Dir.exist?(workspace_src)
+        BtrfsHelper.snapshot_subvolume(workspace_src, workspace_dest)
+        # Store workspace alongside data_snapshot when no data layer taken
+        snap.data_snapshot ||= workspace_dest
+        snap.data_size     = BtrfsHelper.subvolume_size(workspace_dest)
+      end
+    end
+
+    snap.save!
+    snap
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to create snapshot: #{e.message}"
+  rescue BtrfsHelper::Error => e
+    raise Error, "Failed to snapshot filesystem layer: #{e.message}"
+  end
+
+  # Legacy alias kept for backward compatibility (used by existing API endpoint).
+  def snapshot(sandbox:, name: nil, **opts)
+    snap = create_snapshot(sandbox: sandbox, name: name, layers: %w[container])
+    {
+      name: snap.name,
+      image: snap.docker_image,
+      sandbox: snap.source_sandbox,
+      created_at: snap.created_at
+    }
   end
 
   def list_snapshots(user:)
-    repo_prefix = "sc-snap-#{user.name}"
-
-    Docker::Image.all.each_with_object([]) do |img, result|
-      repo_tags = img.info["RepoTags"] || []
-      repo_tags.each do |tag|
-        repo, tag_name = tag.split(":")
-        next unless repo == repo_prefix
-
-        result << {
-          name: tag_name,
-          image: tag,
-          size: img.info["Size"],
-          created_at: Time.at(img.info["Created"])
-        }
-      end
-    end
+    import_legacy_snapshots(user)
+    Snapshot.where(user: user).order(created_at: :desc).map { |s| snapshot_json(s) }
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to list snapshots: #{e.message}"
   end
 
-  def destroy_snapshot(user:, name:)
-    image_ref = "sc-snap-#{user.name}:#{name}"
-    Docker::Image.get(image_ref).remove
-  rescue Docker::Error::NotFoundError
+  def find_snapshot(user:, name:)
+    import_legacy_snapshots(user)
+    Snapshot.find_by!(user: user, name: name)
+  rescue ActiveRecord::RecordNotFound
     raise Error, "Snapshot '#{name}' not found"
-  rescue Docker::Error::DockerError => e
-    raise Error, "Failed to destroy snapshot: #{e.message}"
   end
 
-  def restore(sandbox:, snapshot_name:)
+  def destroy_snapshot(user:, name:)
+    snap = Snapshot.find_by(user: user, name: name)
+
+    if snap
+      # Remove Docker image
+      if snap.docker_image.present?
+        begin
+          Docker::Image.get(snap.docker_image).remove
+        rescue Docker::Error::NotFoundError
+          # Already gone
+        rescue Docker::Error::DockerError => e
+          raise Error, "Failed to remove Docker image: #{e.message}"
+        end
+      end
+
+      # Remove BTRFS snapshots
+      if snap.home_snapshot.present?
+        begin
+          BtrfsHelper.delete_snapshot(snap.home_snapshot)
+        rescue BtrfsHelper::Error => e
+          Rails.logger.warn("Could not delete home snapshot #{snap.home_snapshot}: #{e.message}")
+        end
+      end
+
+      if snap.data_snapshot.present?
+        begin
+          BtrfsHelper.delete_snapshot(snap.data_snapshot)
+        rescue BtrfsHelper::Error => e
+          Rails.logger.warn("Could not delete data snapshot #{snap.data_snapshot}: #{e.message}")
+        end
+      end
+
+      snap.destroy!
+    else
+      # Legacy: try to find and remove Docker image directly
+      image_ref = "sc-snap-#{user.name}:#{name}"
+      begin
+        Docker::Image.get(image_ref).remove
+      rescue Docker::Error::NotFoundError
+        raise Error, "Snapshot '#{name}' not found"
+      rescue Docker::Error::DockerError => e
+        raise Error, "Failed to destroy snapshot: #{e.message}"
+      end
+    end
+  end
+
+  def restore(sandbox:, snapshot_name:, layers: nil)
     user = sandbox.user
-    image_ref = "sc-snap-#{user.name}:#{snapshot_name}"
     was_tailscale = sandbox.tailscale?
 
-    Docker::Image.get(image_ref)
+    snap = Snapshot.find_by(user: user, name: snapshot_name)
+    requested_layers = layers&.map(&:to_s)
+
+    # Determine the Docker image to use
+    if snap&.docker_image.present?
+      image_ref = snap.docker_image
+    else
+      # Fall back to legacy naming
+      image_ref = "sc-snap-#{user.name}:#{snapshot_name}"
+    end
+
+    restore_container = requested_layers.nil? || requested_layers.include?("container")
+    restore_home      = snap&.home_snapshot.present? && (requested_layers.nil? || requested_layers.include?("home"))
+    restore_data      = snap&.data_snapshot.present? && (requested_layers.nil? || requested_layers.include?("data"))
+
+    # Validate the Docker image exists if we need it
+    if restore_container
+      begin
+        Docker::Image.get(image_ref)
+      rescue Docker::Error::NotFoundError
+        raise Error, "Snapshot '#{snapshot_name}' not found"
+      end
+    end
 
     begin
       TerminalManager.new.close(sandbox: sandbox)
@@ -291,9 +408,36 @@ class SandboxManager
       end
     end
 
+    # ── Restore home directory ────────────────────────────────────────────────
+    if restore_home
+      home_target = "#{DATA_DIR}/users/#{user.name}/home"
+      begin
+        BtrfsHelper.restore_subvolume(snap.home_snapshot, home_target)
+      rescue BtrfsHelper::Error => e
+        Rails.logger.warn("Could not restore home snapshot: #{e.message}")
+      end
+    end
+
+    # ── Restore data directory ────────────────────────────────────────────────
+    if restore_data
+      if snap.data_subdir.present?
+        data_target = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}/#{snap.data_subdir}".chomp("/")
+      else
+        data_target = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
+      end
+      begin
+        BtrfsHelper.restore_subvolume(snap.data_snapshot, data_target)
+      rescue BtrfsHelper::Error => e
+        Rails.logger.warn("Could not restore data snapshot: #{e.message}")
+      end
+    end
+
+    # ── Recreate container ────────────────────────────────────────────────────
+    final_image = restore_container ? image_ref : sandbox.image
+
     container = Docker::Container.create(
       "name" => sandbox.full_name,
-      "Image" => image_ref,
+      "Image" => final_image,
       "Hostname" => sandbox.full_name,
       "Env" => container_env(user, sandbox),
       "HostConfig" => {
@@ -307,17 +451,56 @@ class SandboxManager
     )
 
     container.start
-    sandbox.update!(container_id: container.id, image: image_ref, status: "running")
+    sandbox.update!(container_id: container.id, image: final_image, status: "running")
 
     if was_tailscale && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
     end
 
     sandbox
-  rescue Docker::Error::NotFoundError
-    raise Error, "Snapshot '#{snapshot_name}' not found"
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to restore snapshot: #{e.message}"
+  end
+
+  # Import legacy Docker-only snapshots as DB records (idempotent).
+  def import_legacy_snapshots(user)
+    repo_prefix = "sc-snap-#{user.name}"
+
+    Docker::Image.all.each do |img|
+      repo_tags = img.info["RepoTags"] || []
+      repo_tags.each do |tag|
+        repo, tag_name = tag.split(":")
+        next unless repo == repo_prefix
+        next if tag_name.blank?
+        next if Snapshot.exists?(user: user, name: tag_name)
+
+        Snapshot.create!(
+          user: user,
+          name: tag_name,
+          docker_image: tag,
+          docker_size: img.info["Size"],
+          source_sandbox: img.info.dig("Comment")&.delete_prefix("sandbox:"),
+          created_at: Time.at(img.info["Created"] || Time.current.to_i)
+        )
+      end
+    end
+  rescue Docker::Error::DockerError, ActiveRecord::RecordInvalid => e
+    Rails.logger.warn("Legacy snapshot import failed: #{e.message}")
+  end
+
+  def snapshot_json(snap)
+    {
+      name: snap.name,
+      label: snap.label,
+      source_sandbox: snap.source_sandbox,
+      layers: snap.layers,
+      docker_image: snap.docker_image,
+      docker_size: snap.docker_size,
+      home_size: snap.home_size,
+      data_size: snap.data_size,
+      total_size: snap.total_size,
+      created_at: snap.created_at
+    }
   end
 
   def connect_info(sandbox:)

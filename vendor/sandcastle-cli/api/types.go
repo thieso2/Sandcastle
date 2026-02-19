@@ -118,19 +118,42 @@ type ServerUserCounts struct {
 }
 
 type Snapshot struct {
-	Name      string    `json:"name"`
-	Image     string    `json:"image"`
-	Sandbox   string    `json:"sandbox"`
-	Size      int64     `json:"size"`
-	CreatedAt time.Time `json:"created_at"`
+	Name          string    `json:"name"`
+	Label         string    `json:"label,omitempty"`
+	SourceSandbox string    `json:"source_sandbox,omitempty"`
+	Layers        []string  `json:"layers,omitempty"`
+	// Legacy field for backward compat
+	Image         string    `json:"image,omitempty"`
+	DockerImage   string    `json:"docker_image,omitempty"`
+	DockerSize    int64     `json:"docker_size,omitempty"`
+	HomeSize      int64     `json:"home_size,omitempty"`
+	DataSize      int64     `json:"data_size,omitempty"`
+	TotalSize     int64     `json:"total_size,omitempty"`
+	// Legacy size field
+	Size          int64     `json:"size,omitempty"`
+	// Legacy sandbox field
+	Sandbox       string    `json:"sandbox,omitempty"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type SnapshotRequest struct {
-	Name string `json:"name,omitempty"`
+	Name      string   `json:"name,omitempty"`
+	Label     string   `json:"label,omitempty"`
+	Layers    []string `json:"layers,omitempty"`
+	DataSubdir string  `json:"data_subdir,omitempty"`
+}
+
+type CreateSnapshotRequest struct {
+	SandboxID  int      `json:"sandbox_id"`
+	Name       string   `json:"name"`
+	Label      string   `json:"label,omitempty"`
+	Layers     []string `json:"layers,omitempty"`
+	DataSubdir string   `json:"data_subdir,omitempty"`
 }
 
 type RestoreRequest struct {
-	Snapshot string `json:"snapshot"`
+	Snapshot string   `json:"snapshot"`
+	Layers   []string `json:"layers,omitempty"`
 }
 
 type RouteRequest struct {
@@ -148,17 +171,19 @@ type RouteResponse struct {
 }
 
 type CreateSandboxRequest struct {
-	Name        string `json:"name"`
-	Image       string `json:"image,omitempty"`
-	Persistent  bool   `json:"persistent,omitempty"`
-	Snapshot    string `json:"snapshot,omitempty"`
-	Tailscale   bool   `json:"tailscale,omitempty"`
-	MountHome   bool   `json:"mount_home,omitempty"`
-	DataPath    string `json:"data_path,omitempty"`
-	Temporary   bool   `json:"temporary,omitempty"`
-	VNCEnabled  bool   `json:"vnc_enabled"`
-	VNCGeometry string `json:"vnc_geometry,omitempty"`
-	VNCDepth    int    `json:"vnc_depth,omitempty"`
+	Name          string   `json:"name"`
+	Image         string   `json:"image,omitempty"`
+	Persistent    bool     `json:"persistent,omitempty"`
+	Snapshot      string   `json:"snapshot,omitempty"`
+	FromSnapshot  string   `json:"from_snapshot,omitempty"`
+	RestoreLayers []string `json:"restore_layers,omitempty"`
+	Tailscale     bool     `json:"tailscale,omitempty"`
+	MountHome     bool     `json:"mount_home,omitempty"`
+	DataPath      string   `json:"data_path,omitempty"`
+	Temporary     bool     `json:"temporary,omitempty"`
+	VNCEnabled    bool     `json:"vnc_enabled"`
+	VNCGeometry   string   `json:"vnc_geometry,omitempty"`
+	VNCDepth      int      `json:"vnc_depth,omitempty"`
 }
 
 type UpdateSandboxRequest struct {

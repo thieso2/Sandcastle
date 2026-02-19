@@ -14,17 +14,19 @@ import (
 )
 
 var (
-	sandboxImage       string
-	sandboxPersistent  bool
-	sandboxSnapshot    string
-	sandboxTailscale   bool
-	sandboxNoConnect   bool
-	sandboxRemove      bool
-	sandboxHome        bool
-	sandboxData        string
-	sandboxNoVNC       bool
-	sandboxVNCGeometry string
-	sandboxVNCDepth    int
+	sandboxImage         string
+	sandboxPersistent    bool
+	sandboxSnapshot      string
+	sandboxFromSnapshot  string
+	sandboxRestoreLayers string
+	sandboxTailscale     bool
+	sandboxNoConnect     bool
+	sandboxRemove        bool
+	sandboxHome          bool
+	sandboxData          string
+	sandboxNoVNC         bool
+	sandboxVNCGeometry   string
+	sandboxVNCDepth      int
 )
 
 func init() {
@@ -38,7 +40,9 @@ func init() {
 
 	createCmd.Flags().StringVar(&sandboxImage, "image", "ghcr.io/thieso2/sandcastle-sandbox:latest", "Container image")
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
-	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot")
+	createCmd.Flags().StringVar(&sandboxSnapshot, "snapshot", "", "Create from snapshot (legacy alias for --from-snapshot)")
+	createCmd.Flags().StringVar(&sandboxFromSnapshot, "from-snapshot", "", "Create from snapshot name (restores all available layers)")
+	createCmd.Flags().StringVar(&sandboxRestoreLayers, "restore-layers", "", "Comma-separated layers to restore: container,home,data (default: all)")
 	createCmd.Flags().BoolVar(&sandboxTailscale, "tailscale", false, "Connect to Tailscale network")
 	createCmd.Flags().BoolVarP(&sandboxNoConnect, "no-connect", "n", false, "Don't connect after creation")
 	createCmd.Flags().BoolVar(&sandboxRemove, "rm", false, "Delete sandbox on exit (env: SANDCASTLE_RM)")
@@ -101,18 +105,32 @@ Flags explicitly passed on the command line take precedence over environment var
 			name = args[0]
 		}
 
+		// Resolve snapshot flags: --from-snapshot takes precedence over --snapshot
+		fromSnap := sandboxFromSnapshot
+		if fromSnap == "" {
+			fromSnap = sandboxSnapshot
+		}
+
+		var restoreLayers []string
+		if sandboxRestoreLayers != "" {
+			for _, l := range strings.Split(sandboxRestoreLayers, ",") {
+				restoreLayers = append(restoreLayers, strings.TrimSpace(l))
+			}
+		}
+
 		sandbox, err := client.CreateSandbox(api.CreateSandboxRequest{
-			Name:        name,
-			Image:       sandboxImage,
-			Persistent:  sandboxPersistent,
-			Snapshot:    sandboxSnapshot,
-			Tailscale:   sandboxTailscale,
-			MountHome:   sandboxHome,
-			DataPath:    sandboxData,
-			Temporary:   sandboxRemove,
-			VNCEnabled:  !sandboxNoVNC,
-			VNCGeometry: sandboxVNCGeometry,
-			VNCDepth:    sandboxVNCDepth,
+			Name:          name,
+			Image:         sandboxImage,
+			Persistent:    sandboxPersistent,
+			FromSnapshot:  fromSnap,
+			RestoreLayers: restoreLayers,
+			Tailscale:     sandboxTailscale,
+			MountHome:     sandboxHome,
+			DataPath:      sandboxData,
+			Temporary:     sandboxRemove,
+			VNCEnabled:    !sandboxNoVNC,
+			VNCGeometry:   sandboxVNCGeometry,
+			VNCDepth:      sandboxVNCDepth,
 		})
 		if err != nil {
 			return err
@@ -125,8 +143,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		// Print active options (use local flags — they reflect what was actually requested)
-		printedOptions := sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0
-		if printedOptions {
+		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 {
 			if sandboxHome {
 				fmt.Println("  Home:      mounted (~/ persisted)")
 			}
@@ -145,6 +162,9 @@ Flags explicitly passed on the command line take precedence over environment var
 			}
 			if sandboxRemove {
 				fmt.Println("  Cleanup:   auto-remove on exit")
+			}
+			if fromSnap != "" {
+				fmt.Printf("  Snapshot:  restored from %q\n", fromSnap)
 			}
 			if sandboxNoVNC {
 				fmt.Println("  VNC:       disabled")

@@ -1,16 +1,26 @@
 class SandboxesController < ApplicationController
-  before_action :set_sandbox, only: [ :destroy, :start, :stop, :retry ]
+  before_action :set_sandbox, only: [ :show, :destroy, :start, :stop, :retry ]
 
   def new
     authorize Sandbox
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+    @btrfs_available = BtrfsHelper.btrfs?
+  end
+
+  def show
+    @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+                           .select { |s| s[:source_sandbox] == @sandbox.name }
+    @btrfs = BtrfsHelper.btrfs?
   end
 
   def create
     authorize Sandbox
 
-    image = if params[:snapshot].present?
-      "sc-snap-#{Current.user.name}:#{params[:snapshot]}"
+    from_snapshot_name = params[:snapshot].presence
+
+    image = if from_snapshot_name.present?
+      snap = Snapshot.find_by(user: Current.user, name: from_snapshot_name)
+      snap&.docker_image || "sc-snap-#{Current.user.name}:#{from_snapshot_name}"
     else
       params[:image].presence || SandboxManager::DEFAULT_IMAGE
     end
