@@ -44,8 +44,9 @@
                   [["None (fresh sandbox)", ""]] +
                   @snapshots.map { |s|
                     label = s[:name]
+                    label += " — #{s[:label]}" if s[:label].present?
                     label += " [#{s[:layers].join(', ')}]" if s[:layers].present?
-                    label += " — #{s[:source_sandbox]}" if s[:source_sandbox].present?
+                    label += " (from #{s[:source_sandbox]})" if s[:source_sandbox].present?
                     [label, s[:name]]
                   },
                   params[:snapshot]

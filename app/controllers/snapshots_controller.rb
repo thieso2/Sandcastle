@@ -29,9 +29,9 @@ class SnapshotsController < ApplicationController
 
   def destroy
     SandboxManager.new.destroy_snapshot(user: Current.user, name: params[:name])
-    redirect_to snapshots_path, notice: "Snapshot deleted."
+    redirect_back_or_to root_path, notice: "Snapshot deleted."
   rescue SandboxManager::Error => e
-    redirect_to snapshots_path, alert: "Failed to delete snapshot: #{e.message}"
+    redirect_back_or_to root_path, alert: "Failed to delete snapshot: #{e.message}"
   end
 
   # POST /snapshots/:name/clone — redirect to new sandbox form pre-filled with snapshot
