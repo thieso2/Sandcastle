@@ -1,0 +1,73 @@
+<% content_for(:title) { "Snapshots — Sandcastle" } %>
+
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Snapshots</h1>
+      <p class="text-gray-500 mt-1">All saved snapshots across your sandboxes</p>
+    </div>
+    <%= link_to "New Sandbox", new_sandbox_path, class: "px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700" %>
+  </div>
+
+  <% if @snapshots.empty? %>
+    <div class="bg-white rounded-lg border border-gray-200 px-6 py-12 text-center">
+      <p class="text-gray-500 text-sm">No snapshots yet.</p>
+      <p class="text-gray-400 text-xs mt-1">Go to a sandbox's detail page to create a snapshot.</p>
+    </div>
+  <% else %>
+    <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Layers</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+            <th class="px-6 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @snapshots.each do |snap| %>
+            <tr>
+              <td class="px-6 py-3 font-medium text-gray-900">
+                <%= snap[:name] %>
+                <% if snap[:label].present? %>
+                  <span class="block text-xs text-gray-500 font-normal"><%= snap[:label] %></span>
+                <% end %>
+              </td>
+              <td class="px-6 py-3 text-gray-500">
+                <%= snap[:source_sandbox] || "—" %>
+              </td>
+              <td class="px-6 py-3 text-gray-600">
+                <% (snap[:layers] || []).each do |layer| %>
+                  <span class="inline-block px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded mr-1" title="<%= layer %>">
+                    <%= layer[0].upcase %>
+                  </span>
+                <% end %>
+              </td>
+              <td class="px-6 py-3 text-gray-600">
+                <%= number_to_human_size(snap[:total_size] || snap[:size] || 0) %>
+              </td>
+              <td class="px-6 py-3 text-gray-500 whitespace-nowrap">
+                <%= snap[:created_at]&.strftime("%Y-%m-%d %H:%M") %>
+              </td>
+              <td class="px-6 py-3 text-right">
+                <div class="flex items-center gap-3 justify-end">
+                  <%= link_to "Clone to new sandbox",
+                        new_sandbox_path(snapshot: snap[:name]),
+                        class: "text-blue-600 hover:text-blue-800 text-xs whitespace-nowrap" %>
+                  <%= button_to "Delete",
+                        snapshot_path(snap[:name]),
+                        method: :delete,
+                        data: { confirm: "Delete snapshot \"#{snap[:name]}\"? This cannot be undone." },
+                        class: "text-red-600 hover:text-red-800 text-xs bg-transparent border-0 cursor-pointer p-0" %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

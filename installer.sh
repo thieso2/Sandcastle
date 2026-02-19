@@ -283,7 +283,7 @@ BANNER_SCRIPT
 
 ensure_dirs() {
   mkdir -p "$SANDCASTLE_HOME"/etc
-  mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty,postgres}
+  mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty,postgres,snapshots}
   mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
   # Own top-level data dirs (not -R: per-user subdirs are bind-mounted into
@@ -291,6 +291,7 @@ ensure_dirs() {
   chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" \
     "$SANDCASTLE_HOME"/data/users \
     "$SANDCASTLE_HOME"/data/sandboxes \
+    "$SANDCASTLE_HOME"/data/snapshots \
     "$SANDCASTLE_HOME"/data/wetty
   chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" \
     "$SANDCASTLE_HOME"/data/traefik/dynamic

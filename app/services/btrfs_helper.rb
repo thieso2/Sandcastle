@@ -4,6 +4,104 @@ class BtrfsHelper
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
 
   class << self
+    # Create a read-only snapshot of a subvolume
+    # source_path: source subvolume (e.g. /data/users/alice/home)
+    # snapshot_path: destination (e.g. /data/snapshots/alice/mysnap/home)
+    def snapshot_subvolume(source_path, snapshot_path)
+      return false unless btrfs?
+      return false unless Dir.exist?(source_path)
+
+      parent = File.dirname(snapshot_path)
+      FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
+
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot -r #{source_path} #{snapshot_path}")
+      unless status&.success?
+        raise Error, "Failed to create BTRFS snapshot #{snapshot_path}: #{output}"
+      end
+
+      Rails.logger.info("Created BTRFS snapshot: #{source_path} → #{snapshot_path}")
+      true
+    rescue Error
+      raise
+    rescue StandardError => e
+      raise Error, "Snapshot failed: #{e.message}"
+    end
+
+    # Delete a snapshot subvolume
+    def delete_snapshot(snapshot_path)
+      return false unless Dir.exist?(snapshot_path)
+
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume delete #{snapshot_path}")
+      unless status&.success?
+        raise Error, "Failed to delete BTRFS snapshot #{snapshot_path}: #{output}"
+      end
+
+      Rails.logger.info("Deleted BTRFS snapshot: #{snapshot_path}")
+      true
+    rescue Error
+      raise
+    rescue StandardError => e
+      raise Error, "Snapshot deletion failed: #{e.message}"
+    end
+
+    # Get the size in bytes of a subvolume (approximate, from exclusive bytes used)
+    def subvolume_size(path)
+      return 0 unless Dir.exist?(path)
+
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume show #{path}")
+      return 0 unless status&.success?
+
+      # Try to parse "Exclusive referenced:" from output
+      if (match = output.match(/Exclusive referenced:\s+([\d.]+)\s*(\w+)/i))
+        value = match[1].to_f
+        unit  = match[2].downcase
+        case unit
+        when "kib" then (value * 1024).to_i
+        when "mib" then (value * 1024 * 1024).to_i
+        when "gib" then (value * 1024 * 1024 * 1024).to_i
+        when "tib" then (value * 1024 * 1024 * 1024 * 1024).to_i
+        else value.to_i
+        end
+      else
+        0
+      end
+    rescue StandardError
+      0
+    end
+
+    # Restore: create a writable subvolume from a read-only snapshot
+    # snapshot_path: read-only snapshot source
+    # target_path: where to create the writable copy (must not exist)
+    def restore_subvolume(snapshot_path, target_path)
+      return false unless btrfs?
+      return false unless Dir.exist?(snapshot_path)
+
+      # Remove target if it exists so we can restore cleanly
+      if Dir.exist?(target_path)
+        if subvolume?(target_path)
+          delete_snapshot(target_path)
+        else
+          FileUtils.rm_rf(target_path)
+        end
+      end
+
+      parent = File.dirname(target_path)
+      FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
+
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot #{snapshot_path} #{target_path}")
+      unless status&.success?
+        raise Error, "Failed to restore BTRFS snapshot to #{target_path}: #{output}"
+      end
+
+      ensure_owned(target_path)
+      Rails.logger.info("Restored BTRFS snapshot: #{snapshot_path} → #{target_path}")
+      true
+    rescue Error
+      raise
+    rescue StandardError => e
+      raise Error, "Snapshot restore failed: #{e.message}"
+    end
+
     # Check if a path is on a BTRFS filesystem
     def btrfs?(path = DATA_DIR)
       return @is_btrfs if defined?(@is_btrfs)
@@ -72,8 +170,6 @@ class BtrfsHelper
       end
     end
 
-    private
-
     # Check if a path is a BTRFS subvolume
     def subvolume?(path)
       return false unless Dir.exist?(path)
@@ -84,6 +180,8 @@ class BtrfsHelper
       Rails.logger.warn("BTRFS subvolume check failed for #{path}: #{e.message}")
       false
     end
+
+    private
 
     # Create a new BTRFS subvolume
     def create_subvolume(path)

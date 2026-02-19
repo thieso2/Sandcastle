@@ -26,7 +26,7 @@ Rails.application.routes.draw do
   get  "auth/device/approve/:id",  to: "device_auth#confirm",  as: :auth_device_confirm
   post "auth/device/approve",      to: "device_auth#approve",  as: :auth_device_approve
 
-  resources :sandboxes, only: [ :new, :create, :destroy ] do
+  resources :sandboxes, only: [ :new, :create, :show, :destroy ] do
     member do
       post :start
       post :stop
@@ -40,6 +40,13 @@ Rails.application.routes.draw do
       get  "vnc/wait", controller: "vnc", action: "wait", as: :vnc_wait
       get  "vnc/status", controller: "vnc", action: "status", as: :vnc_status
       delete :vnc, controller: "vnc", action: "close"
+      post :snapshot, controller: "snapshots", action: "create_for_sandbox"
+    end
+  end
+
+  resources :snapshots, only: [ :index, :destroy ], param: :name do
+    member do
+      post :clone
     end
   end
 
@@ -86,7 +93,7 @@ Rails.application.routes.draw do
       end
       resources :routes, only: [ :index, :create, :destroy ], param: :domain, constraints: { domain: %r{[^/]+} }
     end
-    resources :snapshots, only: [ :index, :destroy ], param: :name
+    resources :snapshots, only: [ :index, :create, :show, :destroy ], param: :name
     resources :users
     resource :status, only: :show
     resource :info, only: :show

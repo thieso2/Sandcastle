@@ -278,15 +278,27 @@ func (c *Client) RemoveRoute(sandboxID int, domain string) error {
 
 // Snapshots
 
-func (c *Client) SnapshotSandbox(id int, name string) (*Snapshot, error) {
+func (c *Client) SnapshotSandbox(id int, req SnapshotRequest) (*Snapshot, error) {
 	var s Snapshot
-	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/snapshot", id), SnapshotRequest{Name: name}, &s)
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/snapshot", id), req, &s)
 	return &s, err
 }
 
-func (c *Client) RestoreSandbox(id int, snapshot string) (*Sandbox, error) {
+func (c *Client) CreateSnapshot(req CreateSnapshotRequest) (*Snapshot, error) {
+	var s Snapshot
+	err := c.do("POST", "/api/snapshots", req, &s)
+	return &s, err
+}
+
+func (c *Client) GetSnapshot(name string) (*Snapshot, error) {
+	var s Snapshot
+	err := c.do("GET", fmt.Sprintf("/api/snapshots/%s", name), nil, &s)
+	return &s, err
+}
+
+func (c *Client) RestoreSandbox(id int, snapshot string, layers []string) (*Sandbox, error) {
 	var s Sandbox
-	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/restore", id), RestoreRequest{Snapshot: snapshot}, &s)
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/restore", id), RestoreRequest{Snapshot: snapshot, Layers: layers}, &s)
 	return &s, err
 }
 

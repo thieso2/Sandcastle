@@ -13,6 +13,7 @@
     <div class="flex items-center gap-1">
       <% nav_items = [
         { label: "Dashboard", path: root_path, active: controller_name == "dashboard" && !controller_path.start_with?("admin") },
+        { label: "Snapshots", path: snapshots_path, active: controller_name == "snapshots" && !controller_path.start_with?("api") },
         { label: "Guide", path: guide_path, active: controller_name == "pages" },
         { label: "Tailscale", path: tailscale_path, active: controller_name == "tailscale" && !controller_path.start_with?("api") },
       ] %>

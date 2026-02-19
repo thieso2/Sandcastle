@@ -14,10 +14,19 @@ module Api
 
     def create
       authorize Sandbox
-      image = if params[:snapshot].present?
-        "sc-snap-#{current_user.name}:#{params[:snapshot]}"
+
+      manager = SandboxManager.new
+
+      # Resolve snapshot for container image
+      from_snapshot_name = params[:from_snapshot].presence || params[:snapshot].presence
+      restore_layers     = params[:restore_layers].present? ? Array(params[:restore_layers]) : nil
+
+      image = if from_snapshot_name.present?
+        # Try to find DB record first
+        snap = Snapshot.find_by(user: current_user, name: from_snapshot_name)
+        snap&.docker_image || "sc-snap-#{current_user.name}:#{from_snapshot_name}"
       else
-        params[:image] || SandboxManager::DEFAULT_IMAGE
+        params[:image].presence || SandboxManager::DEFAULT_IMAGE
       end
 
       # Build sandbox record
@@ -37,6 +46,27 @@ module Api
       end
 
       sandbox.save!
+
+      # Restore BTRFS layers from snapshot (if requested and available)
+      if from_snapshot_name.present? && snap.present?
+        want_home = restore_layers.nil? || restore_layers.include?("home")
+        want_data = restore_layers.nil? || restore_layers.include?("data")
+
+        if want_home && snap.home_snapshot.present? && BtrfsHelper.btrfs?
+          manager.ensure_mount_dirs(current_user, sandbox)
+          home_target = "#{SandboxManager::DATA_DIR}/users/#{current_user.name}/home"
+          BtrfsHelper.restore_subvolume(snap.home_snapshot, home_target) rescue nil
+        end
+
+        if want_data && snap.data_snapshot.present? && BtrfsHelper.btrfs?
+          data_target = if snap.data_subdir.present? && sandbox.data_path.present?
+            "#{SandboxManager::DATA_DIR}/users/#{current_user.name}/data/#{sandbox.data_path}/#{snap.data_subdir}".chomp("/")
+          elsif sandbox.data_path.present?
+            "#{SandboxManager::DATA_DIR}/users/#{current_user.name}/data/#{sandbox.data_path}".chomp("/")
+          end
+          BtrfsHelper.restore_subvolume(snap.data_snapshot, data_target) rescue nil if data_target
+        end
+      end
 
       # Enqueue async job
       SandboxProvisionJob.perform_later(sandbox_id: sandbox.id)
@@ -101,12 +131,24 @@ module Api
     end
 
     def snapshot
-      result = SandboxManager.new.snapshot(sandbox: @sandbox, name: params[:name])
-      render json: result, status: :created
+      layers = params[:layers].present? ? Array(params[:layers]) : nil
+      snap = SandboxManager.new.create_snapshot(
+        sandbox: @sandbox,
+        name: params[:name],
+        label: params[:label],
+        layers: layers,
+        data_subdir: params[:data_subdir]
+      )
+      render json: SandboxManager.new.snapshot_json(snap), status: :created
     end
 
     def restore
-      SandboxManager.new.restore(sandbox: @sandbox, snapshot_name: params.require(:snapshot))
+      layers = params[:layers].present? ? Array(params[:layers]) : nil
+      SandboxManager.new.restore(
+        sandbox: @sandbox,
+        snapshot_name: params.require(:snapshot),
+        layers: layers
+      )
       render json: sandbox_json(@sandbox.reload)
     end
 

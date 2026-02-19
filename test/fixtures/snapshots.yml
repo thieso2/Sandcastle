@@ -1,0 +1,17 @@
+alice_snap:
+  user: one
+  name: my-snapshot
+  source_sandbox: devbox
+  docker_image: sc-snap-alice:my-snapshot
+  docker_size: 500000000
+
+alice_btrfs_snap:
+  user: one
+  name: full-snapshot
+  source_sandbox: devbox
+  docker_image: sc-snap-alice:full-snapshot
+  docker_size: 500000000
+  home_snapshot: /data/snapshots/alice/full-snapshot/home
+  home_size: 42000000
+  data_snapshot: /data/snapshots/alice/full-snapshot/data
+  data_size: 22000000

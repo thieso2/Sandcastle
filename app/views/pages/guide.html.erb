@@ -145,15 +145,49 @@ sandcastle route delete myapp app.example.com</code></pre>
   <%# ── Snapshots ── %>
   <section class="mb-10">
     <h2 class="text-xl font-semibold text-gray-900 mb-3">10. Snapshots</h2>
-    <p class="text-gray-700 mb-3">Save and restore the full state of a sandbox:</p>
-    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Create a snapshot
-sandcastle snapshot create my-dev my-checkpoint
+    <p class="text-gray-700 mb-3">
+      Save and restore the full state of a sandbox. Snapshots are composite — they capture
+      the container filesystem (via <code class="bg-gray-100 px-1 rounded">docker commit</code>)
+      and, when on a BTRFS filesystem, also the home directory, data directory, and workspace volume.
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Create a snapshot (all available layers)
+sandcastle snapshot create my-dev before-migration
 
-# List snapshots
+# Create with a description and specific layers
+sandcastle snapshot create my-dev checkpoint --label "before big refactor" --layers container,home
+
+# List all snapshots
 sandcastle snapshot list
 
-# Restore into a new sandbox
-sandcastle create my-dev-v2 --snapshot my-checkpoint</code></pre>
+# Show details of a specific snapshot
+sandcastle snapshot show before-migration
+
+# Restore a snapshot into an existing sandbox (all layers)
+sandcastle snapshot restore my-dev before-migration
+
+# Restore only the container layer
+sandcastle snapshot restore my-dev before-migration --layers container
+
+# Create a new sandbox from a snapshot (all layers)
+sandcastle create my-dev-v2 --from-snapshot before-migration
+
+# Clone only the container layer into a new sandbox
+sandcastle create my-dev-v2 --from-snapshot before-migration --restore-layers container
+
+# Delete a snapshot
+sandcastle snapshot delete before-migration</code></pre>
+    <p class="text-gray-700 mt-3 mb-1">
+      <strong>Web UI:</strong> Each sandbox has a detail page (click the sandbox name) with a Snapshots tab
+      for creating, viewing, and deleting snapshots. The global
+      <%= link_to "Snapshots page", snapshots_path, class: "text-blue-600 hover:text-blue-800 underline" %>
+      shows all snapshots across all your sandboxes with clone-to-new-sandbox support.
+    </p>
+    <% unless BtrfsHelper.btrfs? rescue false %>
+      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mt-3">
+        <strong>Note:</strong> BTRFS not detected on this host. Only the container layer is snapshotted.
+        Home, data, and workspace layers require BTRFS.
+      </div>
+    <% end %>
   </section>
 
   <%# ── Settings ── %>
