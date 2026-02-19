@@ -19,7 +19,7 @@
   <div id="sandboxes" class="space-y-4">
     <% if @sandboxes.any? %>
       <% @sandboxes.each do |sandbox| %>
-        <%= render "sandbox", sandbox: sandbox %>
+        <%= render "sandbox", sandbox: sandbox, vnc_active: @vnc_active_names.include?(sandbox.full_name) %>
       <% end %>
     <% else %>
       <div class="text-center py-12 bg-white rounded-lg border border-gray-200">

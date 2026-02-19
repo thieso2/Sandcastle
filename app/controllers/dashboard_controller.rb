@@ -1,12 +1,14 @@
 class DashboardController < ApplicationController
   def index
     @sandboxes = policy_scope(Sandbox).includes(:user, :routes).order(:name)
+    @vnc_active_names = running_vnc_names
   end
 
   def card
     sandbox = policy_scope(Sandbox).includes(:user, :routes).find(params[:id])
     authorize sandbox
-    render turbo_stream: turbo_stream.replace(helpers.dom_id(sandbox), partial: "dashboard/sandbox", locals: { sandbox: sandbox })
+    vnc_active = VncManager.new.active?(sandbox: sandbox)
+    render turbo_stream: turbo_stream.replace(helpers.dom_id(sandbox), partial: "dashboard/sandbox", locals: { sandbox: sandbox, vnc_active: vnc_active })
   end
 
   def stats
@@ -48,6 +50,15 @@ class DashboardController < ApplicationController
   end
 
   private
+
+  def running_vnc_names
+    Docker::Container.all.filter_map { |c|
+      name = c.info.dig("Names")&.first&.delete_prefix("/")
+      name.delete_prefix("sc-vnc-") if name&.start_with?("sc-vnc-")
+    }.to_set
+  rescue Docker::Error::DockerError
+    Set.new
+  end
 
   def calculate_cpu_percent(stats)
     cpu_delta = stats.dig("cpu_stats", "cpu_usage", "total_usage").to_f -
