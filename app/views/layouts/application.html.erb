@@ -24,11 +24,45 @@
   </head>
 
   <body>
+    <%# Development warning banner — always visible on every page %>
+    <div class="fixed top-0 inset-x-0 z-[60] h-8 bg-red-600 text-white flex items-center shadow-sm">
+      <div class="max-w-6xl mx-auto w-full px-4 flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 shrink-0 opacity-90">
+          <path fill-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
+        </svg>
+        <span class="text-xs font-semibold tracking-wide">
+          Development system &mdash; may vanish at any moment &middot; Your data <strong class="font-bold underline">WILL</strong> get eaten ☠️
+        </span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 shrink-0 opacity-90">
+          <path fill-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
+        </svg>
+      </div>
+    </div>
+
     <% if authenticated? %>
       <%= render "shared/navbar" %>
     <% end %>
 
-    <main class="container mx-auto px-5 <%= authenticated? ? 'pt-20' : 'mt-28' %>">
+    <% if authenticated? && Current.user.tailscale_disabled? %>
+      <div class="fixed top-24 inset-x-0 z-40 bg-amber-500 text-white shadow-lg">
+        <div class="container mx-auto px-5 py-3 flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 shrink-0">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <span class="font-semibold text-sm">
+              You are not connected to Tailscale — your sandboxes are only accessible via SSH port forwarding.
+              Connect Tailscale to access them seamlessly from anywhere on your tailnet.
+            </span>
+          </div>
+          <%= link_to tailscale_path, class: "shrink-0 bg-white text-amber-600 font-semibold text-sm px-4 py-1.5 rounded-lg hover:bg-amber-50 transition-colors" do %>
+            Connect Tailscale &rarr;
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <main class="container mx-auto px-5 <%= authenticated? ? (Current.user.tailscale_disabled? ? 'pt-40' : 'pt-28') : 'mt-36' %>">
       <% if flash[:alert] %>
         <div class="flex justify-center mb-5">
           <div data-controller="flash" data-flash-level-value="alert" class="relative flex items-center gap-3 py-2 px-3 pr-10 bg-red-50 text-red-500 font-medium rounded-lg" id="alert">
