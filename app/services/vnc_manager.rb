@@ -112,7 +112,7 @@ class VncManager
     # asset paths (package.json, core/*.js) resolving correctly within the prefix.
     # The ?path= tells noVNC where to connect the WebSocket; Traefik strips
     # /vnc/{id} leaving /websockify which websockify handles.
-    "/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify"
+    "/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify&autoconnect=true"
   end
 
   def container_running?(name)
