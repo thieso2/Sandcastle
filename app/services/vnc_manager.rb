@@ -29,9 +29,6 @@ class VncManager
 
     create_novnc_container(sandbox: sandbox, user: user)
 
-    # Give Traefik time to detect the new route configuration
-    sleep 2
-
     vnc_url(sandbox)
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to open browser: #{e.message}"
