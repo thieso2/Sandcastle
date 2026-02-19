@@ -84,12 +84,8 @@ class RouteManager
     alt_hostnames = ENV["SANDCASTLE_ALT_HOSTNAMES"].to_s.split(",").map(&:strip).reject(&:empty?)
     hosts += alt_hostnames
 
-    rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
-      "HostRegexp(`.+`)"
-    else
-      host_rules = hosts.map { |h| "`#{h}`" }.join(", ")
-      "Host(#{host_rules})"
-    end
+    host_rules = hosts.map { |h| "`#{h}`" }.join(", ")
+    rule = "Host(#{host_rules})"
 
     config = {
       "http" => {
@@ -126,7 +122,8 @@ class RouteManager
     tls_path = File.join(DYNAMIC_DIR, "tls.yml")
 
     if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
-      certs = [ { "certFile" => "/data/certs/cert.pem", "keyFile" => "/data/certs/key.pem" } ]
+      cert_dir = ENV.fetch("SANDCASTLE_TLS_CERT_DIR", "/data/certs")
+      certs = [ { "certFile" => "#{cert_dir}/cert.pem", "keyFile" => "#{cert_dir}/key.pem" } ]
 
       if custom_cert_configured?
         certs << { "certFile" => "/data/certs/custom-cert.pem", "keyFile" => "/data/certs/custom-key.pem" }

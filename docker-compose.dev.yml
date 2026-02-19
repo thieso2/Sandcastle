@@ -7,7 +7,7 @@ services:
       - "8443:443"
     volumes:
       - traefik-data:/data
-      - ./.cert:/data/certs:ro
+      - ./.cert:/certs:ro
     command:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
@@ -28,7 +28,7 @@ services:
       - sh
       - -c
       - |
-        mkdir -p /data/dynamic /data/certs
+        mkdir -p /data/dynamic
         chown -R 220568:220568 /data
         cat > /data/dynamic/rails.yml << 'EOFCONFIG'
         http:
@@ -112,6 +112,7 @@ services:
       SANDCASTLE_HOST: ${SANDCASTLE_HOST:-sandcastle.tc}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
+      SANDCASTLE_TLS_CERT_DIR: /certs
       SANDCASTLE_TERMINAL_URL: https://sandcastle.tc:8443
       DB_HOST: postgres
       DB_USER: sandcastle
@@ -159,6 +160,7 @@ services:
       SANDCASTLE_HOST: ${SANDCASTLE_HOST:-sandcastle.tc}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
+      SANDCASTLE_TLS_CERT_DIR: /certs
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
