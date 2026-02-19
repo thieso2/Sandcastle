@@ -96,3 +96,9 @@ Let me chronologically analyze the conversation to capture all key details.
 
 2. **Invite form 400 Bad Request** - `params.expect(invite: [:email, :message])` failed because form used `form_with url:` w...
 
+### Prompt 21
+
+sandcastle-web     | Use Ctrl-C to stop
+traefik-1          | 2026-02-19T19:10:00Z ERR Unable to append certificate /data/certs/cert.pem to store error="unable to generate TLS certificate : tls: failed to find any PEM data in certificate input" tlsStoreName=default
+traefik-1          | 2026-02-19T19:10:01Z WRN No domain found in rule HostRegexp(`.+`), the TLS options applied for this router will depend on the SNI of each request entryPointName=websecure routerName=rails-https@file
+
