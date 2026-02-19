@@ -182,7 +182,7 @@ sandcastle snapshot delete before-migration</code></pre>
       <%= link_to "Snapshots page", snapshots_path, class: "text-blue-600 hover:text-blue-800 underline" %>
       shows all snapshots across all your sandboxes with clone-to-new-sandbox support.
     </p>
-    <% unless BtrfsHelper.btrfs? rescue false %>
+    <% unless (BtrfsHelper.btrfs? rescue false) %>
       <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mt-3">
         <strong>Note:</strong> BTRFS not detected on this host. Only the container layer is snapshotted.
         Home, data, and workspace layers require BTRFS.
