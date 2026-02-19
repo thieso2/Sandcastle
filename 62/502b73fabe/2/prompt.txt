@@ -1,0 +1,85 @@
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387] Started GET "/admin/invites" for 10.89.1.1 at 2026-02-19 16:22:48 +0000
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387] Processing by Admin::InvitesController#index as HTML
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387] Completed 500 Internal Server Error in 6ms (ActiveRecord: 0.8ms (2 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387]
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387] ActiveRecord::StatementInvalid (PG::UndefinedTable: ERROR:  relation "invites" does not exist
+sandcastle-web     | LINE 10:  WHERE a.attrelid = '"invites"'::regclass
+sandcastle-web     |                              ^
+sandcastle-web     | )
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387] Caused by: PG::UndefinedTable (ERROR:  relation "invites" does not exist
+sandcastle-web     | LINE 10:  WHERE a.attrelid = '"invites"'::regclass
+sandcastle-web     |                              ^
+sandcastle-web     | )
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387]
+sandcastle-web     | Information for: ActiveRecord::StatementInvalid (PG::UndefinedTable: ERROR:  relation "invites" does not exist
+sandcastle-web     | LINE 10:  WHERE a.attrelid = '"invites"'::regclass
+sandcastle-web     |                              ^
+sandcastle-web     | ):
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387]
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387]
+sandcastle-web     | Information for cause: PG::UndefinedTable (ERROR:  relation "invites" does not exist
+sandcastle-web     | LINE 10:  WHERE a.attrelid = '"invites"'::regclass
+sandcastle-web     |                              ^
+sandcastle-web     | ):
+sandcastle-web     | [490e3ac0-8a1b-47d9-801c-46db24fab387]
+
+---
+
+why hasnt it run on conatiner startup?
+
+---
+
+database: sandcastle_production
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20260209172905  Create users
+   up     20260209172906  Create sessions
+   up     20260209172920  Create sandboxes
+   up     20260209172924  Create api tokens
+   up     20260209192504  Change ssh port unique index to partial
+   up     20260209200537  Change sandbox name unique index to partial
+   up     20260210100000  Add tailscale to users
+   up     20260210100001  Add tailscale to sandboxes
+   up     20260210120000  Add tailscale state to users
+   up     20260210120001  Add tailscale auto connect to users
+   up     20260210143953  Create oauth identities
+   up     20260210154704  Add mount options to sandboxes
+   up     20260210160000  Create device codes
+   up     20260210183440  Add route to sandboxes
+   up     20260210200138  Add temporary to sandboxes
+   up     20260210204820  Change default sandbox image
+   up     20260212131016  Add must change password to users
+   up     20260212144346  Create routes
+   up     20260212183349  Create settings
+   up     20260213074301  Add full name to users
+   up     20260213120000  Add job tracking to sandboxes
+   up     20260214071603  Add chrome persist profile to users
+   up     20260219000001  Create invites
+  down    20260219000001  Create snapshots
+   up     20260219100000  Add vnc options to sandboxes
+
+
+database: sandcastle_production_cache
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     001             ********** NO FILE **********
+
+
+database: sandcastle_production_queue
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     20260214071603  ********** NO FILE **********
+
+
+database: sandcastle_production_cable
+
+ Status   Migration ID    Migration Name
+--------------------------------------------------
+   up     001             ********** NO FILE **********
+
+---
+
+commit and apply the fix in production
