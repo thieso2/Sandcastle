@@ -142,3 +142,198 @@ sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] app/views/dashboard/
 ---
 
 just a name. default shoudl be  timestamp.
+
+---
+
+commit and push
+
+---
+
+vnc autoconnect does not work!
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **DashboardController#card error** - `dom_id` not available in controllers, fixed with `helpers.dom_id`
+2. **VNC "Failed to connect to server"** - noVNC container couldn't reach sandbox VNC server
+3. **VNC diagnosis** - Xvnc not running because sandbox uses old image (pre-VNC)
+4. **Dashboard VNC status** - Add "browser" pill and "Close" button based on running sc-vnc-* containers
+5. **VNC autoconnect** - Add `autoconnect=true` to noVNC URL
+6. **Commit/push** - Various commits
+7. **PR #38 conflicts** - Resolve Go CLI conflicts between snapshot branch and main (VNC fields)
+8. **Merge PR #38**
+9. **Snapshot/dashboard UI** - Add snapshot button to dashboard, sandbox detail page, remove top-level nav
+10. **Route helper fix** - `sandbox_snapshot_path` → `snapshot_sandbox_path`
+11. **Snapshot modal UX** - Remove description field, timestamp default name
+12. **VNC autoconnect not working** - `&amp;` encoding issue in JavaScript template
+
+Summary:
+1. Primary Request and Intent:
+   - Fix `NoMethodError: undefined method 'dom_id'` in DashboardController#card
+   - Debug VNC "Failed to connect to server" error
+   - Show VNC session status (pill + close button) on dashboard sandbox cards
+   - Add `autoconnect=true` to noVNC URL so it connects without clicking "Verbinden"
+   - Fix PR #38 merge conflicts (snapshots feature vs. VNC fields in Go CLI)
+   - Merge PR #38 into main
+   - Add snapshot button to dashboard cards, sandbox detail page with snapshot list, remove top-level Snapshots nav link; sandbox create form lists snapshots
+   - Fix wrong route helper `sandbox_snapshot_path` → `snapshot_sandbox_path`
+   - Simplify snapshot modal: just a name field, timestamp default (`snap-YYYYMMDD-HHMMSS`), remove description field
+   - Fix VNC autoconnect not working due to `&amp;` HTML entity encoding in JavaScript
+
+2. Key Technical Concepts:
+   - Rails view helpers (`dom_id`) not available directly in controllers — use `helpers.dom_id`
+   - Docker + Sysbox sandbox containers; noVNC sidecar pattern (`sc-vnc-{full_name}`)
+   - VncManager: `active?` does TCP check on port 6080; `running_vnc_names` does single Docker API call for dashboard index
+   - Turbo Streams and `turbo_stream.replace` for partial card refresh
+   - noVNC `autoconnect=true` URL parameter for auto-connection
+   - Rails ERB HTML-escaping: `<%= j @url %>` can double-escape `&` → `&amp;`; fix with `.to_json`
+   - Go CLI: `CreateSandboxRequest` struct merging snapshot fields (`FromSnapshot`, `RestoreLayers`) with VNC fields (`VNCEnabled`, `VNCGeometry`, `VNCDepth`)
+   - Pundit policy, `policy_scope`, `authorize` for sandbox/snapshot access control
+   - Member routes on resources: `post :snapshot` → helper is `snapshot_sandbox_path`, not `sandbox_snapshot_path`
+   - BTRFS layer selection for snapshots (container/home/data/workspace)
+   - Snapshot name validation: must start with lowercase letter (`/\A[a-z][a-z0-9_\-]*\z/`)
+
+3. Files and Code Sections:
+   - **`app/controllers/dashboard_controller.rb`**
+     - Fixed `dom_id(sandbox)` → `helpers.dom_id(sandbox)` in `card` action
+     - Added `@vnc_active_names = running_vnc_names` to `index`
+     - Added `vnc_active = VncManager.new.active?(sandbox: sandbox)` to `card`
+     - Added `running_vnc_names` private method (single Docker call, filters `sc-vnc-*` containers)
+     ```ruby
+     def running_vnc_names
+       Docker::Container.all.filter_map { |c|
+         name = c.info.dig("Names")&.first&.delete_prefix("/")
+         name.delete_prefix("sc-vnc-") if name&.start_with?("sc-vnc-")
+       }.to_set
+     rescue Docker::Error::DockerError
+       Set.new
+     end
+     ```
+
+   - **`app/views/dashboard/_sandbox.html.erb`**
+     - Sandbox name changed to a link: `<%= link_to sandbox.name, sandbox_path(sandbox), class: "font-mono font-medium text-gray-900 hover:text-blue-600 transition-colors" %>`
+     - Added indigo "browser" pill when `local_assigns[:vnc_active]`
+     - Added "Close" button (DELETE vnc) when `local_assigns[:vnc_active]`
+     - Added "Snapshot" button (camera icon, running sandboxes only) that opens per-card modal with timestamp default
+     - Per-card snapshot modal with `id="snap-modal-#{sandbox.id}"`, `id="snap-name-#{sandbox.id}"`, POSTs to `snapshot_sandbox_path(sandbox)`
+     - Open button sets timestamp via JS: `snap-YYYYMMDD-HHMMSS`, auto-selects field
+
+   - **`app/views/dashboard/index.html.erb`**
+     - Passes `vnc_active: @vnc_active_names.include?(sandbox.full_name)` to each partial render
+
+   - **`app/services/vnc_manager.rb`**
+     - Changed `vnc_url` to include `&autoconnect=true`:
+     ```ruby
+     "/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify&autoconnect=true"
+     ```
+
+   - **`app/controllers/vnc_controller.rb`**
+     - Changed `wait` action URL to include `&autoconnect=true`:
+     ```ruby
+     @vnc_url = vnc_redirect_url("/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify&autoconnect=true")
+     ```
+
+   - **`app/views/vnc/wait.html.erb`**
+     - Changed `var vncUrl = "<%= j @vnc_url %>";` → `var vncUrl = <%= @vnc_url.to_json %>;`
+     - Fixes `&amp;` HTML-encoding issue: `to_json` returns html_safe, prevents double-escaping
+
+   - **`app/views/sandboxes/show.html.erb`**
+     - Full rewrite: added action bar (Terminal, Browser, Snapshot, Stop/Start, Destroy)
+     - Snapshot list table with "New sandbox" link and Delete button per row
+     - Create Snapshot modal with just name field (no description), layer checkboxes, timestamp default via JS
+     - Three open-modal buttons all set `show-snap-name` value and auto-select
+     ```javascript
+     (function(){var d=new Date();var ts='snap-'+d.getFullYear()+(String(d.getMonth()+1).padStart(2,'0'))+(String(d.getDate()).padStart(2,'0'))+'-'+(String(d.getHours()).padStart(2,'0'))+(String(d.getMinutes()).padStart(2,'0'))+(String(d.getSeconds()).padStart(2,'0'));document.getElementById('show-snap-name').value=ts;document.getElementById('create-snapshot-modal').classList.remove('hidden');document.getElementById('show-snap-name').select();})()
+     ```
+
+   - **`app/views/sandboxes/new.html.erb`**
+     - Snapshot dropdown label now includes description: `label += " — #{s[:label]}" if s[:label].present?`
+
+   - **`app/views/shared/_navbar.html.erb`**
+     - Removed "Snapshots" nav link
+
+   - **`app/controllers/snapshots_controller.rb`**
+     - `destroy` action: `redirect_to snapshots_path` → `redirect_back_or_to root_path`
+
+   - **`vendor/sandcastle-cli/api/types.go`**
+     - Merged `CreateSandboxRequest`: kept both `FromSnapshot`/`RestoreLayers` (snapshot branch) and `VNCEnabled`/`VNCGeometry`/`VNCDepth` (main)
+
+   - **`vendor/sandcastle-cli/cmd/sandbox.go`**
+     - Merged var declarations: kept `sandboxFromSnapshot`, `sandboxRestoreLayers` + `sandboxNoVNC`, `sandboxVNCGeometry`, `sandboxVNCDepth`
+     - Merged `CreateSandboxRequest` call: `FromSnapshot: fromSnap`, `RestoreLayers: restoreLayers`, `VNCEnabled: !sandboxNoVNC`, `VNCGeometry`, `VNCDepth`
+     - Merged printedOptions condition and print block: both snapshot restore message and VNC options
+
+   - **`images/sandbox/Dockerfile`**
+     - arm64: use xtradeb/apps PPA for real Chromium .deb (Ubuntu ships snap-only wrapper since 19.10)
+
+4. Errors and fixes:
+   - **`NoMethodError: undefined method 'dom_id' for an instance of DashboardController`**
+     - `dom_id` is a view helper, not available in controllers
+     - Fixed: `dom_id(sandbox)` → `helpers.dom_id(sandbox)` in `card` action
+
+   - **VNC "Failed to connect to server"**
+     - noVNC container trying to connect to `thies-digital-tiger:5900` but nothing listening
+     - Diagnosis: `docker exec thies-bold-orca bash -c "which Xvnc"` → `Xvnc NOT FOUND`
+     - Root cause: sandbox running old image (pre-VNC feature), no `/etc/sandcastle-version`
+     - Fix: rebuild sandbox image locally or do a release
+
+   - **`ActionView::Template::Error: undefined method 'sandbox_snapshot_path'`**
+     - Member route `post :snapshot` on sandboxes generates `snapshot_sandbox_path`, not `sandbox_snapshot_path`
+     - Fixed in both `_sandbox.html.erb` and `show.html.erb`
+
+   - **Snapshot name pattern validation failure** (`2026-02-01` fails `[a-z]` regex)
+     - Date starts with digit, violates model validation
+     - Fixed: timestamp default `snap-YYYYMMDD-HHMMSS` (letter prefix satisfies constraint)
+
+   - **VNC autoconnect not working** (`&amp;autoconnect=true` in browser URL)
+     - `<%= j @vnc_url %>` HTML-escapes `&` → `&amp;` because `j` returns plain String for non-html_safe input
+     - Fixed: `var vncUrl = <%= @vnc_url.to_json %>;` (`.to_json` is html_safe, no double-escaping)
+
+   - **PR #38 merge conflicts** in Go CLI files
+     - `api/types.go`: `CreateSandboxRequest` had snapshot fields on branch, VNC fields on main — merged both
+     - `cmd/sandbox.go`: three conflict regions — vars, struct initialization, printedOptions condition
+     - Fixed by keeping all fields from both sides
+
+5. Problem Solving:
+   - Identified that VNC "Failed to connect" was due to stale sandbox image lacking TigerVNC
+   - Identified `&amp;` encoding as root cause of autoconnect failure — `to_json` is the correct Rails idiom for safely embedding strings in JavaScript
+   - Dashboard VNC status uses a single Docker API call (not per-sandbox TCP checks) for performance
+   - Snapshot modal simplified to just name field with auto-generated timestamp default
+
+6. All user messages:
+   - (Pasted server logs showing `NoMethodError: undefined method 'dom_id'` in DashboardController#card)
+   - "commit this and push"
+   - (Screenshot of noVNC "Failed to connect to server" at `localhost:8443/vnc/43/vnc.html?path=vnc/43/websockify`) "analyze and debug"
+   - (Pasted `ps auxw` output from inside sandbox showing no Xvnc) "sandcaste did not start Xvnc!!"
+   - "also show the VNC status in the dashboard for a sandbox!"
+   - "for the vnc action - autoconnect to the sandcastle"
+   - "commit and push"
+   - "fix conflicts in https://github.com/thieso2/Sandcastle/pull/38"
+   - "merge it"
+   - "add a snapshot button the the sandbox on the dashboard. also add a sandbox detail page that lists the snapshots. no topleven snapshot navigation. i crare a snapshot via dashbard or detail page. sandbox craete lists the snapshots i can create a new sandbox from."
+   - (Pasted server logs showing `undefined method 'sandbox_snapshot_path'`)
+   - "just a name. default shoudl be timestamp." (with screenshot of modal showing pattern validation failure and description field)
+   - "commit and push"
+   - "vnc autoconnect does not work!" (with screenshot showing `&amp;autoconnect=true` in URL bar)
+
+7. Pending Tasks:
+   - Commit and push the VNC autoconnect fix (`app/views/vnc/wait.html.erb` change from `<%= j @vnc_url %>` to `<%= @vnc_url.to_json %>`)
+
+8. Current Work:
+   The last task was fixing VNC autoconnect not working. The URL in the browser showed `localhost:8443/vnc/77/vnc.html?path=vnc/77/websockify&amp;autoconnect=true` — the `&` was being HTML-escaped to `&amp;` in the JavaScript string, causing noVNC to not see the `autoconnect=true` parameter.
+
+   The fix was in `app/views/vnc/wait.html.erb` line 34:
+   - Before: `var vncUrl = "<%= j @vnc_url %>";`
+   - After: `var vncUrl = <%= @vnc_url.to_json %>;`
+
+   This edit was applied but not yet committed or pushed.
+
+9. Optional Next Step:
+   Commit and push the VNC autoconnect fix. The user's last interaction before the summary request was "vnc autoconnect does not work!" and the fix was applied to `app/views/vnc/wait.html.erb`. The file edit was the last action taken. The fix needs to be committed and pushed.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.

@@ -12,9 +12,12 @@
     "app/controllers/api/sandboxes_controller.rb",
     "app/controllers/dashboard_controller.rb",
     "app/controllers/sandboxes_controller.rb",
+    "app/controllers/snapshots_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
     "app/javascript/controllers/sandbox_polling_controller.js",
+    "app/jobs/snapshot_create_job.rb",
+    "app/jobs/snapshot_destroy_job.rb",
     "app/models/sandbox.rb",
     "app/policies/sandbox_policy.rb",
     "app/services/btrfs_helper.rb",
@@ -23,7 +26,6 @@
     "app/services/vnc_manager.rb",
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/sandboxes/new.html.erb",
-    "app/views/sandboxes/show.html.erb",
     "app/views/terminal/wait.html.erb",
     "config/database.yml",
     "config/environments/development.rb",
@@ -160,10 +162,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 4253,
-    "cache_creation_tokens": 1508337,
-    "cache_read_tokens": 49992111,
-    "output_tokens": 100833,
-    "api_call_count": 558
+    "input_tokens": 4268,
+    "cache_creation_tokens": 1697931,
+    "cache_read_tokens": 50275437,
+    "output_tokens": 103955,
+    "api_call_count": 569
   }
 }

@@ -70,3 +70,23 @@ sandcastle-web     | [e03cc394-7d3...
 
 just a name. default shoudl be  timestamp.
 
+### Prompt 14
+
+commit and push
+
+### Prompt 15
+
+vnc autoconnect does not work!
+
+### Prompt 16
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **DashboardController#card error** - `dom_id` not available in controllers, fixed with `helpers.dom_id`
+2. **VNC "Failed to connect to server"** - noVNC container couldn't reach sandbox VNC server
+3. **VNC diagnosis** - Xvnc not running because sandbox uses old image (pre-VNC)
+4. **D...
+
