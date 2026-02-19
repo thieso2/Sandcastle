@@ -12,6 +12,7 @@
     "app/controllers/api/sandboxes_controller.rb",
     "app/controllers/dashboard_controller.rb",
     "app/controllers/sandboxes_controller.rb",
+    "app/controllers/snapshots_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
     "app/javascript/controllers/sandbox_polling_controller.js",
@@ -22,7 +23,10 @@
     "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
     "app/views/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb",
     "app/views/sandboxes/new.html.erb",
+    "app/views/sandboxes/show.html.erb",
+    "app/views/shared/_navbar.html.erb",
     "app/views/terminal/wait.html.erb",
     "config/database.yml",
     "config/environments/development.rb",
@@ -152,10 +156,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 4262,
-    "cache_creation_tokens": 1481478,
-    "cache_read_tokens": 50808667,
-    "output_tokens": 102758,
-    "api_call_count": 567
+    "input_tokens": 4256,
+    "cache_creation_tokens": 1494644,
+    "cache_read_tokens": 50648627,
+    "output_tokens": 103427,
+    "api_call_count": 561
   }
 }

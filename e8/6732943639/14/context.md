@@ -49,3 +49,12 @@ commit and push
 
 fix conflicts in https://github.com/thieso2/Sandcastle/pull/38
 
+### Prompt 10
+
+merge it
+
+### Prompt 11
+
+add a snapshot button the the sandbox on the dashboard. also add a sandbox detail page that lists the snapshots.  no topleven snapshot navigation.
+i crare a snapshot via dashbard or detail page. sandbox craete lists the snapshots i can create a new sandbox from.
+
