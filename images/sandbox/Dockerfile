@@ -46,7 +46,17 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
 RUN sed -i 's/#precedence ::ffff:0:0\/96  100/precedence ::ffff:0:0\/96  100/' /etc/gai.conf
 
 # Docker CLI + daemon (Sysbox makes this safe)
-RUN curl -fsSL https://get.docker.com | sh
+# Use manual apt repo instead of get.docker.com convenience script —
+# that script tries to install ca-certificates/curl which Ubuntu 25.10 already
+# has at newer versions, causing "E: Packages were downgraded".
+# Pin to 'noble' — Docker has no packages for Ubuntu 25.10 (questing) yet.
+RUN install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
+    && chmod a+r /etc/apt/keyrings/docker.asc \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" > /etc/apt/sources.list.d/docker.list \
+    && apt-get update \
+    && apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+    && rm -rf /var/lib/apt/lists/*
 
 # Pin runc to 1.1.x — runc 1.2+ added a procfs safety check that fails
 # inside sysbox containers (sysbox-fs mounts /proc/sys as separate FUSE)
