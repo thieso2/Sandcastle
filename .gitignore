@@ -58,3 +58,4 @@ SANDMAN.md
 # Claude Code local settings
 .claude/
 *.pem
+/.cert/
