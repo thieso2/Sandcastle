@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_071603) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_19_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_071603) do
     t.index ["code"], name: "index_device_codes_on_code", unique: true
     t.index ["user_code"], name: "index_device_codes_on_user_code"
     t.index ["user_id"], name: "index_device_codes_on_user_id"
+  end
+
+  create_table "invites", force: :cascade do |t|
+    t.datetime "accepted_at"
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at"
+    t.bigint "invited_by_id", null: false
+    t.text "message"
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_invites_on_email"
+    t.index ["invited_by_id"], name: "index_invites_on_invited_by_id"
+    t.index ["token"], name: "index_invites_on_token", unique: true
   end
 
   create_table "oauth_identities", force: :cascade do |t|
@@ -81,6 +95,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_071603) do
     t.boolean "temporary", default: false, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.integer "vnc_depth", default: 24, null: false
+    t.boolean "vnc_enabled", default: true, null: false
+    t.string "vnc_geometry", default: "1280x900", null: false
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
     t.index ["job_status"], name: "index_sandboxes_on_job_status"
@@ -113,6 +130,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_071603) do
     t.boolean "smtp_starttls", default: true
     t.string "smtp_username"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "snapshots", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "data_size"
+    t.string "data_snapshot"
+    t.string "data_subdir"
+    t.string "docker_image"
+    t.bigint "docker_size"
+    t.bigint "home_size"
+    t.string "home_snapshot"
+    t.string "label"
+    t.string "name", null: false
+    t.string "source_sandbox"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "name"], name: "index_snapshots_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_snapshots_on_user_id"
   end
 
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
@@ -259,10 +294,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_071603) do
   add_foreign_key "api_tokens", "users"
   add_foreign_key "device_codes", "api_tokens"
   add_foreign_key "device_codes", "users"
+  add_foreign_key "invites", "users", column: "invited_by_id"
   add_foreign_key "oauth_identities", "users"
   add_foreign_key "routes", "sandboxes"
   add_foreign_key "sandboxes", "users"
   add_foreign_key "sessions", "users"
+  add_foreign_key "snapshots", "users"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
