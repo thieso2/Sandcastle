@@ -1,0 +1,61 @@
+sandcastle-web     | [1e58f2e9-156d-4e3e-b8a7-05b3d42f2a36] Started GET "/sandboxes/43/stats" for 192.168.117.1 at 2026-02-19 07:14:40 +0000
+sandcastle-web     | [1e58f2e9-156d-4e3e-b8a7-05b3d42f2a36] Processing by DashboardController#stats as HTML
+sandcastle-web     | [1e58f2e9-156d-4e3e-b8a7-05b3d42f2a36]   Parameters: {"id" => "43"}
+sandcastle-web     | [21273f4f-61f5-4499-9fdb-2a88d07a57a7] Started GET "/sandboxes/43/stats" for 192.168.117.1 at 2026-02-19 07:14:40 +0000
+sandcastle-web     | [21273f4f-61f5-4499-9fdb-2a88d07a57a7] Processing by DashboardController#stats as HTML
+sandcastle-web     | [21273f4f-61f5-4499-9fdb-2a88d07a57a7]   Parameters: {"id" => "43"}
+sandcastle-web     | [976f2b13-bb7f-41c1-81da-5a49d466d429] Completed 200 OK in 1013ms (Views: 1.9ms | ActiveRecord: 0.3ms (3 queries, 0 cached) | GC: 5.2ms)
+sandcastle-web     | [21273f4f-61f5-4499-9fdb-2a88d07a57a7] Completed 200 OK in 1907ms (Views: 0.5ms | ActiveRecord: 0.2ms (3 queries, 0 cached) | GC: 1.2ms)
+sandcastle-web     | [1e58f2e9-156d-4e3e-b8a7-05b3d42f2a36] Completed 200 OK in 1925ms (Views: 0.3ms | ActiveRecord: 0.3ms (3 queries, 0 cached) | GC: 1.4ms)
+sandcastle-web     | [3c71af34-0a82-4874-847a-6e24d75d42a3] Started GET "/sandboxes/43/card" for 192.168.117.1 at 2026-02-19 07:14:43 +0000
+sandcastle-web     | [3c71af34-0a82-4874-847a-6e24d75d42a3] Processing by DashboardController#card as TURBO_STREAM
+sandcastle-web     | [3c71af34-0a82-4874-847a-6e24d75d42a3]   Parameters: {"id" => "43"}
+sandcastle-web     | [3c71af34-0a82-4874-847a-6e24d75d42a3] Completed 500 Internal Server Error in 28ms (ActiveRecord: 4.1ms (5 queries, 0 cached) | GC: 14.7ms)
+sandcastle-web     | [3c71af34-0a82-4874-847a-6e24d75d42a3]
+sandcastle-web     | [3c71af34-0a82-4874-847a-6e24d75d42a3] NoMethodError (undefined method 'dom_id' for an instance of DashboardController):
+sandcastle-web     | [3c71af34-0a82-4874-847a-6e24d75d42a3]
+sandcastle-web     | [3c71af34-0a82-4874-847a-6e24d75d42a3] app/controllers/dashboard_controller.rb:9:in 'DashboardController#card'
+sandcastle-web     | [7c3e4a89-af6d-4b9d-be89-ff9b48d1177d] Started GET "/sandboxes/43/card" for 192.168.117.1 at 2026-02-19 07:14:44 +0000
+sandcastle-web     | [7c3e4a89-af6d-4b9d-be89-ff9b48d1177d] Processing by DashboardController#card as TURBO_STREAM
+sandcastle-web     | [7c3e4a89-af6d-4b9d-be89-ff9b48d1177d]   Parameters: {"id" => "43"}
+sandcastle-web     | [7c3e4a89-af6d-4b9d-be89-ff9b48d1177d] Completed 500 Internal Server Error in 9ms (ActiveRecord: 1.0ms (5 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [7c3e4a89-af6d-4b9d-be89-ff9b48d1177d]
+sandcastle-web     | [7c3e4a89-af6d-4b9d-be89-ff9b48d1177d] NoMethodError (undefined method 'dom_id' for an instance of DashboardController):
+sandcastle-web     | [7c3e4a89-af6d-4b9d-be89-ff9b48d1177d]
+sandcastle-web     | [7c3e4a89-af6d-4b9d-be89-ff9b48d1177d] app/controllers/dashboard_controller.rb:9:in 'DashboardController#card'
+sandcastle-web     | [00ccf655-7108-47aa-8d47-34d913d13e7a] Started GET "/sandboxes/43/card" for 192.168.117.1 at 2026-02-19 07:14:46 +0000
+sandcastle-web     | [00ccf655-7108-47aa-8d47-34d913d13e7a] Processing by DashboardController#card as TURBO_STREAM
+sandcastle-web     | [00ccf655-7108-47aa-8d47-34d913d13e7a]   Parameters: {"id" => "43"}
+sandcastle-web     | [00ccf655-7108-47aa-8d47-34d913d13e7a] Completed 500 Internal Server Error in 19ms (ActiveRecord: 11.2ms (5 queries, 0 cached) | GC: 0.4ms)
+sandcastle-web     | [00ccf655-7108-47aa-8d47-34d913d13e7a]
+sandcastle-web     | [00ccf655-7108-47aa-8d47-34d913d13e7a] NoMethodError (undefined method 'dom_id' for an instance of DashboardController):
+sandcastle-web     | [00ccf655-7108-47aa-8d47-34d913d13e7a]
+sandcastle-web     | [00ccf655-7108-47aa-8d47-34d913d13e7a] app/controllers/dashboard_controller.rb:9:in 'DashboardController#card'
+sandcastle-web     | [e2b6658c-3aec-450d-a4d5-87b2fa707251] Started GET "/sandboxes/43/card" for 192.168.117.1 at 2026-02-19 07:14:47 +0000
+sandcastle-web     | [e2b6658c-3aec-450d-a4d5-87b2fa707251] Processing by DashboardController#card as TURBO_STREAM
+sandcastle-web     | [e2b6658c-3aec-450d-a4d5-87b2fa707251]   Parameters: {"id" => "43"}
+sandcastle-web     | [e2b6658c-3aec-450d-a4d5-87b2fa707251] Completed 500 Internal Server Error in 7ms (ActiveRecord: 1.4ms (5 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [e2b6658c-3aec-450d-a4d5-87b2fa707251]
+sandcastle-web     | [e2b6658c-3aec-450d-a4d5-87b2fa707251] NoMethodError (undefined method 'dom_id' for an instance of DashboardController):
+sandcastle-web     | [e2b6658c-3aec-450d-a4d5-87b2fa707251]
+sandcastle-web     | [e2b6658c-3aec-450d-a4d5-87b2fa707251] app/controllers/dashboard_controller.rb:9:in 'DashboardController#card'
+sandcastle-web     | [61476291-707a-49d9-b321-1b8619a30492] Started GET "/sandboxes/43/card" for 192.168.117.1 at 2026-02-19 07:14:49 +0000
+sandcastle-web     | [61476291-707a-49d9-b321-1b8619a30492] Processing by DashboardController#card as TURBO_STREAM
+sandcastle-web     | [61476291-707a-49d9-b321-1b8619a30492]   Parameters: {"id" => "43"}
+sandcastle-web     | [61476291-707a-49d9-b321-1b8619a30492] Completed 500 Internal Server Error in 12ms (ActiveRecord: 2.0ms (5 queries, 0 cached) | GC: 0.3ms)
+sandcastle-web     | [61476291-707a-49d9-b321-1b8619a30492]
+sandcastle-web     | [61476291-707a-49d9-b321-1b8619a30492] NoMethodError (undefined method 'dom_id' for an instance of DashboardController):
+sandcastle-web     | [61476291-707a-49d9-b321-1b8619a30492]
+sandcastle-web     | [61476291-707a-49d9-b321-1b8619a30492] app/controllers/dashboard_controller.rb:9:in 'DashboardController#card'
+sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044] Started GET "/sandboxes/43/card" for 192.168.117.1 at 2026-02-19 07:14:50 +0000
+sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044] Processing by DashboardController#card as TURBO_STREAM
+sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044]   Parameters: {"id" => "43"}
+sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044] Completed 500 Internal Server Error in 10ms (ActiveRecord: 2.4ms (5 queries, 0 cached) | GC: 0.3ms)
+sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044]
+sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044] NoMethodError (undefined method 'dom_id' for an instance of DashboardController):
+sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044]
+sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044] app/controllers/dashboard_controller.rb:9:in 'DashboardController#card'
+
+---
+
+commit this and push
