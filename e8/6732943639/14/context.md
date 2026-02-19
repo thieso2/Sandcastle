@@ -58,3 +58,11 @@ merge it
 add a snapshot button the the sandbox on the dashboard. also add a sandbox detail page that lists the snapshots.  no topleven snapshot navigation.
 i crare a snapshot via dashbard or detail page. sandbox craete lists the snapshots i can create a new sandbox from.
 
+### Prompt 12
+
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] Processing by DashboardController#index as HTML
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]   Rendered layout layouts/application.html.erb (Duration: 11.5ms | GC: 0.1ms)
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] Completed 500 Internal Server Error in 24ms (ActiveRecord: 1.9ms (6 queries, 0 cached) | GC: 0.2ms)
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]
+sandcastle-web     | [e03cc394-7d3...
+

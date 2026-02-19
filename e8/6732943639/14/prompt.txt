@@ -110,3 +110,31 @@ merge it
 
 add a snapshot button the the sandbox on the dashboard. also add a sandbox detail page that lists the snapshots.  no topleven snapshot navigation.
 i crare a snapshot via dashbard or detail page. sandbox craete lists the snapshots i can create a new sandbox from.
+
+---
+
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] Processing by DashboardController#index as HTML
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]   Rendered layout layouts/application.html.erb (Duration: 11.5ms | GC: 0.1ms)
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] Completed 500 Internal Server Error in 24ms (ActiveRecord: 1.9ms (6 queries, 0 cached) | GC: 0.2ms)
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] ActionView::Template::Error (undefined method 'sandbox_snapshot_path' for an instance of #<Class:0x0000ffff65389ce8>)
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] Caused by: NoMethodError (undefined method 'sandbox_snapshot_path' for an instance of #<Class:0x0000ffff65389ce8>)
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]
+sandcastle-web     | Information for: ActionView::Template::Error (undefined method 'sandbox_snapshot_path' for an instance of #<Class:0x0000ffff65389ce8>):
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]     201:       <h3 class="text-base font-semibold text-gray-900">Snapshot — <%= sandbox.name %></h3>
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]     202:       <button onclick="document.getElementById('snap-modal-<%= sandbox.id %>').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]     203:     </div>
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]     204:     <%= form_with url: sandbox_snapshot_path(sandbox), method: :post, class: "px-5 py-4 space-y-3" do |f| %>
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]     205:       <div>
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]     206:         <%= f.label :name, "Name", class: "block text-sm font-medium text-gray-700 mb-1" %>
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]     207:         <%= f.text_field :name,
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] app/views/dashboard/_sandbox.html.erb:204
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] app/views/dashboard/index.html.erb:22
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] app/views/dashboard/index.html.erb:21
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]
+sandcastle-web     | Information for cause: NoMethodError (undefined method 'sandbox_snapshot_path' for an instance of #<Class:0x0000ffff65389ce8>):
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e]
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] app/views/dashboard/_sandbox.html.erb:204
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] app/views/dashboard/index.html.erb:22
+sandcastle-web     | [e03cc394-7d38-4a70-936b-651090962f9e] app/views/dashboard/index.html.erb:21
