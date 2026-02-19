@@ -23,7 +23,7 @@ services:
     image: busybox
     volumes:
       - traefik-data:/data
-      - /tmp/sandcastle-traefik-certs:/certs:ro
+      - ./.cert:/certs:ro
     command:
       - sh
       - -c
@@ -39,12 +39,12 @@ services:
         http:
           routers:
             rails-http:
-              rule: "Host(`sandcastle.local`)"
+              rule: "Host(`sandcastle.tc`)"
               service: rails
               entryPoints:
                 - web
             rails-https:
-              rule: "Host(`sandcastle.local`)"
+              rule: "Host(`sandcastle.tc`)"
               service: rails
               entryPoints:
                 - websecure
@@ -107,10 +107,10 @@ services:
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: sandcastle.local
+      SANDCASTLE_HOST: sandcastle.tc
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
-      SANDCASTLE_TERMINAL_URL: https://localhost:8443
+      SANDCASTLE_TERMINAL_URL: https://sandcastle.tc:8443
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
@@ -144,7 +144,7 @@ services:
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: sandcastle.local
+      SANDCASTLE_HOST: sandcastle.tc
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       DB_HOST: postgres
