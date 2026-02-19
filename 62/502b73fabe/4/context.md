@@ -102,3 +102,29 @@ sandcastle-web     | Use Ctrl-C to stop
 traefik-1          | 2026-02-19T19:10:00Z ERR Unable to append certificate /data/certs/cert.pem to store error="unable to generate TLS certificate : tls: failed to find any PEM data in certificate input" tlsStoreName=default
 traefik-1          | 2026-02-19T19:10:01Z WRN No domain found in rule HostRegexp(`.+`), the TLS options applied for this router will depend on the SNI of each request entryPointName=websecure routerName=rails-https@file
 
+### Prompt 22
+
+commit this
+
+### Prompt 23
+
+~/Projects/GitHub/Sandcastle [main] % curl -v http://sandcastle.tc:8443/
+* Host sandcastle.tc:8443 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:8443...
+* Connected to sandcastle.tc (::1) port 8443
+> GET / HTTP/1.1
+> Host: sandcastle.tc:8443
+> User-Agent: curl/8.7.1
+> Accept: */*
+>
+* Request completely sent off
+< HTTP/1.1 404 Not Found
+< Content-Type: text/plain; charset=utf-8
+< X-Content-Type-Options: nosniff
+< Date: Thu, 19 Feb 2026 19:21:54 GMT
+< Content-Length: 19
+<
+404 page n...
+
