@@ -1,0 +1,85 @@
+whats teh password after reimnstll?
+
+---
+
+and the user?
+
+---
+
+admin nav is obscrured.
+
+---
+
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f] Started POST "/admin/invites" for 192.168.117.1 at 2026-02-19 18:00:48 +0000
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f] Processing by Admin::InvitesController#create as TURBO_STREAM
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f]   Parameters: {"authenticity_token" => "[FILTERED]", "email" => "[FILTERED]", "message" => "Hey!", "commit" => "Send Invite"}
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f] Completed 400 Bad Request in 6ms (ActiveRecord: 0.4ms (2 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f]
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f] ActionController::ParameterMissing (param is missing or the value is empty or invalid: invite):
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f]
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f] app/controllers/admin/invites_controller.rb:39:in 'Admin::InvitesController#invite_params'
+sandcastle-web     | [865d8f5e-edab-4573-bf1e-542d513a0f2f] app/controllers/admin/invites_controller.rb:12:in 'Admin::InvitesController#create'
+
+---
+
+the admin subnav is hidden under teh header!
+
+---
+
+teh dev warfning banner and the tailscale should also be active in admincontroler
+
+---
+
+http://localhost:8080/tailscale 
+should go to tailscale when teh url is available.
+this is confusing.
+
+---
+
+add "copy invite link" to invite list.
+also the invite link does not work.
+
+---
+
+for the local deploy: use https://sandcastle.tc:8443  as the URL and add .cert/* to traefik.
+
+---
+
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [0e133bb7-55c3-475c-b74b-d74b4fd7071d] [SolidCable::TrimJob] [54a92034-e616-405b-9816-6d2f429f4ffa] Performing SolidCable::TrimJob (Job ID: 54a92034-e616-405b-9816-6d2f429f4ffa) from SolidQueue(default)
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [0e133bb7-55c3-475c-b74b-d74b4fd7071d] [SolidCable::TrimJob] [54a92034-e616-405b-9816-6d2f429f4ffa] Performed SolidCable::TrimJob (Job ID: 54a92034-e616-405b-9816-6d2f429f4ffa) from SolidQueue(default) in 0.1ms
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [0e133bb7-55c3-475c-b74b-d74b4fd7071d] Error performing SandboxProvisionJob (Job ID: 0e133bb7-55c3-475c-b74b-d74b4fd7071d) from SolidQueue(default) in 1494.61ms: SandboxManager::Error (Container failed to start (state: created)):
+sandcastle-worker  | app/services/sandbox_manager.rb:73:in 'SandboxManager#create_container_and_start'
+sandcastle-worker  | app/jobs/sandbox_provision_job.rb:19:in 'SandboxProvisionJob#perform'
+sandcastle-worker  | SolidQueue-1.3.1 Error in thread (0.0ms)  error: "SandboxManager::Error Container failed to start (state: created)"
+
+---
+
+we shoud check and find a free port on container start!
+
+---
+
+will this break letsencrypt in prod?
+
+---
+
+open term redirects to https://localhost:8443/terminal/2/wetty stay on
+
+---
+
+layout is proken without tailscale warning.
+
+---
+
+again!
+
+---
+
+[Request interrupted by user]
+
+---
+
+again!
+
+---
+
+commit this
