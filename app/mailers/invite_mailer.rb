@@ -1,6 +1,6 @@
 class InviteMailer < ApplicationMailer
-  def invite(user)
-    @user = user
-    mail subject: "You've been invited to Sandcastle", to: user.email_address
+  def invite(invite)
+    @invite = invite
+    mail subject: "You've been invited to Sandcastle", to: invite.email
   end
 end
