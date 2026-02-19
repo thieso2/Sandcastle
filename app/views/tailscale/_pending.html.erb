@@ -87,6 +87,10 @@
         if (linkDiv && linkEl && data.login_url) {
           linkEl.href = data.login_url;
           linkDiv.classList.remove("hidden");
+          if (!urlOpened) {
+            urlOpened = true;
+            window.open(data.login_url, "_blank", "noopener,noreferrer");
+          }
         }
       } else if (data.status === "authenticated") {
         setStepDone("step-starting");
@@ -104,6 +108,8 @@
       }
       currentStatus = data.status;
     }
+
+    var urlOpened = false;
 
     var poll = setInterval(function() {
       fetch("<%= login_status_tailscale_path %>", { headers: { "Accept": "application/json" } })
