@@ -28,16 +28,17 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
       && rm -rf /var/lib/apt/lists/*; \
     else \
       # Ubuntu ships chromium as a snap-only wrapper since 19.10 — unusable in containers.
-      # Use xtradeb/apps PPA which provides a real .deb. Force noble suite since
-      # xtradeb may not yet have packages for the current Ubuntu release (25.10/plucky).
-      apt-get update && apt-get install -y --no-install-recommends software-properties-common \
-      && add-apt-repository -y ppa:xtradeb/apps \
-      && CODENAME=$(lsb_release -cs) \
-      && find /etc/apt/sources.list.d/ -name "xtradeb*" -exec \
-           sed -i "s/\b$CODENAME\b/noble/g" {} \; \
+      # Pull the real chromium .deb from Debian testing (arm64 only), pinned so nothing
+      # else is silently upgraded from Debian.
+      apt-get update && apt-get install -y --no-install-recommends curl gpg \
+      && curl -fsSL https://ftp-master.debian.org/keys/archive-key-12.asc \
+           | gpg --dearmor -o /etc/apt/trusted.gpg.d/debian-archive.gpg \
+      && echo "deb [arch=arm64] http://deb.debian.org/debian testing main" \
+           > /etc/apt/sources.list.d/debian-testing.list \
+      && printf 'Package: *\nPin: release o=Debian\nPin-Priority: 100\n\nPackage: chromium chromium-common chromium-sandbox\nPin: release o=Debian\nPin-Priority: 500\n' \
+           > /etc/apt/preferences.d/debian-chromium \
       && apt-get update \
       && apt-get install -y chromium \
-      && apt-get purge -y --auto-remove software-properties-common \
       && rm -rf /var/lib/apt/lists/*; \
     fi
 
