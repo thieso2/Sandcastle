@@ -14,3 +14,26 @@ sandcastle-web     | ...
 
 commit this and push
 
+### Prompt 3
+
+analyze and debug
+
+### Prompt 4
+
+[Request interrupted by user]
+
+### Prompt 5
+
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+thies@thies-bold-orca:~$ ps auxw
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.1  0.0  12060  7356 ?        Ss   07:26   0:00 sshd: /usr/sbin/sshd -D -e [listener] 0 of 10-100 startups
+root          54  0.0  0.0  16044  8944 ?        Ss   07:26   0:00 sshd: thies [priv]
+thies         65  0.0  0.0  16388  6480 ?        S    07:26   0:00 sshd: th...
+
+### Prompt 6
+
+also show the VNC status in the dashboard for a sandbox!
+

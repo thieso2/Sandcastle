@@ -59,3 +59,33 @@ sandcastle-web     | [e8f73d99-cd5f-4d80-a9de-70ff243a8044] app/controllers/dash
 ---
 
 commit this and push
+
+---
+
+analyze and debug
+
+---
+
+[Request interrupted by user]
+
+---
+
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+thies@thies-bold-orca:~$ ps auxw
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.1  0.0  12060  7356 ?        Ss   07:26   0:00 sshd: /usr/sbin/sshd -D -e [listener] 0 of 10-100 startups
+root          54  0.0  0.0  16044  8944 ?        Ss   07:26   0:00 sshd: thies [priv]
+thies         65  0.0  0.0  16388  6480 ?        S    07:26   0:00 sshd: thies@pts/0
+thies         66  0.0  0.0   8960  4328 pts/0    Ss+  07:26   0:00 tmux new-session -A -s main
+thies         68  0.0  0.0   9492  4352 ?        Ss   07:26   0:00 tmux new-session -A -s main
+thies         69  0.0  0.0   4736  3968 pts/1    Ss   07:26   0:00 -bash
+thies        102  0.0  0.0   8032  3888 pts/1    R+   07:26   0:00 ps auxw
+thies@thies-bold-orca:~$ 
+
+sandcaste did not start Xvnc!!
+
+---
+
+also show the VNC status in the dashboard for a sandbox!
