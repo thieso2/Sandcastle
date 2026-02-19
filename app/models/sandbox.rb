@@ -5,6 +5,8 @@ class Sandbox < ApplicationRecord
   has_many :routes, dependent: :destroy
 
   SSH_PORT_RANGE = (2201..2299)
+  VNC_GEOMETRIES = %w[1280x900 1366x768 1440x900 1600x900 1920x1080 2560x1440].freeze
+  VNC_DEPTHS = [ 8, 16, 24, 32 ].freeze
 
   validates :name, presence: true,
     uniqueness: { scope: :user_id, conditions: -> { where.not(status: "destroyed") } },
@@ -14,6 +16,8 @@ class Sandbox < ApplicationRecord
     inclusion: { in: SSH_PORT_RANGE }
   validates :status, inclusion: { in: %w[pending running stopped destroyed] }
   validates :image, presence: true
+  validates :vnc_geometry, inclusion: { in: VNC_GEOMETRIES }
+  validates :vnc_depth, inclusion: { in: VNC_DEPTHS }
 
   scope :active, -> { where.not(status: "destroyed") }
   scope :running, -> { where(status: "running") }

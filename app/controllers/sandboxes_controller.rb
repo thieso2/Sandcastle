@@ -25,6 +25,9 @@ class SandboxesController < ApplicationController
       mount_home: params[:mount_home] == "1",
       data_path: params[:data_path].presence,
       tailscale: params[:tailscale] == "1",
+      vnc_enabled: params[:vnc_enabled] != "0",
+      vnc_geometry: Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900",
+      vnc_depth: Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24,
       temporary: false
     )
 

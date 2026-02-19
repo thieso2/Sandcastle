@@ -15,6 +15,9 @@ type Sandbox struct {
 	Temporary        bool      `json:"temporary"`
 	Tailscale        bool           `json:"tailscale"`
 	TailscaleIP      string         `json:"tailscale_ip,omitempty"`
+	VNCEnabled       bool           `json:"vnc_enabled"`
+	VNCGeometry      string         `json:"vnc_geometry,omitempty"`
+	VNCDepth         int            `json:"vnc_depth,omitempty"`
 	Routes           []SandboxRoute `json:"routes"`
 	ConnectCommand   string         `json:"connect_command"`
 	CreatedAt        time.Time `json:"created_at"`
@@ -145,14 +148,17 @@ type RouteResponse struct {
 }
 
 type CreateSandboxRequest struct {
-	Name       string `json:"name"`
-	Image      string `json:"image,omitempty"`
-	Persistent bool   `json:"persistent,omitempty"`
-	Snapshot   string `json:"snapshot,omitempty"`
-	Tailscale  bool   `json:"tailscale,omitempty"`
-	MountHome  bool   `json:"mount_home,omitempty"`
-	DataPath   string `json:"data_path,omitempty"`
-	Temporary  bool   `json:"temporary,omitempty"`
+	Name        string `json:"name"`
+	Image       string `json:"image,omitempty"`
+	Persistent  bool   `json:"persistent,omitempty"`
+	Snapshot    string `json:"snapshot,omitempty"`
+	Tailscale   bool   `json:"tailscale,omitempty"`
+	MountHome   bool   `json:"mount_home,omitempty"`
+	DataPath    string `json:"data_path,omitempty"`
+	Temporary   bool   `json:"temporary,omitempty"`
+	VNCEnabled  bool   `json:"vnc_enabled"`
+	VNCGeometry string `json:"vnc_geometry,omitempty"`
+	VNCDepth    int    `json:"vnc_depth,omitempty"`
 }
 
 type UpdateSandboxRequest struct {

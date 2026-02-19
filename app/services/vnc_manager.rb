@@ -58,9 +58,17 @@ class VncManager
     Rails.logger.error("VncManager: close failed for #{sandbox.full_name}: #{e.message}")
   end
 
-  # Returns true if the noVNC container is running for this sandbox.
+  # Returns true if the noVNC container is running AND its HTTP server is ready.
+  # The container_running? check alone is insufficient — the websockify process
+  # may not have bound to port 6080 yet when Docker reports the container as running.
   def active?(sandbox:)
-    container_running?(vnc_container_name(sandbox))
+    container_name = vnc_container_name(sandbox)
+    return false unless container_running?(container_name)
+
+    TCPSocket.new(container_name, 6080).close
+    true
+  rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
+    false
   end
 
   # Removes orphaned noVNC containers whose sandbox no longer exists or is not running.
