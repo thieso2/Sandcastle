@@ -12,8 +12,9 @@ class Sandbox < ApplicationRecord
     uniqueness: { scope: :user_id, conditions: -> { where.not(status: "destroyed") } },
     format: { with: /\A[a-z][a-z0-9_-]{0,62}\z/, message: "must be lowercase alphanumeric" }
   validates :ssh_port, presence: true,
-    uniqueness: { conditions: -> { where.not(status: "destroyed") } },
-    inclusion: { in: SSH_PORT_RANGE }
+    uniqueness: { conditions: -> { where.not(status: %w[destroyed stopped]) } },
+    inclusion: { in: SSH_PORT_RANGE },
+    unless: -> { status == "stopped" }
   validates :status, inclusion: { in: %w[pending running stopped destroyed] }
   validates :image, presence: true
   validates :vnc_geometry, inclusion: { in: VNC_GEOMETRIES }

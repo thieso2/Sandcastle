@@ -20,6 +20,9 @@ class SandboxManager
       sandbox.volume_path = "#{DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
     end
 
+    # Pre-assign a port that is free in both the DB and Docker (skips model callback)
+    sandbox.ssh_port = find_free_ssh_port
+
     # Validate before doing expensive operations
     sandbox.validate!
 
@@ -70,7 +73,10 @@ class SandboxManager
 
     container.start
     container.refresh!
-    raise Error, "Container failed to start (state: #{container.json.dig("State", "Status")})" unless container.json.dig("State", "Running")
+    unless container.json.dig("State", "Running")
+      state_error = container.json.dig("State", "Error").presence || container.json.dig("State", "Status")
+      raise Error, "Container failed to start: #{state_error}"
+    end
     sandbox.update!(container_id: container.id, status: "running")
   end
 
@@ -157,9 +163,23 @@ class SandboxManager
     raise Error, "Sandbox is destroyed" if sandbox.status == "destroyed"
     return sandbox if sandbox.status == "running"
 
-    container = Docker::Container.get(sandbox.container_id)
-    container.start
-    sandbox.update!(status: "running")
+    user = sandbox.user
+
+    # Port was released on stop — assign a new free port and recreate the container
+    new_port = find_free_ssh_port
+    sandbox.update!(ssh_port: new_port)
+
+    if sandbox.container_id.present?
+      begin
+        old = Docker::Container.get(sandbox.container_id)
+        old.stop(t: 5) rescue nil
+        old.delete(force: true)
+      rescue Docker::Error::NotFoundError
+        # already gone
+      end
+    end
+
+    create_container_and_start(sandbox: sandbox, user: user)
 
     RouteManager.new.reconnect_routes(sandbox: sandbox) if sandbox.routed?
 
@@ -180,13 +200,17 @@ class SandboxManager
 
     RouteManager.new.suspend_routes(sandbox: sandbox) if sandbox.routed?
 
-    container = Docker::Container.get(sandbox.container_id)
-    container.stop(t: 10)
-    sandbox.update!(status: "stopped")
+    if sandbox.container_id.present?
+      begin
+        container = Docker::Container.get(sandbox.container_id)
+        container.stop(t: 10)
+      rescue Docker::Error::NotFoundError
+        # already gone
+      end
+    end
+
+    sandbox.update!(status: "stopped", ssh_port: nil)
     sandbox
-  rescue Docker::Error::NotFoundError
-    sandbox.update!(status: "destroyed", container_id: nil)
-    raise Error, "Container not found"
   end
 
   def status(sandbox:)
@@ -549,6 +573,34 @@ class SandboxManager
     end
     Rails.logger.warn("Tailscale IP not available for sandbox #{sandbox.id} after #{max_attempts} attempts (status: #{sandbox.status})")
     nil
+  end
+
+  def find_free_ssh_port
+    db_used = Sandbox.where.not(status: %w[destroyed stopped]).pluck(:ssh_port).compact
+    docker_used = docker_bound_ssh_ports
+    candidates = Sandbox::SSH_PORT_RANGE.to_a - (db_used + docker_used).uniq
+    port = candidates.find { |p| port_free?(p) }
+    port || raise(Error, "No SSH ports available in range #{Sandbox::SSH_PORT_RANGE}")
+  end
+
+  def docker_bound_ssh_ports
+    Docker::Container.all(all: true).flat_map do |c|
+      (c.info["Ports"] || []).map { |p| p["PublicPort"] }.compact
+    end.select { |p| Sandbox::SSH_PORT_RANGE.include?(p) }
+  rescue Docker::Error::DockerError
+    []
+  end
+
+  # Verify a port is truly free by attempting a TCP connection to the Docker host.
+  # Returns true (free) if the connection is refused. Falls back to true if the
+  # Docker host is not reachable (e.g. production Linux without host.docker.internal).
+  def port_free?(port)
+    Timeout.timeout(0.3) { TCPSocket.new("host.docker.internal", port).close }
+    false # connected → port is occupied
+  rescue Errno::ECONNREFUSED, Timeout::Error
+    true  # refused/timed-out → port is free
+  rescue SocketError, Errno::EHOSTUNREACH, Errno::ENETUNREACH
+    true  # host not reachable → skip TCP check, rely on Docker API result
   end
 
   def container_env(user, sandbox)
