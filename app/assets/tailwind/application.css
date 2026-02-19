@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Force-include dynamic utility classes used in Ruby string interpolations
+   that Tailwind's scanner cannot detect at build time. */
+@source inline("pt-28 pt-40 mt-36");
+
 @keyframes fadeIn {
   from {
     opacity: 0;
