@@ -11,7 +11,7 @@
     "db/migrate/20260219000001_create_snapshots.rb",
     "db/migrate/20260219000002_create_snapshots.rb",
     "docker-compose.dev.yml",
-    "tmp/pids/server.pid"
+    "docker-compose.local.yml"
   ],
   "sessions": [
     {
@@ -51,10 +51,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 94,
-    "cache_creation_tokens": 156578,
-    "cache_read_tokens": 3756362,
-    "output_tokens": 6514,
-    "api_call_count": 70
+    "input_tokens": 127,
+    "cache_creation_tokens": 197811,
+    "cache_read_tokens": 7823895,
+    "output_tokens": 16227,
+    "api_call_count": 99
   }
 }

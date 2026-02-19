@@ -358,3 +358,84 @@ commit this
 <
 404 page not found
 * Connection #0 to host sandcastle.tc left intact
+
+---
+
+creating a sandbox via ui no longer works!
+
+---
+
+[Request interrupted by user]
+
+---
+
+docker build fials:
+
+ => ERROR [ 6/20] RUN curl -fsSL https://get.docker.com | sh                                                                                                       5.1s
+------
+ > [ 6/20] RUN curl -fsSL https://get.docker.com | sh:
+0.201 # Executing docker install script, commit: f381ee68b32e515bb4dc034b339266aff1fbc460
+0.213 + sh -c apt-get -qq update >/dev/null
+4.037 + sh -c DEBIAN_FRONTEND=noninteractive apt-get -y -qq install ca-certificates curl >/dev/null
+4.991 E: Packages were downgraded and -y was used without --allow-downgrades.
+------
+Dockerfile:49
+--------------------
+  47 |
+  48 |     # Docker CLI + daemon (Sysbox makes this safe)
+  49 | >>> RUN curl -fsSL https://get.docker.com | sh
+  50 |
+  51 |     # Pin runc to 1.1.x — runc 1.2+ added a procfs safety check that fails
+--------------------
+
+---
+
+[Request interrupted by user]
+
+---
+
+> [ 6/20] RUN install -m 0755 -d /etc/apt/keyrings     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg          -o /etc/apt/keyrings/docker.asc     && chmod a+r /etc/apt/keyrings/docker.asc     && CODENAME=$(. /etc/os-release && echo "${VERSION_CODENAME:-noble}")     && (curl -fsSL "https://download.docker.com/linux/ubuntu/dists/${CODENAME}/Release"          -o /dev/null --silent --fail         && DOCKER_CODENAME="$CODENAME"         || DOCKER_CODENAME="noble")     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc]          https://download.docker.com/linux/ubuntu ${DOCKER_CODENAME} stable"          > /etc/apt/sources.list.d/docker.list     && apt-get update     && apt-get install -y docker-ce docker-ce-cli containerd.io          docker-buildx-plugin docker-compose-plugin     && rm -rf /var/lib/apt/lists/*:
+0.268 E: Malformed entry 1 in list file /etc/apt/sources.list.d/docker.list (Component)
+0.268 E: The list of sources could not be read.
+------
+Dockerfile:53
+--------------------
+  52 |     # Fall back to 'noble' codename for Ubuntu releases not yet in Docker's repo.
+  53 | >>> RUN install -m 0755 -d /etc/apt/keyrings \
+  54 | >>>     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  55 | >>>          -o /etc/apt/keyrings/docker.asc \
+  56 | >>>     && chmod a+r /etc/apt/keyrings/docker.asc \
+  57 | >>>     && CODENAME=$(. /etc/os-release && echo "${VERSION_CODENAME:-noble}") \
+  58 | >>>     && (curl -fsSL "https://download.docker.com/linux/ubuntu/dists/${CODENAME}/Release" \
+  59 | >>>          -o /dev/null --silent --fail \
+  60 | >>>         && DOCKER_CODENAME="$CODENAME" \
+  61 | >>>         || DOCKER_CODENAME="noble") \
+  62 | >>>     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+  63 | >>>          https://download.docker.com/linux/ubuntu ${DOCKER_CODENAME} stable" \
+  64 | >>>          > /etc/apt/sources.list.d/docker.list \
+  65 | >>>     && apt-get update \
+  66 | >>>     && apt-get install -y docker-ce docker-ce-cli containerd.io \
+  67 | >>>          docker-buildx-plugin docker-compose-plugin \
+  68 | >>>     && rm -rf /var/lib/apt/lists/*
+  69 |
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c install -m 0755 -d /etc/apt/keyrings     && curl -fsSL https://download.docker.com/linux/ubuntu/gpg          -o /etc/apt/keyrings/docker.asc     && chmod a+r /etc/apt/keyrings/docker.asc     && CODENAME=$(. /etc/os-release && echo \"${VERSION_CODENAME:-noble}\")     && (curl -fsSL \"https://download.docker.com/linux/ubuntu/dists/${CODENAME}/Release\"          -o /dev/null --silent --fail         && DOCKER_CODENAME=\"$CODENAME\"         || DOCKER_CODENAME=\"noble\")     && echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc]          https://download.docker.com/linux/ubuntu ${DOCKER_CODENAME} stable\"          > /etc/apt/sources.list.d/docker.list     && apt-get update     && apt-get install -y docker-ce docker-ce-cli containerd.io          docker-buildx-plugin docker-compose-plugin     && rm -rf /var/lib/apt/lists/*" did not complete successfully: exit code: 100
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+<task-notification>
+<task-id>b6fba94</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Build sandbox image with cached layers" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+again!
