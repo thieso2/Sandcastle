@@ -27,8 +27,17 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
       && rm google-chrome-stable_current_amd64.deb \
       && rm -rf /var/lib/apt/lists/*; \
     else \
-      apt-get update \
+      # Ubuntu ships chromium as a snap-only wrapper since 19.10 — unusable in containers.
+      # Use xtradeb/apps PPA which provides a real .deb. Force noble suite since
+      # xtradeb may not yet have packages for the current Ubuntu release (25.10/plucky).
+      apt-get update && apt-get install -y --no-install-recommends software-properties-common \
+      && add-apt-repository -y ppa:xtradeb/apps \
+      && CODENAME=$(lsb_release -cs) \
+      && find /etc/apt/sources.list.d/ -name "xtradeb*" -exec \
+           sed -i "s/\b$CODENAME\b/noble/g" {} \; \
+      && apt-get update \
       && apt-get install -y chromium \
+      && apt-get purge -y --auto-remove software-properties-common \
       && rm -rf /var/lib/apt/lists/*; \
     fi
 
