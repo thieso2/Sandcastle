@@ -81,3 +81,18 @@ again!
 
 commit this
 
+### Prompt 19
+
+again - trace teh code and fix it for real this time. where if the best place to set this confog so that it does not get overridden?
+
+### Prompt 20
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation to capture all key details.
+
+1. **Admin nav obscured** - navbar had too many items causing overflow. Fixed by collapsing Admin/Jobs into a CSS-only hover dropdown.
+
+2. **Invite form 400 Bad Request** - `params.expect(invite: [:email, :message])` failed because form used `form_with url:` w...
+
