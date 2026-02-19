@@ -3,28 +3,36 @@
   "checkpoint_id": "e86732943639",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 14,
+  "checkpoints_count": 18,
   "files_touched": [
     "CLAUDE.md",
     "LOCAL.md",
     "Procfile.dev",
     "SANDMAN.md",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
     "app/controllers/vnc_controller.rb",
+    "app/models/sandbox.rb",
     "app/services/btrfs_helper.rb",
     "app/services/sandbox_manager.rb",
     "app/services/vnc_manager.rb",
+    "app/views/sandboxes/new.html.erb",
     "config/database.yml",
     "config/environments/development.rb",
     "config/puma.rb",
+    "db/migrate/20260219100000_add_vnc_options_to_sandboxes.rb",
     "docker-compose.dev.yml",
     "docs/deployment-comparison.md",
     "images/sandbox/Dockerfile",
     "images/sandbox/entrypoint.sh",
+    "images/sandbox/startchrome.sh",
     "install-defaults",
     "installer.sh",
     "installer/templates/dockyard.env.template",
     "installer/templates/sandcastle.env.template",
-    "tmp/pids/server.pid"
+    "tmp/pids/server.pid",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/sandbox.go"
   ],
   "sessions": [
     {
@@ -96,13 +104,20 @@
       "context": "/e8/6732943639/9/context.md",
       "content_hash": "/e8/6732943639/9/content_hash.txt",
       "prompt": "/e8/6732943639/9/prompt.txt"
+    },
+    {
+      "metadata": "/e8/6732943639/10/metadata.json",
+      "transcript": "/e8/6732943639/10/full.jsonl",
+      "context": "/e8/6732943639/10/context.md",
+      "content_hash": "/e8/6732943639/10/content_hash.txt",
+      "prompt": "/e8/6732943639/10/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3957,
-    "cache_creation_tokens": 979703,
-    "cache_read_tokens": 30270670,
-    "output_tokens": 48756,
-    "api_call_count": 343
+    "input_tokens": 4016,
+    "cache_creation_tokens": 1108833,
+    "cache_read_tokens": 33965479,
+    "output_tokens": 55014,
+    "api_call_count": 390
   }
 }

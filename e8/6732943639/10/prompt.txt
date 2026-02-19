@@ -1,0 +1,183 @@
+Implement the following plan:
+
+# Plan: VNC Enabled Flag + Configurable Geometry
+
+## Context
+Xvnc currently always starts with a hardcoded `1920x1080` geometry.
+The user wants:
+1. A per-sandbox **VNC enabled** toggle (checkbox, default: on) stored in DB
+2. A per-sandbox **VNC geometry** dropdown (default: 1280x900) stored in DB
+3. Both surfaced in the "Create Sandcastle" web UI form
+4. The entrypoint reads these from env vars at container startup
+
+---
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `db/migrate/<timestamp>_add_vnc_options_to_sandboxes.rb` | New migration |
+| `app/models/sandbox.rb` | Add `VNC_GEOMETRIES` constant + `vnc_geometry` inclusion validation |
+| `app/services/sandbox_manager.rb` | Pass sandbox to `container_env`; add VNC env vars |
+| `app/controllers/sandboxes_controller.rb` | Accept `vnc_enabled` + `vnc_geometry` params |
+| `app/controllers/api/sandboxes_controller.rb` | Same, plus expose in `sandbox_json` |
+| `app/views/sandboxes/new.html.erb` | Add "VNC / Display" section |
+| `images/sandbox/entrypoint.sh` | Read `SANDCASTLE_VNC_ENABLED` + `SANDCASTLE_VNC_GEOMETRY` |
+
+---
+
+## Step-by-step Implementation
+
+### 1. Migration
+```ruby
+# db/migrate/<timestamp>_add_vnc_options_to_sandboxes.rb
+add_column :sandboxes, :vnc_enabled, :boolean, default: true, null: false
+add_column :sandboxes, :vnc_geometry, :string, default: "1280x900", null: false
+```
+
+### 2. Sandbox Model (`app/models/sandbox.rb`)
+Add constant + validation:
+```ruby
+VNC_GEOMETRIES = %w[1280x900 1366x768 1440x900 1600x900 1920x1080 2560x1440].freeze
+
+validates :vnc_geometry, inclusion: { in: VNC_GEOMETRIES }
+```
+
+### 3. SandboxManager (`app/services/sandbox_manager.rb`)
+Change `container_env(user)` → `container_env(user, sandbox)` in signature and all call sites (`create_container_and_start` and `restore`). Add VNC vars:
+```ruby
+def container_env(user, sandbox)
+  env = [
+    "SANDCASTLE_USER=#{user.name}",
+    "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
+  ]
+  env << "USER_EMAIL=#{user.email_address}" if user.email_address.present?
+  env << "USER_FULLNAME=#{user.full_name}" if user.full_name.present?
+  env << "SANDCASTLE_VNC_ENABLED=#{sandbox.vnc_enabled? ? '1' : '0'}"
+  env << "SANDCASTLE_VNC_GEOMETRY=#{sandbox.vnc_geometry}"
+  env
+end
+```
+Update the two call sites:
+- `create_container_and_start`: `container_env(user, sandbox)`
+- `restore`: `container_env(user, sandbox)`
+
+### 4. Web UI Controller (`app/controllers/sandboxes_controller.rb`)
+In `create`, add to the `build(...)` call:
+```ruby
+vnc_enabled: params[:vnc_enabled] == "1",
+vnc_geometry: params[:vnc_geometry].presence || "1280x900",
+```
+
+### 5. API Controller (`app/controllers/api/sandboxes_controller.rb`)
+In `create`, add:
+```ruby
+vnc_enabled: params.fetch(:vnc_enabled, true),
+vnc_geometry: params[:vnc_geometry] || "1280x900",
+```
+In `sandbox_json`, expose:
+```ruby
+vnc_enabled: sandbox.vnc_enabled,
+vnc_geometry: sandbox.vnc_geometry,
+```
+
+### 6. Create Form View (`app/views/sandboxes/new.html.erb`)
+Add a new "VNC / Display" card section between Network Options and Actions:
+```erb
+<%# VNC / Display Options %>
+<div class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+  <h2 class="text-lg font-semibold text-gray-900">VNC / Display</h2>
+
+  <label class="flex items-start gap-3 cursor-pointer">
+    <%= form.check_box :vnc_enabled, checked: true,
+          id: "sandbox_vnc_enabled",
+          class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+    <div class="flex-1">
+      <div class="text-sm font-medium text-gray-900">Enable VNC display</div>
+      <p class="text-xs text-gray-500">Start a virtual display (Xvnc) for GUI apps and browser access</p>
+    </div>
+  </label>
+
+  <div id="vnc_geometry_row">
+    <%= form.label :vnc_geometry, "Screen Resolution", class: "block text-sm font-medium text-gray-700 mb-1" %>
+    <%= form.select :vnc_geometry,
+          options_for_select([
+            ["1280×900 (default)", "1280x900"],
+            ["1366×768", "1366x768"],
+            ["1440×900", "1440x900"],
+            ["1600×900", "1600x900"],
+            ["1920×1080 (Full HD)", "1920x1080"],
+            ["2560×1440 (2K)", "2560x1440"]
+          ], "1280x900"),
+          {},
+          class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+  </div>
+</div>
+```
+Add a small inline script at the bottom of the existing `<script>` block to toggle geometry row visibility:
+```js
+var vncCheckbox = document.getElementById("sandbox_vnc_enabled");
+var vncGeomRow = document.getElementById("vnc_geometry_row");
+function toggleVncGeom() {
+  vncGeomRow.style.display = vncCheckbox.checked ? "" : "none";
+}
+vncCheckbox.addEventListener("change", toggleVncGeom);
+```
+
+### 7. Entrypoint (`images/sandbox/entrypoint.sh`)
+Replace the hardcoded geometry with env-driven values:
+```bash
+VNC_ENABLED="${SANDCASTLE_VNC_ENABLED:-1}"
+VNC_GEOMETRY="${SANDCASTLE_VNC_GEOMETRY:-1280x900}"
+
+if command -v Xvnc &>/dev/null && [ "$VNC_ENABLED" = "1" ]; then
+    touch /var/log/xvnc.log /var/log/openbox.log
+    chown "$USERNAME:$USERNAME" /var/log/xvnc.log /var/log/openbox.log
+    su -s /bin/bash "$USERNAME" -c \
+        "Xvnc :99 -rfbport 5900 -SecurityTypes None -AlwaysShared -geometry ${VNC_GEOMETRY} -depth 24 &>/var/log/xvnc.log &"
+    if command -v openbox &>/dev/null; then
+        su -s /bin/bash "$USERNAME" -c \
+            'DISPLAY=:99 openbox &>/var/log/openbox.log &'
+    fi
+fi
+```
+
+---
+
+## Verification
+1. Run migration: `bin/rails db:migrate`
+2. Start dev server: `bin/dev`
+3. Visit `/sandboxes/new` → confirm "VNC / Display" card appears with checkbox (checked) and geometry dropdown
+4. Uncheck the box → geometry dropdown hides
+5. Create a sandbox → confirm `vnc_enabled` and `vnc_geometry` are saved in DB
+6. In `SandboxManager` logs / `docker inspect <container>` → confirm `SANDCASTLE_VNC_ENABLED` and `SANDCASTLE_VNC_GEOMETRY` env vars are present
+7. SSH into a running sandbox → `ps aux | grep Xvnc` to confirm Xvnc ran with correct geometry as the sandbox user
+8. Run `bin/rails test` to ensure no regressions
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+[Request interrupted by user]
+
+---
+
+vnc_geometry should also include the bit-depth (default 24). also want to specify vnc via cli.
+
+---
+
+fix:
+images/sandbox [main] % docker build -t sandcastle-sandbox:latest .
+
+---
+
+ERROR: failed to build: failed to solve: process "/bin/sh -c apt-get update && apt-get install -y     tigervnc-standalone-server openbox xterm xfonts-base xfonts-100dpi xfonts-75dpi     fonts-liberation libappindicator3-1 libasound2t64 libatk-bridge2.0-0t64     libatk1.0-0t64 libcups2t64 libdbus-1-3 libgdk-pixbuf-2.0-0 libnspr4 libnss3     libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 xdg-utils     && wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb     && apt-get install -y ./google-chrome-stable_current_amd64.deb     && rm google-chrome-stable_current_amd64.deb     && rm -rf /var/lib/apt/lists/*" did not complete successfully: exit code: 100
+
+---
+
+this works on x86_64 - explain
+
+---
+
+no we want an arm64 image! just saying that the identical docerkfile builds on x86
