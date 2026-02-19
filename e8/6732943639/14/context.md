@@ -41,3 +41,11 @@ also show the VNC status in the dashboard for a sandbox!
 
 for the vnc action - autoconnect to the sandcastle
 
+### Prompt 8
+
+commit and push
+
+### Prompt 9
+
+fix conflicts in https://github.com/thieso2/Sandcastle/pull/38
+

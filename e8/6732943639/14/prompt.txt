@@ -93,3 +93,11 @@ also show the VNC status in the dashboard for a sandbox!
 ---
 
 for the vnc action - autoconnect to the sandcastle
+
+---
+
+commit and push
+
+---
+
+fix conflicts in https://github.com/thieso2/Sandcastle/pull/38
