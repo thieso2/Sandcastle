@@ -3,25 +3,35 @@
   "checkpoint_id": "e86732943639",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 20,
+  "checkpoints_count": 23,
   "files_touched": [
     "CLAUDE.md",
     "LOCAL.md",
     "Procfile.dev",
     "SANDMAN.md",
     "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/dashboard_controller.rb",
     "app/controllers/sandboxes_controller.rb",
+    "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
+    "app/javascript/controllers/sandbox_polling_controller.js",
     "app/models/sandbox.rb",
+    "app/policies/sandbox_policy.rb",
     "app/services/btrfs_helper.rb",
     "app/services/sandbox_manager.rb",
+    "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
     "app/views/sandboxes/new.html.erb",
+    "app/views/terminal/wait.html.erb",
     "config/database.yml",
     "config/environments/development.rb",
+    "config/initializers/container_sync.rb",
     "config/puma.rb",
+    "config/routes.rb",
     "db/migrate/20260219100000_add_vnc_options_to_sandboxes.rb",
     "docker-compose.dev.yml",
+    "docker-compose.local.yml",
     "docs/deployment-comparison.md",
     "images/sandbox/Dockerfile",
     "images/sandbox/entrypoint.sh",
@@ -125,13 +135,20 @@
       "context": "/e8/6732943639/12/context.md",
       "content_hash": "/e8/6732943639/12/content_hash.txt",
       "prompt": "/e8/6732943639/12/prompt.txt"
+    },
+    {
+      "metadata": "/e8/6732943639/13/metadata.json",
+      "transcript": "/e8/6732943639/13/full.jsonl",
+      "context": "/e8/6732943639/13/context.md",
+      "content_hash": "/e8/6732943639/13/content_hash.txt",
+      "prompt": "/e8/6732943639/13/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 4036,
-    "cache_creation_tokens": 1207869,
-    "cache_read_tokens": 34550016,
-    "output_tokens": 66522,
-    "api_call_count": 404
+    "input_tokens": 4235,
+    "cache_creation_tokens": 1460476,
+    "cache_read_tokens": 48378875,
+    "output_tokens": 99830,
+    "api_call_count": 544
   }
 }
