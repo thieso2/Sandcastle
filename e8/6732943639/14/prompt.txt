@@ -89,3 +89,7 @@ sandcaste did not start Xvnc!!
 ---
 
 also show the VNC status in the dashboard for a sandbox!
+
+---
+
+for the vnc action - autoconnect to the sandcastle

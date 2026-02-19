@@ -22,7 +22,6 @@
     "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
     "app/views/dashboard/_sandbox.html.erb",
-    "app/views/dashboard/index.html.erb",
     "app/views/sandboxes/new.html.erb",
     "app/views/terminal/wait.html.erb",
     "config/database.yml",
@@ -153,10 +152,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 4271,
-    "cache_creation_tokens": 1509210,
-    "cache_read_tokens": 50566717,
-    "output_tokens": 106215,
-    "api_call_count": 574
+    "input_tokens": 4240,
+    "cache_creation_tokens": 1462398,
+    "cache_read_tokens": 48662722,
+    "output_tokens": 101235,
+    "api_call_count": 547
   }
 }

@@ -37,3 +37,7 @@ thies         65  0.0  0.0  16388  6480 ?        S    07:26   0:00 sshd: th...
 
 also show the VNC status in the dashboard for a sandbox!
 
+### Prompt 7
+
+for the vnc action - autoconnect to the sandcastle
+
