@@ -1,0 +1,5 @@
+when not connected to tailscale show a big banner on every page reminding teh user to do just that!
+
+---
+
+on SANDMAN.md openening VNC does not work - debug
