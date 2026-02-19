@@ -6,7 +6,9 @@ Rails.application.routes.draw do
 
   resource :session
   resources :passwords, param: :token
-  resource :invite, only: [ :edit, :update ], path_names: { edit: "" }
+
+  get  "invites/:token",        to: "registrations#new",    as: :new_registration
+  post "invites/:token/accept", to: "registrations#create", as: :accept_registration
 
   get  "auth/:provider/callback", to: "oauth_callbacks#create"
   post "auth/:provider/callback", to: "oauth_callbacks#create"
@@ -66,9 +68,8 @@ Rails.application.routes.draw do
     get "/", to: "dashboard#index", as: :dashboard
     get "system_status", to: "dashboard#system_status"
     resource :settings, only: [ :edit, :update ]
-    resources :users do
-      post :invite, on: :collection
-    end
+    resources :users
+    resources :invites, only: [ :index, :create, :destroy ]
     resources :sandboxes, only: :destroy do
       member do
         post :start

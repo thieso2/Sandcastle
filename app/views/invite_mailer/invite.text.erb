@@ -1,8 +1,10 @@
-Hi <%= @user.name %>,
-
 You've been invited to Sandcastle, a self-hosted shared Docker sandbox platform.
+<% if @invite.message.present? %>
 
-Accept your invite and set your password:
-<%= edit_invite_url(token: @user.generate_token_for(:invite)) %>
+<%= @invite.message %>
+<% end %>
 
-This link will expire in 72 hours.
+Accept your invite and create your account:
+<%= new_registration_url(token: @invite.token) %>
+
+This link will expire in 7 days.

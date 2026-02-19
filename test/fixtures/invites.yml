@@ -1,0 +1,18 @@
+pending_invite:
+  email: pending@example.com
+  token: pending_token_abc123
+  invited_by: one
+  expires_at: <%= 7.days.from_now %>
+
+accepted_invite:
+  email: accepted@example.com
+  token: accepted_token_xyz789
+  invited_by: one
+  accepted_at: <%= 1.day.ago %>
+  expires_at: <%= 7.days.from_now %>
+
+expired_invite:
+  email: expired@example.com
+  token: expired_token_def456
+  invited_by: one
+  expires_at: <%= 1.day.ago %>
