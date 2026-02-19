@@ -1,0 +1,9 @@
+Xvnc should run as the loggin in user - not root
+
+---
+
+the geometry should be passed in so i can set it in the WebUI (create sancastle - add a dropdown with some nice defaults) default is 1280x900. Also we should have a checkbox (default on) if we want VNC to be started an available in the castle. (remember startup values in db)
+
+---
+
+[Request interrupted by user for tool use]
