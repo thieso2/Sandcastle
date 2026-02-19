@@ -116,30 +116,27 @@ class RouteManager
       }
     }
 
-    # Add TLS certificates section for self-signed mode
-    if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
-      certs = [
-        {
-          "certFile" => "/data/certs/cert.pem",
-          "keyFile" => "/data/certs/key.pem"
-        }
-      ]
-
-      # Add custom certificates if configured
-      if custom_cert_configured?
-        certs << {
-          "certFile" => "/data/certs/custom-cert.pem",
-          "keyFile" => "/data/certs/custom-key.pem"
-        }
-      end
-
-      config["tls"] = { "certificates" => certs }
-    end
-
     File.write(File.join(DYNAMIC_DIR, "rails.yml"), config.to_yaml)
+    write_tls_config
   end
 
   private
+
+  def write_tls_config
+    tls_path = File.join(DYNAMIC_DIR, "tls.yml")
+
+    if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+      certs = [ { "certFile" => "/data/certs/cert.pem", "keyFile" => "/data/certs/key.pem" } ]
+
+      if custom_cert_configured?
+        certs << { "certFile" => "/data/certs/custom-cert.pem", "keyFile" => "/data/certs/custom-key.pem" }
+      end
+
+      File.write(tls_path, { "tls" => { "certificates" => certs } }.to_yaml)
+    else
+      File.delete(tls_path) if File.exist?(tls_path)
+    end
+  end
 
   def custom_cert_configured?
     cert_path = File.join(DATA_DIR, "traefik", "certs", "custom-cert.pem")
