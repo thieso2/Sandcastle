@@ -3,9 +3,11 @@
   "checkpoint_id": "62502b73fabe",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
-    "app/views/pages/guide.html.erb"
+    "app/views/layouts/application.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/shared/_navbar.html.erb"
   ],
   "sessions": [
     {
@@ -14,13 +16,20 @@
       "context": "/62/502b73fabe/0/context.md",
       "content_hash": "/62/502b73fabe/0/content_hash.txt",
       "prompt": "/62/502b73fabe/0/prompt.txt"
+    },
+    {
+      "metadata": "/62/502b73fabe/1/metadata.json",
+      "transcript": "/62/502b73fabe/1/full.jsonl",
+      "context": "/62/502b73fabe/1/context.md",
+      "content_hash": "/62/502b73fabe/1/content_hash.txt",
+      "prompt": "/62/502b73fabe/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 11,
-    "cache_creation_tokens": 26856,
-    "cache_read_tokens": 251951,
-    "output_tokens": 512,
-    "api_call_count": 7
+    "input_tokens": 28,
+    "cache_creation_tokens": 71485,
+    "cache_read_tokens": 876007,
+    "output_tokens": 2582,
+    "api_call_count": 20
   }
 }
