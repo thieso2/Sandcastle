@@ -1,0 +1,19 @@
+sandcastle-web     | [a7a13ec0-6ec0-47cf-8207-270eda267267]   Rendered layout layouts/application.html.erb (Duration: 1.8ms | GC: 0.0ms)
+sandcastle-web     | [a7a13ec0-6ec0-47cf-8207-270eda267267] Completed 500 Internal Server Error in 7ms (ActiveRecord: 0.0ms (0 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [a7a13ec0-6ec0-47cf-8207-270eda267267]
+sandcastle-web     | [a7a13ec0-6ec0-47cf-8207-270eda267267] ActionView::SyntaxErrorInTemplate (Encountered a syntax error while rendering template located at: app/views/pages/guide.html.erb)
+sandcastle-web     | [a7a13ec0-6ec0-47cf-8207-270eda267267] Caused by: ActiveSupport::SyntaxErrorProxy (/rails/app/views/pages/guide.html.erb:185: syntax errors found
+sandcastle-web     |   183 |       shows all snapshots across all your sandboxes with clone-to-new-sandbox support.
+sandcastle-web     |   184 |     </p>
+sandcastle-web     | > 185 | ... rescue false
+sandcastle-web     |       |     ^~~~~~ unexpected 'rescue' modifier, ignoring it
+sandcastle-web     |       |     ^~~~~~ expected `then` or `;` or '\n'
+sandcastle-web     |   186 |  @output_buffer.safe_append='      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mt-3">
+sandcastle-web     |   187 |         <strong>Note:</strong> BTRFS not detected on this host. Only the container layer is snapshotted.
+sandcastle-web     | )
+sandcastle-web     | [a7a13ec0-6ec0-47cf-8207-270eda267267]
+sandcastle-web     | Information for: ActionView::SyntaxErrorInTemplate (Encountered a syntax error while rendering template located at: app/views/pages/guide.html.erb):
+
+---
+
+commit this and push
