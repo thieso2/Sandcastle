@@ -15,8 +15,9 @@ class TerminalManager
     user = sandbox.user
     container_name = wetty_container_name(sandbox)
 
-    # Idempotent: if WeTTY container already running, return URL
+    # Idempotent: if WeTTY container already running, ensure config exists and return
     if container_running?(container_name)
+      write_traefik_config(sandbox)
       return wetty_url(sandbox)
     end
 
@@ -70,9 +71,15 @@ class TerminalManager
     Rails.logger.error("TerminalManager: close failed for #{sandbox.full_name}: #{e.message}")
   end
 
-  # Returns true if the WeTTY container is running for this sandbox.
+  # Returns true if the WeTTY container is running AND its HTTP server is ready.
   def active?(sandbox:)
-    container_running?(wetty_container_name(sandbox))
+    container_name = wetty_container_name(sandbox)
+    return false unless container_running?(container_name)
+
+    TCPSocket.new(container_name, 3000).close
+    true
+  rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
+    false
   end
 
   # Removes orphaned WeTTY containers whose sandbox no longer exists or is not running.
