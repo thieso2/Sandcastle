@@ -1,0 +1,8 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+create a GH issut for snapshot management in the UI and cli. snapshots use btrfs and docker. we should also be able to snapshot and resture the data and home dir. snapshots can have names. teh data also allows for subdirs to be created and snapshtted individually. there should be a list of available snapshots (with sizes and delete funtion) i want to be able to snapshoz a bix and then create a new bx from that snapshot. research and design
+
