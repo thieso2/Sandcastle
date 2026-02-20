@@ -439,3 +439,11 @@ Read the output file to retrieve the result: REDACTED.output
 ---
 
 again!
+
+---
+
+lets add a mode in which we use mkcert to create certs instead oif letsencrypt - that should make thinkgs easier?
+
+---
+
+[Request interrupted by user for tool use]

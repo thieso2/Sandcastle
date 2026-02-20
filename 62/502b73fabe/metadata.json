@@ -3,15 +3,26 @@
   "checkpoint_id": "62502b73fabe",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 4,
   "files_touched": [
+    ".gitignore",
+    "app/assets/tailwind/application.css",
+    "app/models/sandbox.rb",
+    "app/services/route_manager.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/admin/invites/index.html.erb",
+    "app/views/layouts/admin.html.erb",
     "app/views/layouts/application.html.erb",
     "app/views/pages/guide.html.erb",
+    "app/views/registrations/new.html.erb",
     "app/views/shared/_navbar.html.erb",
+    "app/views/tailscale/_pending.html.erb",
+    "config/initializers/traefik.rb",
     "db/migrate/20260219000001_create_snapshots.rb",
     "db/migrate/20260219000002_create_snapshots.rb",
     "docker-compose.dev.yml",
-    "docker-compose.local.yml"
+    "docker-compose.local.yml",
+    "images/sandbox/Dockerfile"
   ],
   "sessions": [
     {
@@ -51,10 +62,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 127,
-    "cache_creation_tokens": 197811,
-    "cache_read_tokens": 7823895,
-    "output_tokens": 16227,
-    "api_call_count": 99
+    "input_tokens": 84,
+    "cache_creation_tokens": 310043,
+    "cache_read_tokens": 3469613,
+    "output_tokens": 4473,
+    "api_call_count": 62
   }
 }

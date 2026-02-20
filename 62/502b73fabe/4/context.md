@@ -175,3 +175,11 @@ Read the output file to retrieve the result: REDACTED.output
 
 again!
 
+### Prompt 32
+
+lets add a mode in which we use mkcert to create certs instead oif letsencrypt - that should make thinkgs easier?
+
+### Prompt 33
+
+[Request interrupted by user for tool use]
+
