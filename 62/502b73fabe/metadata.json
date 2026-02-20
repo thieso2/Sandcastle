@@ -19,17 +19,13 @@
     "app/views/registrations/new.html.erb",
     "app/views/shared/_navbar.html.erb",
     "app/views/tailscale/_pending.html.erb",
-    "config/initializers/active_record_encryption.rb",
     "config/initializers/traefik.rb",
     "config/routes.rb",
     "db/migrate/20260219000001_create_snapshots.rb",
     "db/migrate/20260219000002_create_snapshots.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
-    "docker-compose.yml",
-    "images/sandbox/Dockerfile",
-    "install-defaults",
-    "installer/installer.sh.in"
+    "images/sandbox/Dockerfile"
   ],
   "sessions": [
     {
@@ -90,10 +86,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 165,
-    "cache_creation_tokens": 399559,
-    "cache_read_tokens": 8930387,
-    "output_tokens": 11684,
-    "api_call_count": 129
+    "input_tokens": 187,
+    "cache_creation_tokens": 411313,
+    "cache_read_tokens": 10608132,
+    "output_tokens": 12368,
+    "api_call_count": 141
   }
 }

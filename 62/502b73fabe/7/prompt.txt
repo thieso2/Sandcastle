@@ -426,3 +426,35 @@ Read the output file to retrieve the result: REDACTED.output
 ---
 
 should the (primary_key, deterministic_key, key_derivation_salt) also be generated on install?
+
+---
+
+you are a Sowtfare Architect with Stregth in deligvering shippable web-appt to host yourself. How would you desing the install and upgrade process of sandcstle?
+
+---
+
+creaate a comprehensive GH issue for this.
+
+---
+
+add GH issue to add solid_errors
+
+---
+
+user crome to create a new sandcastle
+
+---
+
+try again
+
+---
+
+connect the chrome extension and try again
+
+---
+
+it's connected now, try again
+
+---
+
+okay - lets do it without chrome.
