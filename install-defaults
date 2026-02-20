@@ -64,11 +64,12 @@ DB_USER="sandcastle"
 DB_NAME="sandcastle_production"
 # DB_PASSWORD is auto-generated during install
 
-# Rails master key — used to decrypt config/credentials.yml.enc (which holds
-# the ActiveRecord Encryption keys for encrypted settings). Auto-generated on
-# first install and preserved across reinstalls in data/rails/.secrets.
-# Back this up — losing it makes all encrypted DB values unrecoverable.
-# RAILS_MASTER_KEY is auto-generated during install
+# ActiveRecord Encryption keys — unique per installation, used to encrypt
+# sensitive settings (SMTP password, OAuth secrets) stored in the database.
+# Auto-generated on first install and preserved across reinstalls in
+# data/rails/.secrets. Back them up — losing them makes encrypted values unrecoverable.
+# AR_ENCRYPTION_PRIMARY_KEY, AR_ENCRYPTION_DETERMINISTIC_KEY, AR_ENCRYPTION_KEY_DERIVATION_SALT
+# are auto-generated during install
 
 # ─── OAuth (optional — enables "Sign in with …" buttons) ──────────────────
 # Create a GitHub OAuth App: Settings → Developer settings → OAuth Apps

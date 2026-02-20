@@ -1,7 +1,10 @@
-Rails.application.config.after_initialize do
-  ActiveRecord::Encryption.configure(
-    primary_key: ENV.fetch("ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY") { Rails.application.secret_key_base[0..31] },
-    deterministic_key: ENV.fetch("ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY") { Rails.application.secret_key_base[32..63] },
-    key_derivation_salt: ENV.fetch("ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT") { Rails.application.secret_key_base[64..95] }
-  )
+# Configure ActiveRecord Encryption from environment variables.
+# Keys are generated once per installation by the installer and stored
+# in $SANDCASTLE_HOME/.env, ensuring each deployment has unique keys.
+if ENV["AR_ENCRYPTION_PRIMARY_KEY"].present?
+  ActiveRecord::Encryption.configure do |config|
+    config.primary_key         = ENV["AR_ENCRYPTION_PRIMARY_KEY"]
+    config.deterministic_key   = ENV["AR_ENCRYPTION_DETERMINISTIC_KEY"]
+    config.key_derivation_salt = ENV["AR_ENCRYPTION_KEY_DERIVATION_SALT"]
+  end
 end

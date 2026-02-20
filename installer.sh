@@ -888,20 +888,27 @@ DYEOF
       wrote "$POSTGRES_SECRETS_FILE"
     fi
 
-    # Preserve RAILS_MASTER_KEY across reinstalls — required to decrypt
-    # config/credentials.yml.enc (which holds the AR encryption keys).
+    # Preserve AR encryption keys across reinstalls — required to decrypt
+    # encrypted settings (SMTP password, OAuth secrets) stored in the database.
+    # Each install gets unique keys; losing them makes encrypted values unrecoverable.
     RAILS_SECRETS_FILE="$SANDCASTLE_HOME/data/rails/.secrets"
     if [ -f "$RAILS_SECRETS_FILE" ]; then
       # shellcheck source=/dev/null
       source "$RAILS_SECRETS_FILE"
-      info "Reusing existing Rails master key"
+      info "Reusing existing AR encryption keys"
     else
       mkdir -p "$SANDCASTLE_HOME/data/rails"
-      RAILS_MASTER_KEY=$(openssl rand -hex 16)
-      echo "RAILS_MASTER_KEY=$RAILS_MASTER_KEY" > "$RAILS_SECRETS_FILE"
+      AR_ENCRYPTION_PRIMARY_KEY=$(openssl rand -hex 16)
+      AR_ENCRYPTION_DETERMINISTIC_KEY=$(openssl rand -hex 16)
+      AR_ENCRYPTION_KEY_DERIVATION_SALT=$(openssl rand -hex 16)
+      cat > "$RAILS_SECRETS_FILE" <<SECRETS
+AR_ENCRYPTION_PRIMARY_KEY=$AR_ENCRYPTION_PRIMARY_KEY
+AR_ENCRYPTION_DETERMINISTIC_KEY=$AR_ENCRYPTION_DETERMINISTIC_KEY
+AR_ENCRYPTION_KEY_DERIVATION_SALT=$AR_ENCRYPTION_KEY_DERIVATION_SALT
+SECRETS
       chmod 600 "$RAILS_SECRETS_FILE"
       wrote "$RAILS_SECRETS_FILE"
-      warn "RAILS_MASTER_KEY generated. Back it up — losing it makes encrypted settings unrecoverable."
+      warn "AR encryption keys generated. Back them up — losing them makes encrypted settings unrecoverable."
     fi
 
     cat > "$SANDCASTLE_HOME/.env" <<EOF
@@ -913,8 +920,10 @@ SANDCASTLE_USER="${SANDCASTLE_USER}"
 SANDCASTLE_GROUP="${SANDCASTLE_GROUP}"
 SANDCASTLE_UID="${SANDCASTLE_UID}"
 SANDCASTLE_GID="${SANDCASTLE_GID}"
-RAILS_MASTER_KEY="${RAILS_MASTER_KEY}"
 SECRET_KEY_BASE="${SECRET_KEY_BASE}"
+AR_ENCRYPTION_PRIMARY_KEY="${AR_ENCRYPTION_PRIMARY_KEY}"
+AR_ENCRYPTION_DETERMINISTIC_KEY="${AR_ENCRYPTION_DETERMINISTIC_KEY}"
+AR_ENCRYPTION_KEY_DERIVATION_SALT="${AR_ENCRYPTION_KEY_DERIVATION_SALT}"
 DB_PASSWORD="${DB_PASSWORD}"
 SANDCASTLE_ADMIN_USER="${SANDCASTLE_ADMIN_USER}"
 SANDCASTLE_ADMIN_EMAIL="${SANDCASTLE_ADMIN_EMAIL}"
