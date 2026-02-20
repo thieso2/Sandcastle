@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "62502b73fabe",
+  "session_id": "f8835f3f-5ae2-4b89-8578-19e36aa94a94",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-20T17:54:20.610252Z",
+  "branch": "main",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "app/controllers/terminal_controller.rb",
+    "app/controllers/vnc_controller.rb",
+    "app/jobs/terminal_open_job.rb",
+    "app/jobs/vnc_open_job.rb",
+    "app/services/terminal_manager.rb",
+    "app/services/vnc_manager.rb",
+    "app/views/terminal/wait.html.erb",
+    "app/views/vnc/wait.html.erb",
+    "docker-compose.yml"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "7f83397c-4df5-4fef-bb42-7d86df16f75d",
+  "token_usage": {
+    "input_tokens": 97,
+    "cache_creation_tokens": 150531,
+    "cache_read_tokens": 8942682,
+    "output_tokens": 12561,
+    "api_call_count": 75
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-20T17:54:20.535371Z",
+    "agent_lines": 82,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 82,
+    "agent_percentage": 100
+  }
+}

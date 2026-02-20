@@ -1,0 +1,65 @@
+monitor teh live logsfile on sandman using ssh sandman "/sandcastle/docker-runtime/bin/docker-logs"
+tell me when youre watchin
+then:
+i will create a sandcastle adn open wetty and vnc - both will have a 2sec delay that i want fixed!
+
+---
+
+<task-notification>
+<task-id>b62c362</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "SSH into sandman and tail live docker logs" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>b8e2721</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Restart live log monitoring on sandman" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+i expect the waiting page to be avain immediately!
+
+---
+
+restart the web container
+
+---
+
+the waiting page still has a delay! monitor the log again!
+
+---
+
+done, open wetty now
+
+---
+
+sandcastle-web     | [7f731e1c-d917-4370-ad89-bedc9916ed64] Started POST "/sandboxes/26/terminal" for 10.89.1.1 at 2026-02-20 17:44:12 +0000
+sandcastle-web     | [7f731e1c-d917-4370-ad89-bedc9916ed64] Processing by TerminalController#open as HTML
+sandcastle-web     | [7f731e1c-d917-4370-ad89-bedc9916ed64]   Parameters: {"id" => "26"}
+sandcastle-web     | [7f731e1c-d917-4370-ad89-bedc9916ed64] Redirected to https://hq.sandcastle.rocks/sandboxes/26/terminal/wait
+sandcastle-web     | [7f731e1c-d917-4370-ad89-bedc9916ed64] Completed 303 See Other in 942ms (ActiveRecord: 0.4ms (4 queries, 1 cached) | GC: 2.2ms)
+sandcastle-web     | {"time":"2026-02-20T17:44:13.01652949Z","level":"INFO","msg":"Request","path":"/sandboxes/26/terminal","status":303,"dur":943,"method":"POST","req_content_length":0,"req_content_type":"application/x-www-form-urlencoded","resp_content_length":0,"resp_content_type":"text/html; charset=utf-8","remote_addr":"10.89.1.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36","cache":"bypass","query":"","proto":"HTTP/1.1"}
+
+Completed 303 See Other in 942ms?!?!?
+
+---
+
+restart the web container
+
+---
+
+https://hq.sandcastle.rocks/terminal/28/wetty -> 404 debug!
+
+---
+
+commit and push
