@@ -23,44 +23,12 @@ services:
     image: busybox
     volumes:
       - traefik-data:/data
-      - ./.cert:/certs:ro
     command:
       - sh
       - -c
       - |
         mkdir -p /data/dynamic /data/certs
         chown -R 220568:220568 /data
-
-        # Copy certificates
-        cp /certs/cert.pem /data/certs/
-        cp /certs/key.pem /data/certs/
-
-        cat > /data/dynamic/rails.yml << 'EOFCONFIG'
-        http:
-          routers:
-            rails-http:
-              rule: "Host(`sandcastle.tc`)"
-              service: rails
-              entryPoints:
-                - web
-            rails-https:
-              rule: "Host(`sandcastle.tc`)"
-              service: rails
-              entryPoints:
-                - websecure
-              tls: {}
-          services:
-            rails:
-              loadBalancer:
-                servers:
-                  - url: "http://sandcastle-web:80"
-                passHostHeader: true
-
-        tls:
-          certificates:
-            - certFile: /data/certs/cert.pem
-              keyFile: /data/certs/key.pem
-        EOFCONFIG
 
   postgres:
     image: postgres:18
@@ -107,10 +75,10 @@ services:
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: sandcastle.tc
+      SANDCASTLE_HOST: dev.sand
       SANDCASTLE_DATA_DIR: /data
-      SANDCASTLE_TLS_MODE: selfsigned
-      SANDCASTLE_TERMINAL_URL: https://sandcastle.tc:8443
+      SANDCASTLE_TLS_MODE: mkcert
+      SANDCASTLE_TERMINAL_URL: https://dev.sand:8443
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
@@ -144,9 +112,9 @@ services:
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: sandcastle.tc
+      SANDCASTLE_HOST: dev.sand
       SANDCASTLE_DATA_DIR: /data
-      SANDCASTLE_TLS_MODE: selfsigned
+      SANDCASTLE_TLS_MODE: mkcert
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}

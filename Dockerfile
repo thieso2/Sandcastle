@@ -133,6 +133,13 @@ RUN groupadd --system --gid 220568 sandcastle && \
     usermod -aG docker sandcastle && \
     printf 'sandcastle ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume *\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chown\n' > /etc/sudoers.d/sandcastle && \
     chmod 0440 /etc/sudoers.d/sandcastle
+
+# Install mkcert for automatic cert generation in mkcert TLS mode
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
+    curl -fsSL "https://dl.filippo.io/mkcert/latest?for=linux/${ARCH}" \
+         -o /usr/local/bin/mkcert && \
+    chmod +x /usr/local/bin/mkcert
+
 USER 220568:220568
 
 # Copy built artifacts: gems, application

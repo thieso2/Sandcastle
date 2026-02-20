@@ -31,7 +31,11 @@ SANDCASTLE_GID="220568"
 # Host IP or domain name (auto-detected by gen-env)
 # SANDCASTLE_HOST="sandbox.example.com"
 
-# TLS mode: "letsencrypt" or "selfsigned"
+# TLS mode: "letsencrypt", "selfsigned", or "mkcert"
+#   letsencrypt - automatic cert via ACME (requires public domain + ACME_EMAIL)
+#   selfsigned  - self-signed cert via openssl (browser shows warning)
+#   mkcert      - locally-trusted cert via mkcert (install CA on client machines
+#                 for browser trust; ideal for private networks / homelabs)
 SANDCASTLE_TLS_MODE="selfsigned"
 
 # Email for Let's Encrypt (required when TLS mode is letsencrypt)

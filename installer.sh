@@ -385,6 +385,25 @@ find_free_subnet() {
   echo "172.30.99.0/24"
 }
 
+install_mkcert() {
+  if command -v mkcert &>/dev/null; then
+    return 0
+  fi
+  info "Installing mkcert..."
+  local arch
+  arch=$(uname -m)
+  local mkcert_arch
+  case "$arch" in
+    x86_64)  mkcert_arch="amd64" ;;
+    aarch64) mkcert_arch="arm64" ;;
+    *)       die "Unsupported architecture for mkcert: $arch" ;;
+  esac
+  curl -fsSL "https://dl.filippo.io/mkcert/latest?for=linux/${mkcert_arch}" \
+    -o /usr/local/bin/mkcert
+  chmod +x /usr/local/bin/mkcert
+  ok "mkcert installed"
+}
+
 # ═══ write_compose ══════════════════════════════════════════════════════════
 
 write_helper_scripts() {
@@ -997,6 +1016,53 @@ api:
   dashboard: false
 TEOF
 
+  elif [ "$SANDCASTLE_TLS_MODE" = "mkcert" ]; then
+    install_mkcert
+    local caroot="$SANDCASTLE_HOME/data/traefik/certs"
+    CAROOT="$caroot" mkcert -install 2>/dev/null || true
+    if [ ! -f "$TRAEFIK_DIR/certs/cert.pem" ]; then
+      info "Generating mkcert certificate for $SANDCASTLE_HOST..."
+      CAROOT="$caroot" mkcert \
+        -cert-file "$TRAEFIK_DIR/certs/cert.pem" \
+        -key-file  "$TRAEFIK_DIR/certs/key.pem" \
+        "$SANDCASTLE_HOST" "*.${SANDCASTLE_HOST}" localhost 127.0.0.1 ::1
+      ok "mkcert certificate generated"
+    fi
+    cp "$caroot/rootCA.pem" "$TRAEFIK_DIR/certs/rootCA.pem" 2>/dev/null || true
+    info "mkcert CA root: $caroot/rootCA.pem"
+    info "Install on client machines to trust this server's certificate:"
+    info "  macOS: sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain rootCA.pem"
+    info "  Linux: sudo cp rootCA.pem /usr/local/share/ca-certificates/sandcastle.crt && sudo update-ca-certificates"
+
+    cat > "$TRAEFIK_DIR/traefik.yml" <<'TEOF'
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+providers:
+  file:
+    directory: /data/dynamic
+    watch: true
+
+tls:
+  certificates:
+    - certFile: /data/certs/cert.pem
+      keyFile: /data/certs/key.pem
+
+log:
+  level: INFO
+
+api:
+  dashboard: false
+TEOF
+
   else
     cat > "$TRAEFIK_DIR/traefik.yml" <<TEOF
 entryPoints:
@@ -1037,7 +1103,7 @@ TEOF
     chmod 600 "$TRAEFIK_DIR/acme.json"
   fi
 
-  if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
+  if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ] || [ "$SANDCASTLE_TLS_MODE" = "mkcert" ]; then
     cat > "$TRAEFIK_DIR/dynamic/rails.yml" <<TEOF
 http:
   routers:
@@ -1164,6 +1230,8 @@ INITDB
 
   if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
     echo -e "  Dashboard:  ${BLUE}${base_url}${NC} (self-signed cert)"
+  elif [ "$SANDCASTLE_TLS_MODE" = "mkcert" ]; then
+    echo -e "  Dashboard:  ${BLUE}${base_url}${NC} (mkcert cert — install rootCA.pem on clients)"
   else
     echo -e "  Dashboard:  ${BLUE}${base_url}${NC}"
   fi
