@@ -400,3 +400,29 @@ revert
 ---
 
 we shoudl use local rails credentials for the enckeys and create and store the RAILS_MASTER_KEY during deploy.
+
+---
+
+<task-notification>
+<task-id>b6b559f</task-id>
+<tool-use-id>toolu_01PwMajvG47n9G45vPyMwQJT</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Monitor live logs on sandman" failed with exit code 255</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>b6e8b2c</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Resume live log monitoring on sandman" failed with exit code 255</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+should the (primary_key, deterministic_key, key_derivation_salt) also be generated on install?

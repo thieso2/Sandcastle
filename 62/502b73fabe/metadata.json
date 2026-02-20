@@ -19,6 +19,7 @@
     "app/views/registrations/new.html.erb",
     "app/views/shared/_navbar.html.erb",
     "app/views/tailscale/_pending.html.erb",
+    "config/initializers/active_record_encryption.rb",
     "config/initializers/traefik.rb",
     "config/routes.rb",
     "db/migrate/20260219000001_create_snapshots.rb",
@@ -89,10 +90,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 196,
-    "cache_creation_tokens": 442823,
-    "cache_read_tokens": 10709906,
-    "output_tokens": 11286,
-    "api_call_count": 157
+    "input_tokens": 165,
+    "cache_creation_tokens": 399559,
+    "cache_read_tokens": 8930387,
+    "output_tokens": 11684,
+    "api_call_count": 129
   }
 }
