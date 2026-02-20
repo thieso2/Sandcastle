@@ -67,3 +67,37 @@ https://hq.sandcastle.rocks/terminal/28/wetty -> 404 debug!
 
 commit and push
 
+### Prompt 12
+
+can you live patch sandman?
+
+### Prompt 13
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. User asked to monitor live logs on sandman via `ssh sandman "/sandcastle/docker-runtime/bin/docker-logs"` and then create a sandbox and open WeTTY and VNC to identify a 2-second delay.
+
+2. I started log monitoring in background, then read the output file which showed terminal/VNC ope...
+
+### Prompt 14
+
+sandcastle-web     | [43a6bda5-d5fd-448c-bba5-a7b634a3a6f5] Started GET "/admin/settings/edit" for 10.89.1.1 at 2026-02-20 17:58:04 +0000
+sandcastle-web     | [43a6bda5-d5fd-448c-bba5-a7b634a3a6f5] Processing by Admin::SettingsController#edit as HTML
+sandcastle-web     | [43a6bda5-d5fd-448c-bba5-a7b634a3a6f5]   Rendered layout layouts/admin.html.erb (Duration: 9.7ms | GC: 0.0ms)
+sandcastle-web     | [43a6bda5-d5fd-448c-bba5-a7b634a3a6f5] Completed 500 Internal Server Error in 12ms (ActiveRecord:...
+
+### Prompt 15
+
+[Request interrupted by user for tool use]
+
+### Prompt 16
+
+revert
+
+### Prompt 17
+
+we shoudl use local rails credentials for the enckeys and create and store the RAILS_MASTER_KEY during deploy.
+

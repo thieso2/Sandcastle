@@ -3,20 +3,15 @@
   "checkpoint_id": "62502b73fabe",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 11,
+  "checkpoints_count": 7,
   "files_touched": [
     ".gitignore",
     "app/assets/tailwind/application.css",
     "app/controllers/tailscale_controller.rb",
-    "app/controllers/terminal_controller.rb",
-    "app/controllers/vnc_controller.rb",
-    "app/jobs/terminal_open_job.rb",
-    "app/jobs/vnc_open_job.rb",
     "app/models/sandbox.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
     "app/services/terminal_manager.rb",
-    "app/services/vnc_manager.rb",
     "app/views/admin/invites/index.html.erb",
     "app/views/layouts/admin.html.erb",
     "app/views/layouts/application.html.erb",
@@ -24,8 +19,6 @@
     "app/views/registrations/new.html.erb",
     "app/views/shared/_navbar.html.erb",
     "app/views/tailscale/_pending.html.erb",
-    "app/views/terminal/wait.html.erb",
-    "app/views/vnc/wait.html.erb",
     "config/initializers/traefik.rb",
     "config/routes.rb",
     "db/migrate/20260219000001_create_snapshots.rb",
@@ -33,7 +26,9 @@
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "docker-compose.yml",
-    "images/sandbox/Dockerfile"
+    "images/sandbox/Dockerfile",
+    "install-defaults",
+    "installer/installer.sh.in"
   ],
   "sessions": [
     {
@@ -94,10 +89,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 235,
-    "cache_creation_tokens": 538386,
-    "cache_read_tokens": 15910514,
-    "output_tokens": 20711,
-    "api_call_count": 183
+    "input_tokens": 196,
+    "cache_creation_tokens": 442823,
+    "cache_read_tokens": 10709906,
+    "output_tokens": 11286,
+    "api_call_count": 157
   }
 }
