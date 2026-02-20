@@ -1,0 +1,224 @@
+Implement the following plan:
+
+# Plan: Add `mkcert` TLS Mode
+
+## Context
+
+Currently Sandcastle has two TLS modes:
+- **`selfsigned`** — `openssl` generates a self-signed cert. Traefik serves it from `/data/certs/cert.pem`. Browser always shows an "untrusted" warning.
+- **`letsencrypt`** — ACME via Let's Encrypt. Requires a public domain and ACME email. Not usable on private networks.
+
+There's a gap: users on private networks or homelabs who want browser-trusted HTTPS without a public domain. **mkcert** fills this gap — it creates a local CA, signs certs with it, and if the CA is installed on client machines, the browser trusts the cert with no warnings. The cert format is identical to selfsigned (PEM files), so Traefik config doesn't change.
+
+The user has been doing this manually (running mkcert on dev machine, copying certs into compose files). The goal is to make `mkcert` a first-class installer mode.
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `installer/installer.sh.in` | Add mkcert install + cert generation branch |
+| `install-defaults` | Document new `mkcert` TLS mode option |
+| `app/services/route_manager.rb` | Treat `mkcert` same as `selfsigned` |
+| `installer.sh` | Regenerate from `.in` file |
+
+## Implementation
+
+### 1. `install-defaults`
+
+Add `mkcert` to the TLS mode docs:
+
+```bash
+# TLS mode: "letsencrypt", "selfsigned", or "mkcert"
+#   letsencrypt - automatic cert via ACME (requires public domain + ACME_EMAIL)
+#   selfsigned  - self-signed cert via openssl (browser shows warning)
+#   mkcert      - locally-trusted cert via mkcert (install CA on client machines
+#                 for browser trust; ideal for private networks / homelabs)
+SANDCASTLE_TLS_MODE="selfsigned"
+```
+
+### 2. `installer/installer.sh.in`
+
+**Add `install_mkcert` helper** (near other install helpers):
+
+```bash
+install_mkcert() {
+  if command -v mkcert &>/dev/null; then
+    return 0
+  fi
+  info "Installing mkcert..."
+  ARCH=$(uname -m)
+  case "$ARCH" in
+    x86_64)  MKCERT_ARCH="amd64" ;;
+    aarch64) MKCERT_ARCH="arm64" ;;
+    *)       die "Unsupported architecture for mkcert: $ARCH" ;;
+  esac
+  curl -fsSL "https://dl.filippo.io/mkcert/latest?for=linux/${MKCERT_ARCH}" \
+    -o /usr/local/bin/mkcert
+  chmod +x /usr/local/bin/mkcert
+}
+```
+
+**Add `mkcert` branch to cert generation** (currently at the `if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]` block, around line 817):
+
+```bash
+if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
+  if [ ! -f "$TRAEFIK_DIR/certs/cert.pem" ]; then
+    info "Generating self-signed certificate for $SANDCASTLE_HOST..."
+    openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+      -keyout "$TRAEFIK_DIR/certs/key.pem" \
+      -out "$TRAEFIK_DIR/certs/cert.pem" \
+      -subj "/CN=$SANDCASTLE_HOST" \
+      -addext "subjectAltName=IP:$SANDCASTLE_HOST" 2>/dev/null
+  fi
+elif [ "$SANDCASTLE_TLS_MODE" = "mkcert" ]; then
+  install_mkcert
+  # Create CA and generate cert (idempotent)
+  CAROOT="$SANDCASTLE_HOME/data/traefik/certs"
+  CAROOT="$CAROOT" mkcert -install 2>/dev/null || true
+  if [ ! -f "$TRAEFIK_DIR/certs/cert.pem" ]; then
+    info "Generating mkcert certificate for $SANDCASTLE_HOST..."
+    CAROOT="$SANDCASTLE_HOME/data/traefik/certs" \
+      mkcert \
+        -cert-file "$TRAEFIK_DIR/certs/cert.pem" \
+        -key-file  "$TRAEFIK_DIR/certs/key.pem" \
+        "$SANDCASTLE_HOST" "*.${SANDCASTLE_HOST}" localhost 127.0.0.1 ::1
+  fi
+  # Copy CA cert to a well-known location for client distribution
+  cp "$SANDCASTLE_HOME/data/traefik/certs/rootCA.pem" \
+     "$TRAEFIK_DIR/certs/rootCA.pem" 2>/dev/null || true
+  info "mkcert CA root: $SANDCASTLE_HOME/data/traefik/certs/rootCA.pem"
+  info "Install on client machines to trust this server's certificate:"
+  info "  macOS:   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain rootCA.pem"
+  info "  Linux:   sudo cp rootCA.pem /usr/local/share/ca-certificates/sandcastle.crt && sudo update-ca-certificates"
+fi
+```
+
+**Key design decisions:**
+- Use `CAROOT` env var to store the CA inside `$SANDCASTLE_HOME` (persistent across reinstalls, not in `/root/.local/share/mkcert` which could be wiped)
+- Cert generation is idempotent (skipped if cert already exists)
+- Traefik static config for `mkcert` is **identical to `selfsigned`** (both use file-based certs at `/data/certs/cert.pem`) — no new `traefik.yml` section needed
+- `rootCA.pem` is saved to `$TRAEFIK_DIR/certs/` so it's accessible via the Traefik certs volume
+
+**Update the Traefik static config generation block** to include `mkcert` alongside `selfsigned`:
+
+```bash
+if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ] || [ "$SANDCASTLE_TLS_MODE" = "mkcert" ]; then
+  # ... existing selfsigned traefik.yml heredoc ...
+fi
+```
+
+Same for the dynamic `rails.yml` initial write.
+
+### 3. `app/services/route_manager.rb`
+
+`mkcert` certs are file-based just like `selfsigned` — treat them identically:
+
+```ruby
+# write_tls_config
+SELFSIGNED_MODES = %w[selfsigned mkcert].freeze
+
+def write_tls_config
+  tls_path = File.join(DYNAMIC_DIR, "tls.yml")
+  if SELFSIGNED_MODES.include?(ENV["SANDCASTLE_TLS_MODE"])
+    cert_dir = ENV.fetch("SANDCASTLE_TLS_CERT_DIR", "/data/certs")
+    certs = [ { "certFile" => "#{cert_dir}/cert.pem", "keyFile" => "#{cert_dir}/key.pem" } ]
+    if custom_cert_configured?
+      certs << { "certFile" => "/data/certs/custom-cert.pem", "keyFile" => "/data/certs/custom-key.pem" }
+    end
+    File.write(tls_path, { "tls" => { "certificates" => certs } }.to_yaml)
+  else
+    File.delete(tls_path) if File.exist?(tls_path)
+  end
+end
+
+# tls_config (for sandbox routes)
+def tls_config
+  if SELFSIGNED_MODES.include?(ENV["SANDCASTLE_TLS_MODE"])
+    {}
+  else
+    { "certResolver" => "letsencrypt" }
+  end
+end
+```
+
+### 4. Regenerate `installer.sh`
+
+```bash
+bash installer/build.sh
+```
+
+`build.sh` processes `installer.sh.in` line by line, inlining any `@@TEMPLATE:filename@@` markers, and writes the result to `installer.sh`.
+
+## Verification
+
+1. Set `SANDCASTLE_TLS_MODE=mkcert` in test env
+2. Run installer — verify mkcert is installed, cert is generated at `$TRAEFIK_DIR/certs/cert.pem`
+3. Confirm `rootCA.pem` is present alongside the cert
+4. Confirm Traefik loads the cert without errors
+5. On a client machine: copy `rootCA.pem`, install it, navigate to the site — should show trusted HTTPS
+6. Test that `RouteManager` writes correct `tls.yml` when `SANDCASTLE_TLS_MODE=mkcert`
+7. Verify `selfsigned` and `letsencrypt` modes still work unchanged
+
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+how to use serfsigend mode with deploy:local
+
+---
+
+in letsencrypt mode i do not need to provide any certs - tez app provided te hostname(s) and treafik with letsencrypt does the rest. in selfsigned mode the app should provide the hostname  _and_ a selfsiged cert to traefik.
+
+---
+
+route_manager.rb — auto-generate the cert via mkcert!
+
+---
+
+One thing to be aware of: mkcert must be present in the Rails container for this to work in deploy:local. In production the installer already runs mkcert on the host
+  before the containers start, so the cert exists and the Rails code takes the early return — mkcert in the container is never called.
+
+---
+
+what is the full config for the deploy:local container?
+
+---
+
+what is the full config for the deploy:local container?  what hostname etc
+
+---
+
+lets change name from sandcastle.tc to dev.sand
+
+---
+
+~/Projects/GitHub/Sandcastle [main] % curl -v https://dev.sand:8443/session/new
+* Host dev.sand:8443 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:8443...
+* Connected to dev.sand (::1) port 8443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+*  CAfile: /etc/ssl/cert.pem
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+* (304) (IN), TLS handshake, Unknown (8):
+* (304) (IN), TLS handshake, Certificate (11):
+* SSL certificate problem: unable to get local issuer certificate
+* Closing connection
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+More details here: https://curl.se/docs/sslcerts.html
+
+curl failed to verify the legitimacy of the server and therefore could not
+establish a secure connection to it. To learn more about this situation and
+how to fix it, please visit the web page mentioned above.
+
+
+debug this fix it and iterate till curl works without waring
+
+---
+
+commit this
