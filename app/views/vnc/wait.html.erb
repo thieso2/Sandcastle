@@ -32,13 +32,12 @@
   (function() {
     var statusUrl = "<%= vnc_status_sandbox_path(@sandbox) %>";
     var vncUrl = <%= raw @vnc_url.to_json %>;
-    var elapsed = 0;
-    var timeout = 30;
+    var startTime = Date.now();
+    var TIMEOUT_MS = 30000;
+    var poll;
 
-    var poll = setInterval(function() {
-      elapsed++;
-
-      if (elapsed > timeout) {
+    function check() {
+      if (Date.now() - startTime > TIMEOUT_MS) {
         clearInterval(poll);
         document.getElementById("connecting").classList.add("hidden");
         document.getElementById("timeout-error").classList.remove("hidden");
@@ -54,6 +53,9 @@
           }
         })
         .catch(function() {});
-    }, 1000);
+    }
+
+    check();
+    poll = setInterval(check, 250);
   })();
 </script>

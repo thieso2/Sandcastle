@@ -121,6 +121,10 @@ class TerminalManager
     Rails.logger.error("TerminalManager: orphan cleanup failed: #{e.message}")
   end
 
+  def prepare_traefik_config(sandbox)
+    write_traefik_config(sandbox)
+  end
+
   private
 
   def wetty_container_name(sandbox)
@@ -263,6 +267,8 @@ class TerminalManager
 
   def write_traefik_config(sandbox)
     FileUtils.mkdir_p(DYNAMIC_DIR)
+    config_path = File.join(DYNAMIC_DIR, "terminal-#{sandbox.id}.yml")
+    return if File.exist?(config_path)
 
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
     id = sandbox.id
@@ -304,7 +310,7 @@ class TerminalManager
       }
     }
 
-    File.write(File.join(DYNAMIC_DIR, "terminal-#{id}.yml"), config.to_yaml)
+    File.write(config_path, config.to_yaml)
   end
 
   def tls_config

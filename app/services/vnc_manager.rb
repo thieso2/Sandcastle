@@ -96,6 +96,10 @@ class VncManager
     Rails.logger.error("VncManager: orphan cleanup failed: #{e.message}")
   end
 
+  def prepare_traefik_config(sandbox)
+    write_traefik_config(sandbox)
+  end
+
   private
 
   def vnc_container_name(sandbox)
@@ -188,6 +192,8 @@ class VncManager
 
   def write_traefik_config(sandbox)
     FileUtils.mkdir_p(DYNAMIC_DIR)
+    config_path = File.join(DYNAMIC_DIR, "vnc-#{sandbox.id}.yml")
+    return if File.exist?(config_path)
 
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
     id = sandbox.id
@@ -240,7 +246,7 @@ class VncManager
       }
     }
 
-    File.write(File.join(DYNAMIC_DIR, "vnc-#{id}.yml"), config.to_yaml)
+    File.write(config_path, config.to_yaml)
   end
 
   def tls_config

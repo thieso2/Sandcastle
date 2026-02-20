@@ -5,8 +5,20 @@ class VncController < ApplicationController
 
   def open
     sandbox = find_sandbox
+    manager = VncManager.new
 
-    VncManager.new.open(sandbox: sandbox)
+    # Already up? Skip the wait page entirely.
+    if manager.active?(sandbox: sandbox)
+      redirect_to vnc_redirect_url("/vnc/#{sandbox.id}/vnc.html?path=vnc/#{sandbox.id}/websockify&autoconnect=true"), allow_other_host: true, status: :see_other
+      return
+    end
+
+    # Write Traefik config now (web container has correct SANDCASTLE_HOST).
+    # The job runs in the worker which may lack this env var.
+    manager.prepare_traefik_config(sandbox)
+
+    # Kick off container setup in background and return immediately.
+    VncOpenJob.perform_later(sandbox_id: sandbox.id)
     redirect_to vnc_wait_sandbox_path(sandbox), status: :see_other
   rescue VncManager::Error => e
     redirect_to root_path, alert: e.message
@@ -20,6 +32,7 @@ class VncController < ApplicationController
 
   def status
     sandbox = find_sandbox
+    response.headers["Cache-Control"] = "no-store"
     ready = VncManager.new.active?(sandbox: sandbox)
     render json: { status: ready ? "ready" : "waiting" }
   end
