@@ -43,6 +43,7 @@ services:
       - /data:/data
     environment:
       RAILS_ENV: production
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       SANDCASTLE_HOST: ${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: /data
@@ -75,6 +76,7 @@ services:
       - /data:/data
     environment:
       RAILS_ENV: production
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       SANDCASTLE_HOST: ${SANDCASTLE_HOST}
       SANDCASTLE_DATA_DIR: /data
@@ -95,6 +97,7 @@ services:
     command: ["./bin/rails", "db:prepare"]
     environment:
       RAILS_ENV: production
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
       DB_HOST: postgres
       DB_USER: sandcastle
