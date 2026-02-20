@@ -222,3 +222,11 @@ debug this fix it and iterate till curl works without waring
 ---
 
 commit this
+
+---
+
+when tailscale is connected -> return to dashboard with a flash saying that tailscale is now connected!
+
+---
+
+commit this

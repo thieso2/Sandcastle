@@ -66,3 +66,11 @@ lets change name from sandcastle.tc to dev.sand
 
 commit this
 
+### Prompt 11
+
+when tailscale is connected -> return to dashboard with a flash saying that tailscale is now connected!
+
+### Prompt 12
+
+commit this
+
