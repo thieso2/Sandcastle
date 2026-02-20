@@ -173,12 +173,11 @@ class TerminalManager
 
   def generate_keypair(sandbox)
     key_dir = key_dir_path(sandbox)
+    # Remove entire dir to avoid stale keys with bad permissions from prior sessions
+    FileUtils.rm_rf(key_dir)
     FileUtils.mkdir_p(key_dir, mode: 0o700)
 
     key_path = File.join(key_dir, "key")
-    # Remove old keys if they exist
-    FileUtils.rm_f(key_path)
-    FileUtils.rm_f("#{key_path}.pub")
 
     system("ssh-keygen", "-t", "ed25519", "-f", key_path, "-N", "", "-q", "-C", "wetty-#{sandbox.full_name}",
       exception: true)
