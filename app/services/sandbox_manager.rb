@@ -82,6 +82,8 @@ class SandboxManager
 
   # Public method for job usage
   def ensure_image(image)
+    Docker::Image.get(image)
+  rescue Docker::Error::NotFoundError
     Docker::Image.create("fromImage" => image)
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to pull image #{image}: #{e.message}"
