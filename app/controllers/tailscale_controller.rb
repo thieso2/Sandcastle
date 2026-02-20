@@ -19,6 +19,11 @@ class TailscaleController < ApplicationController
     redirect_to tailscale_path, status: :see_other
   end
 
+  def connected
+    flash[:notice] = "Tailscale is now connected!"
+    redirect_to root_path
+  end
+
   def login_status
     result = TailscaleManager.new.check_login(user: Current.user)
     render json: result

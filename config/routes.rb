@@ -60,6 +60,7 @@ Rails.application.routes.draw do
     get :show
     post :login
     get :login_status
+    get :connected
     patch :update_settings
     delete :disable
   end

@@ -97,7 +97,7 @@
         setStepDone("step-url");
         setStepDone("step-auth");
         clearInterval(poll);
-        window.location.reload();
+        window.location.href = "<%= connected_tailscale_path %>";
       } else if (data.status === "error") {
         clearInterval(poll);
         var errDiv = document.getElementById("login-error");
