@@ -7,12 +7,15 @@
   "files_touched": [
     ".gitignore",
     "app/assets/tailwind/application.css",
+    "app/controllers/dashboard_controller.rb",
     "app/controllers/tailscale_controller.rb",
     "app/models/sandbox.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
     "app/services/terminal_manager.rb",
     "app/views/admin/invites/index.html.erb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb",
     "app/views/layouts/admin.html.erb",
     "app/views/layouts/application.html.erb",
     "app/views/pages/guide.html.erb",
@@ -26,7 +29,8 @@
     "db/migrate/20260221120000_allow_null_ssh_port.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
-    "images/sandbox/Dockerfile"
+    "images/sandbox/Dockerfile",
+    "vendor/sandcastle-cli/api/client.go"
   ],
   "sessions": [
     {
@@ -115,10 +119,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 263,
-    "cache_creation_tokens": 527327,
-    "cache_read_tokens": 14543988,
-    "output_tokens": 19717,
-    "api_call_count": 205
+    "input_tokens": 288,
+    "cache_creation_tokens": 597798,
+    "cache_read_tokens": 16365794,
+    "output_tokens": 30039,
+    "api_call_count": 228
   }
 }

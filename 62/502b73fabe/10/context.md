@@ -164,3 +164,31 @@ Server: dev (https://dev.sand:8443)
 Sandbox "brave-wolf" started.
 ~/Projects/GitHub/...
 
+### Prompt 24
+
+commit
+
+### Prompt 25
+
+sandcastle should support SANDCASTLE_HOST env (either name or URL)
+
+### Prompt 26
+
+[Request interrupted by user]
+
+### Prompt 27
+
+sandcastle cli  should support SANDCASTLE_HOST env (either name or URL)
+
+### Prompt 28
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze this conversation to create a comprehensive summary.
+
+1. **SSH port removal (continued from previous session)**: The main task was removing public SSH port bindings (2201-2299) from sandbox containers. This was in progress when the previous session ended.
+
+2. **Completed SSH port removal changes**:
+   - `...
+

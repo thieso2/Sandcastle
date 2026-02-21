@@ -410,3 +410,252 @@ NAME        STATUS   PORT  TAILSCALE IP  IMAGE
 brave-wolf  running  0                   ghcr.io/thieso2/sandcastle-sandbox:latest
 
 stop start - sandbox looses tailscale IP.
+
+---
+
+commit
+
+---
+
+sandcastle should support SANDCASTLE_HOST env (either name or URL)
+
+---
+
+[Request interrupted by user]
+
+---
+
+sandcastle cli  should support SANDCASTLE_HOST env (either name or URL)
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze this conversation to create a comprehensive summary.
+
+1. **SSH port removal (continued from previous session)**: The main task was removing public SSH port bindings (2201-2299) from sandbox containers. This was in progress when the previous session ended.
+
+2. **Completed SSH port removal changes**:
+   - `sandbox_manager.rb`: Removed PortBindings, added connect_to_network(), rewrote connect_info to require Tailscale, removed find_free_ssh_port/docker_bound_ssh_ports/port_free? methods, removed port reassignment from start/stop
+   - `api/sandboxes_controller.rb`: Removed ssh_port from sandbox_json
+   - `api/users_controller.rb`: Removed ssh_port from inline sandbox list
+   - `sandboxes/show.html.erb`: Removed SSH port metadata line
+   - `api/types.go`: Made SSHPort omitempty
+   - `cmd/sandbox.go`: Replaced PORT column with CREATED (date)
+
+3. **Various bug fixes**:
+   - `SandboxPolicy` missing `retry?` method
+   - Tailscale disconnect error "not connected to network" - fixed by rescuing DockerError in inner block
+   - VNC broken due to stale sandbox image missing websockify
+   - 404 at dev.sand:8443 due to stale vnc-3.yml/terminal-3.yml Traefik configs with wrong certResolver
+   - `tls_config` in VncManager/TerminalManager not handling `mkcert` mode
+   - Sandbox connecting to default bridge network
+   - Tailscale IP lost after stop/start
+   - Tailscale subnet collision between two installs
+
+4. **SANDCASTLE_HOST env var for CLI**: User requested this last, was beginning to look at code.
+
+Key files:
+- `app/services/sandbox_manager.rb` - multiple changes
+- `app/services/tailscale_manager.rb` - disconnect fix, subnet randomization
+- `app/services/vnc_manager.rb` - tls_config fix
+- `app/services/terminal_manager.rb` - tls_config fix
+- `app/policies/sandbox_policy.rb` - retry? added
+- `vendor/sandcastle-cli/api/client.go` - was being reviewed for SANDCASTLE_HOST
+- `vendor/sandcastle-cli/internal/config/config.go` - was being reviewed for SANDCASTLE_HOST
+- `vendor/sandcastle-cli/cmd/sandbox.go` - PORT→CREATED, time format fix
+
+The last task (SANDCASTLE_HOST env var) was interrupted mid-work after reading client.go and config.go. The implementation would go in `NewClient()` in `client.go` to check `SANDCASTLE_HOST` env var and resolve it as either a server alias or URL.
+
+Summary:
+1. Primary Request and Intent:
+   - **Continue from previous session**: Complete the SSH port binding removal from sandbox containers (was mid-implementation)
+   - **Push changes** to remote after completing
+   - **Fix various bugs** as they were discovered during testing:
+     - `NoMethodError: undefined method 'retry?' for SandboxPolicy`
+     - Tailscale disconnect error on sandbox destroy ("not connected to network")
+     - VNC connect broken (websockify not running in stale sandbox image)
+     - `http://dev.sand:8443` returning 404
+     - Sandbox containers sharing default Docker bridge network
+     - Tailscale IP lost after stop/start cycle
+     - Two Sandcastle installs getting same Tailscale subnet (10.89.2.3)
+   - **CLI improvements**: Replace PORT column with CREATED (date+time) in `sandcastle ls`
+   - **SANDCASTLE_HOST env var**: CLI should support `SANDCASTLE_HOST` env as either a server name/alias or URL (last request, implementation not yet started)
+
+2. Key Technical Concepts:
+   - **Docker networking**: `NetworkMode` + `NetworkingConfig` at container creation prevents auto-joining default bridge
+   - **Sandcastle-web network**: Shared internal bridge for Traefik→sandbox routing (VNC, terminal)
+   - **Tailscale sidecar**: `sc-ts-net-{username}` bridge network with per-user subnet from `DOCKYARD_POOL_BASE`
+   - **Traefik dynamic config**: YAML files in `/data/traefik/dynamic/` — `rails.yml`, `tls.yml`, plus ephemeral `vnc-{id}.yml` and `terminal-{id}.yml`
+   - **TLS modes**: `selfsigned`, `mkcert` (both use pre-loaded cert, no certResolver), production uses `letsencrypt`
+   - **Pundit policies**: `retry?` must be explicitly defined — not inferred from controller actions
+   - **Websockify**: Runs inside sandbox container (started by entrypoint.sh), proxies WebSocket→VNC on port 6080; sandbox image must be current
+   - **Sandbox lifecycle**: stop preserves container; start deletes old container and recreates — Tailscale reconnection must be explicit
+
+3. Files and Code Sections:
+
+   - **`app/services/sandbox_manager.rb`**
+     - Major changes: removed PortBindings, removed port-finding methods, added `connect_to_network`, rewrote `connect_info`, then replaced `NetworkMode`+`NetworkingConfig` approach to avoid default bridge, added Tailscale reconnect on `start`
+     - Final `create_container_and_start`:
+       ```ruby
+       def create_container_and_start(sandbox:, user:)
+         container = Docker::Container.create(
+           "name" => sandbox.full_name,
+           "Image" => sandbox.image,
+           "Hostname" => sandbox.full_name,
+           "Env" => container_env(user, sandbox),
+           "Labels" => { "sandcastle.sandbox" => "true" },
+           "HostConfig" => {
+             "Runtime" => container_runtime,
+             "NetworkMode" => NETWORK_NAME,
+             "Binds" => volume_binds(user, sandbox),
+             "RestartPolicy" => { "Name" => "unless-stopped" }
+           },
+           "NetworkingConfig" => {
+             "EndpointsConfig" => { NETWORK_NAME => {} }
+           }
+         )
+         container.start
+         container.refresh!
+         ...
+       end
+       ```
+     - Final `connect_info` (Tailscale-only):
+       ```ruby
+       def connect_info(sandbox:)
+         user = sandbox.user.name
+         unless sandbox.tailscale?
+           raise Error, "SSH access requires Tailscale. Enable Tailscale on your account and connect this sandbox to your tailnet."
+         end
+         ts_ip = wait_for_tailscale_ip(sandbox: sandbox)
+         raise Error, "Tailscale IP not available — is the Tailscale sidecar running?" unless ts_ip.present?
+         { host: ts_ip, port: 22, user: user, command: "ssh #{user}@#{ts_ip}", tailscale_ip: ts_ip }
+       end
+       ```
+     - `start` method now reconnects Tailscale:
+       ```ruby
+       TailscaleManager.new.connect_sandbox(sandbox: sandbox) if sandbox.tailscale? && user.tailscale_enabled?
+       ```
+     - `stop` method: removed `ssh_port: nil`
+     - Removed: `find_free_ssh_port`, `docker_bound_ssh_ports`, `port_free?`, `connect_to_network` (made redundant by NetworkMode)
+
+   - **`app/services/tailscale_manager.rb`**
+     - Fixed disconnect to rescue `DockerError` not just `NotFoundError`:
+       ```ruby
+       rescue Docker::Error::NotFoundError, Docker::Error::DockerError
+         # Network/container already gone or container not connected — desired state reached
+       ```
+     - Replaced deterministic `subnet_for` with random-on-first-create:
+       ```ruby
+       def subnet_for(user)
+         begin
+           network = Docker::Network.get("sc-ts-net-#{user.name}")
+           ipam = network.info.dig("IPAM", "Config")
+           return ipam.first["Subnet"] if ipam&.first
+         rescue Docker::Error::NotFoundError
+         end
+         base = ENV.fetch("DOCKYARD_POOL_BASE", "10.89.0.0/16")
+         parts = base.split("/").first.split(".").map(&:to_i)
+         parts[2] = rand(1..254)
+         "#{parts[0]}.#{parts[1]}.#{parts[2]}.0/24"
+       end
+       ```
+
+   - **`app/services/vnc_manager.rb`** and **`app/services/terminal_manager.rb`**
+     - Fixed `tls_config` to handle `mkcert` mode:
+       ```ruby
+       def tls_config
+         case ENV["SANDCASTLE_TLS_MODE"]
+         when "selfsigned", "mkcert"
+           {}
+         else
+           { "certResolver" => "letsencrypt" }
+         end
+       end
+       ```
+
+   - **`app/policies/sandbox_policy.rb`**
+     - Added missing `retry?` method:
+       ```ruby
+       def retry?                 = owner_or_admin?
+       ```
+
+   - **`app/controllers/api/sandboxes_controller.rb`**
+     - Removed `ssh_port: sandbox.ssh_port` from `sandbox_json`
+
+   - **`app/controllers/api/users_controller.rb`**
+     - Removed `ssh_port: s.ssh_port` from inline sandbox list
+
+   - **`app/views/sandboxes/show.html.erb`**
+     - Removed `· SSH port <%= @sandbox.ssh_port %>` from metadata line
+
+   - **`vendor/sandcastle-cli/api/types.go`**
+     - `SSHPort int` changed to `json:"ssh_port,omitempty"`
+
+   - **`vendor/sandcastle-cli/cmd/sandbox.go`**
+     - Replaced `PORT` column with `CREATED` in `listCmd`
+     - Format: `s.CreatedAt.Local().Format("2006-01-02 15:04")`
+     - Format strings updated from `%d` (port) to `%s` (created)
+
+   - **`vendor/sandcastle-cli/api/client.go`** — Read to understand `NewClient()` for SANDCASTLE_HOST implementation (not yet modified)
+
+   - **`vendor/sandcastle-cli/internal/config/config.go`** — Read to understand `CurrentServerConfig()` for SANDCASTLE_HOST implementation (not yet modified)
+
+   - **`db/migrate/20260221120000_allow_null_ssh_port.rb`** — Already existed, makes `ssh_port` nullable
+
+4. Errors and Fixes:
+   - **`NoMethodError: undefined method 'retry?'`**: `SandboxPolicy` was missing `retry?` — added `def retry? = owner_or_admin?`
+   - **Tailscale destroy error "not connected to network"**: `disconnect_sandbox` only rescued `NotFoundError` but Docker raises `DockerError` for "not connected" — added `Docker::Error::DockerError` to the inner rescue
+   - **VNC stuck polling, websockify not running**: Local sandbox image from 2026-02-19 predated the `feat(vnc): run websockify inside sandbox container` commit. Built image locally with `docker build -t ghcr.io/thieso2/sandcastle-sandbox:latest images/sandbox/`
+   - **404 at dev.sand:8443**: Stale `vnc-3.yml` and `terminal-3.yml` Traefik config files had `certResolver: letsencrypt` (invalid in local setup) — Traefik rejected all routes. Fixed by deleting stale files and fixing `tls_config` to handle `mkcert` mode
+   - **Sandbox on default bridge network**: Docker auto-joins containers to default `bridge` network — fixed by specifying `NetworkMode: sandcastle-web` and `NetworkingConfig` at container creation, eliminating the separate `connect_to_network` call
+   - **Tailscale IP lost after stop/start**: `start` recreates container but didn't reconnect Tailscale bridge — added `TailscaleManager.new.connect_sandbox(sandbox: sandbox) if sandbox.tailscale? && user.tailscale_enabled?`
+   - **Two installs same Tailscale subnet**: `subnet_for` derived from `user.id % 255` — both admin users (ID=1) got same `10.89.2.0/24`. Fixed with random third octet, stable by reading existing network's IPAM config on subsequent runs
+   - **git commit pathspec error**: Used `git restore --staged :/ && git add <files> && git commit` pattern for new/modified files
+
+5. Problem Solving:
+   - SSH port removal: complete architectural shift — no host ports, sandboxes on internal Docker network only, CLI SSH requires Tailscale
+   - VNC architecture: websockify now runs inside sandbox (not sidecar), Traefik routes directly to sandbox container on port 6080 via `sandcastle-web` network
+   - Tailscale subnet isolation: random /24 per install from `DOCKYARD_POOL_BASE /16` pool, stable across restarts by reading existing IPAM config
+
+6. All User Messages:
+   - "continue" (resume from previous session)
+   - "push it"
+   - "Failed to destroy: Failed to disconnect sandbox from Tailscale: {"message":"container ... is not connected to network sc-ts-net-thies"}"
+   - "vnc connect is now broken. check docker logs"
+   - "now http://dev.sand:8443 -> 404."
+   - "http://dev.sand:8443/ -> 404" (repeated)
+   - "when createing a new sandcastle use a random network - i have two sandcastles with the same network - really annyoing!"
+   - "also NAME STATUS CREATED TAILSCALE IP IMAGE / wild-fox running 2026-02-21 ... / includ ethe time in CREATED"
+   - "does this need changes in dockyard? or is this tailscale only?"
+   - "i still have two sandcasle isntalls using teh same net (10.89.2.3) - which is annoying -> pick a random net! [CLI output showing both installs with 10.89.2.3]"
+   - "stop start - sandbox looses tailscale IP."
+   - "commit"
+   - "sandcastle cli should support SANDCASTLE_HOST env (either name or URL)"
+
+7. Pending Tasks:
+   - **Implement `SANDCASTLE_HOST` env var in CLI**: `NewClient()` in `vendor/sandcastle-cli/api/client.go` should check `SANDCASTLE_HOST` env var and resolve it as either a server alias (look up in config) or a URL (use directly with the stored token for that URL, or without auth if no match)
+
+8. Current Work:
+   Immediately before the summary request, the user asked: "sandcastle cli should support SANDCASTLE_HOST env (either name or URL)"
+
+   Both relevant files were read:
+   - `vendor/sandcastle-cli/api/client.go` — `NewClient()` currently only reads from `config.CurrentServerConfig()`
+   - `vendor/sandcastle-cli/internal/config/config.go` — `CurrentServerConfig()` looks up `cfg.Servers[cfg.CurrentServer]`
+
+   No code changes had been made yet for this feature.
+
+9. Optional Next Step:
+   Implement `SANDCASTLE_HOST` env var support in `NewClient()` in `vendor/sandcastle-cli/api/client.go`.
+
+   The user's request: "sandcastle cli should support SANDCASTLE_HOST env (either name or URL)"
+
+   Implementation plan for `NewClient()`:
+   - Check `os.Getenv("SANDCASTLE_HOST")`
+   - If set, check if it matches a server alias in `cfg.Servers` → use that server's config (URL + token)
+   - Else if it looks like a URL (starts with `http`), find matching server by URL in `cfg.Servers` → use that token; if no match use URL without token
+   - If not set, fall through to existing `cfg.CurrentServerConfig()` logic
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
