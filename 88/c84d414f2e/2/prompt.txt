@@ -1,0 +1,5 @@
+in the tailscale create dialog - allow to supply a hostname.
+
+---
+
+commit this

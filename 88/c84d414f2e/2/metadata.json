@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "88c84d414f2e",
+  "session_id": "6e7c3c9f-f2a4-482a-9085-6220f97d8215",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T15:48:00.231514Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/controllers/tailscale_controller.rb",
+    "app/services/tailscale_manager.rb",
+    "app/views/tailscale/show.html.erb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "94578ed6-c4dd-41f2-8984-232b54706908",
+  "token_usage": {
+    "input_tokens": 816,
+    "cache_creation_tokens": 44003,
+    "cache_read_tokens": 813192,
+    "output_tokens": 4016,
+    "api_call_count": 17
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T15:48:00.202739Z",
+    "agent_lines": 20,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 20,
+    "agent_percentage": 100
+  }
+}
