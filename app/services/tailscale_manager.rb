@@ -31,7 +31,8 @@ class TailscaleManager
     # If pending, clean up the old attempt first
     cleanup_sidecar(user) if user.tailscale_pending?
 
-    network_name, container = create_and_start_sidecar(user: user, auth_key: nil)
+    hostname = Rails.cache.read("ts_hostname:#{user.id}")
+    network_name, container = create_and_start_sidecar(user: user, auth_key: nil, hostname: hostname)
 
     user.update!(
       tailscale_state: "pending",
@@ -227,7 +228,7 @@ class TailscaleManager
 
   private
 
-  def create_and_start_sidecar(user:, auth_key:)
+  def create_and_start_sidecar(user:, auth_key:, hostname: nil)
     network_name = "sc-ts-net-#{user.name}"
     container_name = "sc-ts-#{user.name}"
     subnet = subnet_for(user)
@@ -241,7 +242,8 @@ class TailscaleManager
       user: user,
       network: network_name,
       subnet: subnet,
-      auth_key: auth_key
+      auth_key: auth_key,
+      hostname: hostname
     )
     container.start
 
@@ -346,13 +348,14 @@ class TailscaleManager
     )
   end
 
-  def create_sidecar(name:, user:, network:, subnet:, auth_key:)
+  def create_sidecar(name:, user:, network:, subnet:, auth_key:, hostname: nil)
     state_dir = "#{DATA_DIR}/users/#{user.name}/tailscale"
+    ts_hostname = hostname.presence || "sc-#{user.name}"
 
     config = {
       "Image" => TAILSCALE_IMAGE,
       "name" => name,
-      "Hostname" => "sc-#{user.name}",
+      "Hostname" => ts_hostname,
       "HostConfig" => {
         "NetworkMode" => network,
         "CapAdd" => [ "NET_ADMIN", "SYS_MODULE" ],
@@ -369,7 +372,7 @@ class TailscaleManager
       # Use containerboot (default entrypoint) with auth key for automated flow
       config["Env"] = [
         "TS_STATE_DIR=/var/lib/tailscale",
-        "TS_HOSTNAME=sc-#{user.name}",
+        "TS_HOSTNAME=#{ts_hostname}",
         "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes#{TAILSCALE_TAG ? " --advertise-tags=#{TAILSCALE_TAG}" : ""}",
         "TS_AUTH_ONCE=true",
         "TS_AUTHKEY=#{auth_key}"
