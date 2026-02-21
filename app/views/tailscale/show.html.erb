@@ -107,6 +107,15 @@
 
       <%= form_with url: login_tailscale_path, method: :post, class: "space-y-4" do |f| %>
         <div>
+          <label for="tailscale_hostname" class="block text-sm font-medium text-gray-700 mb-1">Hostname</label>
+          <input type="text" name="tailscale_hostname" id="tailscale_hostname"
+                 placeholder="sc-<%= Current.user.name %>"
+                 pattern="[a-zA-Z0-9\-]*"
+                 class="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <p class="text-xs text-gray-500 mt-1">Leave blank to use the default (<code class="bg-gray-100 px-1 rounded">sc-<%= Current.user.name %></code>)</p>
+        </div>
+
+        <div>
           <input type="hidden" name="tailscale_tag" value="">
           <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
             <input type="checkbox" name="tailscale_tag" value="tag:sandcastle"

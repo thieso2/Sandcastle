@@ -12,6 +12,8 @@ class TailscaleController < ApplicationController
   def login
     tag = params[:tailscale_tag].presence
     Rails.cache.write("ts_tag:#{Current.user.id}", tag, expires_in: 10.minutes) if tag
+    hostname = params[:tailscale_hostname].presence
+    Rails.cache.write("ts_hostname:#{Current.user.id}", hostname, expires_in: 10.minutes) if hostname
     TailscaleManager.new.start_login(user: Current.user)
     redirect_to tailscale_path, status: :see_other
   rescue TailscaleManager::Error, Docker::Error::DockerError => e

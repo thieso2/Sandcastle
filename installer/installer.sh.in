@@ -325,6 +325,26 @@ except Exception:
 " 2>/dev/null || echo "  ghcr.io/thieso2/${repo}:latest"
 }
 
+pick_private_net() {
+  # Pick a random 10.X.0.0/16 not already routed on this host.
+  local used_octets
+  used_octets=$(
+    { ip route 2>/dev/null; ip addr 2>/dev/null; } \
+      | grep -oE '10\.[0-9]+\.' \
+      | grep -oE '\.[0-9]+\.' \
+      | tr -d '.' \
+      | sort -un
+  )
+  for b in $(shuf -i 1-254 2>/dev/null || python3 -c "import random,sys; l=list(range(1,255)); random.shuffle(l); print('\n'.join(map(str,l)))"); do
+    if ! echo "$used_octets" | grep -qx "$b"; then
+      echo "10.${b}.0.0/16"
+      return
+    fi
+  done
+  # Fallback
+  echo "10.$(shuf -i 1-254 -n1 2>/dev/null || echo 89).0.0/16"
+}
+
 find_free_subnet() {
   local used
   used=$(
@@ -376,10 +396,18 @@ install_mkcert() {
 
 # ═══ write_compose ══════════════════════════════════════════════════════════
 
+# Write the bundled dockyard.sh to /tmp so it can be invoked without wget.
+write_dockyard_sh() {
+  cat > /tmp/dockyard.sh <<'__DOCKYARD_BUNDLED_EOF__'
+@@TEMPLATE:templates/dockyard.sh@@
+__DOCKYARD_BUNDLED_EOF__
+  chmod +x /tmp/dockyard.sh
+}
+
 write_helper_scripts() {
   cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
 #!/bin/bash
-exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml --env-file ${SANDCASTLE_HOME}/.env logs -f "\$@"
+exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml logs -f "\$@"
 LOGS
   chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
   wrote "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
@@ -425,7 +453,7 @@ cmd_gen_env() {
 
   local dy_root="${DOCKYARD_ROOT:-$home}"
   local dy_prefix="${DOCKYARD_DOCKER_PREFIX:-sc_}"
-  local priv_net="${SANDCASTLE_PRIVATE_NET:-10.89.0.0/16}"
+  local priv_net="${SANDCASTLE_PRIVATE_NET:-$(pick_private_net)}"
   local _pb="${priv_net%%/*}"; local _pp="${_pb%.*.*}"
   local dy_bridge="${DOCKYARD_BRIDGE_CIDR:-${_pp}.0.1/24}"
   local dy_fixed="${DOCKYARD_FIXED_CIDR:-${_pp}.0.0/24}"
@@ -522,7 +550,7 @@ cmd_destroy() {
     if [ -f "$SANDCASTLE_HOME/docker-compose.yml" ]; then
       # Do NOT pass --volumes: postgres data lives in a bind-mount under
       # $SANDCASTLE_HOME/data/postgres which must survive uninstall.
-      $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" --env-file "$SANDCASTLE_HOME/.env" down --rmi all --remove-orphans 2>/dev/null || true
+      $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" down --rmi all --remove-orphans 2>/dev/null || true
     fi
     $DOCKER network rm sandcastle-web 2>/dev/null || true
 
@@ -537,7 +565,7 @@ cmd_destroy() {
   DOCKYARD_ENV_FILE="$SANDCASTLE_HOME/etc/dockyard.env"
   if [ -f "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
     info "Destroying Dockyard..."
-    if [ -f "$DOCKYARD_ENV_FILE" ] && wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh 2>/dev/null; then
+    if [ -f "$DOCKYARD_ENV_FILE" ] && write_dockyard_sh 2>/dev/null; then
       echo "y" | DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy >/dev/null 2>&1 || true
       rm -f /tmp/dockyard.sh
     else
@@ -586,10 +614,14 @@ cmd_destroy() {
   fi
 
   # Remove Sandcastle files — keep user data (data/users, data/sandboxes, data/postgres)
+  # Preserve data/traefik/acme.json (Let's Encrypt certs) to survive reinstalls.
   rm -f "$SANDCASTLE_HOME/.env"
   rm -f "$SANDCASTLE_HOME/docker-compose.yml"
   rm -rf "$SANDCASTLE_HOME/etc"
-  rm -rf "$SANDCASTLE_HOME/data/traefik"
+  rm -f "$SANDCASTLE_HOME/data/traefik/traefik.yml"
+  rm -rf "$SANDCASTLE_HOME/data/traefik/dynamic"
+  rm -rf "$SANDCASTLE_HOME/data/traefik/certs"
+  rmdir "$SANDCASTLE_HOME/data/traefik" 2>/dev/null || true
   rmdir "$SANDCASTLE_HOME/data" 2>/dev/null || true
   rmdir "$SANDCASTLE_HOME" 2>/dev/null || true
   rm -rf "/run/${DOCKYARD_DOCKER_PREFIX}docker"
@@ -629,9 +661,21 @@ cmd_install() {
 
   if [ -S "$DOCKER_SOCK" ]; then
     ok "Dockyard already installed"
+    # Older Dockyard installs may not have the compose plugin — ensure it exists.
+    if ! "$DOCKER" compose version &>/dev/null 2>&1; then
+      info "Docker Compose plugin missing — installing..."
+      local _compose_arch="x86_64"
+      [ "$ARCH" = "arm64" ] && _compose_arch="aarch64"
+      local _cli_plugins="${DOCKYARD_ROOT}/docker-runtime/lib/docker/cli-plugins"
+      mkdir -p "$_cli_plugins"
+      wget -q "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-${_compose_arch}" \
+        -O "$_cli_plugins/docker-compose"
+      chmod +x "$_cli_plugins/docker-compose"
+      ok "Docker Compose plugin installed"
+    fi
   else
     info "Installing Dockyard (Docker + Sysbox)..."
-    wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh
+    write_dockyard_sh
 
     mkdir -p "$SANDCASTLE_HOME/etc"
     cat > "$SANDCASTLE_HOME/etc/dockyard.env" <<DYEOF
@@ -1062,7 +1106,7 @@ INITDB
 
   info "Starting Sandcastle..."
   cd "$SANDCASTLE_HOME"
-  $DOCKER compose --env-file .env up -d
+  $DOCKER compose up -d
 
   # ── Seed database (fresh install) ─────────────────────────────────────────
 
@@ -1076,7 +1120,7 @@ INITDB
     done
 
     info "Seeding database..."
-    $DOCKER compose --env-file .env exec -T \
+    $DOCKER compose exec -T \
       -e SANDCASTLE_ADMIN_USER="${SANDCASTLE_ADMIN_USER}" \
       -e SANDCASTLE_ADMIN_EMAIL="${SANDCASTLE_ADMIN_EMAIL}" \
       -e SANDCASTLE_ADMIN_PASSWORD="${SANDCASTLE_ADMIN_PASSWORD}" \
@@ -1164,7 +1208,7 @@ cmd_update() {
 
   info "Restarting services..."
   cd "$SANDCASTLE_HOME"
-  $DOCKER compose --env-file .env up -d
+  $DOCKER compose up -d
   ok "Services restarted"
 
   echo ""

@@ -31,7 +31,8 @@ class TailscaleManager
     # If pending, clean up the old attempt first
     cleanup_sidecar(user) if user.tailscale_pending?
 
-    network_name, container = create_and_start_sidecar(user: user, auth_key: nil)
+    hostname = Rails.cache.read("ts_hostname:#{user.id}")
+    network_name, container = create_and_start_sidecar(user: user, auth_key: nil, hostname: hostname)
 
     user.update!(
       tailscale_state: "pending",
@@ -66,7 +67,6 @@ class TailscaleManager
         "tailscale up --reset" \
         " --advertise-routes=#{subnet}" \
         "#{tag_flag}" \
-        " --accept-routes" \
         " --hostname=#{container.json.dig("Config", "Hostname")}" \
         " --timeout=120s &"
       ])
@@ -228,7 +228,7 @@ class TailscaleManager
 
   private
 
-  def create_and_start_sidecar(user:, auth_key:)
+  def create_and_start_sidecar(user:, auth_key:, hostname: nil)
     network_name = "sc-ts-net-#{user.name}"
     container_name = "sc-ts-#{user.name}"
     subnet = subnet_for(user)
@@ -236,12 +236,14 @@ class TailscaleManager
     pull_image
     create_network(network_name, subnet)
     remove_existing_container(container_name)
+    clear_tailscale_state(user)
     container = create_sidecar(
       name: container_name,
       user: user,
       network: network_name,
       subnet: subnet,
-      auth_key: auth_key
+      auth_key: auth_key,
+      hostname: hostname
     )
     container.start
 
@@ -254,6 +256,16 @@ class TailscaleManager
     container.delete(force: true)
   rescue Docker::Error::NotFoundError
     # No existing container
+  end
+
+  # Remove stale tailscaled.state so the daemon starts fresh.
+  # Stale state causes tailscaled to immediately set up VPN routes before
+  # authentication, which silently drops all normal internet traffic.
+  def clear_tailscale_state(user)
+    state_file = "#{DATA_DIR}/users/#{user.name}/tailscale/tailscaled.state"
+    File.delete(state_file) if File.exist?(state_file)
+  rescue Errno::ENOENT
+    # already gone
   end
 
   def cleanup_sidecar(user)
@@ -314,8 +326,12 @@ class TailscaleManager
       # Network doesn't exist yet — fall through to generate a random /24
     end
 
-    base = ENV.fetch("DOCKYARD_POOL_BASE", "10.89.0.0/16")
-    parts = base.split("/").first.split(".").map(&:to_i)
+    base = ENV["DOCKYARD_POOL_BASE"]
+    if base
+      parts = base.split("/").first.split(".").map(&:to_i)
+    else
+      parts = [ 10, rand(1..254), 0, 0 ]
+    end
     parts[2] = rand(1..254)
     "#{parts[0]}.#{parts[1]}.#{parts[2]}.0/24"
   end
@@ -332,13 +348,14 @@ class TailscaleManager
     )
   end
 
-  def create_sidecar(name:, user:, network:, subnet:, auth_key:)
+  def create_sidecar(name:, user:, network:, subnet:, auth_key:, hostname: nil)
     state_dir = "#{DATA_DIR}/users/#{user.name}/tailscale"
+    ts_hostname = hostname.presence || "sc-#{user.name}"
 
     config = {
       "Image" => TAILSCALE_IMAGE,
       "name" => name,
-      "Hostname" => "sc-#{user.name}",
+      "Hostname" => ts_hostname,
       "HostConfig" => {
         "NetworkMode" => network,
         "CapAdd" => [ "NET_ADMIN", "SYS_MODULE" ],
@@ -355,7 +372,7 @@ class TailscaleManager
       # Use containerboot (default entrypoint) with auth key for automated flow
       config["Env"] = [
         "TS_STATE_DIR=/var/lib/tailscale",
-        "TS_HOSTNAME=sc-#{user.name}",
+        "TS_HOSTNAME=#{ts_hostname}",
         "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes#{TAILSCALE_TAG ? " --advertise-tags=#{TAILSCALE_TAG}" : ""}",
         "TS_AUTH_ONCE=true",
         "TS_AUTHKEY=#{auth_key}"

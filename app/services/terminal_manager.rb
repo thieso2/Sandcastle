@@ -1,268 +1,63 @@
 class TerminalManager
-  DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
-  WETTY_IMAGE = ENV.fetch("SANDCASTLE_WETTY_IMAGE", "wettyoss/wetty:latest")
+  DATA_DIR    = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
   NETWORK_NAME = "sandcastle-web"
-  DYNAMIC_DIR = File.join(DATA_DIR, "traefik", "dynamic")
+  DYNAMIC_DIR  = File.join(DATA_DIR, "traefik", "dynamic")
+
+  TMUX_PORT  = 7681
+  SHELL_PORT = 7682
 
   class Error < StandardError; end
 
   # Opens a web terminal for the given sandbox.
-  # Returns the URL path to the WeTTY session.
-  def open(sandbox:)
+  # type: "tmux" (default) or "shell"
+  # Writes Traefik config (idempotent) and returns the terminal URL.
+  def open(sandbox:, type: "tmux")
     raise Error, "Sandbox is not running" unless sandbox.status == "running"
-    raise Error, "Sandbox has no container" if sandbox.container_id.blank?
 
-    user = sandbox.user
-    container_name = wetty_container_name(sandbox)
-
-    # Idempotent: if WeTTY container already running, ensure config exists and return
-    if container_running?(container_name)
-      write_traefik_config(sandbox)
-      return wetty_url(sandbox)
-    end
-
-    pull_image
-    ensure_network
-    connect_sandbox_to_network(sandbox)
-
-    # Write Traefik config early so it has time to detect the new route
-    # while we set up keypairs and start the WeTTY container.
     write_traefik_config(sandbox)
-
-    key_dir = generate_keypair(sandbox)
-    inject_pubkey(sandbox, key_dir)
-    create_wetty_container(sandbox: sandbox, user: user, key_dir: key_dir)
-
-    wetty_url(sandbox)
-  rescue Docker::Error::DockerError => e
-    raise Error, "Failed to open terminal: #{e.message}"
-  rescue SystemCallError => e
-    raise Error, "Failed to open terminal: #{e.message}"
+    terminal_url(sandbox, type)
   end
 
-  # Closes the web terminal for the given sandbox.
-  def close(sandbox:)
-    container_name = wetty_container_name(sandbox)
+  # Returns true if ttyd is listening on the appropriate port inside the sandbox container.
+  # Uses docker exec + ss to check from inside the container — works in both dev (host Rails)
+  # and production (Rails in Docker) without needing Docker network hostname resolution.
+  def active?(sandbox:, type: "tmux")
+    return false if sandbox.container_id.blank?
 
-    # Stop and remove WeTTY container
-    begin
-      container = Docker::Container.get(container_name)
-      container.stop(t: 3) rescue nil
-      container.delete(force: true)
-    rescue Docker::Error::NotFoundError
-      # Already gone
-    end
-
-    # Delete Traefik config
-    delete_traefik_config(sandbox)
-
-    # Clean up key directory
-    key_dir = key_dir_path(sandbox)
-    FileUtils.rm_rf(key_dir)
-
-    # Best-effort: remove pubkey from sandbox authorized_keys
-    remove_pubkey(sandbox)
-  rescue Docker::Error::DockerError => e
-    Rails.logger.error("TerminalManager: close failed for #{sandbox.full_name}: #{e.message}")
-  end
-
-  # Returns true if the WeTTY container is running AND its HTTP server is ready.
-  def active?(sandbox:)
-    container_name = wetty_container_name(sandbox)
-    return false unless container_running?(container_name)
-
-    TCPSocket.new(container_name, 3000).close
-    true
-  rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
+    port = type == "shell" ? SHELL_PORT : TMUX_PORT
+    container = Docker::Container.get(sandbox.container_id)
+    _out, _err, code = container.exec([ "sh", "-c", "ss -tlnp 2>/dev/null | grep -q ':#{port}' || netstat -tlnp 2>/dev/null | grep -q ':#{port}'" ])
+    code == 0
+  rescue Docker::Error::NotFoundError, Docker::Error::DockerError => e
+    Rails.logger.debug("TerminalManager#active? #{sandbox.full_name}:#{port} → #{e.class}: #{e.message}")
     false
   end
 
-  # Removes orphaned WeTTY containers whose sandbox no longer exists or is not running.
-  def cleanup_orphaned
-    Docker::Container.all(all: true).each do |container|
-      name = container.info.dig("Names")&.first&.delete_prefix("/")
-      next unless name&.start_with?("sc-wetty-")
-
-      labels = container.info["Labels"] || {}
-      sandbox_id = labels["sandcastle.sandbox_id"]&.to_i
-
-      sandbox = sandbox_id ? Sandbox.find_by(id: sandbox_id) : nil
-      should_remove = sandbox.nil? || sandbox.status != "running"
-
-      if should_remove
-        container.stop(t: 3) rescue nil
-        container.delete(force: true)
-        Rails.logger.info("TerminalManager: removed orphaned WeTTY container #{name}")
-
-        # Clean up Traefik config and keys if we have a sandbox_id
-        if sandbox_id
-          config_path = File.join(DYNAMIC_DIR, "terminal-#{sandbox_id}.yml")
-          File.delete(config_path) if File.exist?(config_path)
-        end
-
-        # Extract full_name from container name and validate format
-        full_name = name.delete_prefix("sc-wetty-")
-        unless full_name.match?(/\A[a-z][a-z0-9_-]+-[a-z][a-z0-9_-]*\z/)
-          Rails.logger.warn("TerminalManager: skipping suspicious container name: #{name}")
-          next
-        end
-
-        key_dir = File.join(DATA_DIR, "wetty", full_name)
-        expected_parent = File.join(DATA_DIR, "wetty")
-        unless File.expand_path(key_dir).start_with?("#{File.expand_path(expected_parent)}/")
-          Rails.logger.warn("TerminalManager: path traversal attempt detected: #{key_dir}")
-          next
-        end
-
-        FileUtils.rm_rf(key_dir) if Dir.exist?(key_dir)
-      end
-    end
-  rescue Docker::Error::DockerError => e
-    Rails.logger.error("TerminalManager: orphan cleanup failed: #{e.message}")
+  # Deletes the Traefik config for the given sandbox.
+  def close(sandbox:)
+    delete_traefik_config(sandbox)
   end
 
-  def prepare_traefik_config(sandbox)
-    write_traefik_config(sandbox)
+  # Scans terminal-*.yml files; removes configs for sandboxes that no longer exist or aren't running.
+  def cleanup_orphaned
+    Dir.glob(File.join(DYNAMIC_DIR, "terminal-*.yml")).each do |path|
+      match = File.basename(path).match(/\Aterminal-(\d+)\.yml\z/)
+      next unless match
+
+      sandbox_id = match[1].to_i
+      sandbox = Sandbox.find_by(id: sandbox_id)
+
+      if sandbox.nil? || sandbox.status != "running"
+        File.delete(path)
+        Rails.logger.info("TerminalManager: removed orphaned Traefik config #{File.basename(path)}")
+      end
+    end
   end
 
   private
 
-  def wetty_container_name(sandbox)
-    "sc-wetty-#{sandbox.full_name}"
-  end
-
-  def wetty_url(sandbox)
-    "/terminal/#{sandbox.id}/wetty"
-  end
-
-  def key_dir_path(sandbox)
-    File.join(DATA_DIR, "wetty", sandbox.full_name)
-  end
-
-  def container_running?(name)
-    container = Docker::Container.get(name)
-    container.json.dig("State", "Running") == true
-  rescue Docker::Error::NotFoundError
-    false
-  end
-
-  def pull_image
-    Docker::Image.get(WETTY_IMAGE)
-  rescue Docker::Error::NotFoundError
-    Docker::Image.create("fromImage" => WETTY_IMAGE)
-  rescue Docker::Error::DockerError
-    raise Error, "Failed to pull #{WETTY_IMAGE} — check network connectivity"
-  end
-
-  def ensure_network
-    Docker::Network.get(NETWORK_NAME)
-  rescue Docker::Error::NotFoundError
-    Docker::Network.create(NETWORK_NAME, "Driver" => "bridge")
-  end
-
-  def connect_sandbox_to_network(sandbox)
-    return unless sandbox.container_id.present?
-
-    network = Docker::Network.get(NETWORK_NAME)
-    container = Docker::Container.get(sandbox.container_id)
-
-    networks = container.json.dig("NetworkSettings", "Networks") || {}
-    return if networks.key?(NETWORK_NAME)
-
-    network.connect(sandbox.container_id)
-  rescue Docker::Error::NotFoundError
-    # Container no longer exists - sync job will fix the DB state
-    raise Error, "Sandbox container not found. Please refresh and try again."
-  end
-
-  def generate_keypair(sandbox)
-    key_dir = key_dir_path(sandbox)
-    # Remove entire dir to avoid stale keys with bad permissions from prior sessions
-    FileUtils.rm_rf(key_dir)
-    FileUtils.mkdir_p(key_dir, mode: 0o700)
-
-    key_path = File.join(key_dir, "key")
-
-    system("ssh-keygen", "-t", "ed25519", "-f", key_path, "-N", "", "-q", "-C", "wetty-#{sandbox.full_name}",
-      exception: true)
-
-    # Ensure private key is only readable by owner
-    File.chmod(0o600, key_path)
-
-    key_dir
-  end
-
-  def inject_pubkey(sandbox, key_dir)
-    pubkey = File.read(File.join(key_dir, "key.pub")).strip
-    username = sandbox.user.name
-
-    container = Docker::Container.get(sandbox.container_id)
-
-    # Write pubkey via base64 to avoid any shell-injection risk.
-    # The stdin: approach hangs because docker-api never sends EOF to cat.
-    encoded = Base64.strict_encode64("#{pubkey}\n")
-    container.exec([ "mkdir", "-p", "/home/#{username}/.ssh" ])
-    container.exec([ "sh", "-c", "echo #{encoded} | base64 -d >> /home/#{username}/.ssh/authorized_keys" ])
-    container.exec([ "chown", "-R", "#{username}:#{username}", "/home/#{username}/.ssh" ])
-    container.exec([ "chmod", "600", "/home/#{username}/.ssh/authorized_keys" ])
-  end
-
-  def create_wetty_container(sandbox:, user:, key_dir:)
-    container_name = wetty_container_name(sandbox)
-
-    # Remove any existing container with this name
-    begin
-      old = Docker::Container.get(container_name)
-      old.stop(t: 3) rescue nil
-      old.delete(force: true)
-    rescue Docker::Error::NotFoundError
-      # No existing container
-    end
-
-    ssh_command = [
-      "ssh", "-p", "22",
-      "-o", "StrictHostKeyChecking=no",
-      "-o", "UserKnownHostsFile=/dev/null",
-      "-o", "LogLevel=ERROR",
-      "-i", "/etc/wetty/key",
-      "#{user.name}@#{sandbox.full_name}",
-      "-t", "tmux new-session -A -s main"
-    ].join(" ")
-
-    container = Docker::Container.create(
-      "name" => container_name,
-      "Image" => WETTY_IMAGE,
-      "Env" => [
-        "COMMAND=#{ssh_command}",
-        "BASE=/terminal/#{sandbox.id}/wetty"
-      ],
-      "HostConfig" => {
-        "NetworkMode" => NETWORK_NAME,
-        "RestartPolicy" => { "Name" => "no" },
-        "Memory" => 128 * 1024 * 1024, # 128MB
-        "NanoCpus" => 500_000_000 # 0.5 CPU
-      },
-      "Labels" => {
-        "sandcastle.sandbox_id" => sandbox.id.to_s,
-        "sandcastle.role" => "wetty"
-      }
-    )
-
-    container.start
-    copy_key_to_container(container, key_dir)
-    container
-  end
-
-  # Copy the SSH private key into the WeTTY container via exec + base64.
-  # This avoids bind-mount path issues when Rails runs inside a container
-  # with a Docker volume for /data (the host path doesn't match).
-  def copy_key_to_container(container, key_dir)
-    key_content = File.read(File.join(key_dir, "key"))
-    encoded = Base64.strict_encode64(key_content)
-
-    container.exec([ "mkdir", "-p", "/etc/wetty" ])
-    container.exec([ "sh", "-c", "echo #{encoded} | base64 -d > /etc/wetty/key" ])
-    container.exec([ "chmod", "600", "/etc/wetty/key" ])
+  def terminal_url(sandbox, type)
+    "/terminal/#{sandbox.id}/#{type}"
   end
 
   def write_traefik_config(sandbox)
@@ -271,39 +66,60 @@ class TerminalManager
     return if File.exist?(config_path)
 
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
-    id = sandbox.id
-    container_name = wetty_container_name(sandbox)
+    id   = sandbox.id
+    container = sandbox.full_name
 
-    rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
-      "HostRegexp(`.+`) && PathPrefix(`/terminal/#{id}/wetty`)"
+    if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+      tmux_rule  = "HostRegexp(`.+`) && PathPrefix(`/terminal/#{id}/tmux`)"
+      shell_rule = "HostRegexp(`.+`) && PathPrefix(`/terminal/#{id}/shell`)"
     else
-      "Host(`#{host}`) && PathPrefix(`/terminal/#{id}/wetty`)"
+      tmux_rule  = "Host(`#{host}`) && PathPrefix(`/terminal/#{id}/tmux`)"
+      shell_rule = "Host(`#{host}`) && PathPrefix(`/terminal/#{id}/shell`)"
     end
 
     config = {
       "http" => {
         "routers" => {
-          "terminal-#{id}" => {
-            "rule" => rule,
-            "service" => "terminal-#{id}",
+          "terminal-#{id}-tmux" => {
+            "rule"        => tmux_rule,
+            "service"     => "terminal-#{id}-tmux",
             "entryPoints" => [ "websecure" ],
-            "tls" => tls_config,
-            "middlewares" => [ "terminal-auth-#{id}" ],
-            "priority" => 100
+            "tls"         => tls_config,
+            "middlewares" => [ "terminal-auth-#{id}", "terminal-#{id}-strip-tmux" ],
+            "priority"    => 100
+          },
+          "terminal-#{id}-shell" => {
+            "rule"        => shell_rule,
+            "service"     => "terminal-#{id}-shell",
+            "entryPoints" => [ "websecure" ],
+            "tls"         => tls_config,
+            "middlewares" => [ "terminal-auth-#{id}", "terminal-#{id}-strip-shell" ],
+            "priority"    => 100
           }
         },
         "middlewares" => {
           "terminal-auth-#{id}" => {
             "forwardAuth" => {
-              "address" => "http://sandcastle-web:80/terminal/auth",
+              "address"            => "http://sandcastle-web:80/terminal/auth",
               "trustForwardHeader" => true
             }
+          },
+          "terminal-#{id}-strip-tmux" => {
+            "stripPrefix" => { "prefixes" => [ "/terminal/#{id}/tmux" ] }
+          },
+          "terminal-#{id}-strip-shell" => {
+            "stripPrefix" => { "prefixes" => [ "/terminal/#{id}/shell" ] }
           }
         },
         "services" => {
-          "terminal-#{id}" => {
+          "terminal-#{id}-tmux" => {
             "loadBalancer" => {
-              "servers" => [ { "url" => "http://#{container_name}:3000" } ]
+              "servers" => [ { "url" => "http://#{container}:#{TMUX_PORT}" } ]
+            }
+          },
+          "terminal-#{id}-shell" => {
+            "loadBalancer" => {
+              "servers" => [ { "url" => "http://#{container}:#{SHELL_PORT}" } ]
             }
           }
         }
@@ -325,25 +141,5 @@ class TerminalManager
   def delete_traefik_config(sandbox)
     path = File.join(DYNAMIC_DIR, "terminal-#{sandbox.id}.yml")
     File.delete(path) if File.exist?(path)
-  end
-
-  def remove_pubkey(sandbox)
-    return unless sandbox.container_id.present?
-
-    begin
-      container = Docker::Container.get(sandbox.container_id)
-      username = sandbox.user.name
-      # Match end-of-line to avoid substring collisions
-      # (e.g. "wetty-user-foo" must not also remove "wetty-user-foobar").
-      # Sandbox names are [a-z0-9_-] only, so safe for regex.
-      marker = "wetty-#{sandbox.full_name}$"
-      container.exec([
-        "sh", "-c",
-        "grep -v '#{marker}' /home/#{username}/.ssh/authorized_keys > /tmp/ak_clean && " \
-        "mv /tmp/ak_clean /home/#{username}/.ssh/authorized_keys || true"
-      ])
-    rescue Docker::Error::NotFoundError, Docker::Error::DockerError
-      # Sandbox container gone or exec failed — best-effort
-    end
   end
 end

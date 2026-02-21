@@ -59,6 +59,7 @@ services:
       GITHUB_CLIENT_SECRET: \${GITHUB_CLIENT_SECRET:-}
       GOOGLE_CLIENT_ID: \${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: \${GOOGLE_CLIENT_SECRET:-}
+      DOCKYARD_POOL_BASE: \${DOCKYARD_POOL_BASE:-10.89.0.0/16}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -83,6 +84,7 @@ services:
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: \${DB_PASSWORD}
+      DOCKYARD_POOL_BASE: \${DOCKYARD_POOL_BASE:-10.89.0.0/16}
     restart: unless-stopped
     depends_on:
       migrate:

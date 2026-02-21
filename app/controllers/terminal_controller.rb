@@ -5,34 +5,33 @@ class TerminalController < ApplicationController
 
   def open
     sandbox = find_sandbox
+    type    = params[:type].presence_in(%w[tmux shell]) || "tmux"
     manager = TerminalManager.new
 
-    # Already up? Skip the wait page entirely.
-    if manager.active?(sandbox: sandbox)
-      redirect_to terminal_redirect_url("/terminal/#{sandbox.id}/wetty"), allow_other_host: true, status: :see_other
-      return
+    manager.open(sandbox: sandbox, type: type)
+
+    # ttyd starts inside the container at boot; probe and redirect immediately
+    # if it's already listening, otherwise send to wait page.
+    if manager.active?(sandbox: sandbox, type: type)
+      redirect_to terminal_redirect_url("/terminal/#{sandbox.id}/#{type}"), allow_other_host: true, status: :see_other
+    else
+      redirect_to terminal_wait_sandbox_path(sandbox, type: type), status: :see_other
     end
-
-    # Write Traefik config now (web container has correct SANDCASTLE_HOST).
-    # The job runs in the worker which may lack this env var.
-    manager.prepare_traefik_config(sandbox)
-
-    # Kick off container setup in background and return immediately.
-    TerminalOpenJob.perform_later(sandbox_id: sandbox.id)
-    redirect_to terminal_wait_sandbox_path(sandbox), status: :see_other
   rescue TerminalManager::Error => e
     redirect_to root_path, alert: e.message
   end
 
   def wait
     @sandbox = find_sandbox
-    @terminal_url = terminal_redirect_url("/terminal/#{@sandbox.id}/wetty")
+    @type    = params[:type].presence_in(%w[tmux shell]) || "tmux"
+    @terminal_url = terminal_redirect_url("/terminal/#{@sandbox.id}/#{@type}")
   end
 
   def status
     sandbox = find_sandbox
+    type    = params[:type].presence_in(%w[tmux shell]) || "tmux"
     response.headers["Cache-Control"] = "no-store"
-    ready = TerminalManager.new.active?(sandbox: sandbox)
+    ready = TerminalManager.new.active?(sandbox: sandbox, type: type)
     render json: { status: ready ? "ready" : "waiting" }
   end
 
@@ -69,13 +68,11 @@ class TerminalController < ApplicationController
   # login (which Traefik passes through to the browser).
   def auth
     forwarded_uri = request.headers["X-Forwarded-Uri"] || ""
-    match = forwarded_uri.match(%r{/terminal/(\d+)/wetty})
+    match = forwarded_uri.match(%r{/terminal/(\d+)/(tmux|shell)})
     head(:unauthorized) and return unless match
 
     session_record = find_session_by_cookie
     unless session_record
-      # Build the original terminal URL from Traefik's forwarded headers
-      # so the user returns here after logging in.
       proto = request.headers["X-Forwarded-Proto"] || "https"
       host  = request.headers["X-Forwarded-Host"] || request.host_with_port
       original_url = "#{proto}://#{host}#{forwarded_uri}"
@@ -84,7 +81,7 @@ class TerminalController < ApplicationController
       return
     end
 
-    user = session_record.user
+    user    = session_record.user
     sandbox = Sandbox.active.find_by(id: match[1].to_i)
     head(:unauthorized) and return unless sandbox && (sandbox.user_id == user.id || user.admin?)
 

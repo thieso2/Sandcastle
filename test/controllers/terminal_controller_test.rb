@@ -23,7 +23,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
 
   test "auth redirects to login without session cookie" do
     get terminal_auth_path, headers: {
-      "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/wetty/",
+      "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/tmux/",
       "X-Forwarded-Proto" => "https",
       "X-Forwarded-Host" => "sandbox.example.com"
     }
@@ -33,48 +33,48 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
 
   test "auth stores return_to URL from forwarded headers" do
     get terminal_auth_path, headers: {
-      "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/wetty/",
+      "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/tmux/",
       "X-Forwarded-Proto" => "https",
       "X-Forwarded-Host" => "sandbox.example.com"
     }
-    assert_equal "https://sandbox.example.com/terminal/#{@alice_sandbox.id}/wetty/",
+    assert_equal "https://sandbox.example.com/terminal/#{@alice_sandbox.id}/tmux/",
                  session[:return_to_after_authenticating]
   end
 
   test "auth returns 200 for sandbox owner" do
     sign_in_as(@admin) # alice owns alice_sandbox
-    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/wetty/" }
+    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/tmux/" }
     assert_response :ok
   end
 
   test "auth returns 401 for non-owner" do
     sign_in_as(@user) # bob does NOT own alice_sandbox
-    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/wetty/" }
+    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/tmux/" }
     assert_response :unauthorized
   end
 
   test "auth returns 200 for admin accessing another user's sandbox" do
     sign_in_as(@admin)
-    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@bob_sandbox.id}/wetty/" }
+    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@bob_sandbox.id}/tmux/" }
     assert_response :ok
   end
 
   test "auth returns 401 for non-existent sandbox ID" do
     sign_in_as(@admin)
-    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/999999/wetty/" }
+    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/999999/tmux/" }
     assert_response :unauthorized
   end
 
   test "auth returns 401 for destroyed sandbox" do
     destroyed = sandboxes(:alice_destroyed)
     sign_in_as(@admin)
-    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{destroyed.id}/wetty/" }
+    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{destroyed.id}/tmux/" }
     assert_response :unauthorized
   end
 
-  test "auth handles nested wetty paths" do
+  test "auth handles nested ttyd paths" do
     sign_in_as(@admin)
-    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/wetty/socket.io/?transport=websocket" }
+    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@alice_sandbox.id}/shell/?ws=1" }
     assert_response :ok
   end
 
@@ -86,7 +86,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
 
   test "auth returns 200 for bob accessing his own sandbox" do
     sign_in_as(@user)
-    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@bob_sandbox.id}/wetty/" }
+    get terminal_auth_path, headers: { "X-Forwarded-Uri" => "/terminal/#{@bob_sandbox.id}/shell/" }
     assert_response :ok
   end
 
@@ -97,15 +97,26 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
-  test "open redirects to wait page on success" do
+  test "open redirects to wait page when ttyd not yet ready" do
     sign_in_as(@admin)
 
-    with_terminal_manager_stub(open_result: "/terminal/#{@alice_sandbox.id}/wetty") do
+    with_terminal_manager_stub(active: false) do
       post terminal_sandbox_path(@alice_sandbox)
     end
 
     assert_response :see_other
-    assert_redirected_to terminal_wait_sandbox_path(@alice_sandbox)
+    assert_redirected_to terminal_wait_sandbox_path(@alice_sandbox, type: "tmux")
+  end
+
+  test "open redirects directly to terminal when ttyd is ready" do
+    sign_in_as(@admin)
+
+    with_terminal_manager_stub(active: true) do
+      post terminal_sandbox_path(@alice_sandbox)
+    end
+
+    assert_response :see_other
+    assert_redirected_to "/terminal/#{@alice_sandbox.id}/tmux"
   end
 
   test "open returns 404 for another user's sandbox" do
@@ -117,12 +128,12 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
   test "admin can open terminal for any sandbox" do
     sign_in_as(@admin)
 
-    with_terminal_manager_stub(open_result: "/terminal/#{@bob_sandbox.id}/wetty") do
+    with_terminal_manager_stub(active: false) do
       post terminal_sandbox_path(@bob_sandbox)
     end
 
     assert_response :see_other
-    assert_redirected_to terminal_wait_sandbox_path(@bob_sandbox)
+    assert_redirected_to terminal_wait_sandbox_path(@bob_sandbox, type: "tmux")
   end
 
   test "open redirects to root with alert on TerminalManager error" do
@@ -134,6 +145,17 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to root_path
     assert_equal "Sandbox is not running", flash[:alert]
+  end
+
+  test "open respects type param for shell" do
+    sign_in_as(@admin)
+
+    with_terminal_manager_stub(active: true) do
+      post terminal_sandbox_path(@alice_sandbox, type: "shell")
+    end
+
+    assert_response :see_other
+    assert_redirected_to "/terminal/#{@alice_sandbox.id}/shell"
   end
 
   # ── wait ───────────────────────────────────────────────────────
@@ -169,7 +191,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
-  test "status returns ready when WeTTY is running" do
+  test "status returns ready when ttyd is listening" do
     sign_in_as(@admin)
 
     with_terminal_manager_stub(active: true) do
@@ -180,7 +202,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     assert_equal({ "status" => "ready" }, response.parsed_body)
   end
 
-  test "status returns waiting when WeTTY is not running" do
+  test "status returns waiting when ttyd is not yet listening" do
     sign_in_as(@admin)
 
     with_terminal_manager_stub(active: false) do
@@ -255,16 +277,15 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def with_terminal_manager_stub(open_result: nil, open_error: nil, close_error: nil, active: nil, &block)
+  def with_terminal_manager_stub(open_error: nil, close_error: nil, active: nil, &block)
     stub = Object.new
-    stub.define_singleton_method(:open) do |sandbox:|
+    stub.define_singleton_method(:open) do |sandbox:, type: "tmux"|
       raise TerminalManager::Error, open_error if open_error
-      open_result
     end
     stub.define_singleton_method(:close) do |sandbox:|
       raise TerminalManager::Error, close_error if close_error
     end
-    stub.define_singleton_method(:active?) do |sandbox:|
+    stub.define_singleton_method(:active?) do |sandbox:, type: "tmux"|
       active
     end
 

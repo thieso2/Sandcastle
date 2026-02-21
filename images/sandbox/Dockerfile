@@ -15,7 +15,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     openssh-server sudo curl git tmux vim neovim \
     build-essential \
-    jq ripgrep fd-find htop wget unzip ca-certificates net-tools iputils-ping \
+    jq ripgrep fd-find htop wget unzip ca-certificates net-tools iproute2 iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined) and window manager.
@@ -90,6 +90,13 @@ RUN mkdir -p /opt/sandcastle/bin \
     && cp -L /root/.local/bin/claude /opt/sandcastle/bin/claude \
     && rm -rf /root/.local/share/claude /root/.local/bin/claude
 
+# ttyd — web terminal (two ports: 7681=tmux, 7682=shell)
+RUN ARCH=$(dpkg --print-architecture) \
+    && TTYD_ARCH=$([ "$ARCH" = "arm64" ] && echo "aarch64" || echo "x86_64") \
+    && curl -fsSL "https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.${TTYD_ARCH}" \
+       -o /usr/local/bin/ttyd \
+    && chmod +x /usr/local/bin/ttyd
+
 # Entire CLI — git observability for AI agent sessions (https://entire.io)
 RUN ARCH="$(dpkg --print-architecture)" \
     && curl -fsSL "https://github.com/entireio/cli/releases/latest/download/entire_linux_${ARCH}.tar.gz" \
@@ -125,6 +132,6 @@ LABEL org.opencontainers.image.description="Sandcastle sandbox image — Ubuntu 
 LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /workspace
-EXPOSE 22 5900 6080
+EXPOSE 22 5900 6080 7681 7682
 
 ENTRYPOINT ["/entrypoint.sh"]

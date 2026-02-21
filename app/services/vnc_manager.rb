@@ -1,6 +1,5 @@
 class VncManager
-  DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
-  NETWORK_NAME = "sandcastle-web"
+  DATA_DIR    = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
   DYNAMIC_DIR = File.join(DATA_DIR, "traefik", "dynamic")
 
   class Error < StandardError; end
@@ -12,17 +11,9 @@ class VncManager
   # the Traefik routing config.
   def open(sandbox:)
     raise Error, "Sandbox is not running" unless sandbox.status == "running"
-    raise Error, "Sandbox has no container" if sandbox.container_id.blank?
 
-    ensure_network
-    connect_sandbox_to_network(sandbox)
     write_traefik_config(sandbox)
-
     vnc_url(sandbox)
-  rescue Docker::Error::DockerError => e
-    raise Error, "Failed to open browser: #{e.message}"
-  rescue SystemCallError => e
-    raise Error, "Failed to open browser: #{e.message}"
   end
 
   # Closes the web VNC session for the given sandbox.
@@ -73,26 +64,6 @@ class VncManager
 
   def traefik_config_path(sandbox)
     File.join(DYNAMIC_DIR, "vnc-#{sandbox.id}.yml")
-  end
-
-  def ensure_network
-    Docker::Network.get(NETWORK_NAME)
-  rescue Docker::Error::NotFoundError
-    Docker::Network.create(NETWORK_NAME, "Driver" => "bridge")
-  end
-
-  def connect_sandbox_to_network(sandbox)
-    return unless sandbox.container_id.present?
-
-    network = Docker::Network.get(NETWORK_NAME)
-    container = Docker::Container.get(sandbox.container_id)
-
-    networks = container.json.dig("NetworkSettings", "Networks") || {}
-    return if networks.key?(NETWORK_NAME)
-
-    network.connect(sandbox.container_id)
-  rescue Docker::Error::NotFoundError
-    raise Error, "Sandbox container not found. Please refresh and try again."
   end
 
   def write_traefik_config(sandbox)
