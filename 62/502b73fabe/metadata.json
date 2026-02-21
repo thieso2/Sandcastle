@@ -6,8 +6,6 @@
   "checkpoints_count": 10,
   "files_touched": [
     ".gitignore",
-    "Dockerfile",
-    "Gemfile",
     "app/assets/tailwind/application.css",
     "app/controllers/tailscale_controller.rb",
     "app/models/sandbox.rb",
@@ -21,15 +19,15 @@
     "app/views/registrations/new.html.erb",
     "app/views/shared/_navbar.html.erb",
     "app/views/tailscale/_pending.html.erb",
-    "config/environments/production.rb",
     "config/initializers/traefik.rb",
     "config/routes.rb",
-    "db/errors_schema.rb",
     "db/migrate/20260219000001_create_snapshots.rb",
     "db/migrate/20260219000002_create_snapshots.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
-    "images/sandbox/Dockerfile"
+    "images/sandbox/Dockerfile",
+    "mise.toml",
+    "scripts/generate-local-cert.sh"
   ],
   "sessions": [
     {
@@ -111,10 +109,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 222,
-    "cache_creation_tokens": 480855,
-    "cache_read_tokens": 12673398,
-    "output_tokens": 14527,
-    "api_call_count": 171
+    "input_tokens": 216,
+    "cache_creation_tokens": 480189,
+    "cache_read_tokens": 12321892,
+    "output_tokens": 15364,
+    "api_call_count": 164
   }
 }
