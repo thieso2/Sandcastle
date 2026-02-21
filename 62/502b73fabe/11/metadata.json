@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "62502b73fabe",
+  "session_id": "664afff5-da61-4090-8906-db529ed28488",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T12:39:00.557646Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "db/migrate/20260221120000_allow_null_ssh_port.rb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "fd4cba83-98d7-4620-b455-e0de26c0d8d7",
+  "token_usage": {
+    "input_tokens": 54,
+    "cache_creation_tokens": 59437,
+    "cache_read_tokens": 2831904,
+    "output_tokens": 6305,
+    "api_call_count": 50
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T12:39:00.526935Z",
+    "agent_lines": 0,
+    "human_added": 10,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 10,
+    "agent_percentage": 0
+  }
+}

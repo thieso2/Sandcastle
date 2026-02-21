@@ -1,0 +1,9 @@
+stopping a castle does not work - check docker compose logs
+
+---
+
+[Request interrupted by user]
+
+---
+
+test the local install! https://dev.sand:8443/ docker mise run deploy:local
