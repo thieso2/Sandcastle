@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"io"
 	"log"
 	"net"
 	"net/http"
