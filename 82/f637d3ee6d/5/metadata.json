@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "4092b9f3-4789-4819-9969-7ec089c4836b",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T19:02:21.301608Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "config/initializers/active_record_encryption.rb",
+    "images/sandbox/.Dockerfile.swp"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "a51a121a-af4b-4710-a70a-3155ad9c3b21",
+  "token_usage": {
+    "input_tokens": 57,
+    "cache_creation_tokens": 65729,
+    "cache_read_tokens": 2990931,
+    "output_tokens": 9121,
+    "api_call_count": 54
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T19:02:21.262884Z",
+    "agent_lines": 0,
+    "human_added": 71,
+    "human_modified": 5,
+    "human_removed": 0,
+    "total_committed": 71,
+    "agent_percentage": 0
+  }
+}

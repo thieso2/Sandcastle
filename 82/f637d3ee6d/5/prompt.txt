@@ -1,0 +1,31 @@
+on sandman analyze 
+[c0414a9e-2bea-4f4f-9325-3cd8f388bd4f]
+[c0414a9e-2bea-4f4f-9325-3cd8f388bd4f] ActionView::Template::Error (Missing Active Record encryption credential: active_record_encryption.primary_key)
+[c0414a9e-2bea-4f4f-9325-3cd8f388bd4f] Caused by: ActiveRecord::Encryption::Errors::Configuration (Missing Active Record encryption credential: active_record_encryption.primary_key)
+[c0414a9e-2bea-4f4f-9325-3cd8f388bd4f]
+Information for: ActionView::Template::Error (Missing Active Record encryption credential: active_record_encryption.primary_key):
+
+teh keys are in /sandcastle/.env
+
+---
+
+[Request interrupted by user]
+
+---
+
+we still get 
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]   Rendered layout layouts/admin.html.erb (Duration: 1.9ms | GC: 0.0ms)
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378] Completed 500 Internal Server Error in 6ms (ActiveRecord: 0.4ms (6 queries, 3 cached) | GC: 0.0ms)
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378] ActionView::Template::Error (Missing Active Record encryption credential: active_record_encryption.primary_key)
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378] Caused by: ActiveRecord::Encryption::Errors::Configuration (Missing Active Record encryption credential: active_record_encryption.primary_key)
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]
+sandcastle-web     | Information for: ActionView::Template::Error (Missing Active Record encryption credential: active_record_encryption.primary_key):
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]     85:         <div>
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]     86:           <%= form.label :smtp_password, "Password", class: "block text-sm font-medium text-gray-700 mb-1" %>
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]     87:           <%= form.password_field :smtp_password,
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]     88:                 placeholder: @setting.smtp_password.present? ? "Password is set (leave blank to keep)" : "Enter password",
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]     89:                 class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-blue-600" %>
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]     90:         </div>
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]     91:         <div>
+sandcastle-web     | [538c5d58-dd89-4107-93c4-4e693a209378]
