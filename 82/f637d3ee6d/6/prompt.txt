@@ -18,3 +18,47 @@ sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718]     85:         <div
 sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718]     86:           <%= form.label :smtp_password, "Password", class: "block text-sm font-medium text-gray-700 mb-1" %>
 
 livepatch and fix it!
+
+---
+
+push it
+
+---
+
+still can't save new values:
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Started PATCH "/admin/settings" for 10.206.1.1 at 2026-02-21 19:25:29 +0000
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Processing by Admin::SettingsController#update as TURBO_STREAM
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]   Parameters: {"authenticity_token" => "[FILTERED]", "setting" => {"github_client_id" => "Ov23liy89sRNyB50uajJ", "github_client_secret" => "[FILTERED]", "google_client_id" => "", "google_client_secret" => "[FILTERED]", "smtp_address" => "smtp.eu.mailgun.org", "smtp_port" => "587", "smtp_username" => "sandcastle@sandcastle.rocks", "smtp_password" => "[FILTERED]", "smtp_authentication" => "plain", "smtp_from_address" => "someone@sandcastle.rocks", "smtp_starttls" => "1"}, "commit" => "Save Settings"}
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Completed 500 Internal Server Error in 14ms (ActiveRecord: 0.4ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Caused by: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Caused by: OpenSSL::Cipher::AuthTagError (AEAD authentication tag verification failed)
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Caused by: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Caused by: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Caused by: OpenSSL::Cipher::AuthTagError (AEAD authentication tag verification failed)
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | Information for: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption):
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] app/controllers/admin/settings_controller.rb:12:in 'Admin::SettingsController#update'
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | Information for cause: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption):
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] app/controllers/admin/settings_controller.rb:12:in 'Admin::SettingsController#update'
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | Information for cause: OpenSSL::Cipher::AuthTagError (AEAD authentication tag verification failed):
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] app/controllers/admin/settings_controller.rb:12:in 'Admin::SettingsController#update'
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | Information for cause: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption):
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] app/controllers/admin/settings_controller.rb:12:in 'Admin::SettingsController#update'
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | Information for cause: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption):
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] app/controllers/admin/settings_controller.rb:12:in 'Admin::SettingsController#update'
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+sandcastle-web     | Information for cause: OpenSSL::Cipher::AuthTagError (AEAD authentication tag verification failed):
+sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
+
+livefix and fix!
