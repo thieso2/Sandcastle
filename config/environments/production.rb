@@ -9,8 +9,8 @@ Rails.application.configure do
   # Eager load code on boot for better performance and memory savings (ignored by Rake tasks).
   config.eager_load = true
 
-  # Full error reports are disabled.
-  config.consider_all_requests_local = false
+  # Full error reports are disabled in production; enable via env var for local deploys.
+  config.consider_all_requests_local = ENV["RAILS_SHOW_DETAILED_ERRORS"] == "true"
 
   # Turn on fragment caching in view templates.
   config.action_controller.perform_caching = true
