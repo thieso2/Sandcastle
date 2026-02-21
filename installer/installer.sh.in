@@ -831,6 +831,7 @@ SANDCASTLE_ADMIN_PASSWORD="${SANDCASTLE_ADMIN_PASSWORD}"
 SANDCASTLE_ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-}"
 DOCKER_GID="${DOCKER_GID}"
 DOCKER_SOCK="${DOCKER_SOCK}"
+DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE}"
 ACME_EMAIL="${ACME_EMAIL:-}"
 GITHUB_CLIENT_ID="${GITHUB_CLIENT_ID:-}"
 GITHUB_CLIENT_SECRET="${GITHUB_CLIENT_SECRET:-}"
@@ -851,6 +852,9 @@ EOF
     DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
     echo "DOCKER_SOCK=$DOCKER_SOCK" >> "$SANDCASTLE_HOME/.env"
   fi
+  # Backfill DOCKYARD_POOL_BASE — required so docker-compose passes the correct subnet to Rails
+  grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}" >> "$SANDCASTLE_HOME/.env"
   # Backfill OAuth vars from sandcastle.env into .env
   grep -q '^GITHUB_CLIENT_ID=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
@@ -1178,6 +1182,8 @@ cmd_update() {
   source "$SANDCASTLE_HOME/.env"
 
   # Backfill vars that may be missing in older .env files
+  grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}" >> "$SANDCASTLE_HOME/.env"
   grep -q '^GITHUB_CLIENT_ID=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
   grep -q '^GITHUB_CLIENT_SECRET=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
