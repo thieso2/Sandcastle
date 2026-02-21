@@ -9,7 +9,7 @@ class VncController < ApplicationController
 
     # Already up? Skip the wait page entirely.
     if manager.active?(sandbox: sandbox)
-      redirect_to vnc_redirect_url("/vnc/#{sandbox.id}/vnc.html?path=vnc/#{sandbox.id}/websockify&autoconnect=true"), allow_other_host: true, status: :see_other
+      redirect_to vnc_redirect_url(manager.vnc_url(sandbox)), allow_other_host: true, status: :see_other
       return
     end
 
@@ -26,8 +26,7 @@ class VncController < ApplicationController
 
   def wait
     @sandbox = find_sandbox
-    id = @sandbox.id
-    @vnc_url = vnc_redirect_url("/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify&autoconnect=true")
+    @vnc_url = vnc_redirect_url(VncManager.new.vnc_url(@sandbox))
   end
 
   def status

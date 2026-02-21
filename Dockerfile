@@ -53,6 +53,10 @@ RUN bundle exec bootsnap precompile -j 1 app/ lib/
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
+# Download noVNC static files into public/novnc/ so Rails can serve them directly.
+# These are served at /novnc/ and loaded by the VNC client page (vnc.html).
+RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails novnc:download
+
 
 # Development stage for live source mounting
 FROM base AS development

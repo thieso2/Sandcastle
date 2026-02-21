@@ -64,12 +64,12 @@ class VncManager
     write_traefik_config(sandbox)
   end
 
-  private
-
   def vnc_url(sandbox)
     id = sandbox.id
-    "/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify&autoconnect=true"
+    "/novnc/vnc.html?path=/vnc/#{id}/websockify&autoconnect=true"
   end
+
+  private
 
   def traefik_config_path(sandbox)
     File.join(DYNAMIC_DIR, "vnc-#{sandbox.id}.yml")
@@ -105,15 +105,14 @@ class VncManager
     sandbox_name = sandbox.full_name
 
     base_rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
-      "HostRegexp(`.+`) && PathPrefix(`/vnc/#{id}`)"
+      "HostRegexp(`.+`) && PathPrefix(`/vnc/#{id}/websockify`)"
     else
-      "Host(`#{host}`) && PathPrefix(`/vnc/#{id}`)"
+      "Host(`#{host}`) && PathPrefix(`/vnc/#{id}/websockify`)"
     end
 
-    # Route all /vnc/{id} traffic to the sandbox container's websockify process
-    # on port 6080. websockify serves noVNC static files and proxies WebSocket
-    # connections to Xvnc on localhost:5900 inside the sandbox.
-    # stripPrefix removes /vnc/{id} so websockify sees /websockify and /vnc.html.
+    # Route only the WebSocket path /vnc/{id}/websockify to websockify-go on port 6080.
+    # noVNC static files (vnc.html, core/, etc.) are served from Rails public/novnc/.
+    # stripPrefix removes /vnc/{id} so websockify-go receives /websockify.
     config = {
       "http" => {
         "routers" => {
