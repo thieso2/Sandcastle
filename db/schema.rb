@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_19_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -89,7 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_19_100000) do
     t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
     t.boolean "persistent_volume", default: false, null: false
-    t.integer "ssh_port", null: false
+    t.integer "ssh_port"
     t.string "status", default: "pending", null: false
     t.boolean "tailscale", default: false, null: false
     t.boolean "temporary", default: false, null: false

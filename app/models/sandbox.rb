@@ -4,17 +4,12 @@ class Sandbox < ApplicationRecord
   belongs_to :user
   has_many :routes, dependent: :destroy
 
-  SSH_PORT_RANGE = (2201..2299)
   VNC_GEOMETRIES = %w[1280x900 1366x768 1440x900 1600x900 1920x1080 2560x1440].freeze
   VNC_DEPTHS = [ 8, 16, 24, 32 ].freeze
 
   validates :name, presence: true,
     uniqueness: { scope: :user_id, conditions: -> { where.not(status: "destroyed") } },
     format: { with: /\A[a-z][a-z0-9_-]{0,62}\z/, message: "must be lowercase alphanumeric" }
-  validates :ssh_port, presence: true,
-    uniqueness: { conditions: -> { where.not(status: %w[destroyed stopped]) } },
-    inclusion: { in: SSH_PORT_RANGE },
-    unless: -> { status == "stopped" }
   validates :status, inclusion: { in: %w[pending running stopped destroyed] }
   validates :image, presence: true
   validates :vnc_geometry, inclusion: { in: VNC_GEOMETRIES }
@@ -22,8 +17,6 @@ class Sandbox < ApplicationRecord
 
   scope :active, -> { where.not(status: "destroyed") }
   scope :running, -> { where(status: "running") }
-
-  before_validation :assign_ssh_port, on: :create
 
   # Turbo Streams for real-time UI updates
   after_create_commit :broadcast_prepend_to_dashboard
@@ -34,8 +27,8 @@ class Sandbox < ApplicationRecord
     "#{user.name}-#{name}"
   end
 
-  def connect_command(host: ENV.fetch("SANDCASTLE_HOST", "localhost"))
-    "ssh -p #{ssh_port} #{user.name}@#{host}"
+  def connect_command
+    "sandcastle connect #{name}"
   end
 
   def routed?
@@ -96,11 +89,4 @@ class Sandbox < ApplicationRecord
     broadcast_remove_to([user, "dashboard"], target: dom_id(self))
   end
 
-  def assign_ssh_port
-    return if ssh_port.present?
-
-    used_ports = Sandbox.where.not(status: "destroyed").pluck(:ssh_port)
-    available = SSH_PORT_RANGE.to_a - used_ports
-    self.ssh_port = available.first || raise("No SSH ports available")
-  end
 end

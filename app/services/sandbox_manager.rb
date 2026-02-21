@@ -1,6 +1,7 @@
 class SandboxManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
   DEFAULT_IMAGE = "ghcr.io/thieso2/sandcastle-sandbox:latest"
+  NETWORK_NAME = "sandcastle-web"
 
   class Error < StandardError; end
 
@@ -19,9 +20,6 @@ class SandboxManager
     if persistent
       sandbox.volume_path = "#{DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
     end
-
-    # Pre-assign a port that is free in both the DB and Docker (skips model callback)
-    sandbox.ssh_port = find_free_ssh_port
 
     # Validate before doing expensive operations
     sandbox.validate!
