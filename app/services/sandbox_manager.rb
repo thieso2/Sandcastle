@@ -61,6 +61,7 @@ class SandboxManager
       "Image" => sandbox.image,
       "Hostname" => sandbox.full_name,
       "Env" => container_env(user, sandbox),
+      "Labels" => { "sandcastle.sandbox" => "true" },
       "HostConfig" => {
         "Runtime" => container_runtime,
         "PortBindings" => {
@@ -467,6 +468,7 @@ class SandboxManager
       "Image" => final_image,
       "Hostname" => sandbox.full_name,
       "Env" => container_env(user, sandbox),
+      "Labels" => { "sandcastle.sandbox" => "true" },
       "HostConfig" => {
         "Runtime" => container_runtime,
         "PortBindings" => {
