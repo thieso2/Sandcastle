@@ -606,10 +606,14 @@ cmd_destroy() {
   fi
 
   # Remove Sandcastle files — keep user data (data/users, data/sandboxes, data/postgres)
+  # Preserve data/traefik/acme.json (Let's Encrypt certs) to survive reinstalls.
   rm -f "$SANDCASTLE_HOME/.env"
   rm -f "$SANDCASTLE_HOME/docker-compose.yml"
   rm -rf "$SANDCASTLE_HOME/etc"
-  rm -rf "$SANDCASTLE_HOME/data/traefik"
+  rm -f "$SANDCASTLE_HOME/data/traefik/traefik.yml"
+  rm -rf "$SANDCASTLE_HOME/data/traefik/dynamic"
+  rm -rf "$SANDCASTLE_HOME/data/traefik/certs"
+  rmdir "$SANDCASTLE_HOME/data/traefik" 2>/dev/null || true
   rmdir "$SANDCASTLE_HOME/data" 2>/dev/null || true
   rmdir "$SANDCASTLE_HOME" 2>/dev/null || true
   rm -rf "/run/${DOCKYARD_DOCKER_PREFIX}docker"
