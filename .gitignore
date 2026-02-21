@@ -31,6 +31,10 @@
 
 /public/assets
 
+# noVNC static files (downloaded at build time via `rails novnc:download`)
+/public/novnc/*
+!/public/novnc/.gitkeep
+
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 

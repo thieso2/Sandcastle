@@ -1,3 +1,10 @@
+# Build websockify-go: minimal WebSocket→TCP proxy (~5 MB static binary)
+FROM golang:1.23-alpine AS websockify-builder
+WORKDIR /build
+COPY websockify/ .
+# go mod tidy downloads deps and generates go.sum; -mod=mod allows updating go.sum at build time
+RUN go mod tidy && CGO_ENABLED=0 go build -ldflags="-s -w" -o websockify .
+
 FROM ubuntu:25.10
 
 ARG SANDCASTLE_VERSION=dev
@@ -11,14 +18,16 @@ RUN apt-get update && apt-get install -y \
     jq ripgrep fd-find htop wget unzip ca-certificates net-tools iproute2 iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
-# GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined), noVNC static
-# files, websockify (WebSocket→RFB proxy), and window manager.
+# GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined) and window manager.
 # Xvnc sends the RFB banner immediately on connect, unlike x11vnc 0.9.17+ which waits
 # for client data first (breaking websockify's server-speaks-first expectation).
+# noVNC static files are served from the Rails app (public/novnc/), not from the sandbox.
 RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server openbox xterm xfonts-base xfonts-100dpi xfonts-75dpi \
-    novnc python3-websockify \
     && rm -rf /var/lib/apt/lists/*
+
+# websockify-go: single static binary replaces python3-websockify (~50 MB → ~5 MB)
+COPY --from=websockify-builder /build/websockify /usr/local/bin/websockify
 
 # Google Chrome (amd64) or Chromium (arm64) — Google doesn't ship a Chrome deb for arm64
 ARG TARGETARCH
