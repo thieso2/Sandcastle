@@ -34,12 +34,12 @@ services:
         http:
           routers:
             rails-http:
-              rule: "Host(`sandcastle.tc`)"
+              rule: "Host(`${DEV_HOST}`)"
               service: rails
               entryPoints:
                 - web
             rails-https:
-              rule: "Host(`sandcastle.tc`)"
+              rule: "Host(`${DEV_HOST}`)"
               service: rails
               entryPoints:
                 - websecure
@@ -109,12 +109,12 @@ services:
       PORT: 80
       BINDING: 0.0.0.0
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: sandcastle.tc
+      SANDCASTLE_HOST: ${DEV_HOST}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       SANDCASTLE_TLS_CERT_DIR: /certs
-      SANDCASTLE_TERMINAL_URL: https://sandcastle.tc:8443
-      SANDCASTLE_VNC_URL: https://sandcastle.tc:8443
+      SANDCASTLE_TERMINAL_URL: https://${DEV_HOST}:8443
+      SANDCASTLE_VNC_URL: https://${DEV_HOST}:8443
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
@@ -158,7 +158,7 @@ services:
     environment:
       RAILS_ENV: development
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: sandcastle.tc
+      SANDCASTLE_HOST: ${DEV_HOST}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       SANDCASTLE_TLS_CERT_DIR: /certs
