@@ -1,0 +1,5 @@
+add solid error to admin interface (like jobs)
+
+---
+
+commit this
