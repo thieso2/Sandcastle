@@ -1,0 +1,1 @@
+add a GH link to to footer of the dashboard.
