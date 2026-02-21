@@ -70,7 +70,9 @@
         <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">volume</span>
       <% end %>
       <% if sandbox.tailscale? %>
-        <span class="text-xs font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">Tailscale</span>
+        <span class="text-xs font-medium text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded font-mono">
+          Tailscale<% if local_assigns[:tailscale_ip].present? %> · <%= local_assigns[:tailscale_ip] %><% end %>
+        </span>
       <% end %>
       <% if local_assigns[:vnc_active] %>
         <span class="text-xs font-medium text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5">

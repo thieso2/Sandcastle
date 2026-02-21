@@ -1,14 +1,16 @@
 class DashboardController < ApplicationController
   def index
     @sandboxes = policy_scope(Sandbox).includes(:user, :routes).order(:name)
-    @vnc_active_names = running_vnc_names
+    @vnc_active_ids = running_vnc_ids
+    @tailscale_ips = tailscale_ips_for(@sandboxes)
   end
 
   def card
     sandbox = policy_scope(Sandbox).includes(:user, :routes).find(params[:id])
     authorize sandbox
     vnc_active = VncManager.new.active?(sandbox: sandbox)
-    render turbo_stream: turbo_stream.replace(helpers.dom_id(sandbox), partial: "dashboard/sandbox", locals: { sandbox: sandbox, vnc_active: vnc_active })
+    tailscale_ip = sandbox.tailscale? ? TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox) : nil
+    render turbo_stream: turbo_stream.replace(helpers.dom_id(sandbox), partial: "dashboard/sandbox", locals: { sandbox: sandbox, vnc_active: vnc_active, tailscale_ip: tailscale_ip })
   end
 
   def stats
@@ -51,13 +53,31 @@ class DashboardController < ApplicationController
 
   private
 
-  def running_vnc_names
-    Docker::Container.all.filter_map { |c|
-      name = c.info.dig("Names")&.first&.delete_prefix("/")
-      name.delete_prefix("sc-vnc-") if name&.start_with?("sc-vnc-")
+  def running_vnc_ids
+    Dir.glob(File.join(VncManager::DYNAMIC_DIR, "vnc-*.yml")).filter_map { |f|
+      File.basename(f).match(/\Avnc-(\d+)\.yml\z/)&.[](1)&.to_i
     }.to_set
-  rescue Docker::Error::DockerError
+  rescue
     Set.new
+  end
+
+  def tailscale_ips_for(sandboxes)
+    ts_sandboxes = sandboxes.select { |s| s.tailscale? && s.container_id.present? }
+    return {} if ts_sandboxes.empty?
+
+    all_containers = Docker::Container.all
+    container_map = all_containers.each_with_object({}) { |c, h| h[c.id] = c }
+
+    ts_sandboxes.each_with_object({}) do |sandbox, ips|
+      container = container_map[sandbox.container_id]
+      next unless container
+      network = sandbox.user.tailscale_network
+      next unless network.present?
+      ip = container.info.dig("NetworkSettings", "Networks", network, "IPAddress")
+      ips[sandbox.id] = ip if ip.present?
+    end
+  rescue Docker::Error::DockerError
+    {}
   end
 
   def calculate_cpu_percent(stats)
