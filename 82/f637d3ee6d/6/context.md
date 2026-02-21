@@ -18,3 +18,26 @@ sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Started PATCH "/admi
 sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3] Processing by Admin::SettingsController#update as TURBO_STREAM
 sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]   Parameters: {"authenticity_token" => "[FILTERED]", "setting" => {"github_client_id" => "Ov23liy89sRNyB50uajJ", "github_client_secret" => "[FILTERED]",...
 
+### Prompt 4
+
+commit and push
+
+### Prompt 5
+
+commit and push
+
+### Prompt 6
+
+when mountingthe home into a container i get:
+
+useradd: warning: the home directory /home/thies already exists.
+useradd: Not copying any file from skel directory into it.
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+

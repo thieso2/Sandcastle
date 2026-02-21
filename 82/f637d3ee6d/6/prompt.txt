@@ -62,3 +62,26 @@ sandcastle-web     | Information for cause: OpenSSL::Cipher::AuthTagError (AEAD 
 sandcastle-web     | [cbe10e5d-1769-40ba-ad8c-ed25c49ad9a3]
 
 livefix and fix!
+
+---
+
+commit and push
+
+---
+
+commit and push
+
+---
+
+when mountingthe home into a container i get:
+
+useradd: warning: the home directory /home/thies already exists.
+useradd: Not copying any file from skel directory into it.
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied

@@ -6,10 +6,10 @@
   "checkpoints_count": 7,
   "files_touched": [
     "VNC_AND_TTYD_AUTH.md",
-    "app/controllers/admin/settings_controller.rb",
     "config/initializers/active_record_encryption.rb",
     "config/initializers/mission_control_jobs.rb",
     "images/sandbox/.Dockerfile.swp",
+    "images/sandbox/entrypoint.sh",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
     "mise.toml"
@@ -66,10 +66,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 159,
-    "cache_creation_tokens": 111778,
-    "cache_read_tokens": 9336443,
-    "output_tokens": 20258,
-    "api_call_count": 124
+    "input_tokens": 163,
+    "cache_creation_tokens": 133736,
+    "cache_read_tokens": 9614049,
+    "output_tokens": 24688,
+    "api_call_count": 127
   }
 }
