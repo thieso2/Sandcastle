@@ -382,13 +382,11 @@ cmd_create() {
 
     local DOCKER_VERSION="29.2.1"
     local DOCKER_ROOTLESS_VERSION="29.2.1"
-    local DOCKER_BUILDX_VERSION="0.31.1"
     local SYSBOX_VERSION="0.6.7"
     local SYSBOX_DEB="sysbox-ce_${SYSBOX_VERSION}-0.linux_amd64.deb"
 
     local DOCKER_URL="https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz"
     local DOCKER_ROOTLESS_URL="https://download.docker.com/linux/static/stable/x86_64/docker-rootless-extras-${DOCKER_ROOTLESS_VERSION}.tgz"
-    local DOCKER_BUILDX_URL="https://github.com/docker/buildx/releases/download/v${DOCKER_BUILDX_VERSION}/buildx-v${DOCKER_BUILDX_VERSION}.linux-amd64"
     local SYSBOX_URL="https://downloads.nestybox.com/sysbox/releases/v${SYSBOX_VERSION}/${SYSBOX_DEB}"
 
     mkdir -p "$LOG_DIR" "$RUN_DIR" "$ETC_DIR" "$BIN_DIR"
@@ -428,7 +426,6 @@ APPARMOR
     echo "Downloading artifacts..."
     download "$DOCKER_URL"
     download "$DOCKER_ROOTLESS_URL"
-    download "$DOCKER_BUILDX_URL"
     download "$SYSBOX_URL"
 
     echo "Extracting Docker binaries..."
@@ -447,13 +444,7 @@ APPARMOR
     cp -f "$SYSBOX_EXTRACT/usr/bin/sysbox-mgr" "$BIN_DIR/"
     cp -f "$SYSBOX_EXTRACT/usr/bin/sysbox-fs" "$BIN_DIR/"
 
-    # Docker Compose is built into the docker CLI binary — no separate plugin needed.
-
-    echo "Installing Docker Buildx..."
-    local CLI_PLUGINS_DIR="${RUNTIME_DIR}/lib/docker/cli-plugins"
-    mkdir -p "$CLI_PLUGINS_DIR"
-    cp -f "${CACHE_DIR}/buildx-v${DOCKER_BUILDX_VERSION}.linux-amd64" "${CLI_PLUGINS_DIR}/docker-buildx"
-    chmod +x "${CLI_PLUGINS_DIR}/docker-buildx"
+    mkdir -p "${RUNTIME_DIR}/lib/docker"
 
     chmod +x "$BIN_DIR"/*
 
