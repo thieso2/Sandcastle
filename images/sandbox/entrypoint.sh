@@ -95,6 +95,10 @@ if command -v Xvnc &>/dev/null && [ "$VNC_ENABLED" = "1" ]; then
         su -s /bin/bash "$USERNAME" -c \
             'DISPLAY=:99 openbox &>/var/log/openbox.log &'
     fi
+    # Start websockify: serves noVNC static files and proxies WebSocket→VNC on port 6080
+    touch /var/log/websockify.log
+    chown "$USERNAME:$USERNAME" /var/log/websockify.log
+    websockify --web /usr/share/novnc/ 6080 localhost:5900 &>/var/log/websockify.log &
     # Export DISPLAY for all SSH sessions via PAM environment
     echo "DISPLAY=:99" >> /etc/environment
 fi

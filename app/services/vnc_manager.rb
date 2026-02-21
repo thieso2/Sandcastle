@@ -1,6 +1,5 @@
 class VncManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
-  NOVNC_IMAGE = ENV.fetch("SANDCASTLE_NOVNC_IMAGE", "gotget/novnc:latest")
   NETWORK_NAME = "sandcastle-web"
   DYNAMIC_DIR = File.join(DATA_DIR, "traefik", "dynamic")
 
@@ -8,26 +7,16 @@ class VncManager
 
   # Opens a web-based VNC session for the given sandbox.
   # Returns the URL path to the noVNC session.
+  # websockify runs inside the sandbox container (started by entrypoint.sh),
+  # so we only need to connect the sandbox to the Traefik network and write
+  # the Traefik routing config.
   def open(sandbox:)
     raise Error, "Sandbox is not running" unless sandbox.status == "running"
     raise Error, "Sandbox has no container" if sandbox.container_id.blank?
 
-    user = sandbox.user
-    container_name = vnc_container_name(sandbox)
-
-    # Idempotent: if noVNC container already running, return URL
-    if container_running?(container_name)
-      return vnc_url(sandbox)
-    end
-
-    pull_image
     ensure_network
     connect_sandbox_to_network(sandbox)
-
-    # Write Traefik config early so it has time to detect the new route
     write_traefik_config(sandbox)
-
-    create_novnc_container(sandbox: sandbox, user: user)
 
     vnc_url(sandbox)
   rescue Docker::Error::DockerError => e
@@ -38,61 +27,36 @@ class VncManager
 
   # Closes the web VNC session for the given sandbox.
   def close(sandbox:)
-    container_name = vnc_container_name(sandbox)
-
-    # Stop and remove noVNC container
-    begin
-      container = Docker::Container.get(container_name)
-      container.stop(t: 3) rescue nil
-      container.delete(force: true)
-    rescue Docker::Error::NotFoundError
-      # Already gone
-    end
-
-    # Delete Traefik config
     delete_traefik_config(sandbox)
   rescue Docker::Error::DockerError => e
     Rails.logger.error("VncManager: close failed for #{sandbox.full_name}: #{e.message}")
   end
 
-  # Returns true if the noVNC container is running AND its HTTP server is ready.
-  # The container_running? check alone is insufficient — the websockify process
-  # may not have bound to port 6080 yet when Docker reports the container as running.
+  # Returns true if the sandbox's websockify process is accepting connections.
+  # Requires the sandbox to already be connected to the sandcastle-web network
+  # (i.e., after open has been called).
   def active?(sandbox:)
-    container_name = vnc_container_name(sandbox)
-    return false unless container_running?(container_name)
+    return false unless File.exist?(traefik_config_path(sandbox))
 
-    TCPSocket.new(container_name, 6080).close
+    TCPSocket.new(sandbox.full_name, 6080).close
     true
   rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
     false
   end
 
-  # Removes orphaned noVNC containers whose sandbox no longer exists or is not running.
+  # Removes orphaned Traefik VNC configs whose sandbox is gone or not running.
   def cleanup_orphaned
-    Docker::Container.all(all: true).each do |container|
-      name = container.info.dig("Names")&.first&.delete_prefix("/")
-      next unless name&.start_with?("sc-vnc-")
+    Dir.glob(File.join(DYNAMIC_DIR, "vnc-*.yml")).each do |path|
+      id = path.match(/vnc-(\d+)\.yml/)&.[](1)&.to_i
+      next unless id
 
-      labels = container.info["Labels"] || {}
-      sandbox_id = labels["sandcastle.sandbox_id"]&.to_i
-
-      sandbox = sandbox_id ? Sandbox.find_by(id: sandbox_id) : nil
-      should_remove = sandbox.nil? || sandbox.status != "running"
-
-      if should_remove
-        container.stop(t: 3) rescue nil
-        container.delete(force: true)
-        Rails.logger.info("VncManager: removed orphaned noVNC container #{name}")
-
-        # Clean up Traefik config if we have a sandbox_id
-        if sandbox_id
-          config_path = File.join(DYNAMIC_DIR, "vnc-#{sandbox_id}.yml")
-          File.delete(config_path) if File.exist?(config_path)
-        end
+      sandbox = Sandbox.find_by(id: id)
+      if sandbox.nil? || sandbox.status != "running"
+        File.delete(path)
+        Rails.logger.info("VncManager: removed orphaned Traefik config #{File.basename(path)}")
       end
     end
-  rescue Docker::Error::DockerError => e
+  rescue => e
     Rails.logger.error("VncManager: orphan cleanup failed: #{e.message}")
   end
 
@@ -102,33 +66,13 @@ class VncManager
 
   private
 
-  def vnc_container_name(sandbox)
-    "sc-vnc-#{sandbox.full_name}"
-  end
-
   def vnc_url(sandbox)
     id = sandbox.id
-    # Strip prefix is /vnc/{id}, so all requests under /vnc/{id}/* are forwarded
-    # to the noVNC container with the prefix removed. This keeps noVNC's relative
-    # asset paths (package.json, core/*.js) resolving correctly within the prefix.
-    # The ?path= tells noVNC where to connect the WebSocket; Traefik strips
-    # /vnc/{id} leaving /websockify which websockify handles.
     "/vnc/#{id}/vnc.html?path=vnc/#{id}/websockify&autoconnect=true"
   end
 
-  def container_running?(name)
-    container = Docker::Container.get(name)
-    container.json.dig("State", "Running") == true
-  rescue Docker::Error::NotFoundError
-    false
-  end
-
-  def pull_image
-    Docker::Image.get(NOVNC_IMAGE)
-  rescue Docker::Error::NotFoundError
-    Docker::Image.create("fromImage" => NOVNC_IMAGE)
-  rescue Docker::Error::DockerError
-    raise Error, "Failed to pull #{NOVNC_IMAGE} — check network connectivity"
+  def traefik_config_path(sandbox)
+    File.join(DYNAMIC_DIR, "vnc-#{sandbox.id}.yml")
   end
 
   def ensure_network
@@ -148,57 +92,17 @@ class VncManager
 
     network.connect(sandbox.container_id)
   rescue Docker::Error::NotFoundError
-    # Container no longer exists - sync job will fix the DB state
     raise Error, "Sandbox container not found. Please refresh and try again."
-  end
-
-  def create_novnc_container(sandbox:, user:)
-    container_name = vnc_container_name(sandbox)
-
-    # Remove any existing container with this name
-    begin
-      old = Docker::Container.get(container_name)
-      old.stop(t: 3) rescue nil
-      old.delete(force: true)
-    rescue Docker::Error::NotFoundError
-      # No existing container
-    end
-
-    host_config = {
-      "NetworkMode" => NETWORK_NAME,
-      "RestartPolicy" => { "Name" => "no" },
-      "Memory" => 128 * 1024 * 1024, # 128MB — noVNC static files + websockify proxy
-      "NanoCpus" => 250_000_000 # 0.25 CPU
-    }
-
-    # Run the noVNC image using its built-in launch.sh, which starts both the
-    # mini-webserver (noVNC HTML/JS) and websockify (WS→RFB proxy) on port 6080.
-    # Traefik routes everything under /vnc/{id} to this container; after
-    # stripPrefix the websockify path becomes /websockify as noVNC expects.
-    container = Docker::Container.create(
-      "name" => container_name,
-      "Image" => NOVNC_IMAGE,
-      "Cmd" => [ "--vnc", "#{sandbox.full_name}:5900", "--listen", "6080" ],
-      "HostConfig" => host_config,
-      "Labels" => {
-        "sandcastle.sandbox_id" => sandbox.id.to_s,
-        "sandcastle.role" => "novnc"
-      }
-    )
-
-    container.start
-    container
   end
 
   def write_traefik_config(sandbox)
     FileUtils.mkdir_p(DYNAMIC_DIR)
-    config_path = File.join(DYNAMIC_DIR, "vnc-#{sandbox.id}.yml")
+    config_path = traefik_config_path(sandbox)
     return if File.exist?(config_path)
 
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
     id = sandbox.id
-    container_name = vnc_container_name(sandbox)
-    sandbox_name   = sandbox.full_name
+    sandbox_name = sandbox.full_name
 
     base_rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
       "HostRegexp(`.+`) && PathPrefix(`/vnc/#{id}`)"
@@ -206,11 +110,10 @@ class VncManager
       "Host(`#{host}`) && PathPrefix(`/vnc/#{id}`)"
     end
 
-    # Single router: all traffic under /vnc/{id} goes to the noVNC sidecar.
-    # The noVNC container (gotget/novnc launch.sh) serves static HTML/JS on /
-    # and proxies WebSocket VNC frames via websockify on /websockify, both on
-    # port 6080. stripPrefix removes /vnc/{id} before forwarding, so noVNC's
-    # relative asset paths (package.json, core/*.js, /websockify) resolve correctly.
+    # Route all /vnc/{id} traffic to the sandbox container's websockify process
+    # on port 6080. websockify serves noVNC static files and proxies WebSocket
+    # connections to Xvnc on localhost:5900 inside the sandbox.
+    # stripPrefix removes /vnc/{id} so websockify sees /websockify and /vnc.html.
     config = {
       "http" => {
         "routers" => {
@@ -239,7 +142,7 @@ class VncManager
         "services" => {
           "vnc-#{id}" => {
             "loadBalancer" => {
-              "servers" => [ { "url" => "http://#{container_name}:6080" } ]
+              "servers" => [ { "url" => "http://#{sandbox_name}:6080" } ]
             }
           }
         }
@@ -258,7 +161,7 @@ class VncManager
   end
 
   def delete_traefik_config(sandbox)
-    path = File.join(DYNAMIC_DIR, "vnc-#{sandbox.id}.yml")
+    path = traefik_config_path(sandbox)
     File.delete(path) if File.exist?(path)
   end
 end
