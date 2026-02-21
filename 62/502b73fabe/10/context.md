@@ -192,3 +192,14 @@ Let me chronologically analyze this conversation to create a comprehensive summa
 2. **Completed SSH port removal changes**:
    - `...
 
+### Prompt 29
+
+sandcastle-web     | [fd920ecb-410f-48a7-8a70-ca7956bd278d]   Rendered layout layouts/application.html.erb (Duration: 11.3ms | GC: 0.1ms)
+sandcastle-web     | [fd920ecb-410f-48a7-8a70-ca7956bd278d] Completed 200 OK in 16ms (Views: 12.7ms | ActiveRecord: 0.3ms (3 queries, 0 cached) | GC: 0.1ms)
+sandcastle-web     | [eae65167-8271-408c-b387-b51e71c8669d] Started GET "/sandboxes/6/vnc/status" for 192.168.117.1 at 2026-02-21 13:37:44 +0000
+sandcastle-web     | [eae65167-8271-408c-b387-b51e71c8669d] ...
+
+### Prompt 30
+
+set SANDCASTLE_VNC_URL in dev env
+
