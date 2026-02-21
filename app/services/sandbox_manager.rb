@@ -180,6 +180,7 @@ class SandboxManager
 
     create_container_and_start(sandbox: sandbox, user: user)
 
+    TailscaleManager.new.connect_sandbox(sandbox: sandbox) if sandbox.tailscale? && user.tailscale_enabled?
     RouteManager.new.reconnect_routes(sandbox: sandbox) if sandbox.routed?
 
     sandbox
