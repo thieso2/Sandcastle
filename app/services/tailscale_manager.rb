@@ -314,8 +314,12 @@ class TailscaleManager
       # Network doesn't exist yet — fall through to generate a random /24
     end
 
-    base = ENV.fetch("DOCKYARD_POOL_BASE", "10.89.0.0/16")
-    parts = base.split("/").first.split(".").map(&:to_i)
+    base = ENV["DOCKYARD_POOL_BASE"]
+    if base
+      parts = base.split("/").first.split(".").map(&:to_i)
+    else
+      parts = [ 10, rand(1..254), 0, 0 ]
+    end
     parts[2] = rand(1..254)
     "#{parts[0]}.#{parts[1]}.#{parts[2]}.0/24"
   end
