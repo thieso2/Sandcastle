@@ -60,3 +60,19 @@ sandcastle-web     | [63179ac0-60e9-4508-992a-b96c52f65366] Processing by Termin
 sandcastle-web     | [63179ac0-60e9-4508-992a-b96c52f65366]   Parameters: {"type" => "tmux", "id" => "45"}
 sandcastle-web     | [63179ac0-60e9-4508-992a-b96c52f65366] Redirected to https://dev.sand:8443/sandboxes/45/terminal/wait?type=tmux...
 
+### Prompt 13
+
+sandcastle-web     | [17c7a1d1-fe22-4882-bbcc-9569182c993a]   Parameters: {"type" => "tmux", "id" => "46"}
+sandcastle-web     | [17c7a1d1-fe22-4882-bbcc-9569182c993a] TerminalManager#traefik_ready? http://traefik:8080/api/http/routers/terminal-46-tmux@file → Errno::ECONNREFUSED: Failed to open TCP connection to traefik:8080 (Connection refused - connect(2) for "traefik" port 8080)
+sandcastle-web     | [17c7a1d1-fe22-4882-bbcc-9569182c993a] TerminalController#status sandbox=46 ttyd=true traefik...
+
+### Prompt 14
+
+still sandcastle-web     | [8aa57e7d-cf66-4fd6-824d-344c6d372c86] TerminalManager#traefik_ready? http://traefik:8080/api/http/routers/terminal-46-tmux@file → Errno::ECONNREFUSED: Failed to open TCP connection to traefik:8080 (Connection refused - connect(2) for "traefik" port 8080)
+sandcastle-web     | [8aa57e7d-cf66-4fd6-824d-344c6d372c86] TerminalController#status sandbox=46 ttyd=true traefik=false
+sandcastle-web     | [8aa57e7d-cf66-4fd6-824d-344c6d372c86] Completed 200 OK in 45ms (Views: 0...
+
+### Prompt 15
+
+commit and push
+

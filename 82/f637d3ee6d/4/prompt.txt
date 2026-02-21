@@ -116,3 +116,21 @@ sandcastle-web     | [7830f068-830e-4ac6-b817-82e37677439d] Started GET "/sandbo
 sandcastle-web     | [7830f068-830e-4ac6-b817-82e37677439d] Processing by TerminalController#status as JSON
 sandcastle-web     | [7830f068-830e-4ac6-b817-82e37677439d]   Parameters: {"type" => "tmux", "id" => "45"}
 sandcastle-web     | [7830f068-830e-4ac6-b817-82e37677439d] Completed 200 OK in 42ms (Views: 0.1ms | ActiveRecord: 1.0ms (3 queries, 0 cached) | GC: 0.0ms)
+
+---
+
+sandcastle-web     | [17c7a1d1-fe22-4882-bbcc-9569182c993a]   Parameters: {"type" => "tmux", "id" => "46"}
+sandcastle-web     | [17c7a1d1-fe22-4882-bbcc-9569182c993a] TerminalManager#traefik_ready? http://traefik:8080/api/http/routers/terminal-46-tmux@file → Errno::ECONNREFUSED: Failed to open TCP connection to traefik:8080 (Connection refused - connect(2) for "traefik" port 8080)
+sandcastle-web     | [17c7a1d1-fe22-4882-bbcc-9569182c993a] TerminalController#status sandbox=46 ttyd=true traefik=false
+
+---
+
+still sandcastle-web     | [8aa57e7d-cf66-4fd6-824d-344c6d372c86] TerminalManager#traefik_ready? http://traefik:8080/api/http/routers/terminal-46-tmux@file → Errno::ECONNREFUSED: Failed to open TCP connection to traefik:8080 (Connection refused - connect(2) for "traefik" port 8080)
+sandcastle-web     | [8aa57e7d-cf66-4fd6-824d-344c6d372c86] TerminalController#status sandbox=46 ttyd=true traefik=false
+sandcastle-web     | [8aa57e7d-cf66-4fd6-824d-344c6d372c86] Completed 200 OK in 45ms (Views: 0.1ms | ActiveRecord: 1.2ms (3 queries, 0 cached) | GC: 0.2ms)
+
+live fix!
+
+---
+
+commit and push
