@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     openssh-server sudo curl git tmux vim neovim \
     build-essential \
-    jq ripgrep fd-find htop wget unzip ca-certificates net-tools iputils-ping \
+    jq ripgrep fd-find htop wget unzip ca-certificates net-tools iproute2 iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined), noVNC static

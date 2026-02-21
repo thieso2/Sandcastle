@@ -26,7 +26,7 @@ class TerminalManager
 
     port = type == "shell" ? SHELL_PORT : TMUX_PORT
     container = Docker::Container.get(sandbox.container_id)
-    _out, _err, code = container.exec([ "sh", "-c", "ss -tlnp | grep -q ':#{port}'" ])
+    _out, _err, code = container.exec([ "sh", "-c", "ss -tlnp 2>/dev/null | grep -q ':#{port}' || netstat -tlnp 2>/dev/null | grep -q ':#{port}'" ])
     code == 0
   rescue Docker::Error::NotFoundError, Docker::Error::DockerError => e
     Rails.logger.debug("TerminalManager#active? #{sandbox.full_name}:#{port} → #{e.class}: #{e.message}")
@@ -85,7 +85,7 @@ class TerminalManager
             "service"     => "terminal-#{id}-tmux",
             "entryPoints" => [ "websecure" ],
             "tls"         => tls_config,
-            "middlewares" => [ "terminal-auth-#{id}" ],
+            "middlewares" => [ "terminal-auth-#{id}", "terminal-#{id}-strip-tmux" ],
             "priority"    => 100
           },
           "terminal-#{id}-shell" => {
@@ -93,7 +93,7 @@ class TerminalManager
             "service"     => "terminal-#{id}-shell",
             "entryPoints" => [ "websecure" ],
             "tls"         => tls_config,
-            "middlewares" => [ "terminal-auth-#{id}" ],
+            "middlewares" => [ "terminal-auth-#{id}", "terminal-#{id}-strip-shell" ],
             "priority"    => 100
           }
         },
@@ -103,6 +103,12 @@ class TerminalManager
               "address"            => "http://sandcastle-web:80/terminal/auth",
               "trustForwardHeader" => true
             }
+          },
+          "terminal-#{id}-strip-tmux" => {
+            "stripPrefix" => { "prefixes" => [ "/terminal/#{id}/tmux" ] }
+          },
+          "terminal-#{id}-strip-shell" => {
+            "stripPrefix" => { "prefixes" => [ "/terminal/#{id}/shell" ] }
           }
         },
         "services" => {
