@@ -84,6 +84,7 @@ class SandboxManager
   def ensure_image(image)
     Docker::Image.get(image)
   rescue Docker::Error::NotFoundError
+    raise Error, "Snapshot image #{image} not found locally (snapshots are never pulled from a registry)" if image.start_with?("sc-snap-")
     Docker::Image.create("fromImage" => image)
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to pull image #{image}: #{e.message}"
