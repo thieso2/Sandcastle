@@ -3,11 +3,10 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 6,
+  "checkpoints_count": 5,
   "files_touched": [
     "VNC_AND_TTYD_AUTH.md",
     "config/initializers/mission_control_jobs.rb",
-    "config/initializers/solid_errors.rb",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
     "mise.toml"
@@ -50,10 +49,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 103,
-    "cache_creation_tokens": 49001,
-    "cache_read_tokens": 7209620,
-    "output_tokens": 8323,
-    "api_call_count": 71
+    "input_tokens": 91,
+    "cache_creation_tokens": 39844,
+    "cache_read_tokens": 6006267,
+    "output_tokens": 8166,
+    "api_call_count": 63
   }
 }

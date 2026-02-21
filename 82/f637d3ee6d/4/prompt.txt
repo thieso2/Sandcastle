@@ -260,3 +260,11 @@ teh jobs sub-page does not work - layout is broken and linkk are fucked!
 ---
 
 commit and push
+
+---
+
+mount MissionControl::Jobs::Engine, at: "/admin/jobs"
+and 
+config.mission_control.jobs.http_basic_auth_enabled = false
+
+out AdminControler does auth
