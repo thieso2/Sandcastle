@@ -24,19 +24,13 @@ if [ -n "$SSH_KEY" ]; then
     fi
     chmod 700 "$SSH_DIR"
     chmod 600 "$SSH_DIR/authorized_keys"
-    chown -R "$USERNAME:$USERNAME" "$SSH_DIR"
 fi
 
-# Ensure home directory ownership and permissions.
-# The host may create bind-mounted home dirs with 777 so Sysbox-mapped root
-# can write. Tighten to 755 here so sshd StrictModes is satisfied.
-chown "$USERNAME:$USERNAME" "/home/$USERNAME"
-chmod 755 "/home/$USERNAME"
-
-# Ensure workspace is accessible
-chown "$USERNAME:$USERNAME" /workspace 2>/dev/null || true
-
-# Seed mise + Claude Code into user's ~/.local/bin on first boot
+# Seed mise + Claude Code into user's ~/.local/bin on first boot.
+# IMPORTANT: must run before chown/chmod of the home dir below.
+# With Sysbox user-namespace mapping, container root maps to a non-privileged
+# host UID, so standard DAC applies on bind mounts.  While home is still 777
+# root can freely create dirs; after chmod 755 root can no longer write inside.
 USER_LOCAL_BIN="/home/$USERNAME/.local/bin"
 mkdir -p "$USER_LOCAL_BIN"
 for tool in mise claude; do
@@ -44,7 +38,17 @@ for tool in mise claude; do
         cp "/opt/sandcastle/bin/$tool" "$USER_LOCAL_BIN/$tool"
     fi
 done
-chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.local"
+
+# Set correct ownership and permissions on the home directory.
+# chown -R covers .ssh, .local, and anything else created above.
+# chmod 755 is required by sshd StrictModes.
+# The host creates bind-mounted home dirs with 777 so Sysbox-mapped root
+# can write during setup (see above); tighten to 755 now that setup is done.
+chown -R "$USERNAME:$USERNAME" "/home/$USERNAME"
+chmod 755 "/home/$USERNAME"
+
+# Ensure workspace is accessible
+chown "$USERNAME:$USERNAME" /workspace 2>/dev/null || true
 
 # Configure git identity system-wide if provided
 if [ -n "$USER_FULLNAME" ] || [ -n "$USER_EMAIL" ]; then
