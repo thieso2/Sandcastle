@@ -84,3 +84,7 @@ start tmux by default in mouse mode.
 
 commit and push
 
+### Prompt 18
+
+admin should have no dropdown, just add jobs and errors as tabs in the admin page.
+

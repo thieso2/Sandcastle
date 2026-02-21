@@ -142,3 +142,7 @@ start tmux by default in mouse mode.
 ---
 
 commit and push
+
+---
+
+admin should have no dropdown, just add jobs and errors as tabs in the admin page.
