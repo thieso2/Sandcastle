@@ -852,6 +852,33 @@ EOF
   # Backfill DOCKYARD_POOL_BASE — required so docker-compose passes the correct subnet to Rails
   grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}" >> "$SANDCASTLE_HOME/.env"
+  # Backfill AR encryption keys — generated once, never rotated (losing them breaks encrypted DB values)
+  if ! grep -q '^AR_ENCRYPTION_PRIMARY_KEY=' "$SANDCASTLE_HOME/.env" 2>/dev/null; then
+    RAILS_SECRETS_FILE="$SANDCASTLE_HOME/data/rails/.secrets"
+    if [ -f "$RAILS_SECRETS_FILE" ]; then
+      # shellcheck source=/dev/null
+      source "$RAILS_SECRETS_FILE"
+    else
+      mkdir -p "$SANDCASTLE_HOME/data/rails"
+      AR_ENCRYPTION_PRIMARY_KEY=$(openssl rand -hex 16)
+      AR_ENCRYPTION_DETERMINISTIC_KEY=$(openssl rand -hex 16)
+      AR_ENCRYPTION_KEY_DERIVATION_SALT=$(openssl rand -hex 16)
+      cat > "$RAILS_SECRETS_FILE" <<SECRETS
+AR_ENCRYPTION_PRIMARY_KEY=$AR_ENCRYPTION_PRIMARY_KEY
+AR_ENCRYPTION_DETERMINISTIC_KEY=$AR_ENCRYPTION_DETERMINISTIC_KEY
+AR_ENCRYPTION_KEY_DERIVATION_SALT=$AR_ENCRYPTION_KEY_DERIVATION_SALT
+SECRETS
+      chmod 600 "$RAILS_SECRETS_FILE"
+      wrote "$RAILS_SECRETS_FILE"
+      warn "AR encryption keys generated. Back them up — losing them makes encrypted settings unrecoverable."
+    fi
+    cat >> "$SANDCASTLE_HOME/.env" <<ARKEYS
+AR_ENCRYPTION_PRIMARY_KEY=$AR_ENCRYPTION_PRIMARY_KEY
+AR_ENCRYPTION_DETERMINISTIC_KEY=$AR_ENCRYPTION_DETERMINISTIC_KEY
+AR_ENCRYPTION_KEY_DERIVATION_SALT=$AR_ENCRYPTION_KEY_DERIVATION_SALT
+ARKEYS
+    ok "AR encryption keys backfilled into .env"
+  fi
   # Backfill OAuth vars from sandcastle.env into .env
   grep -q '^GITHUB_CLIENT_ID=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
@@ -1181,6 +1208,32 @@ cmd_update() {
   # Backfill vars that may be missing in older .env files
   grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}" >> "$SANDCASTLE_HOME/.env"
+  if ! grep -q '^AR_ENCRYPTION_PRIMARY_KEY=' "$SANDCASTLE_HOME/.env" 2>/dev/null; then
+    RAILS_SECRETS_FILE="$SANDCASTLE_HOME/data/rails/.secrets"
+    if [ -f "$RAILS_SECRETS_FILE" ]; then
+      # shellcheck source=/dev/null
+      source "$RAILS_SECRETS_FILE"
+    else
+      mkdir -p "$SANDCASTLE_HOME/data/rails"
+      AR_ENCRYPTION_PRIMARY_KEY=$(openssl rand -hex 16)
+      AR_ENCRYPTION_DETERMINISTIC_KEY=$(openssl rand -hex 16)
+      AR_ENCRYPTION_KEY_DERIVATION_SALT=$(openssl rand -hex 16)
+      cat > "$RAILS_SECRETS_FILE" <<SECRETS
+AR_ENCRYPTION_PRIMARY_KEY=$AR_ENCRYPTION_PRIMARY_KEY
+AR_ENCRYPTION_DETERMINISTIC_KEY=$AR_ENCRYPTION_DETERMINISTIC_KEY
+AR_ENCRYPTION_KEY_DERIVATION_SALT=$AR_ENCRYPTION_KEY_DERIVATION_SALT
+SECRETS
+      chmod 600 "$RAILS_SECRETS_FILE"
+      wrote "$RAILS_SECRETS_FILE"
+      warn "AR encryption keys generated. Back them up — losing them makes encrypted settings unrecoverable."
+    fi
+    cat >> "$SANDCASTLE_HOME/.env" <<ARKEYS
+AR_ENCRYPTION_PRIMARY_KEY=$AR_ENCRYPTION_PRIMARY_KEY
+AR_ENCRYPTION_DETERMINISTIC_KEY=$AR_ENCRYPTION_DETERMINISTIC_KEY
+AR_ENCRYPTION_KEY_DERIVATION_SALT=$AR_ENCRYPTION_KEY_DERIVATION_SALT
+ARKEYS
+    ok "AR encryption keys backfilled into .env"
+  fi
   grep -q '^GITHUB_CLIENT_ID=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}" >> "$SANDCASTLE_HOME/.env"
   grep -q '^GITHUB_CLIENT_SECRET=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
