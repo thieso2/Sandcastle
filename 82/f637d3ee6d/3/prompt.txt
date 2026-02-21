@@ -1,0 +1,16 @@
+tailscale on sandmal is still broken! 
+live fix it!
+thies@sandman:~$ /sandcastle/docker-runtime/bin/docker exec -it sc-ts-thies ash
+/ # ping hese.de
+PING hese.de (193.169.205.212) 56(84) bytes of data.
+^C
+--- hese.de ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1047ms
+
+/ # ping heise.de
+PING heise.de (193.99.144.80) 56(84) bytes of data.
+^C
+--- heise.de ping statistics ---
+1 packets transmitted, 0 received, 100% packet loss, time 0ms
+
+fix it really this time on @SANDMAN
