@@ -1,7 +1,8 @@
 class TerminalManager
-  DATA_DIR    = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
+  DATA_DIR     = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
   NETWORK_NAME = "sandcastle-web"
   DYNAMIC_DIR  = File.join(DATA_DIR, "traefik", "dynamic")
+  TRAEFIK_PICKUP_DELAY = 0.3 # seconds Traefik needs to pick up a new file config
 
   TMUX_PORT  = 7681
   SHELL_PORT = 7682
@@ -11,11 +12,14 @@ class TerminalManager
   # Opens a web terminal for the given sandbox.
   # type: "tmux" (default) or "shell"
   # Writes Traefik config (idempotent) and returns the terminal URL.
+  # Returns [url, newly_written] — newly_written is true when the Traefik
+  # config was just created (Traefik hasn't loaded it yet), false when it
+  # already existed (Traefik already has the route active).
   def open(sandbox:, type: "tmux")
     raise Error, "Sandbox is not running" unless sandbox.status == "running"
 
-    write_traefik_config(sandbox)
-    terminal_url(sandbox, type)
+    newly_written = write_traefik_config(sandbox)
+    [ terminal_url(sandbox, type), newly_written ]
   end
 
   # Returns true if ttyd is listening on the appropriate port inside the sandbox container.
@@ -31,6 +35,13 @@ class TerminalManager
   rescue Docker::Error::NotFoundError, Docker::Error::DockerError => e
     Rails.logger.debug("TerminalManager#active? #{sandbox.full_name}:#{port} → #{e.class}: #{e.message}")
     false
+  end
+
+  # Returns true once Traefik has had time to pick up the dynamic config file.
+  # Traefik's inotify watcher loads new files in < 300ms; we check the mtime.
+  def traefik_ready?(sandbox:, type: "tmux")
+    path = File.join(DYNAMIC_DIR, "terminal-#{sandbox.id}.yml")
+    File.exist?(path) && (Time.now - File.mtime(path)) > TRAEFIK_PICKUP_DELAY
   end
 
   # Deletes the Traefik config for the given sandbox.
@@ -63,7 +74,7 @@ class TerminalManager
   def write_traefik_config(sandbox)
     FileUtils.mkdir_p(DYNAMIC_DIR)
     config_path = File.join(DYNAMIC_DIR, "terminal-#{sandbox.id}.yml")
-    return if File.exist?(config_path)
+    return false if File.exist?(config_path)
 
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
     id   = sandbox.id
@@ -127,6 +138,7 @@ class TerminalManager
     }
 
     File.write(config_path, config.to_yaml)
+    true
   end
 
   def tls_config

@@ -8,12 +8,13 @@ class TerminalController < ApplicationController
     type    = params[:type].presence_in(%w[tmux shell]) || "tmux"
     manager = TerminalManager.new
 
-    manager.open(sandbox: sandbox, type: type)
+    url, newly_written = manager.open(sandbox: sandbox, type: type)
 
-    # ttyd starts inside the container at boot; probe and redirect immediately
-    # if it's already listening, otherwise send to wait page.
-    if manager.active?(sandbox: sandbox, type: type)
-      redirect_to terminal_redirect_url("/terminal/#{sandbox.id}/#{type}"), allow_other_host: true, status: :see_other
+    # Fast path: config already existed (Traefik has the route) and ttyd is up.
+    # Slow path: config was just written — go through the wait page so Traefik
+    # has time to pick it up before the browser hits the terminal URL.
+    if !newly_written && manager.active?(sandbox: sandbox, type: type)
+      redirect_to terminal_redirect_url(url), allow_other_host: true, status: :see_other
     else
       redirect_to terminal_wait_sandbox_path(sandbox, type: type), status: :see_other
     end
@@ -31,8 +32,11 @@ class TerminalController < ApplicationController
     sandbox = find_sandbox
     type    = params[:type].presence_in(%w[tmux shell]) || "tmux"
     response.headers["Cache-Control"] = "no-store"
-    ready = TerminalManager.new.active?(sandbox: sandbox, type: type)
-    render json: { status: ready ? "ready" : "waiting" }
+    manager = TerminalManager.new
+    ttyd_up  = manager.active?(sandbox: sandbox, type: type)
+    traefik_up = ttyd_up && manager.traefik_ready?(sandbox: sandbox, type: type)
+    Rails.logger.debug("TerminalController#status sandbox=#{sandbox.id} ttyd=#{ttyd_up} traefik=#{traefik_up}")
+    render json: { status: (ttyd_up && traefik_up) ? "ready" : "waiting" }
   end
 
   def close
