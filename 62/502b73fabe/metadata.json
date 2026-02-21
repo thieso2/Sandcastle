@@ -6,7 +6,11 @@
   "checkpoints_count": 11,
   "files_touched": [
     ".gitignore",
+    "Dockerfile",
+    "Gemfile",
     "app/assets/tailwind/application.css",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/api/users_controller.rb",
     "app/controllers/tailscale_controller.rb",
     "app/models/sandbox.rb",
     "app/services/route_manager.rb",
@@ -17,17 +21,23 @@
     "app/views/layouts/application.html.erb",
     "app/views/pages/guide.html.erb",
     "app/views/registrations/new.html.erb",
+    "app/views/sandboxes/show.html.erb",
     "app/views/shared/_navbar.html.erb",
     "app/views/tailscale/_pending.html.erb",
+    "config/environments/production.rb",
     "config/initializers/traefik.rb",
     "config/routes.rb",
+    "db/errors_schema.rb",
     "db/migrate/20260219000001_create_snapshots.rb",
     "db/migrate/20260219000002_create_snapshots.rb",
     "db/migrate/20260221120000_allow_null_ssh_port.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "images/sandbox/Dockerfile",
-    "mise.toml"
+    "mise.toml",
+    "scripts/generate-local-cert.sh",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/sandbox.go"
   ],
   "sessions": [
     {
@@ -116,10 +126,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 275,
-    "cache_creation_tokens": 549324,
-    "cache_read_tokens": 15808381,
-    "output_tokens": 22419,
-    "api_call_count": 217
+    "input_tokens": 321,
+    "cache_creation_tokens": 764895,
+    "cache_read_tokens": 20064852,
+    "output_tokens": 26270,
+    "api_call_count": 261
   }
 }

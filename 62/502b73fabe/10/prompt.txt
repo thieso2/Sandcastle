@@ -42,3 +42,259 @@ sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [e2e0d189-c0d0-4601-b08b-
 sandcastle-worker  | app/services/sandbox_manager.rb:78:in 'SandboxManager#create_container_and_start'
 sandcastle-worker  | app/jobs/sandbox_provision_job.rb:19:in 'SandboxProvisionJob#perform'
 sandcastle-worker  | SolidQueue-1.3.1 Error in thread (0.0ms)  error: "SandboxManager::Error Container failed to start: failed to set up container networking: driver failed programming external connectivity on endpoint thies-wild-puma (8882a08bfebe04ee7dbc12e597ca329ed2c44e7a17953c893e77766dee8f8df3): Bind for 0.0.0.0:2201 failed: port is already allocated"
+
+---
+
+maybe we donÄt need to assign a public port for each new container? the web cann connect via the webserver and we have tailscale - explore..
+
+---
+
+yes, go with option 1 - update sandcastle cli to not list the port. also add a created_at column to the sandcaslte ls output.
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation to create a comprehensive summary.
+
+1. Initial request: Add solid_errors to admin interface (like jobs) - navbar link added
+2. Commit request - committed the navbar change
+3. User reported 500 error at dev.sand:8443/admin/errors
+4. User clarified error was on local system, wanted deploy:local to show detailed errors
+5. Fixed: Added RAILS_SHOW_DETAILED_ERRORS env var to production.rb and docker-compose.local.yml
+6. Committed that fix
+7. Further debugging revealed missing solid_errors schema (db/errors_schema.rb missing), web-console requested
+8. Fixed: Created db/errors_schema.rb, db/errors_migrate/.keep, moved web-console to :local group, changed BUNDLE_WITHOUT in Dockerfile to "development:test"
+9. Committed those fixes
+10. Certificate issue after deploy:local:reset - mkcert CA regenerated inside container
+11. Fixed: Generate cert on host via .local/certs/ bind mount, persist across resets
+12. Committed cert persistence fix
+13. User ran deploy:local
+14. Port conflict error - orphaned sandbox containers from previous run using port 2201
+15. Fixed: Removed orphaned containers, added sandcastle.sandbox=true label, updated deploy:local:reset to filter by label
+16. Committed label fix
+17. User asked about eliminating public SSH port bindings - explored, found WeTTY/VNC already use Docker internal networking, only CLI needs ports
+18. User chose option 1: remove port bindings, require Tailscale for CLI SSH
+19. Currently mid-implementation of the port removal changes
+
+Current work in progress - removing SSH port bindings:
+- Removed SSH_PORT_RANGE constant from Sandbox model
+- Removed ssh_port validation from Sandbox model  
+- Removed before_validation :assign_ssh_port callback
+- Updated connect_command to return "sandcastle connect #{name}"
+- Removed assign_ssh_port private method
+- Added NETWORK_NAME = "sandcastle-web" to SandboxManager
+- Removed find_free_ssh_port call from SandboxManager#create
+- Was in the middle of editing SandboxManager#create_container_and_start to remove PortBindings and add network connection
+
+Still pending:
+- Remove PortBindings from create_container_and_start
+- Add container to sandcastle-web network after start
+- Update restore method's container creation
+- Update connect_info to only use Tailscale
+- Remove find_free_ssh_port, docker_bound_ssh_ports, port_free? methods
+- DB migration to make ssh_port nullable
+- Remove ssh_port from sandbox_json in controller
+- CLI: remove PORT column from ls, add CREATED column
+- CLI: remove SSHPort from types.go display
+- Build/test everything
+
+Summary:
+1. Primary Request and Intent:
+   - Add solid_errors engine to admin navbar (like the existing Jobs link)
+   - Fix 500 error at `/admin/errors` on local dev system (dev.sand:8443)
+   - Make `deploy:local` show detailed Rails error pages instead of generic 500s
+   - Add `web-console` to local Docker deploy
+   - Fix TLS certificate trust issue after `deploy:local:reset` (mkcert CA regenerated in container)
+   - Fix port conflict error when creating new sandbox after reset (orphaned sandbox containers)
+   - Explore eliminating public SSH host port bindings (2201-2299) for sandbox containers
+   - Implement option 1: remove port bindings entirely, use Docker internal networking for WeTTY/VNC, require Tailscale for CLI SSH
+   - Update `sandcastle ls` CLI output: remove PORT column, add CREATED column
+
+2. Key Technical Concepts:
+   - Sandcastle: self-hosted Docker sandbox platform (Rails 8.1 + Go CLI)
+   - Sysbox containers for Docker-in-Docker sandboxes
+   - Solid Queue, Solid Cache, Solid Cable, Solid Errors (separate databases)
+   - MissionControl::Jobs and SolidErrors::Engine mounted under /admin namespace
+   - mkcert for locally-trusted TLS certificates
+   - Traefik reverse proxy with dynamic config
+   - Docker internal networking (`sandcastle-web` bridge network) for WeTTY/VNC
+   - SSH port range 2201-2299 (being eliminated)
+   - Tailscale sidecar architecture for per-user networking
+   - `BUNDLE_WITHOUT` in Dockerfile controlling which gem groups are installed
+   - Multiple database configuration (errors DB: `sandcastle_development_errors`/`sandcastle_production_errors`)
+   - `db/errors_schema.rb` schema file pattern (like cache_schema.rb) instead of migrations
+   - Docker label filtering for container cleanup
+
+3. Files and Code Sections:
+   - `app/views/shared/_navbar.html.erb`
+     - Added "Errors" link to Admin dropdown, updated Dashboard active-state condition to exclude `/admin/errors`
+     - Key addition:
+       ```erb
+       <%= link_to "Errors", "/admin/errors", class: "block px-4 py-2 text-sm #{request.path.start_with?("/admin/errors") ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}" %>
+       ```
+
+   - `config/environments/production.rb`
+     - Added `RAILS_SHOW_DETAILED_ERRORS` env var support and web-console allowed IPs:
+       ```ruby
+       config.consider_all_requests_local = ENV["RAILS_SHOW_DETAILED_ERRORS"] == "true"
+       if ENV["RAILS_SHOW_DETAILED_ERRORS"] == "true" && defined?(WebConsole)
+         config.web_console.allowed_ips = ["0.0.0.0/0", "::/0"]
+       end
+       ```
+
+   - `docker-compose.local.yml`
+     - Added `RAILS_SHOW_DETAILED_ERRORS: "true"` to web service environment
+     - Added `./.local/certs:/data/traefik/certs` bind mount to web service
+     - Added `./.local/certs:/data/certs` bind mount to traefik service
+
+   - `config/initializers/solid_errors.rb`
+     - Already existed with session-based auth config (no changes needed)
+
+   - `db/errors_schema.rb` (created)
+     - Schema for solid_errors tables:
+       ```ruby
+       ActiveRecord::Schema[8.1].define(version: 1) do
+         create_table "solid_errors", force: :cascade do |t|
+           t.text "exception_class", null: false
+           t.text "message", null: false
+           t.text "severity", null: false
+           t.text "source"
+           t.datetime "resolved_at"
+           t.string "fingerprint", limit: 64, null: false
+           t.datetime "created_at", null: false
+           t.datetime "updated_at", null: false
+           t.index ["fingerprint"], name: "index_solid_errors_on_fingerprint", unique: true
+           t.index ["resolved_at"], name: "index_solid_errors_on_resolved_at"
+         end
+         create_table "solid_errors_occurrences", force: :cascade do |t|
+           t.integer "error_id", null: false
+           t.text "backtrace"
+           t.json "context"
+           t.datetime "created_at", null: false
+           t.datetime "updated_at", null: false
+           t.index ["error_id"], name: "index_solid_errors_occurrences_on_error_id"
+         end
+         add_foreign_key "solid_errors_occurrences", "solid_errors", column: "error_id"
+       end
+       ```
+
+   - `db/errors_migrate/.keep` (created)
+     - Empty directory needed for `db:prepare` to create the errors database
+
+   - `Gemfile`
+     - Moved `web-console` from `:development` group to `:local` group so it's included in the Docker image build:
+       ```ruby
+       group :local do
+         gem "web-console"
+       end
+       ```
+
+   - `Dockerfile`
+     - Changed `BUNDLE_WITHOUT="development"` to `BUNDLE_WITHOUT="development:test"` so `:local` group gems are installed
+
+   - `scripts/generate-local-cert.sh`
+     - Updated to generate cert for `dev.sand` and store in `.local/certs/`:
+       ```bash
+       CERT_DIR="$(cd "$(dirname "$0")/.." && pwd)/.local/certs"
+       mkcert -cert-file "$CERT_DIR/cert.pem" -key-file "$CERT_DIR/key.pem" \
+         dev.sand "*.dev.sand" localhost 127.0.0.1 ::1
+       ```
+
+   - `mise.toml`
+     - Updated `deploy:local` to auto-generate cert if missing
+     - Updated `deploy:local:reset` to remove sandbox containers by label:
+       ```bash
+       echo "Removing sandbox containers..."
+       docker ps -a --filter "label=sandcastle.sandbox=true" -q | xargs -r docker rm -f || true
+       ```
+
+   - `.gitignore`
+     - Added `/.local/` to exclude host-generated certs
+
+   - `app/services/sandbox_manager.rb`
+     - Added `sandcastle.sandbox=true` label to both `Docker::Container.create` calls
+     - Added `NETWORK_NAME = "sandcastle-web"` constant
+     - Removed `sandbox.ssh_port = find_free_ssh_port` from `create` method
+     - **IN PROGRESS**: Removing `PortBindings` from `create_container_and_start`, adding network connection
+
+   - `app/models/sandbox.rb`
+     - Removed `SSH_PORT_RANGE = (2201..2299)` constant
+     - Removed `validates :ssh_port` validation
+     - Removed `before_validation :assign_ssh_port, on: :create`
+     - Updated `connect_command` to return `"sandcastle connect #{name}"`
+     - Removed `assign_ssh_port` private method
+
+4. Errors and fixes:
+   - **500 at /admin/errors**: `PG::UndefinedTable: ERROR: relation "solid_errors" does not exist` — Fixed by creating `db/errors_schema.rb` and `db/errors_migrate/.keep`; `db:prepare` then creates and loads the errors database schema.
+   - **web-console not available**: `BUNDLE_WITHOUT=development` excluded it — Fixed by moving to `:local` group and changing Dockerfile to `BUNDLE_WITHOUT=development:test`
+   - **TLS cert not trusted after reset**: `deploy:local:reset` wiped `traefik-data` Docker volume, new mkcert CA generated inside container not trusted by browser — Fixed by bind-mounting `.local/certs/` (host directory) so cert persists across volume resets; `deploy:local` auto-generates cert via host mkcert on first run
+   - **Port 2201 already allocated**: Orphaned sandbox containers from previous local deploy still running — Fixed immediately by `docker rm -f` of orphans; long-term fix added `sandcastle.sandbox=true` label so `deploy:local:reset` can filter and remove them
+   - **git commit with new files**: Used `git restore --staged :/ && git add <files>` pattern to stage new untracked files before committing
+
+5. Problem Solving:
+   - Identified that solid_errors uses a schema-file approach (`db/errors_schema.rb`) rather than a migrations generator, unlike what the commit notes suggested (`solid_errors:install:migrations` doesn't exist)
+   - Determined that WeTTY and VNC already use Docker internal networking (container DNS) and don't need host ports — only the Go CLI needs them
+   - Architecture decision: remove all port bindings, add sandboxes to `sandcastle-web` network at creation time, CLI requires Tailscale for SSH access
+
+6. All user messages:
+   - "add solid error to admin interface (like jobs)"
+   - "commit this"
+   - "https://dev.sand:8443/admin/errors \n500"
+   - "the error was on my local system - https://dev.sand:8443/admin/errors\n\nBTW: deploy:local shoudl run in dev mode by default so that i see erors in cleartext and not generic 5xx pages."
+   - "deploy:local \nPG::UndefinedTable: ERROR: relation "solid_errors" does not exist..."
+   - "i also want the web-comsole" (sent mid-task)
+   - "what happend?" (with screenshot showing certificate error)
+   - "mise run deploy:local"
+   - "sandcastle-worker | [ActiveJob] [SandboxProvisionJob] ... Bind for 0.0.0.0:2201 failed: port is already allocated"
+   - "maybe we donÄt need to assign a public port for each new container? the web cann connect via the webserver and we have tailscale - explore.."
+   - "yes, go with option 1 - update sandcastle cli to not list the port. also add a created_at column to the sandcaslte ls output."
+
+7. Pending Tasks:
+   - **SandboxManager `create_container_and_start`**: Remove `PortBindings` from Docker container config, add container to `sandcastle-web` network after start
+   - **SandboxManager restore method** (line ~465): Same changes to second `Docker::Container.create`
+   - **SandboxManager `connect_info`**: Remove host/port fallback, only return Tailscale IP or raise error if Tailscale not enabled
+   - **SandboxManager**: Remove `find_free_ssh_port`, `docker_bound_ssh_ports`, `port_free?` private methods
+   - **DB migration**: Make `ssh_port` column nullable (remove `null: false` constraint)
+   - **`app/controllers/api/sandboxes_controller.rb`** `sandbox_json`: Remove `ssh_port` from JSON output
+   - **CLI `vendor/sandcastle-cli/api/types.go`**: Remove or make `SSHPort` field omitempty
+   - **CLI `vendor/sandcastle-cli/cmd/sandbox.go`** `listCmd`: Remove PORT column, add CREATED column with formatted time; remove port from verbose create output
+   - Build CLI binary and verify compile
+
+8. Current Work:
+   Immediately before this summary, the work was mid-way through implementing option 1 (remove SSH port bindings). The following had been completed on the Rails side:
+   - `app/models/sandbox.rb`: Removed `SSH_PORT_RANGE`, `validates :ssh_port`, `before_validation :assign_ssh_port`, `assign_ssh_port` method; updated `connect_command` to return `"sandcastle connect #{name}"`
+   - `app/services/sandbox_manager.rb`: Added `NETWORK_NAME = "sandcastle-web"` constant; removed `sandbox.ssh_port = find_free_ssh_port` from `create` method
+
+   The next edit was starting on `SandboxManager#create_container_and_start` to remove `PortBindings` and add network connection, which was interrupted by this summary request.
+
+9. Optional Next Step:
+   Continue editing `app/services/sandbox_manager.rb` to complete the port removal. The exact next edit is removing `PortBindings` from `create_container_and_start` and adding the sandbox to `sandcastle-web` network after container start:
+
+   Current code in `create_container_and_start` (lines 59-82):
+   ```ruby
+   container = Docker::Container.create(
+     "name" => sandbox.full_name,
+     "Image" => sandbox.image,
+     "Hostname" => sandbox.full_name,
+     "Env" => container_env(user, sandbox),
+     "Labels" => { "sandcastle.sandbox" => "true" },
+     "HostConfig" => {
+       "Runtime" => container_runtime,
+       "PortBindings" => {
+         "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
+       },
+       "Binds" => volume_binds(user, sandbox),
+       "RestartPolicy" => { "Name" => "unless-stopped" }
+     }
+   )
+   container.start
+   container.refresh!
+   unless container.json.dig("State", "Running")
+   ```
+   
+   Needs to become: remove `PortBindings`, add network connection after start. Then repeat for the restore method, update `connect_info`, remove port helper methods, add DB migration, update `sandbox_json`, and update CLI files.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
