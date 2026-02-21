@@ -325,6 +325,26 @@ except Exception:
 " 2>/dev/null || echo "  ghcr.io/thieso2/${repo}:latest"
 }
 
+pick_private_net() {
+  # Pick a random 10.X.0.0/16 not already routed on this host.
+  local used_octets
+  used_octets=$(
+    { ip route 2>/dev/null; ip addr 2>/dev/null; } \
+      | grep -oE '10\.[0-9]+\.' \
+      | grep -oE '\.[0-9]+\.' \
+      | tr -d '.' \
+      | sort -un
+  )
+  for b in $(shuf -i 1-254 2>/dev/null || python3 -c "import random,sys; l=list(range(1,255)); random.shuffle(l); print('\n'.join(map(str,l)))"); do
+    if ! echo "$used_octets" | grep -qx "$b"; then
+      echo "10.${b}.0.0/16"
+      return
+    fi
+  done
+  # Fallback
+  echo "10.$(shuf -i 1-254 -n1 2>/dev/null || echo 89).0.0/16"
+}
+
 find_free_subnet() {
   local used
   used=$(
@@ -425,7 +445,7 @@ cmd_gen_env() {
 
   local dy_root="${DOCKYARD_ROOT:-$home}"
   local dy_prefix="${DOCKYARD_DOCKER_PREFIX:-sc_}"
-  local priv_net="${SANDCASTLE_PRIVATE_NET:-10.89.0.0/16}"
+  local priv_net="${SANDCASTLE_PRIVATE_NET:-$(pick_private_net)}"
   local _pb="${priv_net%%/*}"; local _pp="${_pb%.*.*}"
   local dy_bridge="${DOCKYARD_BRIDGE_CIDR:-${_pp}.0.1/24}"
   local dy_fixed="${DOCKYARD_FIXED_CIDR:-${_pp}.0.0/24}"
