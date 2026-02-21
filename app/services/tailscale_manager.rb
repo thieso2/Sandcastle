@@ -205,8 +205,8 @@ class TailscaleManager
       begin
         network = Docker::Network.get(user.tailscale_network)
         network.disconnect(sandbox.container_id)
-      rescue Docker::Error::NotFoundError
-        # Network or container already gone
+      rescue Docker::Error::NotFoundError, Docker::Error::DockerError
+        # Network/container already gone or container not connected — desired state reached
       end
     end
 
