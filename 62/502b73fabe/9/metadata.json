@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "62502b73fabe",
+  "session_id": "88d832af-172e-40b3-ba24-3e2858ddc4fd",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T08:57:29.083062Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/services/sandbox_manager.rb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "b8384439-0e0c-4aa3-b397-a389359ea0e3",
+  "token_usage": {
+    "input_tokens": 7,
+    "cache_creation_tokens": 28149,
+    "cache_read_tokens": 172441,
+    "output_tokens": 829,
+    "api_call_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T08:57:29.074922Z",
+    "agent_lines": 1,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "agent_percentage": 100
+  }
+}
