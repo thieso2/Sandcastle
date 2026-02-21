@@ -26,20 +26,12 @@
       <% end %>
 
       <% if policy(:user).index? %>
-        <% admin_active = controller_path.start_with?("admin") %>
-        <div class="relative group">
-          <button class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-1 <%= admin_active ? 'bg-gray-900 text-white' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100' %>">
-            Admin
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 opacity-60">
-              <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-            </svg>
-          </button>
-          <div class="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
-            <%= link_to "Dashboard", admin_dashboard_path, class: "block px-4 py-2 text-sm #{controller_path.start_with?("admin") && !request.path.start_with?("/admin/jobs") && !request.path.start_with?("/admin/errors") ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}" %>
-            <%= link_to "Jobs", "/admin/jobs", class: "block px-4 py-2 text-sm #{request.path.start_with?("/admin/jobs") ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}" %>
-            <%= link_to "Errors", "/admin/errors", class: "block px-4 py-2 text-sm #{request.path.start_with?("/admin/errors") ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}" %>
-          </div>
-        </div>
+        <%= link_to "Admin", admin_dashboard_path,
+              class: "px-3 py-1.5 rounded-md text-sm font-medium transition-colors #{
+                controller_path.start_with?("admin") ?
+                  'bg-gray-900 text-white' :
+                  'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }" %>
       <% end %>
 
       <span class="mx-2 h-5 w-px bg-gray-200"></span>
