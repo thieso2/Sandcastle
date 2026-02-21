@@ -78,3 +78,33 @@ push it
 
 Failed to destroy: Failed to disconnect sandbox from Tailscale: {"message":"container 2f3848bffa5647c8237f8eae3bce701a416da06f45c9a3f4b04055acce186add is not connected to network sc-ts-net-thies"}
 
+### Prompt 15
+
+Copy as text
+NoMethodError in SandboxesController#retry
+undefined method 'retry?' for an instance of SandboxPolicy
+Did you mean?
+restore?
+Extracted source (around line #130):
+128
+129
+130
+131
+132
+              
+  def set_sandbox
+    @sandbox = policy_scope(Sandbox).find(params[:id])
+    authorize @sandbox
+  end
+end
+
+Rails.root: /rails
+
+Application Trace | Framework Trace | Full Trace
+/rails/app/controllers/sandboxes_controller.rb:130:in 'SandboxesController#set_sandbox'
+
+Request
+Parameters:
+
+{"au...
+
