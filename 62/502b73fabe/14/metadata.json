@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "62502b73fabe",
+  "session_id": "339e2472-b96d-4a2b-9301-86ddf8d540c8",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T14:30:53.705167Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/services/.tailscale_manager.rb.swp",
+    "installer/installer.sh.in"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "69309fbe-c965-416e-a8bc-78c395a5813c",
+  "token_usage": {
+    "input_tokens": 56,
+    "cache_creation_tokens": 61056,
+    "cache_read_tokens": 2936893,
+    "output_tokens": 7740,
+    "api_call_count": 50
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T14:30:53.676344Z",
+    "agent_lines": 5,
+    "human_added": 5,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 10,
+    "agent_percentage": 50
+  }
+}
