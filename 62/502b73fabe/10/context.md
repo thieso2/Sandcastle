@@ -66,3 +66,15 @@ Let me chronologically analyze the conversation to create a comprehensive summar
 3. User reported 500 error at dev.sand:8443/admin/errors
 4. User clarified error was on local system, wanted deploy:l...
 
+### Prompt 12
+
+continue
+
+### Prompt 13
+
+push it
+
+### Prompt 14
+
+Failed to destroy: Failed to disconnect sandbox from Tailscale: {"message":"container 2f3848bffa5647c8237f8eae3bce701a416da06f45c9a3f4b04055acce186add is not connected to network sc-ts-net-thies"}
+
