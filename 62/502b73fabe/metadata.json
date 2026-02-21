@@ -9,10 +9,10 @@
     "app/assets/tailwind/application.css",
     "app/controllers/tailscale_controller.rb",
     "app/models/sandbox.rb",
-    "app/policies/sandbox_policy.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
     "app/services/terminal_manager.rb",
+    "app/services/vnc_manager.rb",
     "app/views/admin/invites/index.html.erb",
     "app/views/layouts/admin.html.erb",
     "app/views/layouts/application.html.erb",
@@ -116,10 +116,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 261,
-    "cache_creation_tokens": 527140,
-    "cache_read_tokens": 14297950,
-    "output_tokens": 19858,
-    "api_call_count": 205
+    "input_tokens": 313,
+    "cache_creation_tokens": 553077,
+    "cache_read_tokens": 20526375,
+    "output_tokens": 23721,
+    "api_call_count": 253
   }
 }

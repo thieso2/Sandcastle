@@ -3,30 +3,31 @@
   "checkpoint_id": "62502b73fabe",
   "session_id": "c8376c74-21b4-4862-ad62-19cc41c9303c",
   "strategy": "manual-commit",
-  "created_at": "2026-02-21T12:52:44.441352Z",
+  "created_at": "2026-02-21T13:06:41.799747Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "app/policies/sandbox_policy.rb"
+    "app/services/terminal_manager.rb",
+    "app/services/vnc_manager.rb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "32bd1ddd-0ba4-41eb-a2b3-2a315bd88e7d",
-  "checkpoint_transcript_start": 726,
-  "transcript_lines_at_start": 726,
+  "transcript_identifier_at_start": "979cb1cd-26fa-43e7-9529-4646a413cb93",
+  "checkpoint_transcript_start": 753,
+  "transcript_lines_at_start": 753,
   "token_usage": {
-    "input_tokens": 7,
-    "cache_creation_tokens": 1986,
-    "cache_read_tokens": 558874,
-    "output_tokens": 209,
-    "api_call_count": 5
+    "input_tokens": 59,
+    "cache_creation_tokens": 27923,
+    "cache_read_tokens": 6787299,
+    "output_tokens": 4072,
+    "api_call_count": 53
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-21T12:52:44.300411Z",
+    "calculated_at": "2026-02-21T13:06:41.641883Z",
     "agent_lines": 0,
-    "human_added": 1,
-    "human_modified": 0,
-    "human_removed": 0,
-    "total_committed": 1,
+    "human_added": 0,
+    "human_modified": 31,
+    "human_removed": 95,
+    "total_committed": 29,
     "agent_percentage": 0
   }
 }
