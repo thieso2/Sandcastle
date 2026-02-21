@@ -11,6 +11,7 @@
     "app/models/sandbox.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
+    "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
     "app/views/admin/invites/index.html.erb",
     "app/views/layouts/admin.html.erb",
@@ -26,8 +27,7 @@
     "db/migrate/20260221120000_allow_null_ssh_port.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
-    "images/sandbox/Dockerfile",
-    "vendor/sandcastle-cli/cmd/sandbox.go"
+    "images/sandbox/Dockerfile"
   ],
   "sessions": [
     {
@@ -116,10 +116,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 273,
-    "cache_creation_tokens": 534791,
-    "cache_read_tokens": 15934008,
-    "output_tokens": 21697,
-    "api_call_count": 215
+    "input_tokens": 266,
+    "cache_creation_tokens": 533515,
+    "cache_read_tokens": 15293007,
+    "output_tokens": 22947,
+    "api_call_count": 210
   }
 }

@@ -135,3 +135,14 @@ http://dev.sand:8443/ -> 404
 
 when createing a new sandcastle use a random network - i have two sandcastles with the same network - really annyoing!
 
+### Prompt 21
+
+i still have two sandcasle isntalls using teh same net (10.89.2.3) - which is annoying -> pick a random net!
+~/Projects/GitHub/Sandcastle/vendor/sandcastle-cli [main] % ./sandcastle list
+Server: dev (https://dev.sand:8443)
+NAME      STATUS   CREATED     TAILSCALE IP  IMAGE
+wild-fox  running  2026-02-21  10.89.2.3     ghcr.io/thieso2/sandcastle-sandbox:latest
+~/Projects/GitHub/Sandcastle/vendor/sandcastle-cli [main] % sandcastle use hq
+Switched to server hq (https://hq.sandcastle.rocks)
+~/Project...
+
