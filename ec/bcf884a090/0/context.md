@@ -52,3 +52,11 @@ Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
 0.0.0.0         10.159.29.1     0.0.0.0         UG        0 0          0 eth0
 10.159.29.0     0.0.0.0         255.255.25...
 
+### Prompt 8
+
+do i need new images or is reinstalling enogh?
+
+### Prompt 9
+
+add some info to CLAUDE.md how the networking should look like and what not to change without asking!
+

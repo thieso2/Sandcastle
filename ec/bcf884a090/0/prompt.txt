@@ -48,3 +48,11 @@ Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
 / #
 
 debug live on sandman!
+
+---
+
+do i need new images or is reinstalling enogh?
+
+---
+
+add some info to CLAUDE.md how the networking should look like and what not to change without asking!
