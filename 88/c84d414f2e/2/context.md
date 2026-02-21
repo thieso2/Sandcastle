@@ -10,3 +10,14 @@ in the tailscale create dialog - allow to supply a hostname.
 
 commit this
 
+### Prompt 3
+
+ghcr.io/thieso2/sandcastle-sandbox:latest
+[OK] Images pulled
+[INFO] Starting Sandcastle...
+unknown flag: --env-file
+
+Usage:  docker [OPTIONS] COMMAND [ARG...]
+
+Run 'docker --help' for more information
+

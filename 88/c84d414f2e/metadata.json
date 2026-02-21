@@ -5,11 +5,11 @@
   "branch": "main",
   "checkpoints_count": 5,
   "files_touched": [
-    "app/controllers/tailscale_controller.rb",
     "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
-    "app/views/tailscale/show.html.erb",
     "images/sandbox/Dockerfile",
+    "installer/installer.sh.in",
+    "installer/templates/docker-logs.sh",
     "mise.toml"
   ],
   "sessions": [
@@ -36,10 +36,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 963,
-    "cache_creation_tokens": 149701,
-    "cache_read_tokens": 11553795,
-    "output_tokens": 17777,
-    "api_call_count": 141
+    "input_tokens": 167,
+    "cache_creation_tokens": 115917,
+    "cache_read_tokens": 11895203,
+    "output_tokens": 15580,
+    "api_call_count": 142
   }
 }
