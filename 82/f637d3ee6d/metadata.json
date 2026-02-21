@@ -7,7 +7,7 @@
   "files_touched": [
     "VNC_AND_TTYD_AUTH.md",
     "installer/installer.sh.in",
-    "installer/templates/docker-logs.sh"
+    "installer/templates/.dockyard..swp"
   ],
   "sessions": [
     {
@@ -26,10 +26,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 25,
-    "cache_creation_tokens": 8543,
-    "cache_read_tokens": 1911972,
-    "output_tokens": 3133,
-    "api_call_count": 17
+    "input_tokens": 29,
+    "cache_creation_tokens": 12652,
+    "cache_read_tokens": 2415319,
+    "output_tokens": 2885,
+    "api_call_count": 21
   }
 }

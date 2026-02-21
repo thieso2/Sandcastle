@@ -44,3 +44,7 @@ we shoudl be usinig the docker bin taht dockyard installs
 /sandcastle/docker-runtime/bin/docker
 this will have all the correct path setup!
 
+### Prompt 6
+
+maybe we shoudl also bundle the dockyard.sh in the installer.sh that we build? that way we always know everything.
+
