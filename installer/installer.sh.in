@@ -396,6 +396,14 @@ install_mkcert() {
 
 # ═══ write_compose ══════════════════════════════════════════════════════════
 
+# Write the bundled dockyard.sh to /tmp so it can be invoked without wget.
+write_dockyard_sh() {
+  cat > /tmp/dockyard.sh <<'__DOCKYARD_BUNDLED_EOF__'
+@@TEMPLATE:templates/dockyard.sh@@
+__DOCKYARD_BUNDLED_EOF__
+  chmod +x /tmp/dockyard.sh
+}
+
 write_helper_scripts() {
   cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
 #!/bin/bash
@@ -557,7 +565,7 @@ cmd_destroy() {
   DOCKYARD_ENV_FILE="$SANDCASTLE_HOME/etc/dockyard.env"
   if [ -f "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
     info "Destroying Dockyard..."
-    if [ -f "$DOCKYARD_ENV_FILE" ] && wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh 2>/dev/null; then
+    if [ -f "$DOCKYARD_ENV_FILE" ] && write_dockyard_sh 2>/dev/null; then
       echo "y" | DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy >/dev/null 2>&1 || true
       rm -f /tmp/dockyard.sh
     else
@@ -655,7 +663,7 @@ cmd_install() {
     ok "Dockyard already installed"
   else
     info "Installing Dockyard (Docker + Sysbox)..."
-    wget -q "https://raw.githubusercontent.com/thieso2/dockyard/refs/heads/main/dockyard.sh" -O /tmp/dockyard.sh
+    write_dockyard_sh
 
     mkdir -p "$SANDCASTLE_HOME/etc"
     cat > "$SANDCASTLE_HOME/etc/dockyard.env" <<DYEOF
