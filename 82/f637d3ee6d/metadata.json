@@ -9,7 +9,6 @@
     "images/sandbox/tmux.conf",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
-    "installer/templates/dockyard.sh",
     "mise.toml"
   ],
   "sessions": [
@@ -50,10 +49,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 109,
-    "cache_creation_tokens": 113011,
-    "cache_read_tokens": 6421024,
-    "output_tokens": 10286,
-    "api_call_count": 73
+    "input_tokens": 96,
+    "cache_creation_tokens": 40348,
+    "cache_read_tokens": 6132040,
+    "output_tokens": 8016,
+    "api_call_count": 65
   }
 }

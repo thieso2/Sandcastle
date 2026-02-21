@@ -56,3 +56,23 @@ so we should not install composer in docyard?
 ---
 
 continue
+
+---
+
+commit
+
+---
+
+explain the 404
+
+{"time":"2026-02-21T17:18:59.895146228Z","level":"INFO","msg":"Request","path":"/novnc/package.json","status":404,"dur":3,"method":"GET","req_content_length":0,"req_content_type":"","resp_content_length":2215,"resp_content_type":"text/html; charset=UTF-8","remote_addr":"10.206.1.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36","cache":"miss","query":"","proto":"HTTP/1.1"}
+{"time":"2026-02-21T17:20:25.868489643Z","level":"INFO","msg":"Request","path":"/novnc/package.json","status":404,"dur":1,"method":"GET","req_content_length":0,"req_content_type":"","resp_content_length":2215,"resp_content_type":"text/html; charset=UTF-8","remote_addr":"10.206.1.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36","cache":"miss","query":"","proto":"HTTP/1.1"}
+
+---
+
+commit and push
+
+---
+
+installer needs to generate (only when not already generated)
+ActiveRecord::Encryption keys and stire them in .env for the rails app
