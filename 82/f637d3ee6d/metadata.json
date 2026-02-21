@@ -3,9 +3,11 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
-    "VNC_AND_TTYD_AUTH.md"
+    "VNC_AND_TTYD_AUTH.md",
+    "installer/installer.sh.in",
+    "installer/templates/docker-logs.sh"
   ],
   "sessions": [
     {
@@ -14,13 +16,20 @@
       "context": "/82/f637d3ee6d/0/context.md",
       "content_hash": "/82/f637d3ee6d/0/content_hash.txt",
       "prompt": "/82/f637d3ee6d/0/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/1/metadata.json",
+      "transcript": "/82/f637d3ee6d/1/full.jsonl",
+      "context": "/82/f637d3ee6d/1/context.md",
+      "content_hash": "/82/f637d3ee6d/1/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 13,
-    "cache_creation_tokens": 4130,
-    "cache_read_tokens": 908195,
-    "output_tokens": 218,
-    "api_call_count": 7
+    "input_tokens": 25,
+    "cache_creation_tokens": 8543,
+    "cache_read_tokens": 1911972,
+    "output_tokens": 3133,
+    "api_call_count": 17
   }
 }
