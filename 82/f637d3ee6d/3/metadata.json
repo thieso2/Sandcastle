@@ -3,28 +3,31 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "26d46785-2e10-478d-9642-9a0894786c64",
   "strategy": "manual-commit",
-  "created_at": "2026-02-21T16:48:08.277273Z",
+  "created_at": "2026-02-21T17:10:53.631903Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "installer/installer.sh.in"
+    "installer/installer.sh.in",
+    "installer/templates/dockyard.sh"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "9a12ff35-66bd-49d7-aef0-34cdadcd02ae",
+  "transcript_identifier_at_start": "b0a9f837-1699-4ce6-bda7-a2af388ce589",
+  "checkpoint_transcript_start": 157,
+  "transcript_lines_at_start": 157,
   "token_usage": {
-    "input_tokens": 50,
-    "cache_creation_tokens": 63118,
-    "cache_read_tokens": 2862444,
-    "output_tokens": 11821,
-    "api_call_count": 48
+    "input_tokens": 42,
+    "cache_creation_tokens": 83971,
+    "cache_read_tokens": 2436262,
+    "output_tokens": 5870,
+    "api_call_count": 30
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-21T16:48:08.22241Z",
-    "agent_lines": 6,
-    "human_added": 6,
-    "human_modified": 0,
+    "calculated_at": "2026-02-21T17:10:53.567418Z",
+    "agent_lines": 0,
+    "human_added": 43,
+    "human_modified": 23,
     "human_removed": 0,
-    "total_committed": 12,
-    "agent_percentage": 50
+    "total_committed": 43,
+    "agent_percentage": 0
   }
 }

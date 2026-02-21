@@ -21,3 +21,45 @@ PING heise.de (193.99.144.80) 56(84) bytes of data.
 
 fix it really this time on @...
 
+### Prompt 2
+
+push it
+
+### Prompt 3
+
+commit Gemfile.lock
+
+### Prompt 4
+
+push
+
+### Prompt 5
+
+still on install 
+[INFO] Starting Sandcastle...
+unknown shorthand flag: 'd' in -d
+
+Usage:  docker [OPTIONS] COMMAND [ARG...]
+
+Run 'docker --help' for more information
+
+this used to work!
+
+lokk at the git histpry - live fix on ssh sandman "sudo ./installer.sh install"
+
+### Prompt 6
+
+[Request interrupted by user for tool use]
+
+### Prompt 7
+
+so we should not install composer in docyard?
+
+### Prompt 8
+
+[Request interrupted by user]
+
+### Prompt 9
+
+continue
+

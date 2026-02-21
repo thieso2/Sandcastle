@@ -8,6 +8,7 @@
     "VNC_AND_TTYD_AUTH.md",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
+    "installer/templates/dockyard.sh",
     "mise.toml"
   ],
   "sessions": [
@@ -41,10 +42,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 108,
-    "cache_creation_tokens": 91044,
-    "cache_read_tokens": 6244000,
-    "output_tokens": 16199,
-    "api_call_count": 86
+    "input_tokens": 100,
+    "cache_creation_tokens": 111897,
+    "cache_read_tokens": 5817818,
+    "output_tokens": 10248,
+    "api_call_count": 68
   }
 }

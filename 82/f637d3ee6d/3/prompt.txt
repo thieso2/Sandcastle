@@ -14,3 +14,45 @@ PING heise.de (193.99.144.80) 56(84) bytes of data.
 1 packets transmitted, 0 received, 100% packet loss, time 0ms
 
 fix it really this time on @SANDMAN
+
+---
+
+push it
+
+---
+
+commit Gemfile.lock
+
+---
+
+push
+
+---
+
+still on install 
+[INFO] Starting Sandcastle...
+unknown shorthand flag: 'd' in -d
+
+Usage:  docker [OPTIONS] COMMAND [ARG...]
+
+Run 'docker --help' for more information
+
+this used to work!
+
+lokk at the git histpry - live fix on ssh sandman "sudo ./installer.sh install"
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+so we should not install composer in docyard?
+
+---
+
+[Request interrupted by user]
+
+---
+
+continue
