@@ -686,3 +686,11 @@ reload worked - why?
 ---
 
 set SANDCASTLE_VNC_URL in dev env
+
+---
+
+creaet a GH issue switch to github.com/ruzhila/websockify-go from websockify research
+
+---
+
+cant we serve that files via out traefic or rails app?

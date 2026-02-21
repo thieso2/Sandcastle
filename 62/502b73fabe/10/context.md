@@ -203,3 +203,11 @@ sandcastle-web     | [eae65167-8271-408c-b387-b51e71c8669d] ...
 
 set SANDCASTLE_VNC_URL in dev env
 
+### Prompt 31
+
+creaet a GH issue switch to github.com/ruzhila/websockify-go from websockify research
+
+### Prompt 32
+
+cant we serve that files via out traefic or rails app?
+
