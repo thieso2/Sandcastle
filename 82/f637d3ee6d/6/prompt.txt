@@ -1,0 +1,20 @@
+we still have decryption erros on sandman:
+sandcastle-web     | {"time":"2026-02-21T19:12:02.311315918Z","level":"INFO","msg":"Request","path":"/admin/settings/edit","status":500,"dur":239,"method":"GET","req_content_length":0,"req_content_type":"","resp_content_length":3083,"resp_content_type":"text/html; charset=UTF-8","remote_addr":"10.206.1.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36","cache":"miss","query":"","proto":"HTTP/1.1"}
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Started GET "/admin/settings/edit" for 10.206.1.1 at 2026-02-21 19:12:12 +0000
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Processing by Admin::SettingsController#edit as HTML
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718]   Rendered layout layouts/admin.html.erb (Duration: 4.0ms | GC: 0.0ms)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Completed 500 Internal Server Error in 15ms (ActiveRecord: 0.5ms (6 queries, 3 cached) | GC: 0.0ms)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718]
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] ActionView::Template::Error (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Caused by: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Caused by: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Caused by: OpenSSL::Cipher::AuthTagError (AEAD authentication tag verification failed)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Caused by: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Caused by: ActiveRecord::Encryption::Errors::Decryption (ActiveRecord::Encryption::Errors::Decryption)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718] Caused by: OpenSSL::Cipher::AuthTagError (AEAD authentication tag verification failed)
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718]
+sandcastle-web     | Information for: ActionView::Template::Error (ActiveRecord::Encryption::Errors::Decryption):
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718]     85:         <div>
+sandcastle-web     | [82839c37-1dee-4f30-b754-bc4a0fc30718]     86:           <%= form.label :smtp_password, "Password", class: "block text-sm font-medium text-gray-700 mb-1" %>
+
+livepatch and fix it!
