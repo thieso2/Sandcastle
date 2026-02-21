@@ -6,9 +6,9 @@
   "checkpoints_count": 3,
   "files_touched": [
     "VNC_AND_TTYD_AUTH.md",
-    "images/sandbox/websockify/main.go",
     "installer/installer.sh.in",
-    "installer/templates/.dockyard..swp"
+    "installer/templates/.dockyard..swp",
+    "mise.toml"
   ],
   "sessions": [
     {
@@ -34,10 +34,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 48,
-    "cache_creation_tokens": 40146,
-    "cache_read_tokens": 2823079,
-    "output_tokens": 3569,
-    "api_call_count": 32
+    "input_tokens": 58,
+    "cache_creation_tokens": 27926,
+    "cache_read_tokens": 3381556,
+    "output_tokens": 4378,
+    "api_call_count": 38
   }
 }

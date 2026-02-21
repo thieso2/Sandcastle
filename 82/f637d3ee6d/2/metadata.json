@@ -3,28 +3,30 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "b1ef265e-96d6-4c03-a261-cc3d4dbb3100",
   "strategy": "manual-commit",
-  "created_at": "2026-02-21T16:24:23.792368Z",
+  "created_at": "2026-02-21T16:31:23.83621Z",
   "branch": "claude/issue-47-20260221-1348",
   "checkpoints_count": 1,
   "files_touched": [
-    "images/sandbox/websockify/main.go"
+    "mise.toml"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "f1b5f603-25ff-4a41-807d-5e339f647abe",
+  "transcript_identifier_at_start": "d6207f5c-e55e-401c-8ee4-74ab224e62c6",
+  "checkpoint_transcript_start": 45,
+  "transcript_lines_at_start": 45,
   "token_usage": {
-    "input_tokens": 19,
-    "cache_creation_tokens": 27494,
-    "cache_read_tokens": 407760,
-    "output_tokens": 684,
-    "api_call_count": 11
+    "input_tokens": 29,
+    "cache_creation_tokens": 15274,
+    "cache_read_tokens": 966237,
+    "output_tokens": 1493,
+    "api_call_count": 17
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-21T16:24:23.767878Z",
-    "agent_lines": 78,
-    "human_added": 504,
+    "calculated_at": "2026-02-21T16:31:23.757793Z",
+    "agent_lines": 14,
+    "human_added": 0,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 582,
-    "agent_percentage": 13.402061855670103
+    "total_committed": 14,
+    "agent_percentage": 100
   }
 }

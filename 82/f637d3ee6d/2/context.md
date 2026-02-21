@@ -23,3 +23,27 @@ what's on this branch
 
 commit this
 
+### Prompt 5
+
+i still see websockify running in the sandbox - remove that
+
+### Prompt 6
+
+[Request interrupted by user]
+
+### Prompt 7
+
+no websockify should run in the sandbox! but the go version not the pythin one (remove the pythn one!)
+
+### Prompt 8
+
+i was uning to wrong image. what mose task rebuild the sandbox image?
+
+### Prompt 9
+
+create mise task
+
+### Prompt 10
+
+commit
+

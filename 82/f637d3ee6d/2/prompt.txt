@@ -27,3 +27,27 @@ ERROR: failed to build: failed to solve: process "/bin/sh -c go mod tidy && CGO_
 ---
 
 commit this
+
+---
+
+i still see websockify running in the sandbox - remove that
+
+---
+
+[Request interrupted by user]
+
+---
+
+no websockify should run in the sandbox! but the go version not the pythin one (remove the pythn one!)
+
+---
+
+i was uning to wrong image. what mose task rebuild the sandbox image?
+
+---
+
+create mise task
+
+---
+
+commit
