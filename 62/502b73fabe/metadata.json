@@ -26,8 +26,7 @@
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "images/sandbox/Dockerfile",
-    "mise.toml",
-    "scripts/generate-local-cert.sh"
+    "mise.toml"
   ],
   "sessions": [
     {
@@ -109,10 +108,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 216,
-    "cache_creation_tokens": 480189,
-    "cache_read_tokens": 12321892,
-    "output_tokens": 15364,
-    "api_call_count": 164
+    "input_tokens": 221,
+    "cache_creation_tokens": 489887,
+    "cache_read_tokens": 12976477,
+    "output_tokens": 16114,
+    "api_call_count": 167
   }
 }

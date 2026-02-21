@@ -38,3 +38,11 @@ Toggle session dump
 
 what happend?
 
+### Prompt 7
+
+mise run deploy:local
+
+### Prompt 8
+
+sandcastle-worker  | [ActiveJob] [SandboxProvisionJob] [e2e0d189-c0d0-4601-b08b-bf6539a80104] Error performing SandboxProvisionJob (Job ID: e2e0d189-c0d0-4601-b08b-bf6539a80104) from SolidQueue(default) in 304.45ms: SandboxManager::Error (Container failed to start: failed to set up container networking: driver failed programming external connectivity on endpoint thies-wild-puma (8882a08bfebe04ee7dbc12e597ca329ed2c44e7a17953c893e77766dee8f8df3): Bind for 0.0.0.0:2201 failed: port is already alloc...
+
