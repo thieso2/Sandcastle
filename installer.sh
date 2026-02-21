@@ -133,6 +133,7 @@ derive_vars() {
 
   DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
   DOCKER="${DOCKYARD_ROOT}/docker-runtime/bin/docker"
+  DOCKER_COMPOSE="${DOCKYARD_ROOT}/docker-runtime/bin/docker-compose"
 
   ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 
@@ -429,7 +430,7 @@ install_mkcert() {
 write_helper_scripts() {
   cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
 #!/bin/bash
-exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml logs -f "\$@"
+exec sudo DOCKER_HOST="unix://${DOCKER_SOCK}" ${DOCKER_COMPOSE} -f ${SANDCASTLE_HOME}/docker-compose.yml logs -f "\$@"
 LOGS
   chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
   wrote "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
@@ -688,7 +689,7 @@ cmd_destroy() {
     if [ -f "$SANDCASTLE_HOME/docker-compose.yml" ]; then
       # Do NOT pass --volumes: postgres data lives in a bind-mount under
       # $SANDCASTLE_HOME/data/postgres which must survive uninstall.
-      $DOCKER compose -f "$SANDCASTLE_HOME/docker-compose.yml" down --rmi all --remove-orphans 2>/dev/null || true
+      DOCKER_HOST="unix://$DOCKER_SOCK" "$DOCKER_COMPOSE" -f "$SANDCASTLE_HOME/docker-compose.yml" down --rmi all --remove-orphans 2>/dev/null || true
     fi
     $DOCKER network rm sandcastle-web 2>/dev/null || true
 
@@ -1245,7 +1246,7 @@ INITDB
 
   info "Starting Sandcastle..."
   cd "$SANDCASTLE_HOME"
-  $DOCKER compose up -d
+  DOCKER_HOST="unix://$DOCKER_SOCK" $DOCKER_COMPOSE up -d
 
   # ── Seed database (fresh install) ─────────────────────────────────────────
 
@@ -1259,7 +1260,7 @@ INITDB
     done
 
     info "Seeding database..."
-    $DOCKER compose exec -T \
+    DOCKER_HOST="unix://$DOCKER_SOCK" $DOCKER_COMPOSE exec -T \
       -e SANDCASTLE_ADMIN_USER="${SANDCASTLE_ADMIN_USER}" \
       -e SANDCASTLE_ADMIN_EMAIL="${SANDCASTLE_ADMIN_EMAIL}" \
       -e SANDCASTLE_ADMIN_PASSWORD="${SANDCASTLE_ADMIN_PASSWORD}" \
@@ -1347,7 +1348,7 @@ cmd_update() {
 
   info "Restarting services..."
   cd "$SANDCASTLE_HOME"
-  $DOCKER compose up -d
+  DOCKER_HOST="unix://$DOCKER_SOCK" $DOCKER_COMPOSE up -d
   ok "Services restarted"
 
   echo ""
