@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "88c84d414f2e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/services/tailscale_manager.rb"
+  ],
+  "sessions": [
+    {
+      "metadata": "/88/c84d414f2e/0/metadata.json",
+      "transcript": "/88/c84d414f2e/0/full.jsonl",
+      "context": "/88/c84d414f2e/0/context.md",
+      "content_hash": "/88/c84d414f2e/0/content_hash.txt",
+      "prompt": "/88/c84d414f2e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 101,
+    "cache_creation_tokens": 88145,
+    "cache_read_tokens": 7169914,
+    "output_tokens": 11872,
+    "api_call_count": 93
+  }
+}

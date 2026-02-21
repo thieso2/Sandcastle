@@ -1,0 +1,304 @@
+why is https://hq.sandcastle.rocks/ SSL broken - fix!
+
+---
+
+[Request interrupted by user]
+
+---
+
+the .env says:
+SANDCASTLE_HOST=hq.sandcastle.rocks
+SANDCASTLE_TLS_MODE=letsencrypt
+why didnt it work
+
+---
+
+we shoudl have teh cert in a volume that survives reinstalls!
+
+---
+
+commite and push it
+
+---
+
+tailscale has lost it's internet!
+
+thies@sandman:~$ /sandcastle/docker-runtime/bin/docker exec -ti sc-ts-thies ash
+/ # ping heise.de
+PING heise.de (193.99.144.80) 56(84) bytes of data.
+^C
+--- heise.de ping statistics ---
+3 packets transmitted, 0 received, 100% packet loss, time 2029ms
+
+---
+
+tailscale stil lhas no networking:
+sandcastle@sandman:~$ docker exec -ti sc-ts-thies ash
+/ # ping heise.de
+PING heise.de (193.99.144.80) 56(84) bytes of data.
+^C
+--- heise.de ping statistics ---
+2 packets transmitted, 0 received, 100% packet loss, time 1001ms
+
+/ # netstat -rn
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+0.0.0.0         10.159.29.1     0.0.0.0         UG        0 0          0 eth0
+10.159.29.0     0.0.0.0         255.255.255.0   U         0 0          0 eth0
+/ #
+
+debug live on sandman!
+
+---
+
+do i need new images or is reinstalling enogh?
+
+---
+
+add some info to CLAUDE.md how the networking should look like and what not to change without asking!
+
+---
+
+commit
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze this conversation:
+
+1. **SSL Issue on hq.sandcastle.rocks**: User reported broken SSL. Investigation showed Traefik serving default self-signed cert ("TRAEFIK DEFAULT CERT"). Root cause: server was installed with `SANDCASTLE_HOST=100.106.185.92` and `SANDCASTLE_TLS_MODE=selfsigned` instead of `hq.sandcastle.rocks` and `letsencrypt`. Fixed by updating `/sandcastle/etc/env`, `/sandcastle/.env`, and Traefik config files, then restarting Traefik. Hit Let's Encrypt rate limit (5 certs/week for this domain already issued) — cert will arrive automatically at 2026-02-22 02:18 UTC.
+
+2. **acme.json not surviving reinstalls**: User wanted certs to persist across reinstalls. Fixed in `installer/installer.sh.in` by changing `rm -rf "$SANDCASTLE_HOME/data/traefik"` to selectively remove only regenerable files (traefik.yml, dynamic/, certs/) while preserving acme.json. Regenerated installer.sh and committed/pushed.
+
+3. **Tailscale networking issue**: User reported `sc-ts-thies` container had no internet. Debugging showed container on subnet `10.159.29.0/24` which is outside the Dockyard MASQUERADE rule (`10.89.0.0/16`). Container was actually an orphan from a previous install. The root cause: `DOCKYARD_POOL_BASE` was not passed to the Rails `web` and `worker` containers, so `subnet_for()` in `TailscaleManager` could generate subnets outside the masqueraded range. Fixed by adding `DOCKYARD_POOL_BASE` to docker-compose template and patching the server's docker-compose.yml live.
+
+4. **CLAUDE.md networking docs**: User asked to document networking invariants. Added detailed section to CLAUDE.md explaining the subnet architecture, iptables rules, and 4 critical constraints not to change.
+
+5. **Committing other staged changes**: User said "commit" — found 10 modified files representing a major terminal architecture rewrite: WeTTY sidecar replaced by ttyd running inside sandbox containers. Committed with detailed message.
+
+6. **"commit and push it" for acme.json fix**: Already done before that message — just needed push confirmation.
+
+Key files touched:
+- `installer/installer.sh.in` — acme.json preservation fix
+- `installer.sh` — regenerated
+- `installer/templates/docker-compose.yml.template` — added DOCKYARD_POOL_BASE
+- `/sandcastle/data/traefik/traefik.yml` — on server, switched to ACME
+- `/sandcastle/data/traefik/dynamic/rails.yml` — on server, correct host
+- `/sandcastle/.env` — on server, correct values
+- `/sandcastle/etc/env` — on server, correct values
+- `/sandcastle/docker-compose.yml` — on server, added DOCKYARD_POOL_BASE
+- `CLAUDE.md` — networking invariants section
+- `app/services/terminal_manager.rb` — WeTTY→ttyd rewrite
+- `app/controllers/terminal_controller.rb` — type param support
+- `app/jobs/terminal_open_job.rb` — deleted
+- `app/views/dashboard/_sandbox.html.erb` — two terminal buttons
+- `app/views/sandboxes/show.html.erb` — two terminal buttons
+- `app/views/pages/guide.html.erb` — updated docs
+- `app/views/terminal/wait.html.erb` — type param
+- `images/sandbox/Dockerfile` — ttyd install
+- `images/sandbox/entrypoint.sh` — ttyd startup
+- `test/controllers/terminal_controller_test.rb` — updated tests
+
+The terminal rewrite was the most recent commit.
+
+Summary:
+1. Primary Request and Intent:
+   - Fix broken SSL on `https://hq.sandcastle.rocks/` (Traefik serving default self-signed cert)
+   - Make Let's Encrypt `acme.json` survive reinstalls
+   - Debug Tailscale container losing internet connectivity (`sc-ts-thies` on `10.159.29.0/24` outside MASQUERADE range)
+   - Document Tailscale/Dockyard networking invariants in CLAUDE.md
+   - Commit all pending changes (which turned out to be a major terminal architecture rewrite: WeTTY → ttyd)
+
+2. Key Technical Concepts:
+   - **Traefik v3 dynamic config** with ACME/Let's Encrypt HTTP challenge and `certResolver`
+   - **Dockyard** — isolated Docker daemon at `/sandcastle/docker.sock`, runs with `--iptables=false`, iptables rules set manually via systemd `ExecStartPre`
+   - **MASQUERADE rules** — cover `10.89.0.0/16` pool; Tailscale sidecar subnets must be within this range
+   - **`DOCKYARD_POOL_BASE`** env var — must be passed to Rails containers so `subnet_for()` picks subnets within the masqueraded range
+   - **Let's Encrypt rate limits** — 5 certs/week per exact domain; exhausted during repeated reinstalls
+   - **`acme.json`** — Traefik's ACME cert storage; was wiped on `reset`/`uninstall` by `rm -rf data/traefik`
+   - **WeTTY** (old terminal) — external sidecar container SSH-ing into sandbox, now removed
+   - **ttyd** (new terminal) — runs inside sandbox at boot on port 7681 (tmux) and 7682 (shell), Traefik proxies directly to sandbox container
+   - **`subnet_for()` in TailscaleManager** — picks random `/24` from `DOCKYARD_POOL_BASE`; without the env var the fallback was wrong in older code
+   - **Installer architecture** — `installer.sh` generated from `installer/installer.sh.in` + templates via `installer/build.sh`; never edit `installer.sh` directly
+
+3. Files and Code Sections:
+
+   - **`installer/installer.sh.in`** — Fixed `cmd_destroy` to preserve `acme.json`:
+     ```bash
+     # Before:
+     rm -rf "$SANDCASTLE_HOME/data/traefik"
+     
+     # After:
+     rm -f "$SANDCASTLE_HOME/data/traefik/traefik.yml"
+     rm -rf "$SANDCASTLE_HOME/data/traefik/dynamic"
+     rm -rf "$SANDCASTLE_HOME/data/traefik/certs"
+     rmdir "$SANDCASTLE_HOME/data/traefik" 2>/dev/null || true
+     ```
+
+   - **`installer/templates/docker-compose.yml.template`** — Added `DOCKYARD_POOL_BASE` to `web` and `worker` services:
+     ```yaml
+     # In web environment:
+     DOCKYARD_POOL_BASE: \${DOCKYARD_POOL_BASE:-10.89.0.0/16}
+     # In worker environment:
+     DOCKYARD_POOL_BASE: \${DOCKYARD_POOL_BASE:-10.89.0.0/16}
+     ```
+
+   - **`installer.sh`** — Regenerated from template after each change to `installer.sh.in`
+
+   - **`CLAUDE.md`** — Updated Tailscale section with correct subnet description and added networking invariants:
+     ```
+     ### Networking Invariants — Do Not Change Without Asking
+     
+     SANDCASTLE_PRIVATE_NET  (e.g. 10.89.0.0/16)
+     └── DOCKYARD_POOL_BASE  = same /16
+         ├── DOCKYARD_BRIDGE_CIDR  = first /24 (e.g. 10.89.0.1/24)
+         ├── DOCKYARD_FIXED_CIDR   = same /24
+         ├── sandcastle-web network — allocated from the pool
+         └── sc-ts-net-{user}      — random /24 from the pool
+     ```
+     Also corrected stale subnet description from `172.{100+user_id%100}.0.0/16` to `random /24 from DOCKYARD_POOL_BASE`.
+
+   - **`app/services/terminal_manager.rb`** — Massive simplification (340→63 lines). Removed all WeTTY container management, SSH keypair generation, pubkey injection. Now only writes Traefik config and checks ttyd port via `docker exec + ss`:
+     ```ruby
+     TMUX_PORT  = 7681
+     SHELL_PORT = 7682
+     
+     def open(sandbox:, type: "tmux")
+       raise Error, "Sandbox is not running" unless sandbox.status == "running"
+       write_traefik_config(sandbox)
+       terminal_url(sandbox, type)
+     end
+     
+     def active?(sandbox:, type: "tmux")
+       return false if sandbox.container_id.blank?
+       port = type == "shell" ? SHELL_PORT : TMUX_PORT
+       container = Docker::Container.get(sandbox.container_id)
+       _out, _err, code = container.exec([ "sh", "-c", "ss -tlnp | grep -q ':#{port}'" ])
+       code == 0
+     rescue Docker::Error::NotFoundError, Docker::Error::DockerError => e
+       false
+     end
+     
+     def close(sandbox:)
+       delete_traefik_config(sandbox)
+     end
+     ```
+     Traefik config now creates two routers per sandbox: `terminal-{id}-tmux` → container:7681 and `terminal-{id}-shell` → container:7682.
+
+   - **`app/controllers/terminal_controller.rb`** — Added `type` param (`tmux`/`shell`), removed background job dispatch:
+     ```ruby
+     def open
+       sandbox = find_sandbox
+       type    = params[:type].presence_in(%w[tmux shell]) || "tmux"
+       manager = TerminalManager.new
+       manager.open(sandbox: sandbox, type: type)
+       if manager.active?(sandbox: sandbox, type: type)
+         redirect_to terminal_redirect_url("/terminal/#{sandbox.id}/#{type}"), allow_other_host: true, status: :see_other
+       else
+         redirect_to terminal_wait_sandbox_path(sandbox, type: type), status: :see_other
+       end
+     end
+     ```
+     Auth regex changed from `/terminal/(\d+)/wetty` to `/terminal/(\d+)/(tmux|shell)`.
+
+   - **`app/jobs/terminal_open_job.rb`** — Deleted (no longer needed since ttyd starts at container boot).
+
+   - **`images/sandbox/Dockerfile`** — Added ttyd installation:
+     ```dockerfile
+     # ttyd — web terminal (two ports: 7681=tmux, 7682=shell)
+     RUN ARCH=$(dpkg --print-architecture) \
+         && TTYD_ARCH=$([ "$ARCH" = "arm64" ] && echo "aarch64" || echo "x86_64") \
+         && curl -fsSL "https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.${TTYD_ARCH}" \
+            -o /usr/local/bin/ttyd \
+         && chmod +x /usr/local/bin/ttyd
+     EXPOSE 22 5900 6080 7681 7682
+     ```
+
+   - **`images/sandbox/entrypoint.sh`** — Added ttyd startup:
+     ```bash
+     if command -v ttyd &>/dev/null; then
+         su -s /bin/bash "$USERNAME" -c \
+             "ttyd -W -m 0 -p 7681 tmux new-session -A -s main &>/var/log/ttyd-tmux.log &"
+         su -s /bin/bash "$USERNAME" -c \
+             "ttyd -W -m 1 -p 7682 bash -l &>/var/log/ttyd-shell.log &"
+     fi
+     ```
+
+   - **`app/views/dashboard/_sandbox.html.erb`** and **`app/views/sandboxes/show.html.erb`** — Two terminal buttons instead of one:
+     ```erb
+     <%= button_to terminal_sandbox_path(sandbox, type: "tmux"), method: :post, ... %>
+     <%= button_to terminal_sandbox_path(sandbox, type: "shell"), method: :post, ... %>
+     ```
+
+   - **`app/views/terminal/wait.html.erb`** — Status URL now includes type param.
+
+   - **`test/controllers/terminal_controller_test.rb`** — Updated all tests: `/wetty` → `/tmux` or `/shell`, stub signatures updated, new tests for type param and direct-redirect-when-ready behavior.
+
+   - **Server-side files patched live** (not in git):
+     - `/sandcastle/data/traefik/traefik.yml` — switched to ACME/letsencrypt config
+     - `/sandcastle/data/traefik/dynamic/rails.yml` — `hq.sandcastle.rocks` with `certResolver: letsencrypt`
+     - `/sandcastle/.env` — `SANDCASTLE_HOST=hq.sandcastle.rocks`, `SANDCASTLE_TLS_MODE=letsencrypt`
+     - `/sandcastle/etc/env` — same values
+     - `/sandcastle/docker-compose.yml` — added `DOCKYARD_POOL_BASE` to web and worker
+
+4. Errors and fixes:
+   - **SSL broken**: Traefik served default self-signed cert because server was installed with wrong `SANDCASTLE_HOST` and `SANDCASTLE_TLS_MODE=selfsigned`. Fixed by updating all env files and Traefik config on server, restarting Traefik.
+   - **Let's Encrypt rate limit**: 5 certs already issued for `hq.sandcastle.rocks` this week. Not fixable immediately — cert arrives automatically at 2026-02-22 02:18 UTC. Root cause: each reinstall wiped `acme.json` and re-requested a cert.
+   - **Rails app overwriting Traefik config**: The `config/initializers/traefik.rb` runs on startup and calls `RouteManager#write_rails_config` using `SANDCASTLE_HOST` env var. Web container had old `SANDCASTLE_HOST=100.106.185.92` until restarted with new `.env`.
+   - **`sc-ts-thies` container not found in docker ps**: Container was in a fast restart loop or was an orphan from a previous install on a subnet with no MASQUERADE. Exhaustive checks (both Docker daemons, all containerd namespaces, all network namespaces via `/proc`) confirmed it didn't exist at check time.
+   - **Tailscale subnet outside MASQUERADE range** (`10.159.29.0/24`): `DOCKYARD_POOL_BASE` was not in Rails container env. Old code fell back to wrong value. Fixed by adding env var to docker-compose template and patching server live.
+   - **Duplicate `DOCKYARD_POOL_BASE` in server docker-compose**: `sed` matched `DB_PASSWORD` in multiple services. Fixed with a Python script to remove duplicates, keeping only web (line 58) and worker (line 87).
+   - **zsh heredoc quoting errors in SSH commands**: Used `bash << 'ENDSSH'` pattern to avoid zsh interpretation issues.
+
+5. Problem Solving:
+   - **acme.json preservation**: Changed `rm -rf data/traefik` to surgical removal of regenerable files, leaving `acme.json` intact. Mirrors how `data/postgres` and `data/users` are already preserved.
+   - **Tailscale internet loss**: Two-part fix — (1) `DOCKYARD_POOL_BASE` env var must reach Rails so `subnet_for()` picks subnets within the masqueraded `/16`; (2) documented as a networking invariant in CLAUDE.md.
+   - **Terminal architecture**: Removed complex WeTTY sidecar pattern (container creation, SSH keypairs, pubkey injection, background jobs) in favor of ttyd running inside each sandbox at boot — dramatically simpler with two terminal modes.
+
+6. All user messages:
+   - "why is https://hq.sandcastle.rocks/ SSL broken - fix!"
+   - "the .env says: SANDCASTLE_HOST=hq.sandcastle.rocks SANDCASTLE_TLS_MODE=letsencrypt why didnt it work"
+   - "commite and push it" (re: acme.json fix)
+   - "we shoudl have teh cert in a volume that survives reinstalls!"
+   - "commit and push it" (re: installer acme.json preservation fix — already done)
+   - "tailscale has lost it's internet! [paste of ping output showing 100% packet loss, routing table showing 10.159.29.0/24]"
+   - "check git history what has changed..."
+   - "do i need new images or is reinstalling enogh?"
+   - "add some info to CLAUDE.md how the networking should look like and what not to change without asking!"
+   - "commit" (re: pending terminal rewrite changes)
+
+7. Pending Tasks:
+   - None explicitly pending. All requested tasks have been completed and committed/pushed.
+   - Note: New sandbox image needs to be built and released for ttyd terminal feature to work in production (requires `mise run release` to trigger GitHub Actions build). The current production image (Feb 20) predates the ttyd changes.
+
+8. Current Work:
+   The most recent work was committing 10 files representing a major terminal architecture rewrite — replacing WeTTY sidecar containers with `ttyd` running inside sandbox containers. Committed as `4e5a4e9` with message "feat(terminal): replace WeTTY sidecar with ttyd running inside sandbox". Changes included:
+   - `app/services/terminal_manager.rb` — 340→63 lines, removed all WeTTY logic
+   - `app/controllers/terminal_controller.rb` — type param (tmux/shell), no background job
+   - `app/jobs/terminal_open_job.rb` — deleted
+   - Dashboard and show views — two terminal buttons
+   - `images/sandbox/Dockerfile` + `entrypoint.sh` — ttyd installed and started at boot
+   - Tests updated to match new architecture
+
+9. Optional Next Step:
+   No explicit next step was requested after the final "commit" message was completed. The user's last request was fulfilled. A logical but unconfirmed next step would be to release a new sandbox image (via `mise run release`) so the ttyd terminal feature is available in production — but this should be confirmed with the user first as it wasn't explicitly requested.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+recreaeting the sc-ts-thies dontainer does not help  - live fix!
+
+---
+
+}sandcastle@sandman:~$docker exec -ti sc-ts-thies ashe
+/ # ping heise.de
+PING heise.de (193.99.144.80) 56(84) bytes of data.
+^C
+--- heise.de ping statistics ---
+1 packets transmitted, 0 received, 100% packet loss, time 0ms
+
+conatiner has no network - what happened? diagnose - look at the rails log!
