@@ -66,7 +66,6 @@ class TailscaleManager
         "tailscale up --reset" \
         " --advertise-routes=#{subnet}" \
         "#{tag_flag}" \
-        " --accept-routes" \
         " --hostname=#{container.json.dig("Config", "Hostname")}" \
         " --timeout=120s &"
       ])
@@ -236,6 +235,7 @@ class TailscaleManager
     pull_image
     create_network(network_name, subnet)
     remove_existing_container(container_name)
+    clear_tailscale_state(user)
     container = create_sidecar(
       name: container_name,
       user: user,
@@ -254,6 +254,16 @@ class TailscaleManager
     container.delete(force: true)
   rescue Docker::Error::NotFoundError
     # No existing container
+  end
+
+  # Remove stale tailscaled.state so the daemon starts fresh.
+  # Stale state causes tailscaled to immediately set up VPN routes before
+  # authentication, which silently drops all normal internet traffic.
+  def clear_tailscale_state(user)
+    state_file = "#{DATA_DIR}/users/#{user.name}/tailscale/tailscaled.state"
+    File.delete(state_file) if File.exist?(state_file)
+  rescue Errno::ENOENT
+    # already gone
   end
 
   def cleanup_sidecar(user)
