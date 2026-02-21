@@ -88,3 +88,62 @@ commit and push
 
 admin should have no dropdown, just add jobs and errors as tabs in the admin page.
 
+### Prompt 19
+
+commit and push
+
+### Prompt 20
+
+ca we get jobs and errors to have out header with navigartion?
+
+### Prompt 21
+
+Showing /rails/app/views/shared/_navbar.html.erb where line #16 raised:
+
+undefined local variable or method 'guide_path' for an instance of #<Class:0x0000ffff782b99e0>
+Extracted source (around line #16):
+14
+15
+16
+17
+18
+19
+              
+      <% nav_items = [
+        { label: "Dashboard", path: root_path, active: controller_name == "dashboard" && !controller_path.start_with?("admin") },
+        { label: "Guide", path: guide_path, active: controller_name == "pages" },
+        { label: "Tailscale"...
+
+### Prompt 22
+
+Copy as text
+NoMethodError in SolidErrors::Errors#index
+Showing /rails/app/views/shared/_navbar.html.erb where line #28 raised:
+
+undefined method 'policy' for an instance of #<Class:0x0000ffff61a78990>
+Extracted source (around line #28):
+26
+27
+28
+29
+30
+31
+              
+      <% end %>
+
+      <% if policy(:user).index? %>
+        <%= link_to "Admin", admin_dashboard_path,
+              class: "px-3 py-1.5 rounded-md text-sm font-medium transition-colors #{
+                controller_path.start_w...
+
+### Prompt 23
+
+trying to navigate off teh jobstab yields:
+
+No route matches [GET] "/admin/jobs/admin/settings/edit"
+Rails.root: /rails
+
+### Prompt 24
+
+commit and push
+
