@@ -3,9 +3,12 @@
   "checkpoint_id": "88c84d414f2e",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 4,
   "files_touched": [
-    "app/services/tailscale_manager.rb"
+    "app/services/tailscale_manager.rb",
+    "app/services/terminal_manager.rb",
+    "images/sandbox/Dockerfile",
+    "mise.toml"
   ],
   "sessions": [
     {
@@ -14,13 +17,20 @@
       "context": "/88/c84d414f2e/0/context.md",
       "content_hash": "/88/c84d414f2e/0/content_hash.txt",
       "prompt": "/88/c84d414f2e/0/prompt.txt"
+    },
+    {
+      "metadata": "/88/c84d414f2e/1/metadata.json",
+      "transcript": "/88/c84d414f2e/1/full.jsonl",
+      "context": "/88/c84d414f2e/1/context.md",
+      "content_hash": "/88/c84d414f2e/1/content_hash.txt",
+      "prompt": "/88/c84d414f2e/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 101,
-    "cache_creation_tokens": 88145,
-    "cache_read_tokens": 7169914,
-    "output_tokens": 11872,
-    "api_call_count": 93
+    "input_tokens": 147,
+    "cache_creation_tokens": 105698,
+    "cache_read_tokens": 10740603,
+    "output_tokens": 13761,
+    "api_call_count": 124
   }
 }
