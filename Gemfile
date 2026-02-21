@@ -42,6 +42,9 @@ gem "solid_cache"
 gem "solid_queue"
 gem "solid_cable"
 
+# Database-backed error tracking
+gem "solid_errors"
+
 # Job monitoring dashboard
 gem "mission_control-jobs"
 

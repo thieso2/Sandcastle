@@ -81,6 +81,9 @@ Rails.application.routes.draw do
 
     # Job monitoring dashboard
     mount MissionControl::Jobs::Engine, at: "/jobs"
+
+    # Error tracking dashboard
+    mount SolidErrors::Engine, at: "/errors"
   end
 
   namespace :api do
