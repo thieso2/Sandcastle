@@ -151,13 +151,36 @@ Per-user Tailscale sidecars connect sandbox containers to a user's own tailnet. 
 **User `tailscale_state` field:** `disabled` → `pending` (during interactive login) → `enabled`
 
 **Sidecar architecture:**
-- Bridge network: `sc-ts-net-{username}` with subnet `172.{100+user_id%100}.0.0/16`
+- Bridge network: `sc-ts-net-{username}` with a random `/24` subnet drawn from `DOCKYARD_POOL_BASE` (e.g. `10.89.42.0/24`)
 - Container: `sc-ts-{username}` running `tailscale/tailscale:latest`
 - State persisted at `/data/users/{name}/tailscale`
 - Advertises subnet routes so sandboxes on the bridge are reachable from the tailnet
 - `tailscale_auto_connect` user setting auto-joins new sandboxes to the bridge network
 
 **Important:** `containerboot` (default Tailscale image entrypoint) conflicts with manual `tailscale up` when no auth key is provided. The interactive flow must override the entrypoint to run `tailscaled` directly.
+
+### Networking Invariants — Do Not Change Without Asking
+
+The Dockyard Docker daemon (`sc_docker`) and the Rails app share a single private address space. **All of the following must stay consistent or Tailscale sidecars (and sandbox containers) will lose internet access.**
+
+```
+SANDCASTLE_PRIVATE_NET  (e.g. 10.89.0.0/16)
+└── DOCKYARD_POOL_BASE  = same /16  (passed to dockerd --default-address-pool)
+    ├── DOCKYARD_BRIDGE_CIDR  = first /24 (e.g. 10.89.0.1/24) — sc_docker0 bridge
+    ├── DOCKYARD_FIXED_CIDR   = same /24 (e.g. 10.89.0.0/24)  — static container IPs
+    ├── sandcastle-web network — allocated from the pool (e.g. 10.89.1.0/24)
+    └── sc-ts-net-{user}      — random /24 from the pool (e.g. 10.89.42.0/24)
+```
+
+**iptables rules** (set by the `sc_docker` systemd unit at startup, NOT by dockerd):
+- `POSTROUTING MASQUERADE` for the entire `DOCKYARD_POOL_BASE` /16 → gives all containers internet via NAT
+- `FORWARD ACCEPT` for src/dst within the /16 → allows container-to-container and container-to-internet traffic
+
+**Critical constraints:**
+1. `DOCKYARD_POOL_BASE` **must be passed** to the Rails `web` and `worker` containers as an env var — `subnet_for()` in `TailscaleManager` reads it to pick a subnet within the masqueraded range. If it is missing or mismatched, Tailscale sidecars get a subnet outside the MASQUERADE rule and have no internet.
+2. The Dockyard daemon runs with `--iptables=false` — it never touches iptables itself. All rules live in the systemd unit. **Do not add Docker iptables management** (`--iptables=true`) without updating the unit's ExecStartPre rules accordingly.
+3. `SANDCASTLE_PRIVATE_NET` / `DOCKYARD_POOL_BASE` must not overlap with the host's existing routes. `gen-env` picks a non-conflicting /16 automatically — do not hard-code a range without checking.
+4. Changing `SANDCASTLE_PRIVATE_NET` on an existing install requires destroying all containers and networks first — existing containers have IPs baked in.
 
 ### Background Jobs
 
