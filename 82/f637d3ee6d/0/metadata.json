@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "09ad9cc0-74e6-4361-91c6-20815b7c2565",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T16:02:04.752702Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "VNC_AND_TTYD_AUTH.md"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "6434e578-b3c3-4dc8-acc7-ff1ecfdb6d7a",
+  "checkpoint_transcript_start": 397,
+  "transcript_lines_at_start": 397,
+  "token_usage": {
+    "input_tokens": 13,
+    "cache_creation_tokens": 4130,
+    "cache_read_tokens": 908195,
+    "output_tokens": 218,
+    "api_call_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T16:02:04.69786Z",
+    "agent_lines": 0,
+    "human_added": 132,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 132,
+    "agent_percentage": 0
+  }
+}

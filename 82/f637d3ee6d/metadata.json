@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "VNC_AND_TTYD_AUTH.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/82/f637d3ee6d/0/metadata.json",
+      "transcript": "/82/f637d3ee6d/0/full.jsonl",
+      "context": "/82/f637d3ee6d/0/context.md",
+      "content_hash": "/82/f637d3ee6d/0/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13,
+    "cache_creation_tokens": 4130,
+    "cache_read_tokens": 908195,
+    "output_tokens": 218,
+    "api_call_count": 7
+  }
+}
