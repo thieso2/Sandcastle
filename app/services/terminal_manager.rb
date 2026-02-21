@@ -314,7 +314,8 @@ class TerminalManager
   end
 
   def tls_config
-    if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+    case ENV["SANDCASTLE_TLS_MODE"]
+    when "selfsigned", "mkcert"
       {}
     else
       { "certResolver" => "letsencrypt" }
