@@ -31,7 +31,7 @@
 
 <script>
   (function() {
-    var statusUrl = "<%= terminal_status_sandbox_path(@sandbox) %>";
+    var statusUrl = "<%= terminal_status_sandbox_path(@sandbox, type: @type) %>";
     var terminalUrl = "<%= j @terminal_url %>";
     var startTime = Date.now();
     var TIMEOUT_MS = 30000;

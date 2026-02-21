@@ -103,5 +103,17 @@ if command -v Xvnc &>/dev/null && [ "$VNC_ENABLED" = "1" ]; then
     echo "DISPLAY=:99" >> /etc/environment
 fi
 
+# Start ttyd web terminals (run as sandbox user)
+# Port 7681: tmux session (persistent, re-attaches; unlimited clients)
+# Port 7682: plain login shell (one client at a time)
+if command -v ttyd &>/dev/null; then
+    touch /var/log/ttyd-tmux.log /var/log/ttyd-shell.log
+    chown "$USERNAME:$USERNAME" /var/log/ttyd-tmux.log /var/log/ttyd-shell.log
+    su -s /bin/bash "$USERNAME" -c \
+        "ttyd -W -m 0 -p 7681 tmux new-session -A -s main &>/var/log/ttyd-tmux.log &"
+    su -s /bin/bash "$USERNAME" -c \
+        "ttyd -W -m 1 -p 7682 bash -l &>/var/log/ttyd-shell.log &"
+fi
+
 # Start SSH daemon in foreground
 exec /usr/sbin/sshd -D -e

@@ -84,12 +84,14 @@ sandcastle ssh my-dev</code></pre>
   <section class="mb-10">
     <h2 class="text-xl font-semibold text-gray-900 mb-3">6. Web terminal</h2>
     <p class="text-gray-700 mb-3">
-      Click the <strong>Terminal</strong> button on any running sandbox to open a browser-based shell.
+      Click <strong>tmux</strong> or <strong>shell</strong> on any running sandbox to open a browser-based terminal.
       No SSH client needed — just a web browser.
     </p>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-      <strong>How it works:</strong> Sandcastle spins up an ephemeral WeTTY container that auto-connects to your sandbox via SSH.
-      The terminal session is protected by your existing login — no extra passwords required.
+      <strong>How it works:</strong> ttyd runs inside each sandbox container, exposing two terminal endpoints:
+      <strong>tmux</strong> (persistent, re-attachable session shared across browser tabs) and
+      <strong>shell</strong> (a plain login shell).
+      Both are protected by your existing login — no extra passwords required.
     </div>
   </section>
 
