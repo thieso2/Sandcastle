@@ -11,3 +11,108 @@ dev.sand should not be in mayn places. cant we set it glabally?
 ---
 
 commit this
+
+---
+
+push it
+
+---
+
+explain & fix (after restart)
+sandcastle-web     | [85719a53-8803-4f2b-bf15-82b25b516139] Started POST "/sandboxes/10/terminal?type=tmux" for 192.168.117.1 at 2026-02-21 17:23:01 +0000
+sandcastle-web     | [85719a53-8803-4f2b-bf15-82b25b516139] Processing by TerminalController#open as HTML
+sandcastle-web     | [85719a53-8803-4f2b-bf15-82b25b516139]   Parameters: {"type" => "tmux", "id" => "10"}
+sandcastle-web     | [85719a53-8803-4f2b-bf15-82b25b516139] Redirected to https://dev.sand:8443/terminal/10/tmux
+sandcastle-web     | [85719a53-8803-4f2b-bf15-82b25b516139] Completed 303 See Other in 68ms (ActiveRecord: 1.2ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [184d9c3b-510d-4b9a-8f9e-cc85951ffbc3] Started GET "/terminal/10/tmux" for 192.168.117.1 at 2026-02-21 17:23:01 +0000
+sandcastle-web     | [184d9c3b-510d-4b9a-8f9e-cc85951ffbc3]
+sandcastle-web     | [184d9c3b-510d-4b9a-8f9e-cc85951ffbc3] ActionController::RoutingError (No route matches [GET] "/terminal/10/tmux"):
+sandcastle-web     | [184d9c3b-510d-4b9a-8f9e-cc85951ffbc3]
+
+reload loads the page.
+
+---
+
+same needed for vnc!
+
+---
+
+can't we chech is teh route is already available in treafik?
+
+---
+
+i still get a 404 on the 1st click. can we somehow ask traefik if the route is there? i hata 404
+
+---
+
+is teh traefik api visible form the internet?
+
+---
+
+looping in sandcastle-web     | [a97ee41a-af5a-4453-9654-1c5ba99b3e9b] Processing by TerminalController#open as HTML
+sandcastle-web     | [a97ee41a-af5a-4453-9654-1c5ba99b3e9b]   Parameters: {"type" => "tmux", "id" => "44"}
+sandcastle-web     | [a97ee41a-af5a-4453-9654-1c5ba99b3e9b] Redirected to https://dev.sand:8443/sandboxes/44/terminal/wait?type=tmux
+sandcastle-web     | [a97ee41a-af5a-4453-9654-1c5ba99b3e9b] Completed 303 See Other in 21ms (ActiveRecord: 1.2ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [a5b6c613-5037-42be-8d27-8a6f7b11a6ec] Started GET "/sandboxes/44/terminal/wait?type=tmux" for 192.168.117.1 at 2026-02-21 17:33:05 +0000
+sandcastle-web     | [a5b6c613-5037-42be-8d27-8a6f7b11a6ec] Processing by TerminalController#wait as HTML
+sandcastle-web     | [a5b6c613-5037-42be-8d27-8a6f7b11a6ec]   Parameters: {"type" => "tmux", "id" => "44"}
+sandcastle-web     | [a5b6c613-5037-42be-8d27-8a6f7b11a6ec]   Rendered layout layouts/application.html.erb (Duration: 4.2ms | GC: 0.0ms)
+sandcastle-web     | [a5b6c613-5037-42be-8d27-8a6f7b11a6ec] Completed 200 OK in 7ms (Views: 4.9ms | ActiveRecord: 0.3ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [fce975c1-f405-4207-8ef5-67646ff1f4bc] Started GET "/sandboxes/44/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:33:05 +0000
+sandcastle-web     | [fce975c1-f405-4207-8ef5-67646ff1f4bc] Processing by TerminalController#status as JSON
+sandcastle-web     | [fce975c1-f405-4207-8ef5-67646ff1f4bc]   Parameters: {"type" => "tmux", "id" => "44"}
+sandcastle-web     | [fce975c1-f405-4207-8ef5-67646ff1f4bc] Completed 200 OK in 40ms (Views: 0.1ms | ActiveRecord: 0.3ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [749a4173-8bd8-4e63-8d8d-27994e0b34ee] Started GET "/sandboxes/44/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:33:05 +0000
+
+---
+
+sandcastle-web     | [63179ac0-60e9-4508-992a-b96c52f65366] Started POST "/sandboxes/45/terminal?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:14 +0000
+sandcastle-web     | [63179ac0-60e9-4508-992a-b96c52f65366] Processing by TerminalController#open as HTML
+sandcastle-web     | [63179ac0-60e9-4508-992a-b96c52f65366]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [63179ac0-60e9-4508-992a-b96c52f65366] Redirected to https://dev.sand:8443/sandboxes/45/terminal/wait?type=tmux
+sandcastle-web     | [63179ac0-60e9-4508-992a-b96c52f65366] Completed 303 See Other in 18ms (ActiveRecord: 1.1ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [9805024e-3958-41a1-b8a6-705a61f8bf2f] Started GET "/sandboxes/45/terminal/wait?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:14 +0000
+sandcastle-web     | [9805024e-3958-41a1-b8a6-705a61f8bf2f] Processing by TerminalController#wait as HTML
+sandcastle-web     | [9805024e-3958-41a1-b8a6-705a61f8bf2f]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [9805024e-3958-41a1-b8a6-705a61f8bf2f]   Rendered layout layouts/application.html.erb (Duration: 15.0ms | GC: 0.0ms)
+sandcastle-web     | [9805024e-3958-41a1-b8a6-705a61f8bf2f] Completed 200 OK in 20ms (Views: 16.2ms | ActiveRecord: 0.6ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [0163c893-4e59-4718-b044-dac6e2a9202b] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:14 +0000
+sandcastle-web     | [0163c893-4e59-4718-b044-dac6e2a9202b] Processing by TerminalController#status as JSON
+sandcastle-web     | [0163c893-4e59-4718-b044-dac6e2a9202b]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [0163c893-4e59-4718-b044-dac6e2a9202b] Completed 200 OK in 41ms (Views: 0.1ms | ActiveRecord: 0.3ms (3 queries, 0 cached) | GC: 1.6ms)
+sandcastle-web     | [6b8cb375-329e-45ed-8901-98e01ba3f56c] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:14 +0000
+sandcastle-web     | [6b8cb375-329e-45ed-8901-98e01ba3f56c] Processing by TerminalController#status as JSON
+sandcastle-web     | [6b8cb375-329e-45ed-8901-98e01ba3f56c]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [6b8cb375-329e-45ed-8901-98e01ba3f56c] Completed 200 OK in 23ms (Views: 0.2ms | ActiveRecord: 0.2ms (3 queries, 0 cached) | GC: 5.5ms)
+sandcastle-web     | [3a98c441-a756-4bb1-9aa5-9b293a5f6c7e] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:14 +0000
+sandcastle-web     | [3a98c441-a756-4bb1-9aa5-9b293a5f6c7e] Processing by TerminalController#status as JSON
+sandcastle-web     | [3a98c441-a756-4bb1-9aa5-9b293a5f6c7e]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [3a98c441-a756-4bb1-9aa5-9b293a5f6c7e] Completed 200 OK in 56ms (Views: 0.1ms | ActiveRecord: 0.9ms (3 queries, 0 cached) | GC: 15.3ms)
+sandcastle-web     | [d28f8efb-1d2e-4f90-9da1-2943e42bde75] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:15 +0000
+sandcastle-web     | [d28f8efb-1d2e-4f90-9da1-2943e42bde75] Processing by TerminalController#status as JSON
+sandcastle-web     | [d28f8efb-1d2e-4f90-9da1-2943e42bde75]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [d28f8efb-1d2e-4f90-9da1-2943e42bde75] Completed 200 OK in 48ms (Views: 0.1ms | ActiveRecord: 2.6ms (3 queries, 0 cached) | GC: 13.3ms)
+sandcastle-web     | [2576def9-2767-42d7-b16e-c2c4a03ae473] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:15 +0000
+sandcastle-web     | [2576def9-2767-42d7-b16e-c2c4a03ae473] Processing by TerminalController#status as JSON
+sandcastle-web     | [2576def9-2767-42d7-b16e-c2c4a03ae473]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [2576def9-2767-42d7-b16e-c2c4a03ae473] Completed 200 OK in 54ms (Views: 0.1ms | ActiveRecord: 1.1ms (3 queries, 0 cached) | GC: 7.8ms)
+sandcastle-web     | [0e3fc627-6e5f-4c40-a6e4-49f730498978] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:15 +0000
+sandcastle-web     | [0e3fc627-6e5f-4c40-a6e4-49f730498978] Processing by TerminalController#status as JSON
+sandcastle-web     | [0e3fc627-6e5f-4c40-a6e4-49f730498978]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [0e3fc627-6e5f-4c40-a6e4-49f730498978] Completed 200 OK in 46ms (Views: 0.1ms | ActiveRecord: 0.8ms (3 queries, 0 cached) | GC: 7.9ms)
+sandcastle-web     | [802318b6-6e43-416e-8b4f-049918f7b663] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:15 +0000
+sandcastle-web     | [802318b6-6e43-416e-8b4f-049918f7b663] Processing by TerminalController#status as JSON
+sandcastle-web     | [802318b6-6e43-416e-8b4f-049918f7b663]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [802318b6-6e43-416e-8b4f-049918f7b663] Completed 200 OK in 46ms (Views: 0.1ms | ActiveRecord: 1.2ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [877649a3-0e54-4e51-b2ff-a489f031016a] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:16 +0000
+sandcastle-web     | [877649a3-0e54-4e51-b2ff-a489f031016a] Processing by TerminalController#status as JSON
+sandcastle-web     | [877649a3-0e54-4e51-b2ff-a489f031016a]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [877649a3-0e54-4e51-b2ff-a489f031016a] Completed 200 OK in 33ms (Views: 0.1ms | ActiveRecord: 0.7ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [fe2c8d8c-bb53-499b-b49e-b2939e773e95] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:16 +0000
+sandcastle-web     | [fe2c8d8c-bb53-499b-b49e-b2939e773e95] Processing by TerminalController#status as JSON
+sandcastle-web     | [fe2c8d8c-bb53-499b-b49e-b2939e773e95]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [fe2c8d8c-bb53-499b-b49e-b2939e773e95] Completed 200 OK in 44ms (Views: 0.1ms | ActiveRecord: 1.2ms (3 queries, 0 cached) | GC: 0.0ms)
+sandcastle-web     | [7830f068-830e-4ac6-b817-82e37677439d] Started GET "/sandboxes/45/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 17:36:16 +0000
+sandcastle-web     | [7830f068-830e-4ac6-b817-82e37677439d] Processing by TerminalController#status as JSON
+sandcastle-web     | [7830f068-830e-4ac6-b817-82e37677439d]   Parameters: {"type" => "tmux", "id" => "45"}
+sandcastle-web     | [7830f068-830e-4ac6-b817-82e37677439d] Completed 200 OK in 42ms (Views: 0.1ms | ActiveRecord: 1.0ms (3 queries, 0 cached) | GC: 0.0ms)
