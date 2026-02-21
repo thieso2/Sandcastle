@@ -305,13 +305,18 @@ class TailscaleManager
   end
 
   def subnet_for(user)
+    # If the network already exists, read its actual subnet (stable across restarts)
+    begin
+      network = Docker::Network.get("sc-ts-net-#{user.name}")
+      ipam = network.info.dig("IPAM", "Config")
+      return ipam.first["Subnet"] if ipam&.first
+    rescue Docker::Error::NotFoundError
+      # Network doesn't exist yet — fall through to generate a random /24
+    end
+
     base = ENV.fetch("DOCKYARD_POOL_BASE", "10.89.0.0/16")
-    # Derive per-user /24 from the /16 pool allocated by dockyard
-    # e.g. base 10.89.0.0/16, user_id 1 → 10.89.1.0/24, user_id 2 → 10.89.2.0/24
-    # This ensures Tailscale networks are within DOCKYARD_POOL_BASE so dockyard's NAT rules apply
     parts = base.split("/").first.split(".").map(&:to_i)
-    offset = 1 + (user.id % 255)  # 1-255 to avoid .0 subnet collision
-    parts[2] = offset
+    parts[2] = rand(1..254)
     "#{parts[0]}.#{parts[1]}.#{parts[2]}.0/24"
   end
 
