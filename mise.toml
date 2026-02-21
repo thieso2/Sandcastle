@@ -205,6 +205,20 @@ echo "Tag $new_version pushed. GitHub Actions will build the release."
 echo "https://github.com/thieso2/Sandcastle/actions"
 """
 
+[tasks."sandbox:build"]
+description = "Build the sandbox Docker image locally"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+PLATFORM="${PLATFORM:-linux/$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')}"
+TAG="${TAG:-ghcr.io/thieso2/sandcastle-sandbox:latest}"
+
+echo "Building sandbox image: $TAG ($PLATFORM)..."
+docker build --platform "$PLATFORM" -t "$TAG" images/sandbox/
+echo "Done: $TAG"
+"""
+
 [tasks."installer:build"]
 description = "Build installer.sh from installer.sh.in template and source files"
 run = "installer/build.sh"
