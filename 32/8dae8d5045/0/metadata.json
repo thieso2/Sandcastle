@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "328dae8d5045",
+  "session_id": "09ad9cc0-74e6-4361-91c6-20815b7c2565",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T15:58:24.955012Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/services/vnc_manager.rb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "4cff74a5-42aa-4fee-b43c-94a0dbabf4b1",
+  "checkpoint_transcript_start": 356,
+  "transcript_lines_at_start": 356,
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 4368,
+    "cache_read_tokens": 1264958,
+    "output_tokens": 590,
+    "api_call_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T15:58:24.896387Z",
+    "agent_lines": 0,
+    "human_added": 2,
+    "human_modified": 30,
+    "human_removed": 0,
+    "total_committed": 2,
+    "agent_percentage": 0
+  }
+}

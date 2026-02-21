@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "328dae8d5045",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/services/vnc_manager.rb"
+  ],
+  "sessions": [
+    {
+      "metadata": "/32/8dae8d5045/0/metadata.json",
+      "transcript": "/32/8dae8d5045/0/full.jsonl",
+      "context": "/32/8dae8d5045/0/context.md",
+      "content_hash": "/32/8dae8d5045/0/content_hash.txt",
+      "prompt": "/32/8dae8d5045/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 4368,
+    "cache_read_tokens": 1264958,
+    "output_tokens": 590,
+    "api_call_count": 10
+  }
+}
