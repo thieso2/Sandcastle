@@ -57,6 +57,12 @@ run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Generate locally-trusted cert if missing (survives resets via bind mount)
+if [ ! -f .local/certs/cert.pem ]; then
+  echo "No local cert found — generating one via mkcert..."
+  bash scripts/generate-local-cert.sh
+fi
+
 export BUILD_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "dev")
 export BUILD_GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 export BUILD_GIT_DIRTY=$([ -z "$(git status --porcelain 2>/dev/null)" ] && echo "" || echo "-dirty")
@@ -70,8 +76,8 @@ docker compose -f docker-compose.local.yml up
 
 echo ""
 echo "Sandcastle running at:"
-echo "  - https://localhost:8443 (via Traefik, with terminal support)"
-echo "  - http://localhost:8080 (via Traefik, HTTP)"
+echo "  - https://dev.sand:8443"
+echo "  - http://dev.sand:8080"
 echo ""
 echo "Logs: docker compose -f docker-compose.local.yml logs -f"
 """
