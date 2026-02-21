@@ -127,3 +127,11 @@ vnc connect is now broken. check docker logs
 
 now http://dev.sand:8443 -> 404.
 
+### Prompt 19
+
+http://dev.sand:8443/ -> 404
+
+### Prompt 20
+
+when createing a new sandcastle use a random network - i have two sandcastles with the same network - really annyoing!
+

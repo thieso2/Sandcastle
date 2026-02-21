@@ -3,31 +3,31 @@
   "checkpoint_id": "62502b73fabe",
   "session_id": "c8376c74-21b4-4862-ad62-19cc41c9303c",
   "strategy": "manual-commit",
-  "created_at": "2026-02-21T13:06:41.799747Z",
+  "created_at": "2026-02-21T13:13:27.730908Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "app/services/terminal_manager.rb",
-    "app/services/vnc_manager.rb"
+    "app/services/sandbox_manager.rb",
+    "vendor/sandcastle-cli/cmd/sandbox.go"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "979cb1cd-26fa-43e7-9529-4646a413cb93",
-  "checkpoint_transcript_start": 753,
-  "transcript_lines_at_start": 753,
+  "transcript_identifier_at_start": "5328288e-3597-4ff6-8b51-f178641b7210",
+  "checkpoint_transcript_start": 1029,
+  "transcript_lines_at_start": 1029,
   "token_usage": {
-    "input_tokens": 59,
-    "cache_creation_tokens": 27923,
-    "cache_read_tokens": 6787299,
-    "output_tokens": 4072,
-    "api_call_count": 53
+    "input_tokens": 19,
+    "cache_creation_tokens": 9637,
+    "cache_read_tokens": 2194932,
+    "output_tokens": 2048,
+    "api_call_count": 15
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-21T13:06:41.641883Z",
+    "calculated_at": "2026-02-21T13:13:27.561263Z",
     "agent_lines": 0,
     "human_added": 0,
-    "human_modified": 31,
-    "human_removed": 95,
-    "total_committed": 29,
+    "human_modified": 35,
+    "human_removed": 28,
+    "total_committed": 35,
     "agent_percentage": 0
   }
 }
