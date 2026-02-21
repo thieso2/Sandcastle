@@ -38,6 +38,15 @@ class Setting < ApplicationRecord
     val.presence || ENV["SMTP_FROM_ADDRESS"] || "noreply@example.com"
   end
 
+  # Return nil instead of raising on unreadable encrypted values (e.g. after key rotation)
+  %i[github_client_secret google_client_secret smtp_password].each do |attr|
+    define_method(attr) do
+      super()
+    rescue ActiveRecord::Encryption::Errors::Decryption
+      nil
+    end
+  end
+
   # Skip blank secret values so "leave blank to keep" works
   %i[github_client_secret google_client_secret smtp_password].each do |attr|
     define_method(:"#{attr}=") do |value|
