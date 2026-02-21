@@ -266,7 +266,7 @@ var listCmd = &cobra.Command{
 			if s.TailscaleIP != "" {
 				tsIP = s.TailscaleIP
 			}
-			created := s.CreatedAt.Format("2006-01-02")
+			created := s.CreatedAt.Local().Format("2006-01-02 15:04")
 			if hasRoute {
 				route := ""
 				if len(s.Routes) > 0 {

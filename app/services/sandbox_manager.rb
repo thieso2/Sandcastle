@@ -62,13 +62,16 @@ class SandboxManager
       "Labels" => { "sandcastle.sandbox" => "true" },
       "HostConfig" => {
         "Runtime" => container_runtime,
+        "NetworkMode" => NETWORK_NAME,
         "Binds" => volume_binds(user, sandbox),
         "RestartPolicy" => { "Name" => "unless-stopped" }
+      },
+      "NetworkingConfig" => {
+        "EndpointsConfig" => { NETWORK_NAME => {} }
       }
     )
 
     container.start
-    connect_to_network(container)
     container.refresh!
     unless container.json.dig("State", "Running")
       state_error = container.json.dig("State", "Error").presence || container.json.dig("State", "Status")
@@ -463,13 +466,16 @@ class SandboxManager
       "Labels" => { "sandcastle.sandbox" => "true" },
       "HostConfig" => {
         "Runtime" => container_runtime,
+        "NetworkMode" => NETWORK_NAME,
         "Binds" => volume_binds(user, sandbox),
         "RestartPolicy" => { "Name" => "unless-stopped" }
+      },
+      "NetworkingConfig" => {
+        "EndpointsConfig" => { NETWORK_NAME => {} }
       }
     )
 
     container.start
-    connect_to_network(container)
     sandbox.update!(container_id: container.id, image: final_image, status: "running")
 
     if was_tailscale && user.tailscale_enabled?
