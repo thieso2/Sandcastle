@@ -1,0 +1,9 @@
+how is the network adress for the  tailscale network decided?
+
+---
+
+randomize the network used by installer.sh for gen-env
+
+---
+
+commit this

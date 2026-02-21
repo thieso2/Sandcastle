@@ -3,7 +3,7 @@
   "checkpoint_id": "62502b73fabe",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 10,
+  "checkpoints_count": 11,
   "files_touched": [
     ".gitignore",
     "Dockerfile",
@@ -40,6 +40,7 @@
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "images/sandbox/Dockerfile",
+    "installer/installer.sh.in",
     "mise.toml",
     "scripts/generate-local-cert.sh",
     "vendor/sandcastle-cli/api/client.go",
@@ -130,13 +131,20 @@
       "context": "/62/502b73fabe/11/context.md",
       "content_hash": "/62/502b73fabe/11/content_hash.txt",
       "prompt": "/62/502b73fabe/11/prompt.txt"
+    },
+    {
+      "metadata": "/62/502b73fabe/12/metadata.json",
+      "transcript": "/62/502b73fabe/12/full.jsonl",
+      "context": "/62/502b73fabe/12/context.md",
+      "content_hash": "/62/502b73fabe/12/content_hash.txt",
+      "prompt": "/62/502b73fabe/12/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 264,
-    "cache_creation_tokens": 530457,
-    "cache_read_tokens": 14408832,
-    "output_tokens": 23075,
-    "api_call_count": 206
+    "input_tokens": 286,
+    "cache_creation_tokens": 565791,
+    "cache_read_tokens": 15132175,
+    "output_tokens": 24398,
+    "api_call_count": 223
   }
 }
