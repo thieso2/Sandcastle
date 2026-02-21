@@ -11,7 +11,6 @@
     "app/models/sandbox.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
-    "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
     "app/views/admin/invites/index.html.erb",
     "app/views/layouts/admin.html.erb",
@@ -116,10 +115,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 266,
-    "cache_creation_tokens": 533515,
-    "cache_read_tokens": 15293007,
-    "output_tokens": 22947,
-    "api_call_count": 210
+    "input_tokens": 263,
+    "cache_creation_tokens": 527327,
+    "cache_read_tokens": 14543988,
+    "output_tokens": 19717,
+    "api_call_count": 205
   }
 }

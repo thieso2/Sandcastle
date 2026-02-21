@@ -146,3 +146,21 @@ wild-fox  running  2026-02-21  10.89.2.3     ghcr.io/thieso2/sandcastle-sandbox:
 Switched to server hq (https://hq.sandcastle.rocks)
 ~/Project...
 
+### Prompt 22
+
+does this need changes in dockyard? or is this tailscale only?
+
+### Prompt 23
+
+~/Projects/GitHub/Sandcastle [main] % sandcastle ls
+Server: dev (https://dev.sand:8443)
+NAME        STATUS   PORT  TAILSCALE IP  IMAGE
+brave-wolf  running  0     10.89.64.3    ghcr.io/thieso2/sandcastle-sandbox:latest
+~/Projects/GitHub/Sandcastle [main] % sandcastle stop  brave-wolf
+Server: dev (https://dev.sand:8443)
+Sandbox "brave-wolf" stopped.
+~/Projects/GitHub/Sandcastle [main] % sandcastle start brave-wolf
+Server: dev (https://dev.sand:8443)
+Sandbox "brave-wolf" started.
+~/Projects/GitHub/...
+

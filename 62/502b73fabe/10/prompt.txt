@@ -387,3 +387,26 @@ Switched to server hq (https://hq.sandcastle.rocks)
 Server: hq (https://hq.sandcastle.rocks)
 NAME        STATUS   CREATED     TAILSCALE IP  IMAGE
 wild-cobra  running  2026-02-21  10.89.2.3     ghcr.io/thieso2/sandcastle-sandbox:latest
+
+---
+
+does this need changes in dockyard? or is this tailscale only?
+
+---
+
+~/Projects/GitHub/Sandcastle [main] % sandcastle ls
+Server: dev (https://dev.sand:8443)
+NAME        STATUS   PORT  TAILSCALE IP  IMAGE
+brave-wolf  running  0     10.89.64.3    ghcr.io/thieso2/sandcastle-sandbox:latest
+~/Projects/GitHub/Sandcastle [main] % sandcastle stop  brave-wolf
+Server: dev (https://dev.sand:8443)
+Sandbox "brave-wolf" stopped.
+~/Projects/GitHub/Sandcastle [main] % sandcastle start brave-wolf
+Server: dev (https://dev.sand:8443)
+Sandbox "brave-wolf" started.
+~/Projects/GitHub/Sandcastle [main] % sandcastle ls
+Server: dev (https://dev.sand:8443)
+NAME        STATUS   PORT  TAILSCALE IP  IMAGE
+brave-wolf  running  0                   ghcr.io/thieso2/sandcastle-sandbox:latest
+
+stop start - sandbox looses tailscale IP.
