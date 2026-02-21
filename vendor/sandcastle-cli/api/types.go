@@ -8,7 +8,7 @@ type Sandbox struct {
 	FullName         string    `json:"full_name"`
 	Status           string    `json:"status"`
 	Image            string    `json:"image"`
-	SSHPort          int       `json:"ssh_port"`
+	SSHPort          int       `json:"ssh_port,omitempty"`
 	PersistentVolume bool      `json:"persistent_volume"`
 	MountHome        bool      `json:"mount_home"`
 	DataPath         string    `json:"data_path,omitempty"`

@@ -193,7 +193,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		if os.Getenv("VERBOSE") == "1" {
 			fmt.Fprintf(os.Stderr, "\033[2m[verbose] Connection info: host=%s port=%d user=%s\033[0m\n", info.Host, info.Port, info.User)
 			if info.TailscaleIP != "" {
-				fmt.Fprintf(os.Stderr, "\033[2m[verbose] Tailscale IP: %s\033[0m\n", info.TailscaleIP)
+				fmt.Fprintf(os.Stderr, "\033[2m[verbose] Tailscale IP (Tailscale): %s\033[0m\n", info.TailscaleIP)
 			}
 		}
 
@@ -253,9 +253,9 @@ var listCmd = &cobra.Command{
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		if hasRoute {
-			fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tROUTE\tTAILSCALE IP\tIMAGE")
+			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tROUTE\tTAILSCALE IP\tIMAGE")
 		} else {
-			fmt.Fprintln(w, "NAME\tSTATUS\tPORT\tTAILSCALE IP\tIMAGE")
+			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tTAILSCALE IP\tIMAGE")
 		}
 		for _, s := range sandboxes {
 			name := s.Name
@@ -266,6 +266,7 @@ var listCmd = &cobra.Command{
 			if s.TailscaleIP != "" {
 				tsIP = s.TailscaleIP
 			}
+			created := s.CreatedAt.Format("2006-01-02")
 			if hasRoute {
 				route := ""
 				if len(s.Routes) > 0 {
@@ -275,9 +276,9 @@ var listCmd = &cobra.Command{
 					}
 					route = strings.Join(parts, ", ")
 				}
-				fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\t%s\n", name, s.Status, s.SSHPort, route, tsIP, s.Image)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, route, tsIP, s.Image)
 			} else {
-				fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n", name, s.Status, s.SSHPort, tsIP, s.Image)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, tsIP, s.Image)
 			}
 		}
 		w.Flush()

@@ -193,7 +193,6 @@ module Api
         full_name: sandbox.full_name,
         status: sandbox.status,
         image: sandbox.image,
-        ssh_port: sandbox.ssh_port,
         persistent_volume: sandbox.persistent_volume,
         mount_home: sandbox.mount_home,
         data_path: sandbox.data_path,

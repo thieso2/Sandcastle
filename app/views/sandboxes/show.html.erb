@@ -16,7 +16,6 @@
       </div>
       <p class="text-sm text-gray-500 mt-1 ml-6">
         <%= @sandbox.image.sub("ghcr.io/thieso2/", "") %>
-        · SSH port <%= @sandbox.ssh_port %>
         · Created <%= time_ago_in_words(@sandbox.created_at) %> ago
       </p>
     </div>

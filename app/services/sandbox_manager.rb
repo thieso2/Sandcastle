@@ -62,15 +62,13 @@ class SandboxManager
       "Labels" => { "sandcastle.sandbox" => "true" },
       "HostConfig" => {
         "Runtime" => container_runtime,
-        "PortBindings" => {
-          "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
-        },
         "Binds" => volume_binds(user, sandbox),
         "RestartPolicy" => { "Name" => "unless-stopped" }
       }
     )
 
     container.start
+    connect_to_network(container)
     container.refresh!
     unless container.json.dig("State", "Running")
       state_error = container.json.dig("State", "Error").presence || container.json.dig("State", "Status")
@@ -167,10 +165,6 @@ class SandboxManager
 
     user = sandbox.user
 
-    # Port was released on stop — assign a new free port and recreate the container
-    new_port = find_free_ssh_port
-    sandbox.update!(ssh_port: new_port)
-
     if sandbox.container_id.present?
       begin
         old = Docker::Container.get(sandbox.container_id)
@@ -211,7 +205,7 @@ class SandboxManager
       end
     end
 
-    sandbox.update!(status: "stopped", ssh_port: nil)
+    sandbox.update!(status: "stopped")
     sandbox
   end
 
@@ -469,15 +463,13 @@ class SandboxManager
       "Labels" => { "sandcastle.sandbox" => "true" },
       "HostConfig" => {
         "Runtime" => container_runtime,
-        "PortBindings" => {
-          "22/tcp" => [ { "HostPort" => sandbox.ssh_port.to_s } ]
-        },
         "Binds" => volume_binds(user, sandbox),
         "RestartPolicy" => { "Name" => "unless-stopped" }
       }
     )
 
     container.start
+    connect_to_network(container)
     sandbox.update!(container_id: container.id, image: final_image, status: "running")
 
     if was_tailscale && user.tailscale_enabled?
@@ -531,28 +523,22 @@ class SandboxManager
   end
 
   def connect_info(sandbox:)
-    host = ENV.fetch("SANDCASTLE_HOST", "localhost")
     user = sandbox.user.name
-    info = {
-      host: host,
-      port: sandbox.ssh_port,
-      user: user,
-      command: sandbox.connect_command(host: host)
-    }
 
-    # If Tailscale is enabled, wait for and use the bridge network IP for direct SSH access
-    # This works if the client is on the same Tailscale network (routes advertised by sidecar)
-    if sandbox.tailscale?
-      ts_ip = wait_for_tailscale_ip(sandbox: sandbox)
-      if ts_ip.present?
-        info[:host] = ts_ip
-        info[:port] = 22
-        info[:command] = "ssh #{user}@#{ts_ip}"
-        info[:tailscale_ip] = ts_ip
-      end
+    unless sandbox.tailscale?
+      raise Error, "SSH access requires Tailscale. Enable Tailscale on your account and connect this sandbox to your tailnet."
     end
 
-    info
+    ts_ip = wait_for_tailscale_ip(sandbox: sandbox)
+    raise Error, "Tailscale IP not available — is the Tailscale sidecar running?" unless ts_ip.present?
+
+    {
+      host: ts_ip,
+      port: 22,
+      user: user,
+      command: "ssh #{user}@#{ts_ip}",
+      tailscale_ip: ts_ip
+    }
   end
 
   private
@@ -578,32 +564,13 @@ class SandboxManager
     nil
   end
 
-  def find_free_ssh_port
-    db_used = Sandbox.where.not(status: %w[destroyed stopped]).pluck(:ssh_port).compact
-    docker_used = docker_bound_ssh_ports
-    candidates = Sandbox::SSH_PORT_RANGE.to_a - (db_used + docker_used).uniq
-    port = candidates.find { |p| port_free?(p) }
-    port || raise(Error, "No SSH ports available in range #{Sandbox::SSH_PORT_RANGE}")
-  end
-
-  def docker_bound_ssh_ports
-    Docker::Container.all(all: true).flat_map do |c|
-      (c.info["Ports"] || []).map { |p| p["PublicPort"] }.compact
-    end.select { |p| Sandbox::SSH_PORT_RANGE.include?(p) }
-  rescue Docker::Error::DockerError
-    []
-  end
-
-  # Verify a port is truly free by attempting a TCP connection to the Docker host.
-  # Returns true (free) if the connection is refused. Falls back to true if the
-  # Docker host is not reachable (e.g. production Linux without host.docker.internal).
-  def port_free?(port)
-    Timeout.timeout(0.3) { TCPSocket.new("host.docker.internal", port).close }
-    false # connected → port is occupied
-  rescue Errno::ECONNREFUSED, Timeout::Error
-    true  # refused/timed-out → port is free
-  rescue SocketError, Errno::EHOSTUNREACH, Errno::ENETUNREACH
-    true  # host not reachable → skip TCP check, rely on Docker API result
+  def connect_to_network(container)
+    network = Docker::Network.get(NETWORK_NAME)
+    network.connect(container.id)
+  rescue Docker::Error::NotFoundError
+    Rails.logger.warn("SandboxManager: network #{NETWORK_NAME} not found, skipping network connection")
+  rescue Docker::Error::DockerError => e
+    Rails.logger.warn("SandboxManager: failed to connect container to #{NETWORK_NAME}: #{e.message}")
   end
 
   def container_env(user, sandbox)

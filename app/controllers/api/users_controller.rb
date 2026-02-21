@@ -55,7 +55,7 @@ module Api
       }
       if include_sandboxes
         json[:sandboxes] = user.sandboxes.active.map do |s|
-          { id: s.id, name: s.name, status: s.status, ssh_port: s.ssh_port }
+          { id: s.id, name: s.name, status: s.status }
         end
       end
       json
