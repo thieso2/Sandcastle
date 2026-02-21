@@ -11,11 +11,13 @@ RUN apt-get update && apt-get install -y \
     jq ripgrep fd-find htop wget unzip ca-certificates net-tools iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
-# GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined), and browser
+# GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined), noVNC static
+# files, websockify (WebSocket→RFB proxy), and window manager.
 # Xvnc sends the RFB banner immediately on connect, unlike x11vnc 0.9.17+ which waits
 # for client data first (breaking websockify's server-speaks-first expectation).
 RUN apt-get update && apt-get install -y \
     tigervnc-standalone-server openbox xterm xfonts-base xfonts-100dpi xfonts-75dpi \
+    novnc python3-websockify \
     && rm -rf /var/lib/apt/lists/*
 
 # Google Chrome (amd64) or Chromium (arm64) — Google doesn't ship a Chrome deb for arm64
@@ -114,6 +116,6 @@ LABEL org.opencontainers.image.description="Sandcastle sandbox image — Ubuntu 
 LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /workspace
-EXPOSE 22 5900
+EXPOSE 22 5900 6080
 
 ENTRYPOINT ["/entrypoint.sh"]
