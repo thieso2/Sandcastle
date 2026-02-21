@@ -1,0 +1,10 @@
+for deploy:local how is the SANDCASTLE_PRIVATE_NET decided?
+
+---
+
+why is it still 10.89.64.3 on deploy:local? where is this value stored?
+
+---
+
+okay this needs to change! 
+it should be a random network!
