@@ -661,18 +661,15 @@ cmd_install() {
 
   if [ -S "$DOCKER_SOCK" ]; then
     ok "Dockyard already installed"
-    # Older Dockyard installs may not have the compose plugin — ensure it exists.
-    if ! "$DOCKER" compose version &>/dev/null 2>&1; then
-      info "Docker Compose plugin missing — installing..."
-      local _compose_arch="x86_64"
-      [ "$ARCH" = "arm64" ] && _compose_arch="aarch64"
-      local _cli_plugins="${DOCKYARD_ROOT}/docker-runtime/lib/docker/cli-plugins"
-      mkdir -p "$_cli_plugins"
-      wget -q "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-${_compose_arch}" \
-        -O "$_cli_plugins/docker-compose"
-      chmod +x "$_cli_plugins/docker-compose"
-      ok "Docker Compose plugin installed"
+    # The docker CLI binary ships with compose built-in. A leftover standalone
+    # compose plugin in cli-plugins/ shadows the built-in and may segfault.
+    # Remove it so the built-in is used instead.
+    local _stale_plugin="${DOCKYARD_ROOT}/docker-runtime/lib/docker/cli-plugins/docker-compose"
+    if [ -f "$_stale_plugin" ]; then
+      rm -f "$_stale_plugin"
+      ok "Removed stale compose plugin (compose is now built into docker CLI)"
     fi
+    "$DOCKER" compose version &>/dev/null || die "Docker Compose not available — reinstall Dockyard"
   else
     info "Installing Dockyard (Docker + Sysbox)..."
     write_dockyard_sh
