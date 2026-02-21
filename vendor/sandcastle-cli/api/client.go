@@ -51,6 +51,40 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// SANDCASTLE_HOST overrides the active server — accepts a server alias or URL.
+	if host := os.Getenv("SANDCASTLE_HOST"); host != "" {
+		// 1. Alias match
+		if srv, ok := cfg.Servers[host]; ok {
+			logVerbose("server (SANDCASTLE_HOST alias): %s (%s)", host, srv.URL)
+			return &Client{
+				BaseURL:     srv.URL,
+				Token:       srv.Token,
+				ServerAlias: host,
+				HTTPClient:  newHTTPClient(srv.Insecure),
+			}, nil
+		}
+		// 2. URL match — reuse stored token for that server
+		normalized := strings.TrimRight(host, "/")
+		for alias, srv := range cfg.Servers {
+			if strings.TrimRight(srv.URL, "/") == normalized {
+				logVerbose("server (SANDCASTLE_HOST url): %s (%s)", alias, normalized)
+				return &Client{
+					BaseURL:     normalized,
+					Token:       srv.Token,
+					ServerAlias: alias,
+					HTTPClient:  newHTTPClient(srv.Insecure),
+				}, nil
+			}
+		}
+		// 3. Unknown URL — use without auth
+		logVerbose("server (SANDCASTLE_HOST, unauthenticated): %s", normalized)
+		return &Client{
+			BaseURL:    normalized,
+			HTTPClient: newHTTPClient(false),
+		}, nil
+	}
+
 	srv, err := cfg.CurrentServerConfig()
 	if err != nil {
 		return nil, err
