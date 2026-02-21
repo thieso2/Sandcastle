@@ -147,3 +147,34 @@ Rails.root: /rails
 
 commit and push
 
+### Prompt 25
+
+https://dev.sand:8443/admin/errors
+
+
+Showing /rails/app/views/shared/_navbar.html.erb where line #28 raised:
+
+undefined local variable or method 'current_user' for an instance of SolidErrors::ErrorsController
+Extracted source (around line #28):
+26
+27
+28
+29
+30
+31
+              
+      <% end %>
+
+      <% if policy(:user).index? %>
+        <%= link_to "Admin", main_app.admin_dashboard_path,
+              class: "px-3 py-1.5 rounded-md text-sm font-medium transition-colors #{
+                control...
+
+### Prompt 26
+
+teh jobs sub-page does not work - layout is broken and linkk are fucked!
+
+### Prompt 27
+
+commit and push
+

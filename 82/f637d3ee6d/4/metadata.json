@@ -3,33 +3,31 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "e0f133b9-ef08-413b-a791-c433583ea5e6",
   "strategy": "manual-commit",
-  "created_at": "2026-02-21T17:54:08.648985Z",
+  "created_at": "2026-02-21T17:59:10.256985Z",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 2,
   "files_touched": [
-    "app/views/admin/_subnav.html.erb",
-    "app/views/shared/_navbar.html.erb",
     "config/initializers/mission_control_jobs.rb",
     "config/initializers/solid_errors.rb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "e27658e1-e650-4985-aada-8599850941c3",
-  "checkpoint_transcript_start": 484,
-  "transcript_lines_at_start": 484,
+  "transcript_identifier_at_start": "1a64affc-4d01-44e8-b56d-43aaa132e60c",
+  "checkpoint_transcript_start": 597,
+  "transcript_lines_at_start": 597,
   "token_usage": {
-    "input_tokens": 33,
-    "cache_creation_tokens": 13459,
-    "cache_read_tokens": 3253111,
-    "output_tokens": 2674,
-    "api_call_count": 23
+    "input_tokens": 16,
+    "cache_creation_tokens": 9767,
+    "cache_read_tokens": 1680786,
+    "output_tokens": 345,
+    "api_call_count": 11
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-21T17:54:08.561943Z",
-    "agent_lines": 34,
+    "calculated_at": "2026-02-21T17:59:10.167836Z",
+    "agent_lines": 2,
     "human_added": 0,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 34,
+    "total_committed": 2,
     "agent_percentage": 100
   }
 }
