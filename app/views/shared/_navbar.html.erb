@@ -35,8 +35,9 @@
             </svg>
           </button>
           <div class="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 hidden group-hover:block z-50">
-            <%= link_to "Dashboard", admin_dashboard_path, class: "block px-4 py-2 text-sm #{controller_path.start_with?("admin") && !request.path.start_with?("/admin/jobs") ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}" %>
+            <%= link_to "Dashboard", admin_dashboard_path, class: "block px-4 py-2 text-sm #{controller_path.start_with?("admin") && !request.path.start_with?("/admin/jobs") && !request.path.start_with?("/admin/errors") ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}" %>
             <%= link_to "Jobs", "/admin/jobs", class: "block px-4 py-2 text-sm #{request.path.start_with?("/admin/jobs") ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}" %>
+            <%= link_to "Errors", "/admin/errors", class: "block px-4 py-2 text-sm #{request.path.start_with?("/admin/errors") ? 'text-gray-900 font-semibold bg-gray-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}" %>
           </div>
         </div>
       <% end %>
