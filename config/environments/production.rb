@@ -53,6 +53,9 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
+  # Use the errors database for solid_errors error tracking
+  config.solid_errors.connects_to = { database: { writing: :errors, reading: :errors } }
+
   # Configure Action Cable for WebSocket connections
   config.action_cable.url = "wss://#{ENV.fetch('SANDCASTLE_HOST', 'localhost')}/cable"
   config.action_cable.allowed_request_origins = [

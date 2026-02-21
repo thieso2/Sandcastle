@@ -379,6 +379,12 @@ GEM
       activejob (>= 7.2)
       activerecord (>= 7.2)
       railties (>= 7.2)
+    solid_errors (0.7.0)
+      actionpack (>= 7.0)
+      actionview (>= 7.0)
+      activerecord (>= 7.0)
+      activesupport (>= 7.0)
+      railties (>= 7.0)
     solid_queue (1.3.1)
       activejob (>= 7.1)
       activerecord (>= 7.1)
@@ -470,6 +476,7 @@ DEPENDENCIES
   selenium-webdriver
   solid_cable
   solid_cache
+  solid_errors
   solid_queue
   sshkey (~> 3.0)
   stimulus-rails
@@ -616,6 +623,7 @@ CHECKSUMS
   snaky_hash (2.0.3) sha256=25a3d299566e8153fb02fa23fd9a9358845950f7a523ddbbe1fa1e0d79a6d456
   solid_cable (3.0.12) sha256=a168a54731a455d5627af48d8441ea3b554b8c1f6e6cd6074109de493e6b0460
   solid_cache (1.0.10) sha256=bc05a2fb3ac78a6f43cbb5946679cf9db67dd30d22939ededc385cb93e120d41
+  solid_errors (0.7.0) sha256=a1db96bd6b96cca4444bca4526ce63b1e79ebe114b4d3f4d78af38df3b9a1a9b
   solid_queue (1.3.1) sha256=d9580111180c339804ff1a810a7768f69f5dc694d31e86cf1535ff2cd7a87428
   sshkey (3.0.0) sha256=655ba351d6e01a48dfe59d65530af8975c777b8cc57a061770de3228ff2d11cd
   stimulus-rails (1.3.4) sha256=765676ffa1f33af64ce026d26b48e8ffb2e0b94e0f50e9119e11d6107d67cb06
