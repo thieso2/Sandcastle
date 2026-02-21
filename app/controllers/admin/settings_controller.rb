@@ -9,6 +9,16 @@ module Admin
       @setting = Setting.instance
       authorize @setting
 
+      # If the user is supplying a new value for an encrypted field, the old
+      # (potentially corrupt) DB value must be cleared first — otherwise AR
+      # Encryption tries to decrypt it during dirty-tracking and raises.
+      corrupt_fields = %i[github_client_secret google_client_secret smtp_password]
+                         .select { |f| setting_params[f].present? }
+      if corrupt_fields.any?
+        @setting.update_columns(corrupt_fields.index_with(nil))
+        @setting.reload
+      end
+
       if @setting.update(setting_params)
         if params[:test_email].present?
           send_test_email
