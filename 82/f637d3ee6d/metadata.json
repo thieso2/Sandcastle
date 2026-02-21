@@ -2,10 +2,11 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "main",
-  "checkpoints_count": 2,
+  "branch": "claude/issue-47-20260221-1348",
+  "checkpoints_count": 3,
   "files_touched": [
     "VNC_AND_TTYD_AUTH.md",
+    "images/sandbox/websockify/main.go",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp"
   ],
@@ -23,13 +24,20 @@
       "context": "/82/f637d3ee6d/1/context.md",
       "content_hash": "/82/f637d3ee6d/1/content_hash.txt",
       "prompt": "/82/f637d3ee6d/1/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/2/metadata.json",
+      "transcript": "/82/f637d3ee6d/2/full.jsonl",
+      "context": "/82/f637d3ee6d/2/context.md",
+      "content_hash": "/82/f637d3ee6d/2/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 29,
-    "cache_creation_tokens": 12652,
-    "cache_read_tokens": 2415319,
-    "output_tokens": 2885,
-    "api_call_count": 21
+    "input_tokens": 48,
+    "cache_creation_tokens": 40146,
+    "cache_read_tokens": 2823079,
+    "output_tokens": 3569,
+    "api_call_count": 32
   }
 }

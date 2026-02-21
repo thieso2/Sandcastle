@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "b1ef265e-96d6-4c03-a261-cc3d4dbb3100",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-21T16:24:23.792368Z",
+  "branch": "claude/issue-47-20260221-1348",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "images/sandbox/websockify/main.go"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "f1b5f603-25ff-4a41-807d-5e339f647abe",
+  "token_usage": {
+    "input_tokens": 19,
+    "cache_creation_tokens": 27494,
+    "cache_read_tokens": 407760,
+    "output_tokens": 684,
+    "api_call_count": 11
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-21T16:24:23.767878Z",
+    "agent_lines": 78,
+    "human_added": 504,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 582,
+    "agent_percentage": 13.402061855670103
+  }
+}

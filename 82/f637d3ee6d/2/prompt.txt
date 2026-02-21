@@ -1,0 +1,29 @@
+checkout claude/issue-47-20260221-1348
+
+---
+
+what's on this branch
+
+---
+
+=> [websockify-builder 3/4] COPY websockify/ .                                                                                                   0.0s
+ => ERROR [websockify-builder 4/4] RUN go mod tidy && CGO_ENABLED=0 go build -ldflags="-s -w" -o websockify .                                     4.0s
+------
+ > [websockify-builder 4/4] RUN go mod tidy && CGO_ENABLED=0 go build -ldflags="-s -w" -o websockify .:
+0.092 go: downloading github.com/gorilla/websocket v1.5.3
+3.749 # github.com/sandcastle/websockify
+3.749 ./main.go:8:2: "io" imported and not used
+------
+Dockerfile:6
+--------------------
+   4 |     COPY websockify/ .
+   5 |     # go mod tidy downloads deps and generates go.sum; -mod=mod allows updating go.sum at build time
+   6 | >>> RUN go mod tidy && CGO_ENABLED=0 go build -ldflags="-s -w" -o websockify .
+   7 |
+   8 |     FROM ubuntu:25.10
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c go mod tidy && CGO_ENABLED=0 go build -ldflags=\"-s -w\" -o websockify ." did not complete successfully: exit code: 1
+
+---
+
+commit this
