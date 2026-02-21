@@ -1,0 +1,202 @@
+Implement the following plan:
+
+# Plan: Replace WeTTY with ttyd (tmux + shell terminals)
+
+## Context
+WeTTY requires SSH keypair generation, key injection via `docker exec`, and a sidecar container per terminal session. Replacing it with ttyd running **inside** the sandbox container eliminates all of this complexity. Two ttyd instances run permanently on fixed ports inside each sandbox; Traefik routes directly to them. No sidecars, no keypairs, no background jobs.
+
+## Key architectural facts
+- Sandbox containers use `"NetworkMode" => "sandcastle-web"` (SandboxManager:4,65) — they're already on the same Docker network as Traefik and Rails
+- ttyd running inside the sandbox is reachable as `http://{sandbox.full_name}:768x` from Traefik without any host port mapping
+- ttyd exposes HTTP + WebSocket on the same port (Traefik proxies both transparently, same as WeTTY on port 3000)
+- `tmux` is already installed in the sandbox image (Dockerfile:9)
+
+## Ports
+- Port **7681** → `tmux new-session -A -s main` (unlimited clients, re-attachable)
+- Port **7682** → `bash -l` (plain login shell, one client at a time)
+
+## Files to change
+
+### 1. `images/sandbox/Dockerfile`
+Add ttyd binary after existing tools:
+```dockerfile
+# ttyd - web terminal
+RUN ARCH=$(dpkg --print-architecture) \
+    && TTYD_ARCH=$([ "$ARCH" = "arm64" ] && echo "aarch64" || echo "x86_64") \
+    && curl -fsSL "https://github.com/tsl0922/ttyd/releases/latest/download/ttyd.${TTYD_ARCH}" \
+       -o /usr/local/bin/ttyd \
+    && chmod +x /usr/local/bin/ttyd
+```
+Update `EXPOSE 22 5900 6080` → `EXPOSE 22 5900 6080 7681 7682`
+
+### 2. `images/sandbox/entrypoint.sh`
+Add before `exec /usr/sbin/sshd -D -e` (line 107):
+```bash
+# Start ttyd web terminals (run as sandbox user)
+# Port 7681: tmux session (persistent, re-attaches; unlimited clients)
+# Port 7682: plain login shell (one client at a time)
+su -s /bin/bash "$USERNAME" -c \
+  "ttyd -W -m 0 -p 7681 tmux new-session -A -s main &>/var/log/ttyd-tmux.log &"
+su -s /bin/bash "$USERNAME" -c \
+  "ttyd -W -m 1 -p 7682 bash -l &>/var/log/ttyd-shell.log &"
+```
+
+### 3. `app/services/terminal_manager.rb` — complete rewrite
+Remove: all WeTTY/sidecar code, SSH keypair generation, `connect_sandbox_to_network`, `copy_key_to_container`, `remove_pubkey`, `cleanup_orphaned` (replaced).
+
+Keep/adapt: `write_traefik_config`, `delete_traefik_config`, `tls_config`.
+
+New shape:
+- `TMUX_PORT = 7681`, `SHELL_PORT = 7682`
+- `open(sandbox:, type: "tmux")` — writes Traefik config (idempotent), returns terminal URL
+- `active?(sandbox:, type: "tmux")` — TCP probe to `sandbox.full_name:port`
+- `close(sandbox:)` — deletes Traefik config
+- `cleanup_orphaned` — scans `terminal-*.yml` files, deletes any whose sandbox is gone/not running
+
+Traefik config writes **two routers + two services** in one file (`terminal-{id}.yml`), sharing one `forwardAuth` middleware:
+- router `terminal-{id}-tmux`: `PathPrefix(/terminal/{id}/tmux)` → service pointing to port 7681
+- router `terminal-{id}-shell`: `PathPrefix(/terminal/{id}/shell)` → service pointing to port 7682
+
+### 4. `app/controllers/terminal_controller.rb`
+- `open`: add `type = params[:type].presence_in(%w[tmux shell]) || "tmux"`, call `manager.open(sandbox:, type:)`, TCP-probe with `manager.active?`; redirect directly if ready, else to wait page with `type:` param
+- `wait`: add `@type = params[:type].presence_in(%w[tmux shell]) || "tmux"`, update `@terminal_url` to use type
+- `status`: add `type` param, pass to `active?`
+- `auth`: update regex from `/wetty` to `/(tmux|shell)` — `match(%r{/terminal/(\d+)/(tmux|shell)})`
+- Remove `TerminalOpenJob.perform_later` call (no longer needed — config write is instant)
+
+### 5. `app/views/terminal/wait.html.erb`
+Pass `type:` to status URL:
+```javascript
+var statusUrl = "<%= terminal_status_sandbox_path(@sandbox, type: @type) %>";
+```
+
+### 6. `app/views/dashboard/_sandbox.html.erb` (line 110–117)
+Replace single "Terminal" button with two:
+```erb
+<%= button_to terminal_sandbox_path(sandbox, type: "tmux"), method: :post,
+      form: { target: "_blank" }, class: "text-xs px-2 py-1.5 bg-gray-700 ..." do %>
+  [terminal icon] tmux
+<% end %>
+<%= button_to terminal_sandbox_path(sandbox, type: "shell"), method: :post,
+      form: { target: "_blank" }, class: "text-xs px-2 py-1.5 bg-gray-600 ..." do %>
+  [terminal icon] shell
+<% end %>
+```
+
+### 7. `app/views/sandboxes/show.html.erb` (line 31–38)
+Same two-button replacement.
+
+### 8. Delete `app/jobs/terminal_open_job.rb`
+No longer needed — terminal "open" is now a synchronous file write + TCP probe.
+
+## Routes — no change
+Existing routes work; `type` travels as a query param:
+- `POST /sandboxes/{id}/terminal?type=tmux` → `open`
+- `GET /sandboxes/{id}/terminal/wait?type=tmux` → `wait`
+- `GET /sandboxes/{id}/terminal/status?type=tmux` → `status`
+- `DELETE /sandboxes/{id}/terminal` → `close`
+- `GET /terminal/auth` → `auth` (Traefik forwardAuth — regex updated)
+
+## What disappears
+- WeTTY sidecar containers (`sc-wetty-*`)
+- SSH keypair generation per terminal open
+- `docker exec` key injection (both into sandbox and into WeTTY container)
+- `connect_sandbox_to_network` (sandbox already on `sandcastle-web`)
+- `TerminalOpenJob` background job
+- `/data/wetty/` directory structure
+
+## Verification
+1. Build new sandbox image: `docker build -t sandcastle-sandbox-test images/sandbox/`
+2. Spin up a test sandbox, verify ttyd listening: `docker exec {name} ss -tlnp | grep 768`
+3. Open browser to `/terminal/{id}/tmux` and `/terminal/{id}/shell` — both should work
+4. Verify forwardAuth: unauthenticated request to `/terminal/{id}/tmux` should redirect to login
+5. Run Rails tests: `bin/rails test`
+6. Verify `cleanup_orphaned` in ContainerSyncJob cleans stale Traefik configs
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+connetcing does not work:
+sandcastle-web     | [748e8813-3881-4324-8b8f-919e292d497e] Started POST "/sandboxes/3/terminal?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:31 +0000
+sandcastle-web     | [748e8813-3881-4324-8b8f-919e292d497e] Processing by TerminalController#open as HTML
+sandcastle-web     | [748e8813-3881-4324-8b8f-919e292d497e]   Parameters: {"authenticity_token" => "[FILTERED]", "type" => "tmux", "id" => "3"}
+sandcastle-web     | [748e8813-3881-4324-8b8f-919e292d497e] Redirected to https://dev.sand:8443/sandboxes/3/terminal/wait?type=tmux
+sandcastle-web     | [748e8813-3881-4324-8b8f-919e292d497e] Completed 303 See Other in 8ms (ActiveRecord: 1.3ms (4 queries, 1 cached) | GC: 0.2ms)
+sandcastle-web     | [a9209f35-b06b-4e87-a232-a2aede6eeee8] Started GET "/sandboxes/3/terminal/wait?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:31 +0000
+sandcastle-web     | [a9209f35-b06b-4e87-a232-a2aede6eeee8] Processing by TerminalController#wait as HTML
+sandcastle-web     | [a9209f35-b06b-4e87-a232-a2aede6eeee8]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [a9209f35-b06b-4e87-a232-a2aede6eeee8]   Rendered layout layouts/application.html.erb (Duration: 4.2ms | GC: 0.2ms)
+sandcastle-web     | [a9209f35-b06b-4e87-a232-a2aede6eeee8] Completed 200 OK in 10ms (Views: 5.2ms | ActiveRecord: 1.3ms (3 queries, 0 cached) | GC: 0.2ms)
+sandcastle-web     | [eac786c5-5e73-469c-8f21-1fd6e8d60048] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:31 +0000
+sandcastle-web     | [eac786c5-5e73-469c-8f21-1fd6e8d60048] Processing by TerminalController#status as JSON
+sandcastle-web     | [eac786c5-5e73-469c-8f21-1fd6e8d60048]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [eac786c5-5e73-469c-8f21-1fd6e8d60048] Completed 200 OK in 7ms (Views: 0.1ms | ActiveRecord: 0.9ms (4 queries, 1 cached) | GC: 0.3ms)
+sandcastle-web     | [7f57a619-85c8-49d5-90f8-0acde10b9b8b] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:32 +0000
+sandcastle-web     | [7f57a619-85c8-49d5-90f8-0acde10b9b8b] Processing by TerminalController#status as JSON
+sandcastle-web     | [7f57a619-85c8-49d5-90f8-0acde10b9b8b]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [7f57a619-85c8-49d5-90f8-0acde10b9b8b] Completed 200 OK in 7ms (Views: 0.1ms | ActiveRecord: 0.7ms (4 queries, 1 cached) | GC: 0.2ms)
+sandcastle-web     | [c9ef0fb3-df18-4e02-9ebc-8aefe49ecd2d] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:32 +0000
+sandcastle-web     | [c9ef0fb3-df18-4e02-9ebc-8aefe49ecd2d] Processing by TerminalController#status as JSON
+sandcastle-web     | [c9ef0fb3-df18-4e02-9ebc-8aefe49ecd2d]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [c9ef0fb3-df18-4e02-9ebc-8aefe49ecd2d] Completed 200 OK in 3ms (Views: 0.1ms | ActiveRecord: 0.3ms (4 queries, 1 cached) | GC: 0.2ms)
+sandcastle-web     | [470bd354-7a62-4ef2-847b-a17b895b93a6] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:32 +0000
+sandcastle-web     | [470bd354-7a62-4ef2-847b-a17b895b93a6] Processing by TerminalController#status as JSON
+sandcastle-web     | [470bd354-7a62-4ef2-847b-a17b895b93a6]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [470bd354-7a62-4ef2-847b-a17b895b93a6] Completed 200 OK in 7ms (Views: 0.1ms | ActiveRecord: 1.5ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [1dda9408-4d95-4436-a5b5-4b3083a206f3] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:32 +0000
+sandcastle-web     | [1dda9408-4d95-4436-a5b5-4b3083a206f3] Processing by TerminalController#status as JSON
+sandcastle-web     | [1dda9408-4d95-4436-a5b5-4b3083a206f3]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [1dda9408-4d95-4436-a5b5-4b3083a206f3] Completed 200 OK in 5ms (Views: 0.1ms | ActiveRecord: 1.3ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [eefd80d2-bea8-401d-b0ae-ffe19b1a6160] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:33 +0000
+sandcastle-web     | [eefd80d2-bea8-401d-b0ae-ffe19b1a6160] Processing by TerminalController#status as JSON
+sandcastle-web     | [eefd80d2-bea8-401d-b0ae-ffe19b1a6160]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [eefd80d2-bea8-401d-b0ae-ffe19b1a6160] Completed 200 OK in 8ms (Views: 0.1ms | ActiveRecord: 3.2ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [d6d1edb5-a46f-4b5d-b56b-be6f6849c011] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:33 +0000
+sandcastle-web     | [d6d1edb5-a46f-4b5d-b56b-be6f6849c011] Processing by TerminalController#status as JSON
+sandcastle-web     | [d6d1edb5-a46f-4b5d-b56b-be6f6849c011]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [d6d1edb5-a46f-4b5d-b56b-be6f6849c011] Completed 200 OK in 5ms (Views: 0.1ms | ActiveRecord: 0.8ms (4 queries, 1 cached) | GC: 0.3ms)
+sandcastle-web     | [72807563-8ba4-4079-ba12-f580d461c837] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:33 +0000
+sandcastle-web     | [72807563-8ba4-4079-ba12-f580d461c837] Processing by TerminalController#status as JSON
+sandcastle-web     | [72807563-8ba4-4079-ba12-f580d461c837]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [72807563-8ba4-4079-ba12-f580d461c837] Completed 200 OK in 7ms (Views: 0.1ms | ActiveRecord: 1.7ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [7528c869-6510-441a-a729-e6a4ad7385b5] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:33 +0000
+sandcastle-web     | [7528c869-6510-441a-a729-e6a4ad7385b5] Processing by TerminalController#status as JSON
+sandcastle-web     | [7528c869-6510-441a-a729-e6a4ad7385b5]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [7528c869-6510-441a-a729-e6a4ad7385b5] Completed 200 OK in 5ms (Views: 0.2ms | ActiveRecord: 0.9ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [040af8e6-c648-4d4d-ad19-68ff8ab45452] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:34 +0000
+sandcastle-web     | [040af8e6-c648-4d4d-ad19-68ff8ab45452] Processing by TerminalController#status as JSON
+sandcastle-web     | [040af8e6-c648-4d4d-ad19-68ff8ab45452]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [040af8e6-c648-4d4d-ad19-68ff8ab45452] Completed 200 OK in 7ms (Views: 0.1ms | ActiveRecord: 1.2ms (4 queries, 1 cached) | GC: 0.2ms)
+sandcastle-web     | [d7103fcb-47e9-486c-9943-04203ae62585] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:34 +0000
+sandcastle-web     | [d7103fcb-47e9-486c-9943-04203ae62585] Processing by TerminalController#status as JSON
+sandcastle-web     | [d7103fcb-47e9-486c-9943-04203ae62585]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [d7103fcb-47e9-486c-9943-04203ae62585] Completed 200 OK in 6ms (Views: 0.1ms | ActiveRecord: 0.7ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [59f2f6a0-62a2-4ed4-8ddf-67f0319b1c42] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:34 +0000
+sandcastle-web     | [59f2f6a0-62a2-4ed4-8ddf-67f0319b1c42] Processing by TerminalController#status as JSON
+sandcastle-web     | [59f2f6a0-62a2-4ed4-8ddf-67f0319b1c42]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [59f2f6a0-62a2-4ed4-8ddf-67f0319b1c42] Completed 200 OK in 7ms (Views: 0.1ms | ActiveRecord: 1.2ms (4 queries, 1 cached) | GC: 0.0ms)
+sandcastle-web     | [dd71d077-f41a-4e37-ab9b-45eeaa75e363] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:34 +0000
+sandcastle-web     | [dd71d077-f41a-4e37-ab9b-45eeaa75e363] Processing by TerminalController#status as JSON
+sandcastle-web     | [dd71d077-f41a-4e37-ab9b-45eeaa75e363]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [dd71d077-f41a-4e37-ab9b-45eeaa75e363] Completed 200 OK in 7ms (Views: 0.2ms | ActiveRecord: 1.0ms (4 queries, 1 cached) | GC: 0.3ms)
+sandcastle-web     | [021a4923-d2c6-44e8-8d71-8cc56dd3996d] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:35 +0000
+sandcastle-web     | [021a4923-d2c6-44e8-8d71-8cc56dd3996d] Processing by TerminalController#status as JSON
+sandcastle-web     | [021a4923-d2c6-44e8-8d71-8cc56dd3996d]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [021a4923-d2c6-44e8-8d71-8cc56dd3996d] Completed 200 OK in 6ms (Views: 0.1ms | ActiveRecord: 0.9ms (4 queries, 1 cached) | GC: 0.4ms)
+sandcastle-web     | [dadc7d34-64c0-447c-a866-a5e67e8494b2] Started GET "/sandboxes/3/terminal/status?type=tmux" for 192.168.117.1 at 2026-02-21 15:10:35 +0000
+sandcastle-web     | [dadc7d34-64c0-447c-a866-a5e67e8494b2] Processing by TerminalController#status as JSON
+sandcastle-web     | [dadc7d34-64c0-447c-a866-a5e67e8494b2]   Parameters: {"type" => "tmux", "id" => "3"}
+sandcastle-web     | [dadc7d34-64c0-447c-a866-a5e67e8494b2] Completed 200 OK in 6ms (Views: 0.2ms | ActiveRecord: 0.9ms (4 queries, 1 cached) | GC: 0.4ms)
+
+
+w Enable Watch   d Detach
+
+---
+
+[Request interrupted by user]
+
+---
+
+this is my local docker - not sandman!
