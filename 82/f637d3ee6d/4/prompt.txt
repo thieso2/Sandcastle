@@ -134,3 +134,11 @@ live fix!
 ---
 
 commit and push
+
+---
+
+start tmux by default in mouse mode.
+
+---
+
+commit and push

@@ -76,3 +76,11 @@ sandcastle-web     | [8aa57e7d-cf66-4fd6-824d-344c6d372c86] Completed 200 OK in 
 
 commit and push
 
+### Prompt 16
+
+start tmux by default in mouse mode.
+
+### Prompt 17
+
+commit and push
+
