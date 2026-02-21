@@ -661,6 +661,18 @@ cmd_install() {
 
   if [ -S "$DOCKER_SOCK" ]; then
     ok "Dockyard already installed"
+    # Older Dockyard installs may not have the compose plugin — ensure it exists.
+    if ! "$DOCKER" compose version &>/dev/null 2>&1; then
+      info "Docker Compose plugin missing — installing..."
+      local _compose_arch="x86_64"
+      [ "$ARCH" = "arm64" ] && _compose_arch="aarch64"
+      local _cli_plugins="${DOCKYARD_ROOT}/docker-runtime/lib/docker/cli-plugins"
+      mkdir -p "$_cli_plugins"
+      wget -q "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-${_compose_arch}" \
+        -O "$_cli_plugins/docker-compose"
+      chmod +x "$_cli_plugins/docker-compose"
+      ok "Docker Compose plugin installed"
+    fi
   else
     info "Installing Dockyard (Docker + Sysbox)..."
     write_dockyard_sh
