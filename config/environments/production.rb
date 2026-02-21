@@ -12,6 +12,11 @@ Rails.application.configure do
   # Full error reports are disabled in production; enable via env var for local deploys.
   config.consider_all_requests_local = ENV["RAILS_SHOW_DETAILED_ERRORS"] == "true"
 
+  # Allow web-console from any IP when running locally (web-console only loads when bundled).
+  if ENV["RAILS_SHOW_DETAILED_ERRORS"] == "true" && defined?(WebConsole)
+    config.web_console.allowed_ips = ["0.0.0.0/0", "::/0"]
+  end
+
   # Turn on fragment caching in view templates.
   config.action_controller.perform_caching = true
 
