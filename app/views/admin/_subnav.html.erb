@@ -3,12 +3,12 @@
     <nav class="flex gap-1 -mb-px" aria-label="Admin navigation">
       <%
         admin_tabs = [
-          { label: "Overview",  path: admin_dashboard_path,     icon: "overview",  active: controller_name == "dashboard" },
-          { label: "Users",     path: admin_users_path,         icon: "users",     active: controller_name == "users" },
-          { label: "Invites",   path: admin_invites_path,       icon: "invites",   active: controller_name == "invites" },
-          { label: "Settings",  path: edit_admin_settings_path, icon: "settings",  active: controller_name == "settings" },
-          { label: "Jobs",      path: "/admin/jobs",            icon: "jobs",      active: request.path.start_with?("/admin/jobs") },
-          { label: "Errors",    path: "/admin/errors",          icon: "errors",    active: request.path.start_with?("/admin/errors") },
+          { label: "Overview",  path: main_app.admin_dashboard_path,     icon: "overview",  active: controller_name == "dashboard" },
+          { label: "Users",     path: main_app.admin_users_path,         icon: "users",     active: controller_name == "users" },
+          { label: "Invites",   path: main_app.admin_invites_path,       icon: "invites",   active: controller_name == "invites" },
+          { label: "Settings",  path: main_app.edit_admin_settings_path, icon: "settings",  active: controller_name == "settings" },
+          { label: "Jobs",      path: "/admin/jobs",                     icon: "jobs",      active: request.path.start_with?("/admin/jobs") },
+          { label: "Errors",    path: "/admin/errors",                   icon: "errors",    active: request.path.start_with?("/admin/errors") },
         ]
       %>
       <% admin_tabs.each do |tab| %>

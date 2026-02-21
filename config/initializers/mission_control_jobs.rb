@@ -6,6 +6,10 @@ Rails.application.configure do
       # Skip HTTP Basic auth filter (we use session-based auth instead)
       skip_before_action :authenticate_by_http_basic, raise: false
 
+      layout "admin"
+      helper Rails.application.routes.url_helpers
+
+      include Pundit::Authorization
       include Authentication
       before_action :require_authentication
       before_action :require_admin
