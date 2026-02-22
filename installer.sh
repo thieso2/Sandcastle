@@ -115,6 +115,8 @@ derive_vars() {
   SANDCASTLE_GID="${SANDCASTLE_GID:-220568}"
   SANDCASTLE_HTTP_PORT="${SANDCASTLE_HTTP_PORT:-80}"
   SANDCASTLE_HTTPS_PORT="${SANDCASTLE_HTTPS_PORT:-443}"
+  TCP_PORT_MIN="${SANDCASTLE_TCP_PORT_MIN:-3000}"
+  TCP_PORT_MAX="${SANDCASTLE_TCP_PORT_MAX:-3099}"
   SANDCASTLE_TLS_MODE="${SANDCASTLE_TLS_MODE:-selfsigned}"
   SANDCASTLE_ADMIN_USER="${SANDCASTLE_ADMIN_USER:-admin}"
 
@@ -1625,12 +1627,14 @@ services:
   traefik:
     image: traefik:v3.3
     runtime: runc
+    container_name: sandcastle-traefik
     restart: unless-stopped
     ports:
       - "${SANDCASTLE_HTTP_PORT}:80"
       - "${SANDCASTLE_HTTPS_PORT}:443"
+      - "${TCP_PORT_MIN}-${TCP_PORT_MAX}:${TCP_PORT_MIN}-${TCP_PORT_MAX}"
     volumes:
-      - ${DATA_MOUNT}/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${DATA_MOUNT}/traefik/traefik.yml:/etc/traefik/traefik.yml
       - ${DATA_MOUNT}/traefik/dynamic:/data/dynamic:ro
       - ${DATA_MOUNT}/traefik/acme.json:/data/acme.json
       - ${DATA_MOUNT}/traefik/certs:/data/certs:ro
@@ -1686,6 +1690,9 @@ services:
       GOOGLE_CLIENT_ID: \${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: \${GOOGLE_CLIENT_SECRET:-}
       DOCKYARD_POOL_BASE: \${DOCKYARD_POOL_BASE:-10.89.0.0/16}
+      SANDCASTLE_TCP_PORT_MIN: \${SANDCASTLE_TCP_PORT_MIN:-${TCP_PORT_MIN}}
+      SANDCASTLE_TCP_PORT_MAX: \${SANDCASTLE_TCP_PORT_MAX:-${TCP_PORT_MAX}}
+      SANDCASTLE_TRAEFIK_CONFIG: ${DATA_MOUNT}/traefik/traefik.yml
     restart: unless-stopped
     depends_on:
       migrate:
@@ -1714,6 +1721,9 @@ services:
       DB_USER: sandcastle
       DB_PASSWORD: \${DB_PASSWORD}
       DOCKYARD_POOL_BASE: \${DOCKYARD_POOL_BASE:-10.89.0.0/16}
+      SANDCASTLE_TCP_PORT_MIN: \${SANDCASTLE_TCP_PORT_MIN:-${TCP_PORT_MIN}}
+      SANDCASTLE_TCP_PORT_MAX: \${SANDCASTLE_TCP_PORT_MAX:-${TCP_PORT_MAX}}
+      SANDCASTLE_TRAEFIK_CONFIG: ${DATA_MOUNT}/traefik/traefik.yml
     restart: unless-stopped
     depends_on:
       migrate:
@@ -2036,8 +2046,9 @@ DYEOF
     ufw allow "${SANDCASTLE_HTTP_PORT}/tcp" >/dev/null 2>&1
     ufw allow "${SANDCASTLE_HTTPS_PORT}/tcp" >/dev/null 2>&1
     ufw allow 2201:2299/tcp >/dev/null 2>&1
+    ufw allow "${TCP_PORT_MIN}:${TCP_PORT_MAX}/tcp" >/dev/null 2>&1
     ufw --force enable >/dev/null 2>&1
-    ok "Firewall configured (22, ${SANDCASTLE_HTTP_PORT}, ${SANDCASTLE_HTTPS_PORT}, 2201-2299)"
+    ok "Firewall configured (22, ${SANDCASTLE_HTTP_PORT}, ${SANDCASTLE_HTTPS_PORT}, 2201-2299, ${TCP_PORT_MIN}-${TCP_PORT_MAX})"
   else
     warn "UFW not found — skipping firewall setup"
   fi
@@ -2422,6 +2433,7 @@ TEOF
   fi
   wrote "$TRAEFIK_DIR/dynamic/rails.yml"
 
+  chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$TRAEFIK_DIR/traefik.yml"
   chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$SANDCASTLE_HOME"/data/traefik/dynamic
 
   # ── Docker network ────────────────────────────────────────────────────────
