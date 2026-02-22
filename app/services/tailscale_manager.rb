@@ -18,6 +18,7 @@ class TailscaleManager
       tailscale_container_id: container.id,
       tailscale_network: network_name
     )
+    save_auth_key(user, auth_key)
     user
   rescue Docker::Error::DockerError => e
     cleanup_on_failure(user)
@@ -126,6 +127,7 @@ class TailscaleManager
       tailscale_container_id: nil,
       tailscale_network: nil
     )
+    delete_auth_key(user)
     user
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to disable Tailscale: #{e.message}"
@@ -226,7 +228,25 @@ class TailscaleManager
     nil
   end
 
+  def auth_key_path(user)
+    File.join(DATA_DIR, "users", user.name, "tailscale", ".auth_key")
+  end
+
   private
+
+  def save_auth_key(user, auth_key)
+    path = auth_key_path(user)
+    FileUtils.mkdir_p(File.dirname(path))
+    File.write(path, auth_key)
+    File.chmod(0o600, path)
+  end
+
+  def delete_auth_key(user)
+    path = auth_key_path(user)
+    File.delete(path) if File.exist?(path)
+  rescue Errno::ENOENT
+    # already gone
+  end
 
   def create_and_start_sidecar(user:, auth_key:, hostname: nil)
     network_name = "sc-ts-net-#{user.name}"

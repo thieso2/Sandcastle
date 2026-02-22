@@ -10,6 +10,10 @@ class ContainerSyncJob < ApplicationJob
       sync_tailscale_sidecar(user)
     end
 
+    User.where(tailscale_state: "disabled").find_each do |user|
+      restore_tailscale_from_saved_key(user)
+    end
+
     begin
       RouteManager.new.sync_all_configs
     rescue => e
@@ -71,6 +75,19 @@ class ContainerSyncJob < ApplicationJob
     end
     sandbox.update!(status: "destroyed", container_id: nil)
     Rails.logger.warn("ContainerSyncJob: #{sandbox.full_name} container gone, marked destroyed")
+  end
+
+  def restore_tailscale_from_saved_key(user)
+    tm = TailscaleManager.new
+    auth_key = File.read(tm.auth_key_path(user)).strip rescue nil
+    return if auth_key.blank?
+
+    tm.enable(user: user, auth_key: auth_key)
+    Rails.logger.info("ContainerSyncJob: restored Tailscale for #{user.name} from saved auth key")
+  rescue TailscaleManager::Error => e
+    Rails.logger.warn("ContainerSyncJob: Tailscale restore for #{user.name} failed: #{e.message}")
+  rescue => e
+    Rails.logger.error("ContainerSyncJob: Tailscale restore for #{user.name} unexpected error: #{e.message}")
   end
 
   def sync_tailscale_sidecar(user)
