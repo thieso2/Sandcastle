@@ -125,23 +125,42 @@ sandcastle delete my-dev     # Permanently remove a sandbox</code></pre>
 
   <%# ── Routes ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Custom domain routes</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Routes</h2>
     <p class="text-gray-700 mb-3">
-      Expose services running inside your sandbox on custom domains with automatic TLS.
-      Each sandbox can have multiple routes pointing to different ports:
+      Expose services running inside your sandbox to the outside world. Two modes are supported:
     </p>
-    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Add a route — app.example.com → port 8080 (default) in sandbox "myapp"
+
+    <h3 class="text-base font-semibold text-gray-800 mb-2">HTTP routes (layer 7, custom domain + TLS)</h3>
+    <p class="text-gray-700 mb-3">
+      Route a custom domain to a port inside the sandbox. Traefik terminates TLS automatically.
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Add an HTTP route — app.example.com → container port 8080 (default)
 sandcastle route add myapp app.example.com
 
-# Add another route on a custom port
-sandcastle route add myapp api.example.com 3000
+# Add an HTTP route on a custom container port
+sandcastle route add myapp api.example.com 3000</code></pre>
+    <p class="text-gray-500 text-sm mt-2 mb-4">Point a DNS A/CNAME record at <code class="bg-gray-100 px-1 rounded"><%= host %></code> before adding the route. TLS certificates are provisioned automatically.</p>
 
-# List all routes for a sandbox
+    <h3 class="text-base font-semibold text-gray-800 mb-2">TCP routes (layer 4, raw port forward)</h3>
+    <p class="text-gray-700 mb-3">
+      Forward a public TCP port (3000–3099) directly to a container port. Useful for databases,
+      message brokers, or any non-HTTP service.
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Forward a public port to container port 5432 (e.g. Postgres)
+sandcastle route add myapp --tcp 5432
+# Output: TCP port 3042 → container port 5432</code></pre>
+    <p class="text-gray-500 text-sm mt-2 mb-4">A public port from the pool is assigned automatically. Connect with <code class="bg-gray-100 px-1 rounded"><%= host %>:&lt;public-port&gt;</code>.</p>
+
+    <h3 class="text-base font-semibold text-gray-800 mb-2">Managing routes</h3>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># List all routes for a sandbox (shows ID, mode, domain/port, container port)
 sandcastle route list myapp
 
-# Remove a specific route
-sandcastle route delete myapp app.example.com</code></pre>
-    <p class="text-gray-500 text-sm mt-2">Point a DNS A/CNAME record at <code class="bg-gray-100 px-1 rounded"><%= host %></code> before adding the route. TLS certificates are provisioned automatically via Let's Encrypt.</p>
+# Remove an HTTP route by domain
+sandcastle route delete myapp app.example.com
+
+# Remove any route by ID (use the ID from route list)
+sandcastle route delete myapp --id 42</code></pre>
+    <p class="text-gray-500 text-sm mt-2">Routes can also be managed from the sandbox detail page in the web UI.</p>
   </section>
 
   <%# ── Snapshots ── %>

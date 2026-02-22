@@ -85,6 +85,95 @@
     </div>
   </div>
 
+  <%# Routes %>
+  <div class="bg-white rounded-lg border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-base font-semibold text-gray-900">Routes</h2>
+    </div>
+
+    <% if @routes.any? %>
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Domain / Public Port</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Container Port</th>
+            <th class="px-6 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @routes.each do |route| %>
+            <tr>
+              <td class="px-6 py-3">
+                <% if route.http? %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">HTTP</span>
+                <% else %>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">TCP</span>
+                <% end %>
+              </td>
+              <td class="px-6 py-3 font-mono text-gray-900">
+                <% if route.http? %>
+                  <a href="<%= route.url %>" target="_blank" rel="noopener" class="hover:text-blue-600"><%= route.domain %></a>
+                <% else %>
+                  <span class="text-purple-700">:<%= route.public_port %></span>
+                <% end %>
+              </td>
+              <td class="px-6 py-3 text-gray-600"><%= route.port %></td>
+              <td class="px-6 py-3 text-right">
+                <%= button_to "Remove",
+                      sandbox_route_path(@sandbox, route),
+                      method: :delete,
+                      data: { confirm: route.http? ? "Remove route #{route.domain}?" : "Remove TCP route :#{route.public_port}?" },
+                      class: "text-red-600 hover:text-red-800 text-xs bg-transparent border-0 cursor-pointer p-0" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="px-6 py-6 text-center text-gray-500 text-sm">
+        No routes yet.
+      </div>
+    <% end %>
+
+    <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
+      <% if @sandbox.status == "running" %>
+        <%= form_with url: sandbox_routes_path(@sandbox), method: :post, class: "space-y-3" do |f| %>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-gray-600">Mode:</span>
+            <button type="button" id="route-mode-http"
+                    onclick="(function(){document.getElementById('route-mode-input').value='http';document.getElementById('route-domain-field').classList.remove('hidden');document.getElementById('route-tcp-note').classList.add('hidden');document.getElementById('route-mode-http').classList.add('bg-blue-600','text-white');document.getElementById('route-mode-http').classList.remove('bg-gray-100','text-gray-700');document.getElementById('route-mode-tcp').classList.add('bg-gray-100','text-gray-700');document.getElementById('route-mode-tcp').classList.remove('bg-blue-600','text-white');})()"
+                    class="px-3 py-1 text-xs font-medium rounded bg-blue-600 text-white transition-colors">HTTP</button>
+            <button type="button" id="route-mode-tcp"
+                    onclick="(function(){document.getElementById('route-mode-input').value='tcp';document.getElementById('route-domain-field').classList.add('hidden');document.getElementById('route-tcp-note').classList.remove('hidden');document.getElementById('route-mode-tcp').classList.add('bg-blue-600','text-white');document.getElementById('route-mode-tcp').classList.remove('bg-gray-100','text-gray-700');document.getElementById('route-mode-http').classList.add('bg-gray-100','text-gray-700');document.getElementById('route-mode-http').classList.remove('bg-blue-600','text-white');})()"
+                    class="px-3 py-1 text-xs font-medium rounded bg-gray-100 text-gray-700 transition-colors">TCP</button>
+            <input type="hidden" name="route[mode]" id="route-mode-input" value="http">
+          </div>
+          <div class="flex items-center gap-3">
+            <div id="route-domain-field" class="flex-1 min-w-0">
+              <%= f.text_field :domain,
+                    placeholder: "app.example.com",
+                    class: "w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono",
+                    name: "route[domain]" %>
+            </div>
+            <%= f.number_field :port,
+                  value: 8080,
+                  min: 1,
+                  max: 65535,
+                  required: true,
+                  class: "w-24 px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                  name: "route[port]" %>
+            <%= f.submit "Add Route",
+                  class: "px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 cursor-pointer whitespace-nowrap" %>
+          </div>
+          <p id="route-tcp-note" class="hidden text-xs text-gray-500">A public port will be assigned automatically (3000–3099). Enter the container port above.</p>
+        <% end %>
+      <% else %>
+        <p class="text-xs text-gray-400">Start the sandbox to add routes.</p>
+      <% end %>
+    </div>
+  </div>
+
   <%# Snapshots %>
   <div class="bg-white rounded-lg border border-gray-200">
     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
