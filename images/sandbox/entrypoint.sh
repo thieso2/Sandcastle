@@ -88,9 +88,11 @@ if command -v dockerd &>/dev/null; then
         }
 
         _attempt_start() {
-            # Fix known ownership bug: sysbox on newer kernels may leave /var/lib/docker
-            # owned by host uid 0 instead of the container's userns-mapped uid.
-            chown root:root /var/lib/docker 2>/dev/null || true
+            # /var/lib/docker is a sysbox-managed BTRFS bind-mount. Dockyard's
+            # DinD ownership watcher (dockyard.sh) chowns its backing dir to the
+            # sysbox uid offset within ~1 s of container creation, making it
+            # accessible to container root. Docker 29+ requires chmod on the
+            # data-root; that succeeds once the backing dir is correctly owned.
             dockerd --storage-driver=overlay2 --mtu="$MTU" &>/var/log/dockerd.log &
             _wait_for_socket
         }
@@ -98,14 +100,12 @@ if command -v dockerd &>/dev/null; then
         if _attempt_start; then
             echo "ready" > /run/docker-status
         else
-            # First attempt failed — fix ownership recursively and retry once.
-            # NOTE: /var/lib/docker is NOT wiped here to preserve inner images.
-            # Use 'docker-restart --reset' inside the sandbox if a full reset is needed.
+            # First attempt failed (likely backing dir not yet chowned by watcher).
+            # Wait a few more seconds and retry — the watcher runs every ~1 s.
             pkill -x dockerd 2>/dev/null || true
-            sleep 1
-            chown -R root:root /var/lib/docker 2>/dev/null || true
+            sleep 5
             if _attempt_start; then
-                echo "ready (recovered after ownership fix)" > /run/docker-status
+                echo "ready (recovered)" > /run/docker-status
             else
                 echo "FAILED — run 'docker-restart' or check /var/log/dockerd.log" > /run/docker-status
             fi

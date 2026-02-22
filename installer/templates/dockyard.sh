@@ -575,6 +575,36 @@ cmd_start() {
     fi
     echo "  sysbox-fs ready (pid ${SYSBOX_FS_PID})"
 
+    # --- 1b. DinD ownership watcher ---
+    # Sysbox creates each container's /var/lib/docker backing dir at
+    # ${DOCKYARD_ROOT}/sysbox/docker/<id> owned by root:root.
+    # The container's uid namespace maps uid 0 → SYSBOX_UID_OFFSET, so container
+    # root can't access a root-owned directory.  Docker 29+ makes chmod on the
+    # data-root fatal, so DinD breaks on every new container.
+    # Fix: read the actual sysbox uid offset and chown each backing dir to it.
+    SYSBOX_UID_OFFSET=$(awk -F: '$1=="sysbox" {print $2; exit}' /etc/subuid 2>/dev/null || echo 231072)
+    SYSBOX_DOCKER_DIR="${DOCKYARD_ROOT}/sysbox/docker"
+
+    # Fix any dirs left over from before this watcher existed (e.g. after reinstall).
+    find "$SYSBOX_DOCKER_DIR" -maxdepth 1 -mindepth 1 -uid 0 \
+        -exec chown "${SYSBOX_UID_OFFSET}:${SYSBOX_UID_OFFSET}" {} \; 2>/dev/null || true
+
+    # Background watcher: fix new dirs within ~1 s of container creation.
+    (
+        while true; do
+            for d in "${SYSBOX_DOCKER_DIR}"/*/; do
+                [ -d "$d" ] || continue
+                uid=$(stat -c '%u' "$d" 2>/dev/null) || continue
+                [ "$uid" = "0" ] && \
+                    chown "${SYSBOX_UID_OFFSET}:${SYSBOX_UID_OFFSET}" "$d" 2>/dev/null
+            done
+            sleep 1
+        done
+    ) &
+    DIND_WATCHER_PID=$!
+    STARTED_PIDS+=("$DIND_WATCHER_PID")
+    echo "  DinD ownership watcher started (uid offset ${SYSBOX_UID_OFFSET}, pid ${DIND_WATCHER_PID})"
+
     # --- 2. Create bridge ---
     if ! ip link show "$BRIDGE" &>/dev/null; then
         echo "Creating bridge ${BRIDGE}..."

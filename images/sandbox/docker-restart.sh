@@ -16,16 +16,15 @@ sudo pkill -x dockerd 2>/dev/null || true
 sleep 2
 
 if [ "$RESET" = "1" ]; then
-    echo "WARNING: Wiping /var/lib/docker — all inner images and containers will be lost."
-    sudo rm -rf /var/lib/docker
+    echo "WARNING: Wiping /var/lib/docker contents — all inner images and containers will be lost."
+    # /var/lib/docker is a sysbox bind-mount — cannot remove the mount point itself,
+    # only its contents.
+    sudo find /var/lib/docker -mindepth 1 -delete 2>/dev/null || true
 fi
-
-sudo mkdir -p /var/lib/docker
-sudo chown root:root /var/lib/docker 2>/dev/null || true
 
 MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
 echo "Starting dockerd (MTU=${MTU})..."
-# Run the full command (including log redirect) under sudo so /var/log/dockerd.log is writable.
+# Run under sudo bash -c so the log redirect runs as root.
 sudo bash -c "dockerd --storage-driver=overlay2 --mtu=${MTU} &>/var/log/dockerd.log &"
 
 echo -n "Waiting for Docker socket"
