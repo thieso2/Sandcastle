@@ -97,21 +97,10 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
-  test "open redirects to wait page when ttyd not yet ready" do
+  test "open redirects directly to terminal URL" do
     sign_in_as(@admin)
 
-    with_terminal_manager_stub(active: false) do
-      post terminal_sandbox_path(@alice_sandbox)
-    end
-
-    assert_response :see_other
-    assert_redirected_to terminal_wait_sandbox_path(@alice_sandbox, type: "tmux")
-  end
-
-  test "open redirects directly to terminal when ttyd is ready" do
-    sign_in_as(@admin)
-
-    with_terminal_manager_stub(active: true) do
+    with_terminal_manager_stub do
       post terminal_sandbox_path(@alice_sandbox)
     end
 
@@ -128,12 +117,12 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
   test "admin can open terminal for any sandbox" do
     sign_in_as(@admin)
 
-    with_terminal_manager_stub(active: false) do
+    with_terminal_manager_stub do
       post terminal_sandbox_path(@bob_sandbox)
     end
 
     assert_response :see_other
-    assert_redirected_to terminal_wait_sandbox_path(@bob_sandbox, type: "tmux")
+    assert_redirected_to "/terminal/#{@bob_sandbox.id}/tmux"
   end
 
   test "open redirects to root with alert on TerminalManager error" do
@@ -150,84 +139,12 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
   test "open respects type param for shell" do
     sign_in_as(@admin)
 
-    with_terminal_manager_stub(active: true) do
+    with_terminal_manager_stub do
       post terminal_sandbox_path(@alice_sandbox, type: "shell")
     end
 
     assert_response :see_other
     assert_redirected_to "/terminal/#{@alice_sandbox.id}/shell"
-  end
-
-  # ── wait ───────────────────────────────────────────────────────
-
-  test "wait requires authentication" do
-    get terminal_wait_sandbox_path(@alice_sandbox)
-    assert_redirected_to new_session_path
-  end
-
-  test "wait renders for sandbox owner" do
-    sign_in_as(@admin)
-    get terminal_wait_sandbox_path(@alice_sandbox)
-    assert_response :ok
-    assert_select "h2", "Connecting to terminal..."
-  end
-
-  test "wait returns 404 for non-owner" do
-    sign_in_as(@user)
-    get terminal_wait_sandbox_path(@alice_sandbox)
-    assert_response :not_found
-  end
-
-  test "admin can view wait page for any sandbox" do
-    sign_in_as(@admin)
-    get terminal_wait_sandbox_path(@bob_sandbox)
-    assert_response :ok
-  end
-
-  # ── status ─────────────────────────────────────────────────────
-
-  test "status requires authentication" do
-    get terminal_status_sandbox_path(@alice_sandbox)
-    assert_redirected_to new_session_path
-  end
-
-  test "status returns ready when ttyd is listening" do
-    sign_in_as(@admin)
-
-    with_terminal_manager_stub(active: true) do
-      get terminal_status_sandbox_path(@alice_sandbox), as: :json
-    end
-
-    assert_response :ok
-    assert_equal({ "status" => "ready" }, response.parsed_body)
-  end
-
-  test "status returns waiting when ttyd is not yet listening" do
-    sign_in_as(@admin)
-
-    with_terminal_manager_stub(active: false) do
-      get terminal_status_sandbox_path(@alice_sandbox), as: :json
-    end
-
-    assert_response :ok
-    assert_equal({ "status" => "waiting" }, response.parsed_body)
-  end
-
-  test "status returns 404 for non-owner" do
-    sign_in_as(@user)
-    get terminal_status_sandbox_path(@alice_sandbox), as: :json
-    assert_response :not_found
-  end
-
-  test "admin can check status for any sandbox" do
-    sign_in_as(@admin)
-
-    with_terminal_manager_stub(active: true) do
-      get terminal_status_sandbox_path(@bob_sandbox), as: :json
-    end
-
-    assert_response :ok
-    assert_equal({ "status" => "ready" }, response.parsed_body)
   end
 
   # ── close ──────────────────────────────────────────────────────
@@ -277,16 +194,14 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def with_terminal_manager_stub(open_error: nil, close_error: nil, active: nil, &block)
+  def with_terminal_manager_stub(open_error: nil, close_error: nil, &block)
     stub = Object.new
     stub.define_singleton_method(:open) do |sandbox:, type: "tmux"|
       raise TerminalManager::Error, open_error if open_error
+      "/terminal/#{sandbox.id}/#{type}"
     end
     stub.define_singleton_method(:close) do |sandbox:|
       raise TerminalManager::Error, close_error if close_error
-    end
-    stub.define_singleton_method(:active?) do |sandbox:, type: "tmux"|
-      active
     end
 
     original_new = TerminalManager.method(:new)

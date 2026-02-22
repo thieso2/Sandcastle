@@ -36,12 +36,8 @@ Rails.application.routes.draw do
       get :stats, controller: "dashboard", action: "stats"
       get :card, controller: "dashboard", action: "card"
       post :terminal, controller: "terminal", action: "open"
-      get  "terminal/wait", controller: "terminal", action: "wait"
-      get  "terminal/status", controller: "terminal", action: "status"
       delete :terminal, controller: "terminal", action: "close"
       post :vnc, controller: "vnc", action: "open"
-      get  "vnc/wait", controller: "vnc", action: "wait", as: :vnc_wait
-      get  "vnc/status", controller: "vnc", action: "status", as: :vnc_status
       delete :vnc, controller: "vnc", action: "close"
       post :snapshot, controller: "snapshots", action: "create_for_sandbox"
     end

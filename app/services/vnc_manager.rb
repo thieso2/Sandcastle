@@ -1,7 +1,6 @@
 class VncManager
   DATA_DIR    = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
   DYNAMIC_DIR = File.join(DATA_DIR, "traefik", "dynamic")
-  TRAEFIK_PICKUP_DELAY = 0.3 # seconds Traefik needs to pick up a new file config
 
   class Error < StandardError; end
 
@@ -34,13 +33,6 @@ class VncManager
     true
   rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT, SocketError
     false
-  end
-
-  # Returns true once Traefik has had time to pick up the dynamic config file.
-  # Traefik's inotify watcher loads new files in < 300ms; we check the mtime.
-  def traefik_ready?(sandbox:)
-    File.exist?(traefik_config_path(sandbox)) &&
-      (Time.now - File.mtime(traefik_config_path(sandbox))) > TRAEFIK_PICKUP_DELAY
   end
 
   # Removes orphaned Traefik VNC configs whose sandbox is gone or not running.

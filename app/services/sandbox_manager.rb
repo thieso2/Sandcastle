@@ -78,6 +78,10 @@ class SandboxManager
       raise Error, "Container failed to start: #{state_error}"
     end
     sandbox.update!(container_id: container.id, status: "running")
+
+    # Pre-write Traefik routes so they're active immediately (no wait on first open).
+    TerminalManager.new.prepare_traefik_config(sandbox)
+    VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
   end
 
   # Public method for job usage
@@ -196,6 +200,12 @@ class SandboxManager
       TerminalManager.new.close(sandbox: sandbox)
     rescue TerminalManager::Error, Docker::Error::DockerError
       # best-effort terminal cleanup
+    end
+
+    begin
+      VncManager.new.close(sandbox: sandbox)
+    rescue VncManager::Error, Docker::Error::DockerError
+      # best-effort VNC cleanup
     end
 
     RouteManager.new.suspend_routes(sandbox: sandbox) if sandbox.routed?
@@ -478,6 +488,10 @@ class SandboxManager
 
     container.start
     sandbox.update!(container_id: container.id, image: final_image, status: "running")
+
+    # Pre-write Traefik routes so they're active immediately after restore.
+    TerminalManager.new.prepare_traefik_config(sandbox)
+    VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
 
     if was_tailscale && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
