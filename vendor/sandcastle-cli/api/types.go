@@ -24,10 +24,12 @@ type Sandbox struct {
 }
 
 type SandboxRoute struct {
-	ID     int    `json:"id"`
-	Domain string `json:"domain"`
-	Port   int    `json:"port"`
-	URL    string `json:"url"`
+	ID         int    `json:"id"`
+	Domain     string `json:"domain,omitempty"`
+	Port       int    `json:"port"`
+	URL        string `json:"url,omitempty"`
+	Mode       string `json:"mode"`
+	PublicPort int    `json:"public_port,omitempty"`
 }
 
 type ConnectInfo struct {
@@ -157,17 +159,20 @@ type RestoreRequest struct {
 }
 
 type RouteRequest struct {
-	Domain string `json:"domain"`
+	Domain string `json:"domain,omitempty"`
 	Port   int    `json:"port,omitempty"`
+	Mode   string `json:"mode,omitempty"`
 }
 
 type RouteResponse struct {
 	ID          int    `json:"id"`
 	SandboxID   int    `json:"sandbox_id"`
 	SandboxName string `json:"sandbox_name"`
-	Domain      string `json:"domain"`
+	Domain      string `json:"domain,omitempty"`
 	Port        int    `json:"port"`
-	URL         string `json:"url"`
+	Mode        string `json:"mode"`
+	PublicPort  int    `json:"public_port,omitempty"`
+	URL         string `json:"url,omitempty"`
 }
 
 type CreateSandboxRequest struct {

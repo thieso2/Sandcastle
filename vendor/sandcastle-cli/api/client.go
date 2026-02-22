@@ -306,8 +306,21 @@ func (c *Client) ListRoutes(sandboxID int) ([]RouteResponse, error) {
 	return routes, err
 }
 
+func (c *Client) RemoveRouteByID(sandboxID, routeID int) error {
+	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/routes/%d", sandboxID, routeID), nil, nil)
+}
+
 func (c *Client) RemoveRoute(sandboxID int, domain string) error {
-	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/routes/%s", sandboxID, domain), nil, nil)
+	routes, err := c.ListRoutes(sandboxID)
+	if err != nil {
+		return err
+	}
+	for _, r := range routes {
+		if r.Domain == domain {
+			return c.RemoveRouteByID(sandboxID, r.ID)
+		}
+	}
+	return fmt.Errorf("route with domain %q not found", domain)
 }
 
 // Snapshots
