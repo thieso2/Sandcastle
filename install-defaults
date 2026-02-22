@@ -45,6 +45,10 @@ SANDCASTLE_TLS_MODE="selfsigned"
 SANDCASTLE_HTTP_PORT="80"
 SANDCASTLE_HTTPS_PORT="443"
 
+# TCP port-forward range (layer-4 routes via Traefik; 100 slots)
+SANDCASTLE_TCP_PORT_MIN="3000"
+SANDCASTLE_TCP_PORT_MAX="3099"
+
 # NOTE: sandcastle-web network is allocated from DOCKYARD_POOL_BASE (no custom subnet needed)
 
 # ─── Admin account (required for fresh install) ─────────────────────────────

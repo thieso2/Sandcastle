@@ -1,12 +1,14 @@
 services:
   traefik:
     image: traefik:v3.6.8
+    container_name: sandcastle-traefik
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+      - "${SANDCASTLE_TCP_PORT_MIN:-3000}-${SANDCASTLE_TCP_PORT_MAX:-3099}:${SANDCASTLE_TCP_PORT_MIN:-3000}-${SANDCASTLE_TCP_PORT_MAX:-3099}"
     volumes:
-      - /data/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - /data/traefik/traefik.yml:/etc/traefik/traefik.yml
       - /data/traefik/dynamic:/data/dynamic:ro
       - /data/traefik/acme.json:/data/acme.json
       - /data/traefik/certs:/data/certs:ro
@@ -58,6 +60,9 @@ services:
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      SANDCASTLE_TCP_PORT_MIN: ${SANDCASTLE_TCP_PORT_MIN:-3000}
+      SANDCASTLE_TCP_PORT_MAX: ${SANDCASTLE_TCP_PORT_MAX:-3099}
+      SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
     restart: unless-stopped
     depends_on:
       migrate:
@@ -89,6 +94,9 @@ services:
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+      SANDCASTLE_TCP_PORT_MIN: ${SANDCASTLE_TCP_PORT_MIN:-3000}
+      SANDCASTLE_TCP_PORT_MAX: ${SANDCASTLE_TCP_PORT_MAX:-3099}
+      SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
     restart: unless-stopped
     depends_on:
       migrate:
