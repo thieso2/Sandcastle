@@ -85,3 +85,65 @@ mkdir: Permission denied
 mkdir: Permission denied
 mkdir: Permission denied
 mkdir: Permission denied
+
+---
+
+sandcastle-worker  | SolidQueue-1.3.2 Error in thread (0.0ms)  error: "Docker::Error::ClientError {\"message\":\"failed to create task for container: failed to create shim task: OCI runtime create failed: container_linux.go:439: starting container process caused: exec: \\\"/entrypoint.sh\\\": permission denied\"}\n"
+
+---
+
+thies@sandman:~$ /sandcastle/docker-runtime/bin/docker  logs  -f thies-bold-hawk
+useradd: warning: the home directory /home/thies already exists.
+useradd: Not copying any file from skel directory into it.
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+
+---
+
+commit and push
+
+---
+
+debug
+v~/Projects/GitHub/Sandcastle [main] % ssh -v hase.dev.sand -p 3000
+debug1: OpenSSH_10.2p1, LibreSSL 3.3.6
+debug1: Reading configuration data /Users/thies/.ssh/config
+debug1: Reading configuration data /Users/thies/.orbstack/ssh/config
+debug1: /Users/thies/.ssh/config line 6: include /Users/thies/.colima/ssh_config matched no files
+debug1: /Users/thies/.ssh/config line 8: Applying options for *
+debug1: Reading configuration data /etc/ssh/ssh_config
+debug1: /etc/ssh/ssh_config line 21: include /etc/ssh/ssh_config.d/* matched no files
+debug1: /etc/ssh/ssh_config line 54: Applying options for *
+debug1: Authenticator provider $SSH_SK_PROVIDER did not resolve; disabling
+debug1: Connecting to hase.dev.sand port 3000.
+debug1: Connection established.
+debug1: loaded pubkey from /Users/thies/.ssh/id_rsa: RSA SHA256:REDACTED
+debug1: identity file /Users/thies/.ssh/id_rsa type 0
+debug1: no identity pubkey loaded from /Users/thies/.ssh/id_rsa
+debug1: loaded pubkey from /Users/thies/.ssh/id_ecdsa: ECDSA-CERT SHA256:REDACTED
+debug1: identity file /Users/thies/.ssh/id_ecdsa type 4
+debug1: no identity pubkey loaded from /Users/thies/.ssh/id_ecdsa
+debug1: no pubkey loaded from /Users/thies/.ssh/id_ecdsa_sk
+debug1: identity file /Users/thies/.ssh/id_ecdsa_sk type -1
+debug1: no identity pubkey loaded from /Users/thies/.ssh/id_ecdsa_sk
+debug1: loaded pubkey from /Users/thies/.ssh/id_ed25519: ED25519 SHA256:REDACTED
+debug1: identity file /Users/thies/.ssh/id_ed25519 type 2
+debug1: no identity pubkey loaded from /Users/thies/.ssh/id_ed25519
+debug1: no pubkey loaded from /Users/thies/.ssh/id_ed25519_sk
+debug1: identity file /Users/thies/.ssh/id_ed25519_sk type -1
+debug1: no identity pubkey loaded from /Users/thies/.ssh/id_ed25519_sk
+debug1: Local version string SSH-2.0-OpenSSH_10.2
+kex_exchange_identification: Connection closed by remote host
+Connection closed by ::1 port 3000
+
+---
+
+debug till
+ssh -v hase.dev.sand -p 3000
+land in the sandbox
+
+running in deploy:local mode

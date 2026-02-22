@@ -41,3 +41,43 @@ mkdir: Permission denied
 mkdir: Permission denied
 mkdir: Permission denied
 
+### Prompt 7
+
+sandcastle-worker  | SolidQueue-1.3.2 Error in thread (0.0ms)  error: "Docker::Error::ClientError {\"message\":\"failed to create task for container: failed to create shim task: OCI runtime create failed: container_linux.go:439: starting container process caused: exec: \\\"/entrypoint.sh\\\": permission denied\"}\n"
+
+### Prompt 8
+
+thies@sandman:~$ /sandcastle/docker-runtime/bin/docker  logs  -f thies-bold-hawk
+useradd: warning: the home directory /home/thies already exists.
+useradd: Not copying any file from skel directory into it.
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+
+### Prompt 9
+
+commit and push
+
+### Prompt 10
+
+debug
+v~/Projects/GitHub/Sandcastle [main] % ssh -v hase.dev.sand -p 3000
+debug1: OpenSSH_10.2p1, LibreSSL 3.3.6
+debug1: Reading configuration data /Users/thies/.ssh/config
+debug1: Reading configuration data /Users/thies/.orbstack/ssh/config
+debug1: /Users/thies/.ssh/config line 6: include /Users/thies/.colima/ssh_config matched no files
+debug1: /Users/thies/.ssh/config line 8: Applying options for *
+debug1: Reading configuration data /etc/ssh/ssh_config
+debug1: /etc/ssh/ssh_config line 21: incl...
+
+### Prompt 11
+
+debug till
+ssh -v hase.dev.sand -p 3000
+land in the sandbox
+
+running in deploy:local mode
+

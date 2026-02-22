@@ -26,7 +26,6 @@
     "docker-compose.local.yml",
     "docker-compose.yml",
     "images/sandbox/.Dockerfile.swp",
-    "images/sandbox/entrypoint.sh",
     "install-defaults",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
@@ -103,10 +102,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 309,
-    "cache_creation_tokens": 323147,
-    "cache_read_tokens": 21523589,
-    "output_tokens": 57535,
-    "api_call_count": 250
+    "input_tokens": 361,
+    "cache_creation_tokens": 426648,
+    "cache_read_tokens": 27121304,
+    "output_tokens": 69140,
+    "api_call_count": 297
   }
 }
