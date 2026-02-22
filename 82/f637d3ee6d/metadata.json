@@ -3,15 +3,17 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 12,
+  "checkpoints_count": 11,
   "files_touched": [
     "VNC_AND_TTYD_AUTH.md",
+    "app/controllers/admin/settings_controller.rb",
     "app/controllers/api/routes_controller.rb",
     "app/controllers/routes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
     "app/models/route.rb",
+    "app/models/setting.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
     "app/services/terminal_manager.rb",
@@ -26,6 +28,7 @@
     "docker-compose.local.yml",
     "docker-compose.yml",
     "images/sandbox/.Dockerfile.swp",
+    "images/sandbox/entrypoint.sh",
     "install-defaults",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
@@ -102,10 +105,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 316,
-    "cache_creation_tokens": 303447,
-    "cache_read_tokens": 23214555,
-    "output_tokens": 50645,
-    "api_call_count": 256
+    "input_tokens": 325,
+    "cache_creation_tokens": 304077,
+    "cache_read_tokens": 23504721,
+    "output_tokens": 55157,
+    "api_call_count": 257
   }
 }

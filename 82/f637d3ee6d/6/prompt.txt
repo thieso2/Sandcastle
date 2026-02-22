@@ -159,3 +159,31 @@ commit and push
 ---
 
 will production also work? examine
+
+---
+
+did you take in accoutn that installer.sh has the production docker-compose embedded?
+
+---
+
+commit and push
+
+---
+
+create GH issue to create integrations test
+
+---
+
+craete GH issue to make sure TS survives reinstall
+
+---
+
+can we just keep the token but not the net around?
+
+---
+
+explain hwo we can do https://github.com/thieso2/Sandcastle/issues/49 in GH action to ensure nothing is broken... (can werun docker in GH action?)
+
+---
+
+update issue
