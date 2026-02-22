@@ -12,5 +12,20 @@ Rails.application.config.after_initialize do
     rescue => e
       Rails.logger.warn("Startup: container sync failed: #{e.message}")
     end
+
+    # Restore Traefik terminal/VNC configs for all running sandboxes.
+    # These are cleaned up when sandboxes stop (cleanup_orphaned), so they
+    # must be re-written after a Rails restart to keep terminal/VNC routing live.
+    begin
+      tm = TerminalManager.new
+      vm = VncManager.new
+      Sandbox.running.find_each do |sandbox|
+        tm.prepare_traefik_config(sandbox)
+        vm.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+      end
+      Rails.logger.info("Startup: Traefik terminal/VNC configs restored")
+    rescue => e
+      Rails.logger.warn("Startup: Traefik config restore failed: #{e.message}")
+    end
   end
 end

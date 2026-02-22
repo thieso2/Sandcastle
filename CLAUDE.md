@@ -214,7 +214,10 @@ ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No
 
 ## Deployment
 
-- **Host**: `100.106.185.92` (Tailscale IP), SSH user `thies`
+- **Host**: `100.106.185.92` (Tailscale IP), SSH user `thies`; SSH alias `sandman`
+- **Sandcastle home on host**: `/sandcastle` (not `/data` — that's the data dir inside containers)
+- **Dockyard Docker CLI on host**: `/sandcastle/docker-runtime/bin/docker` (isolated daemon, not system Docker)
+  - To run docker commands on sandman: `ssh sandman "/sandcastle/docker-runtime/bin/docker ps"`
 - **Registry**: `ghcr.io/thieso2/sandcastle` (GitHub Container Registry)
 - **Deploy**: `docker-compose up -d` (see `docker-compose.yml`)
 - **Host bootstrap**: `bootstrap/sandcastle-bootstrap.sh` (Docker, Sysbox, Caddy, UFW)

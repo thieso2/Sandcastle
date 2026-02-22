@@ -64,29 +64,34 @@ class Sandbox < ApplicationRecord
 
   def broadcast_prepend_to_dashboard
     broadcast_prepend_to(
-      [user, "dashboard"],
+      [ user, "dashboard" ],
       partial: "dashboard/sandbox",
       locals: { sandbox: self },
       target: "sandboxes"
     )
+  rescue => e
+    Rails.logger.warn("Sandbox#broadcast_prepend: #{e.message}")
   end
 
   def broadcast_replace_to_dashboard
     # If sandbox is destroyed, remove it from the dashboard instead of replacing
     if status == "destroyed"
-      broadcast_remove_to([user, "dashboard"], target: dom_id(self))
+      broadcast_remove_to([ user, "dashboard" ], target: dom_id(self))
     else
       broadcast_replace_to(
-        [user, "dashboard"],
+        [ user, "dashboard" ],
         partial: "dashboard/sandbox",
         locals: { sandbox: self },
         target: dom_id(self)
       )
     end
+  rescue => e
+    Rails.logger.warn("Sandbox#broadcast_replace: #{e.message}")
   end
 
   def broadcast_remove_from_dashboard
-    broadcast_remove_to([user, "dashboard"], target: dom_id(self))
+    broadcast_remove_to([ user, "dashboard" ], target: dom_id(self))
+  rescue => e
+    Rails.logger.warn("Sandbox#broadcast_remove: #{e.message}")
   end
-
 end
