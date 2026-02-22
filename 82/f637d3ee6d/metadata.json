@@ -3,16 +3,26 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 7,
+  "checkpoints_count": 9,
   "files_touched": [
     "VNC_AND_TTYD_AUTH.md",
+    "app/controllers/terminal_controller.rb",
+    "app/controllers/vnc_controller.rb",
+    "app/jobs/vnc_open_job.rb",
+    "app/services/sandbox_manager.rb",
+    "app/services/terminal_manager.rb",
+    "app/services/vnc_manager.rb",
+    "app/views/terminal/wait.html.erb",
+    "app/views/vnc/wait.html.erb",
     "config/initializers/active_record_encryption.rb",
     "config/initializers/mission_control_jobs.rb",
+    "config/routes.rb",
     "images/sandbox/.Dockerfile.swp",
     "images/sandbox/entrypoint.sh",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
-    "mise.toml"
+    "mise.toml",
+    "test/controllers/terminal_controller_test.rb"
   ],
   "sessions": [
     {
@@ -63,13 +73,20 @@
       "context": "/82/f637d3ee6d/6/context.md",
       "content_hash": "/82/f637d3ee6d/6/content_hash.txt",
       "prompt": "/82/f637d3ee6d/6/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/7/metadata.json",
+      "transcript": "/82/f637d3ee6d/7/full.jsonl",
+      "context": "/82/f637d3ee6d/7/context.md",
+      "content_hash": "/82/f637d3ee6d/7/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/7/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 163,
-    "cache_creation_tokens": 133736,
-    "cache_read_tokens": 9614049,
-    "output_tokens": 24688,
-    "api_call_count": 127
+    "input_tokens": 198,
+    "cache_creation_tokens": 224221,
+    "cache_read_tokens": 11594542,
+    "output_tokens": 28241,
+    "api_call_count": 156
   }
 }
