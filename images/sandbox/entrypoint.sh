@@ -71,12 +71,16 @@ mount -t tmpfs -o size=2g,mode=1777 tmpfs /dev/shm 2>/dev/null || true
 
 # Start Docker daemon in background (requires Sysbox runtime for isolated /var/lib/docker)
 # Don't wait for it to be ready - users can check with `docker info` after SSH login
-if command -v dockerd &>/dev/null && [ -e /dev/fuse ]; then
+# Note: We check for dockerd availability only; /dev/fuse is NOT required — sysbox on
+# kernel 6.17+ may not expose /dev/fuse but overlay2 still works via sysbox's kernel
+# virtualization. We also fix /var/lib/docker ownership in case sysbox left it as root.
+if command -v dockerd &>/dev/null; then
+    # Ensure /var/lib/docker is writable by the container's root (sysbox on newer kernels
+    # may create it owned by host root uid 0 instead of the userns-mapped uid).
+    chown root:root /var/lib/docker 2>/dev/null || true
     # Match inner Docker bridge MTU to container's eth0 to avoid packet fragmentation
     ETH0_MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
     dockerd --storage-driver=overlay2 --mtu="$ETH0_MTU" &>/var/log/dockerd.log &
-else
-    echo "Note: Docker-in-Docker not available (requires sysbox-runc runtime)" >&2
 fi
 
 # Start virtual X + VNC server for browser access.
