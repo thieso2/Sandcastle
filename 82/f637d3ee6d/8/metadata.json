@@ -1,0 +1,45 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "ff428f3d-62fe-42e3-950a-5f51b84c7611",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-22T07:33:58.515666Z",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "app/controllers/api/routes_controller.rb",
+    "app/controllers/routes_controller.rb",
+    "app/models/route.rb",
+    "app/services/route_manager.rb",
+    "app/views/pages/guide.html.erb",
+    "app/views/sandboxes/show.html.erb",
+    "config/routes.rb",
+    "db/migrate/20260222074421_add_mode_and_public_port_to_routes.rb",
+    "docker-compose.dev.yml",
+    "docker-compose.local.yml",
+    "docker-compose.yml",
+    "install-defaults",
+    "installer/installer.sh.in",
+    "installer/templates/docker-compose.yml.template",
+    "vendor/sandcastle-cli/api/client.go",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/route.go"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 101,
+    "cache_creation_tokens": 139317,
+    "cache_read_tokens": 7955458,
+    "output_tokens": 25679,
+    "api_call_count": 90
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-22T07:33:58.436701Z",
+    "agent_lines": 48,
+    "human_added": 0,
+    "human_modified": 76,
+    "human_removed": 317,
+    "total_committed": 124,
+    "agent_percentage": 38.70967741935484
+  }
+}

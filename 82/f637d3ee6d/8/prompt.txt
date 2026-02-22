@@ -1,0 +1,246 @@
+Implement the following plan:
+
+# Plan: TCP Port-Forward Routes
+
+## Context
+
+Routes currently support only HTTPS (layer 7, domain-based via Traefik `Host()` rules on port 443).
+The new "tcp" mode adds layer-4 port forwarding: Traefik listens on a public port (e.g. 3000)
+and forwards raw TCP to the container port. This is useful for databases, raw TCP services, or
+anything that isn't HTTP. Port range: 3000–3099 (100 slots), pre-declared in the Traefik static
+config and opened in UFW by the installer.
+
+---
+
+## Schema change
+
+**Migration**: `add_mode_and_public_port_to_routes`
+- `add_column :routes, :mode, :string, null: false, default: "http"`
+- `add_column :routes, :public_port, :integer` (null for http routes; allocated for tcp routes)
+- `change_column_null :routes, :domain, true` (domain not needed for tcp routes)
+- `add_index :routes, :public_port, unique: true, where: "public_port IS NOT NULL"`
+
+---
+
+## Model (`app/models/route.rb`)
+
+```ruby
+validates :domain, presence: true, uniqueness: true,
+  format: { with: /\A[a-z0-9]([a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}\z/i },
+  if: :http?
+validates :public_port, presence: true, uniqueness: true, if: :tcp?
+validates :mode, inclusion: { in: %w[http tcp] }
+validates :port, presence: true, inclusion: { in: 1..65535 }
+
+def http? = mode == "http"
+def tcp?  = mode == "tcp"
+
+def url
+  http? ? "https://#{domain}" : nil
+end
+```
+
+---
+
+## RouteManager (`app/services/route_manager.rb`)
+
+**Constants**
+```ruby
+TCP_PORT_MIN = ENV.fetch("SANDCASTLE_TCP_PORT_MIN", 3000).to_i
+TCP_PORT_MAX = ENV.fetch("SANDCASTLE_TCP_PORT_MAX", 3099).to_i
+TCP_PORT_RANGE = (TCP_PORT_MIN..TCP_PORT_MAX)
+```
+
+**`add_route`** — accept `mode: "http"` (default) or `mode: "tcp"`
+- HTTP mode: same as today (requires `domain:`)
+- TCP mode: call `allocate_tcp_port` inside a transaction, create route without domain
+
+**New private `allocate_tcp_port`**
+```ruby
+def allocate_tcp_port
+  used = Route.where(mode: "tcp").lock.pluck(:public_port).to_set
+  TCP_PORT_RANGE.find { |p| !used.include?(p) } ||
+    raise Error, "No TCP ports available (pool 3000–3099 exhausted)"
+end
+```
+Wrap the create + allocate in `Route.transaction` to prevent races.
+
+**`write_config`** — split into http and tcp sections in the same `sandbox-{id}.yml`:
+```yaml
+http:
+  routers:
+    sandbox-5-r1:
+      rule: "Host(`app.example.com`)"
+      entryPoints: [websecure]
+      ...
+  services: ...
+tcp:
+  routers:
+    sandbox-5-r2:
+      rule: "HostSNI(`*`)"
+      entryPoints: [tcp-3042]
+      service: sandbox-5-r2
+  services:
+    sandbox-5-r2:
+      loadBalancer:
+        servers:
+          - address: "alice-mybox:8080"
+```
+
+TCP router key: `sandbox-{sandbox.id}-tcp-r{route.id}`
+HTTP router key: `sandbox-{sandbox.id}-r{route.id}` (unchanged)
+
+---
+
+## Traefik static config — on-demand entrypoints
+
+Traefik entrypoints are static (require restart to add). Rather than pre-declaring the full range,
+entrypoints are added **on demand**: when a TCP route is created for a port not yet in `traefik.yml`,
+the app adds the entrypoint and restarts the Traefik container (~1 s downtime).
+
+**`RouteManager#ensure_tcp_entrypoint(port)`** (new private method):
+1. Read `TRAEFIK_STATIC_CONFIG` path (e.g. `/data/traefik/traefik.yml`)
+2. Parse YAML; check if entrypoint `tcp-{port}` already exists
+3. If missing: add it, write the file back, then `Docker::Container.get("sandcastle-traefik").restart`
+4. If already present: no-op
+
+**`add_route` for tcp mode calls `ensure_tcp_entrypoint(public_port)` before writing dynamic config.**
+
+The `SANDCASTLE_TRAEFIK_CONFIG` env var (default `/data/traefik/traefik.yml`) tells Rails where the
+static config lives. The Traefik container name is `sandcastle-traefik` (configurable via
+`SANDCASTLE_TRAEFIK_CONTAINER`).
+
+---
+
+## Installer (`installer/installer.sh.in`)
+
+1. In the UFW setup block, add the range once at install time:
+   ```bash
+   ufw allow ${TCP_PORT_MIN}:${TCP_PORT_MAX}/tcp
+   ```
+   (UFW rules need to be set upfront even if ports aren't all in use, so traffic isn't blocked when a new entrypoint is added.)
+2. Add `SANDCASTLE_TCP_PORT_MIN=3000` and `SANDCASTLE_TCP_PORT_MAX=3099` to `install-defaults`.
+
+---
+
+## API controller (`app/controllers/api/routes_controller.rb`)
+
+In `create`, accept `mode` param (default "http"):
+```ruby
+RouteManager.new.add_route(
+  sandbox: @sandbox,
+  domain: params[:domain],
+  port: params.fetch(:port, 8080).to_i,
+  mode: params.fetch(:mode, "http")
+)
+```
+
+Update `route_json` to include `mode` and `public_port`.
+
+---
+
+## Web controller (`app/controllers/routes_controller.rb`)
+
+Same — accept `route[mode]` from form params.
+
+---
+
+## Web UI (`app/views/sandboxes/show.html.erb`)
+
+Routes table — add Mode column, and show public port for TCP routes:
+- HTTP row: mode badge "HTTP", domain link, container port
+- TCP row: mode badge "TCP", "→ :3042" as public port, container port
+
+Add route form — add a mode toggle (two buttons: HTTP / TCP):
+- HTTP selected: show domain field + port field
+- TCP selected: hide domain field, show only container port field + note "A public port will be assigned automatically (3000–3099)"
+
+Use a tiny JS toggle (no framework needed, same pattern as snapshot modal inline JS).
+
+---
+
+## CLI (`vendor/sandcastle-cli/`)
+
+**`api/types.go`** — add fields to `RouteRequest` and `RouteResponse`:
+```go
+type RouteRequest struct {
+  Domain string `json:"domain,omitempty"`
+  Port   int    `json:"port,omitempty"`
+  Mode   string `json:"mode,omitempty"` // "http" or "tcp"
+}
+
+type RouteResponse struct {
+  ID         int    `json:"id"`
+  ...
+  Mode       string `json:"mode"`
+  PublicPort int    `json:"public_port,omitempty"`
+}
+```
+
+**`cmd/route.go`** — add `--tcp` flag to `routeAddCmd`:
+```
+sandcastle route add myapp app.example.com        # HTTP, port 8080
+sandcastle route add myapp app.example.com 3000   # HTTP, port 3000
+sandcastle route add myapp --tcp 3000             # TCP forward to container port 3000
+```
+
+When `--tcp`:
+- Domain arg becomes optional (ignored / not sent)
+- Send `mode: "tcp"` in request
+- Print assigned public port: "TCP port 3042 → container port 3000"
+
+---
+
+## Files to change
+
+| File | Change |
+|------|--------|
+| `db/migrate/…_add_mode_and_public_port_to_routes.rb` | New migration |
+| `app/models/route.rb` | Updated validations, tcp?/http? helpers |
+| `app/services/route_manager.rb` | TCP port allocation, split config generation |
+| `config/traefik/traefik.yml` | No change at deploy time; entrypoints added on-demand at runtime |
+| `installer/installer.sh.in` | TCP entrypoints in traefik.yml generation + UFW rule |
+| `install-defaults` | TCP_PORT_MIN / TCP_PORT_MAX defaults |
+| `app/controllers/api/routes_controller.rb` | Accept mode param |
+| `app/controllers/routes_controller.rb` | Accept mode param |
+| `app/views/sandboxes/show.html.erb` | Mode toggle in form, public_port in table |
+| `vendor/sandcastle-cli/api/types.go` | Mode + PublicPort fields |
+| `vendor/sandcastle-cli/cmd/route.go` | --tcp flag |
+| `app/views/pages/guide.html.erb` | Document TCP route usage |
+
+---
+
+## Verification
+
+1. `bin/rubocop` — lint Ruby
+2. `cd vendor/sandcastle-cli && go build ./...` — compile CLI
+3. Manual: create HTTP route → Traefik config shows `http:` section, domain resolves
+4. Manual: create TCP route → Traefik config shows `tcp:` section, `public_port` assigned from pool
+5. Manual: exhaust pool → get "pool exhausted" error
+6. Manual: delete TCP route → public_port freed, config cleaned up
+7. `bin/rails test` (when DB available)
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.claude/projects/-Users-thies-Projects-GitHub-Sandcastle/c904e8af-a9fe-49ea-9aaa-9438a8b84d60.jsonl
+
+---
+
+traefik needs to publish all thse ports to the host, right? hwo can i make tcp post reachable?
+
+---
+
+425ed11f5d6b   traefik:v3.3                     "/entrypoint.sh --en…"   42 seconds ago      Up 41 seconds             0.0.0.0:8080->80/tcp, [::]:8080->80/tcp, 0.0.0.0:8443->443/tcp, [::]:8443->443/tcp   sandcastle-traefik-1
+
+---
+
+we also need to fix deploy:local
+
+---
+
+how different are the deploy:local and ./installer.sh install structures?
+
+---
+
+now deploy local does not have a mkcert cert any more!
+https://dev.sand:8443/ 
+DEBUG AND FIX!

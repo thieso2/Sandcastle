@@ -3,13 +3,16 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 8,
+  "checkpoints_count": 12,
   "files_touched": [
     "VNC_AND_TTYD_AUTH.md",
+    "app/controllers/api/routes_controller.rb",
     "app/controllers/routes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
+    "app/models/route.rb",
+    "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
     "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
@@ -18,12 +21,21 @@
     "config/initializers/active_record_encryption.rb",
     "config/initializers/mission_control_jobs.rb",
     "config/routes.rb",
+    "db/migrate/20260222074421_add_mode_and_public_port_to_routes.rb",
+    "docker-compose.dev.yml",
+    "docker-compose.local.yml",
+    "docker-compose.yml",
     "images/sandbox/.Dockerfile.swp",
     "images/sandbox/entrypoint.sh",
+    "install-defaults",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
+    "installer/templates/docker-compose.yml.template",
     "mise.toml",
-    "test/controllers/terminal_controller_test.rb"
+    "test/controllers/terminal_controller_test.rb",
+    "vendor/sandcastle-cli/api/client.go",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/route.go"
   ],
   "sessions": [
     {
@@ -81,13 +93,20 @@
       "context": "/82/f637d3ee6d/7/context.md",
       "content_hash": "/82/f637d3ee6d/7/content_hash.txt",
       "prompt": "/82/f637d3ee6d/7/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/8/metadata.json",
+      "transcript": "/82/f637d3ee6d/8/full.jsonl",
+      "context": "/82/f637d3ee6d/8/context.md",
+      "content_hash": "/82/f637d3ee6d/8/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/8/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 208,
-    "cache_creation_tokens": 183830,
-    "cache_read_tokens": 13568131,
-    "output_tokens": 31856,
-    "api_call_count": 160
+    "input_tokens": 309,
+    "cache_creation_tokens": 323147,
+    "cache_read_tokens": 21523589,
+    "output_tokens": 57535,
+    "api_call_count": 250
   }
 }
