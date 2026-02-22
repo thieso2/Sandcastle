@@ -171,6 +171,11 @@ module DockerMock
       }
     end
 
+    def exec(cmd, opts = {})
+      # No-op by default; tests that need to inspect exec calls should stub this.
+      [ [], [], 0 ]
+    end
+
     def refresh!
       # Re-read latest state from DockerMock store
       if (data = DockerMock.containers[@id])

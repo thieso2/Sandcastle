@@ -33,6 +33,7 @@ class TailscaleManager
       auth_key: nil
     )
     container.start
+    advertise_routes(container, subnet)
 
     user.update!(
       tailscale_state: "enabled",
@@ -374,6 +375,22 @@ class TailscaleManager
     Docker::Image.create("fromImage" => TAILSCALE_IMAGE)
   rescue Docker::Error::DockerError
     raise Error, "Failed to pull #{TAILSCALE_IMAGE} — check network connectivity"
+  end
+
+  # Re-advertise subnet routes after a raw tailscaled start (restore_from_state).
+  # Must be called after container.start; retries briefly until tailscaled is ready.
+  def advertise_routes(container, subnet)
+    tag_flag = TAILSCALE_TAG ? " --advertise-tags=#{TAILSCALE_TAG}" : ""
+    cmd = "tailscale up --reset --advertise-routes=#{subnet}#{tag_flag} --accept-routes --timeout=30s"
+    retries = 0
+    begin
+      container.exec([ "sh", "-c", cmd ])
+    rescue Docker::Error::DockerError => e
+      raise if retries >= 2
+      retries += 1
+      sleep 2
+      retry
+    end
   end
 
   def subnet_for(user)
