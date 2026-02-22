@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 20,
+  "checkpoints_count": 21,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
@@ -33,6 +33,8 @@
     "docker-compose.local.yml",
     "docker-compose.yml",
     "images/sandbox/.Dockerfile.swp",
+    "images/sandbox/Dockerfile",
+    "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
     "install-defaults",
     "installer/installer.sh.in",
@@ -158,13 +160,20 @@
       "context": "/82/f637d3ee6d/15/context.md",
       "content_hash": "/82/f637d3ee6d/15/content_hash.txt",
       "prompt": "/82/f637d3ee6d/15/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/16/metadata.json",
+      "transcript": "/82/f637d3ee6d/16/full.jsonl",
+      "context": "/82/f637d3ee6d/16/context.md",
+      "content_hash": "/82/f637d3ee6d/16/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/16/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 707,
-    "cache_creation_tokens": 767891,
-    "cache_read_tokens": 52059010,
-    "output_tokens": 131205,
-    "api_call_count": 601
+    "input_tokens": 734,
+    "cache_creation_tokens": 820336,
+    "cache_read_tokens": 53076922,
+    "output_tokens": 144360,
+    "api_call_count": 622
   }
 }
