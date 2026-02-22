@@ -3,37 +3,40 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "c904e8af-a9fe-49ea-9aaa-9438a8b84d60",
   "strategy": "manual-commit",
-  "created_at": "2026-02-22T06:04:17.114824Z",
+  "created_at": "2026-02-22T07:33:58.317087Z",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 1,
   "files_touched": [
+    "app/controllers/routes_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
-    "app/jobs/vnc_open_job.rb",
     "app/services/sandbox_manager.rb",
     "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
-    "app/views/terminal/wait.html.erb",
-    "app/views/vnc/wait.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/sandboxes/show.html.erb",
     "config/routes.rb",
     "test/controllers/terminal_controller_test.rb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "7d19de4f-eeee-4d26-b4e0-1a54292f6e1e",
+  "transcript_identifier_at_start": "7ed59749-259d-4345-b9e0-e6b301accfa5",
+  "checkpoint_transcript_start": 229,
+  "transcript_lines_at_start": 229,
   "token_usage": {
-    "input_tokens": 35,
-    "cache_creation_tokens": 90485,
-    "cache_read_tokens": 1980493,
-    "output_tokens": 3553,
-    "api_call_count": 29
+    "input_tokens": 45,
+    "cache_creation_tokens": 50094,
+    "cache_read_tokens": 3954082,
+    "output_tokens": 7168,
+    "api_call_count": 33
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-22T06:04:16.978089Z",
-    "agent_lines": 19,
-    "human_added": 4,
-    "human_modified": 12,
-    "human_removed": 0,
-    "total_committed": 35,
-    "agent_percentage": 54.285714285714285
+    "calculated_at": "2026-02-22T07:33:58.207252Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 62,
+    "human_removed": 91,
+    "total_committed": 62,
+    "agent_percentage": 0
   }
 }

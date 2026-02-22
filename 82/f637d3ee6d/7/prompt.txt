@@ -7,3 +7,33 @@ can we remove the wait pages for ttyd an vnc now?
 ---
 
 commit this
+
+---
+
+lets look at https://github.com/thieso2/Sandcastle/issues/7
+
+update the plan to match the lastest state of the app.
+
+---
+
+let's build the web ui for adding/removing routes
+
+---
+
+explain whet the routs do.
+
+---
+
+can traffic do ssh multi-home or only https?
+
+---
+
+explain SNI-based TCP routing — works only if SSH is wrapped in TLS first (e.g. ssh over a TLS tunnel). Standard ssh clients don't do this.
+
+---
+
+okay. so i want HTTPS forwarding with SNI and add a mode for a "normal" port forward that would create a static port on the public traaefik side.
+
+---
+
+[Request interrupted by user for tool use]
