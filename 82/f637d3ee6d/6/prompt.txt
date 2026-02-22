@@ -147,3 +147,15 @@ ssh -v hase.dev.sand -p 3000
 land in the sandbox
 
 running in deploy:local mode
+
+---
+
+commit and push
+
+---
+
+commit and push
+
+---
+
+will production also work? examine
