@@ -80,10 +80,20 @@ class ContainerSyncJob < ApplicationJob
   def restore_tailscale_from_saved_key(user)
     tm = TailscaleManager.new
     auth_key = File.read(tm.auth_key_path(user)).strip rescue nil
-    return if auth_key.blank?
+    if auth_key.present?
+      tm.enable(user: user, auth_key: auth_key)
+      Rails.logger.info("ContainerSyncJob: restored Tailscale for #{user.name} from saved auth key")
+      return
+    end
 
-    tm.enable(user: user, auth_key: auth_key)
-    Rails.logger.info("ContainerSyncJob: restored Tailscale for #{user.name} from saved auth key")
+    # Fallback: restore from persisted tailscaled.state (interactive-login survivors).
+    # We check if the tailscale *directory* exists (readable via parent dir's 755 perms)
+    # rather than the state file inside it (which is in a root-owned drwx------ dir).
+    state_dir = File.join(TailscaleManager::DATA_DIR, "users", user.name, "tailscale")
+    return unless File.directory?(state_dir)
+
+    tm.restore_from_state(user: user)
+    Rails.logger.info("ContainerSyncJob: restored Tailscale for #{user.name} from saved state")
   rescue TailscaleManager::Error => e
     Rails.logger.warn("ContainerSyncJob: Tailscale restore for #{user.name} failed: #{e.message}")
   rescue => e
@@ -95,8 +105,23 @@ class ContainerSyncJob < ApplicationJob
 
     Docker::Container.get(user.tailscale_container_id)
   rescue Docker::Error::NotFoundError
+    was_enabled = user.tailscale_enabled?
     user.update!(tailscale_state: "disabled", tailscale_container_id: nil, tailscale_network: nil)
     user.sandboxes.active.where(tailscale: true).update_all(tailscale: false)
     Rails.logger.warn("ContainerSyncJob: Tailscale sidecar for #{user.name} gone, marked disabled")
+
+    # If user had a live sidecar (not just pending login), try to restore from
+    # persisted tailscaled.state so they reconnect automatically after reinstall.
+    # The tailscale dir is root-owned so we can't check File.exist? — just attempt it.
+    return unless was_enabled
+
+    begin
+      TailscaleManager.new.restore_from_state(user: user.reload)
+      Rails.logger.info("ContainerSyncJob: Tailscale sidecar for #{user.name} restored from saved state")
+    rescue TailscaleManager::Error => e
+      Rails.logger.warn("ContainerSyncJob: Tailscale state restore for #{user.name} failed: #{e.message}")
+    rescue => e
+      Rails.logger.error("ContainerSyncJob: Tailscale state restore for #{user.name} unexpected error: #{e.message}")
+    end
   end
 end

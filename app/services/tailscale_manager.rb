@@ -6,6 +6,46 @@ class TailscaleManager
 
   class Error < StandardError; end
 
+  # Restore sidecar from persisted tailscaled.state without re-authentication.
+  # Used after reinstall or crash when interactive-login state survives on disk.
+  # Note: we intentionally skip checking File.exist? for the state file because
+  # the tailscale directory is root-owned (drwx------) and unreadable by the
+  # sandcastle process. Containerboot will handle missing state gracefully.
+  def restore_from_state(user:)
+    raise Error, "Tailscale already active" if user.tailscale_enabled? || user.tailscale_pending?
+
+    network_name = "sc-ts-net-#{user.name}"
+    container_name = "sc-ts-#{user.name}"
+    subnet = subnet_for(user)
+
+    pull_image
+    create_network(network_name, subnet)
+    remove_existing_container(container_name)
+    # Intentionally skip clear_tailscale_state — we rely on existing saved credentials
+    # Use raw tailscaled (same as interactive flow) — NOT containerboot.
+    # Containerboot runs `tailscale logout` on SIGTERM, which would expire the
+    # saved node key. Raw tailscaled exits cleanly without touching auth state.
+    container = create_sidecar(
+      name: container_name,
+      user: user,
+      network: network_name,
+      subnet: subnet,
+      auth_key: nil
+    )
+    container.start
+
+    user.update!(
+      tailscale_state: "enabled",
+      tailscale_auto_connect: true,
+      tailscale_container_id: container.id,
+      tailscale_network: network_name
+    )
+    user
+  rescue Docker::Error::DockerError => e
+    cleanup_on_failure(user)
+    raise Error, "Failed to restore Tailscale from state: #{e.message}"
+  end
+
   # Legacy: one-shot enable with an auth key (still supported for automation)
   def enable(user:, auth_key:)
     raise Error, "Tailscale already active" if user.tailscale_enabled? || user.tailscale_pending?
@@ -398,7 +438,9 @@ class TailscaleManager
         "TS_AUTHKEY=#{auth_key}"
       ]
     else
-      # Run tailscaled directly — we manage login via `tailscale up`
+      # Run tailscaled directly — we manage login via `tailscale up`.
+      # Also used for restore_from_state: raw tailscaled exits without running
+      # `tailscale logout` on SIGTERM, preserving saved credentials in state file.
       config["Entrypoint"] = [ "tailscaled", "--state=/var/lib/tailscale/tailscaled.state" ]
       config["Cmd"] = []
     end
