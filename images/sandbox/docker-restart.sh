@@ -21,7 +21,7 @@ if [ "$RESET" = "1" ]; then
 fi
 
 sudo mkdir -p /var/lib/docker
-sudo chown root:root /var/lib/docker
+sudo chown root:root /var/lib/docker 2>/dev/null || true
 
 MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
 echo "Starting dockerd (MTU=${MTU})..."
