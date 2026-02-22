@@ -1,0 +1,17 @@
+on sandman:
+
+https://demo.sandcastle.rocks/terminal/59/tmux -> 404. 
+explore and debug!
+
+---
+
+[Request interrupted by user]
+
+---
+
+on sandman sandcasle is in /sandcastle and docker is ssh sandman "/sandcastle/docker-runtime/bin/docker ps"
+(leave a note in CLAUDE.md)
+
+---
+
+debug the ContainerSyncJob error too
