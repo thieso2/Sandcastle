@@ -1,0 +1,959 @@
+Implement the following plan:
+
+# Plan: Comprehensive Integration Test Suite (with Real Docker)
+
+## Context
+
+30+ API endpoints exist with zero API tests. The user also wants **real Docker integration tests** — actually spinning up Sysbox containers — not just mocked unit tests. This requires a self-hosted GitHub Actions runner on `sandman` (which has Docker + Sysbox installed).
+
+Two-tier strategy:
+- **Tier 1 — Mocked API tests**: Fast (~2 min), run on standard GitHub-hosted Ubuntu runner. Cover all API controller logic with DockerMock.
+- **Tier 2 — Real Docker integration tests**: Slow (~5–10 min), run on self-hosted runner on `sandman`. Actually create/destroy Sysbox containers, test SSH connectivity, snapshots, routes.
+
+---
+
+## Part 0: Add Missing VNC API Endpoints
+
+VNC is currently web-UI-only. Add to API for full CLI coverage.
+
+**`config/routes.rb`** — inside `namespace :api`, sandbox member routes:
+```ruby
+post   :vnc          # open VNC → returns { url: "...", active: true }
+delete :vnc          # close VNC → returns { active: false }
+get    :vnc_status   # check → returns { active: bool }
+```
+
+**`app/controllers/api/sandboxes_controller.rb`** — add 3 actions:
+```ruby
+def vnc; url = VncManager.new.open(sandbox: @sandbox); render json: { url:, active: true }; end
+def close_vnc; VncManager.new.close(sandbox: @sandbox); render json: { active: false }; end
+def vnc_status; render json: { active: VncManager.new.active?(sandbox: @sandbox) }; end
+```
+
+---
+
+## Part 1: Mocked API Test Infrastructure
+
+### 1a. `test/fixtures/api_tokens.yml` (new)
+
+Store known BCrypt digests so tests use a fixed raw token (no bcrypt at runtime):
+
+```yaml
+alice_token:
+  user: one
+  name: Test token
+  prefix: sc_testaaaa
+  token_digest: <%= BCrypt::Password.create("a" * 48) %>
+
+bob_token:
+  user: two
+  name: Bob test token
+  prefix: sc_testbbbb
+  token_digest: <%= BCrypt::Password.create("b" * 48) %>
+```
+
+### 1b. `test/test_helpers/api_test_helper.rb` (new)
+
+```ruby
+module ApiTestHelper
+  ALICE_TOKEN = "sc_testaaaa_#{'a' * 48}"
+  BOB_TOKEN   = "sc_testbbbb_#{'b' * 48}"
+
+  def auth_headers(raw_token = ALICE_TOKEN)
+    { "Authorization" => "Bearer #{raw_token}" }
+  end
+end
+```
+
+### 1c. `test/support/tailscale_mock.rb` (new)
+
+Minitest-level stubs for `TailscaleManager` methods (start_login, check_login, enable, disable, status, connect_sandbox, disconnect_sandbox, sandbox_tailscale_ip).
+
+### 1d. `test/support/vnc_mock.rb` (new)
+
+Stub `VncManager#open` (skips writing Traefik YAML), `#close`, and `#active?` (skips TCP check).
+
+### 1e. `test/test_helper.rb` — require new helpers
+
+---
+
+## Part 2: Mocked API Controller Tests (9 new files)
+
+All in `test/controllers/api/`. Use `ActionDispatch::IntegrationTest`. Auth via `headers: auth_headers`.
+
+### `sandboxes_controller_test.rb`
+
+| Test | HTTP | Expected |
+|------|------|----------|
+| index | GET /api/sandboxes | 200, returns only user's sandboxes |
+| index cross-user | GET /api/sandboxes | 200, bob doesn't see alice's |
+| create | POST /api/sandboxes | 201, enqueues SandboxProvisionJob |
+| create from snapshot | POST /api/sandboxes | 201 with snapshot image |
+| show | GET /api/sandboxes/:id | 200, JSON has all fields |
+| show cross-user | GET /api/sandboxes/:id | 403 |
+| update | PATCH /api/sandboxes/:id | 200, updates `temporary` |
+| destroy | DELETE /api/sandboxes/:id | 200, enqueues SandboxDestroyJob |
+| start | POST .../start | 200, enqueues SandboxStartJob |
+| stop | POST .../stop | 200, enqueues SandboxStopJob |
+| connect | POST .../connect | 200, returns ssh_host/ssh_port/command |
+| connect pending | POST .../connect on pending sandbox | 202, returns error msg |
+| snapshot | POST .../snapshot | 201, snapshot record created |
+| restore | POST .../restore | 200, calls restore |
+| vnc (open) | POST .../vnc | 200, returns url |
+| vnc_status | GET .../vnc_status | 200, active bool |
+| close_vnc | DELETE .../vnc | 200, active:false |
+| no auth | any | 401 |
+
+### `routes_controller_test.rb`
+
+- `GET /api/sandboxes/:id/routes` — 200, lists routes
+- `POST /api/sandboxes/:id/routes` — 201, creates HTTP and TCP routes
+- `DELETE /api/sandboxes/:id/routes/:id` — 200, destroys route
+- Auth and cross-user cases
+
+### `snapshots_controller_test.rb`
+
+- index, create, show, destroy — success and not-found cases
+- Cross-user isolation
+
+### `tokens_controller_test.rb`
+
+- `GET /api/tokens` — lists user's tokens (bearer auth)
+- `POST /api/tokens` — email+password auth, returns raw_token once
+- `POST /api/tokens` with wrong credentials → 401
+- `DELETE /api/tokens/:id` — revokes
+
+### `tailscale_controller_test.rb`
+
+Uses TailscaleMock stubs for all 6 actions:
+- enable, login, login_status, update_settings, disable, status
+
+### `users_controller_test.rb`
+
+All 5 CRUD actions:
+- Admin → 200/201
+- Non-admin → 403
+
+### `status_controller_test.rb` + `infos_controller_test.rb`
+
+- Stub SystemStatus/ServerInfo, verify JSON shape
+
+---
+
+## Part 3: Real Docker Integration Tests
+
+### 3a. Lightweight Test Image
+
+Create `images/sandbox-test/Dockerfile` — a minimal image (~100 MB):
+```dockerfile
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y openssh-server sudo && rm -rf /var/lib/apt/lists/*
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+EXPOSE 22
+ENTRYPOINT ["/entrypoint.sh"]
+```
+
+The entrypoint is a stripped-down version of the production one (creates user, injects SSH key, starts sshd). No Docker-in-Docker, no VNC.
+
+### 3b. `test/integration/real_sandbox_test.rb` (new)
+
+Skipped unless `SANDCASTLE_REAL_DOCKER=1` is set. Tests run against real Docker daemon.
+
+**Setup:**
+```ruby
+skip "set SANDCASTLE_REAL_DOCKER=1 to run" unless ENV["SANDCASTLE_REAL_DOCKER"]
+# Use test-specific DATA_DIR
+ENV["SANDCASTLE_DATA_DIR"] = "/tmp/sandcastle-test"
+# Use lightweight test image
+TEST_IMAGE = ENV.fetch("SANDCASTLE_TEST_IMAGE", "sandcastle-sandbox-test:latest")
+```
+
+**Test cases:**
+```
+test "full sandbox lifecycle"
+  → create_container_and_start (real Docker, Sysbox runtime)
+  → verify container is "running" in Docker
+  → verify SSH port is bound on host
+  → connect_info returns valid host/port
+  → stop container, verify "exited"
+  → start again, verify "running"
+  → create_snapshot, verify Docker image committed
+  → destroy, verify container removed from Docker
+
+test "sandbox SSH connectivity"
+  → create sandbox
+  → wait for sshd to start (poll port, max 30s)
+  → connect via Net::SSH, run "whoami"
+  → assert output == sandbox user name
+
+test "snapshot and restore"
+  → create sandbox, run echo "hello" > /test.txt in sandbox (via SSH exec)
+  → create_snapshot
+  → destroy original
+  → create new sandbox from snapshot (image = snapshot docker_image)
+  → SSH in, verify /test.txt contains "hello"
+
+test "route creation and Traefik config"
+  → create sandbox
+  → create HTTP route via RouteManager
+  → verify Traefik config YAML written to DATA_DIR/traefik/dynamic/
+  → destroy route, verify YAML removed
+
+test "concurrent sandbox creation"
+  → create 3 sandboxes in parallel threads
+  → verify all 3 get unique SSH ports
+  → verify all 3 reach "running"
+  → destroy all 3
+```
+
+### 3c. Test Cleanup
+
+Before/after each test: destroy any containers with name prefix `sc-test-*` to prevent leaks.
+
+### 3d. Environment for Real Tests on Sandman
+
+```bash
+SANDCASTLE_REAL_DOCKER=1
+SANDCASTLE_DATA_DIR=/tmp/sandcastle-test
+SANDCASTLE_TEST_IMAGE=sandcastle-sandbox-test:latest
+SANDCASTLE_PRIVATE_NET=10.89.0.0/16
+DOCKYARD_POOL_BASE=10.89.0.0/16
+DB_HOST=localhost
+DB_USER=sandcastle   # or postgres with test DB
+RAILS_ENV=test
+```
+
+Rails connects to Docker via the Dockyard socket: `DOCKER_HOST=unix:///sandcastle/docker-runtime/docker.sock` (or system Docker if Sysbox is registered as a runtime there).
+
+---
+
+## Part 4: GitHub Actions Workflows
+
+### 4a. `.github/workflows/ci.yml` (new) — Mocked tests on GitHub-hosted runner
+
+```yaml
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request: { branches: [main] }
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: sandcastle, POSTGRES_USER: sandcastle, POSTGRES_DB: sandcastle_test }
+        options: --health-cmd pg_isready --health-interval 10s
+        ports: ["5432:5432"]
+    env:
+      RAILS_ENV: test
+      DB_HOST: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with: { bundler-cache: true }
+      - run: bin/rails db:schema:load
+      - run: bin/rails test
+      - run: bin/rubocop --no-color --format github
+```
+
+### 4b. `.github/workflows/integration.yml` (new) — Real Docker tests on self-hosted runner
+
+```yaml
+name: Integration (Real Docker)
+on:
+  push: { branches: [main] }  # not PRs — safe on main only
+
+jobs:
+  real-docker:
+    runs-on: [self-hosted, sandman]
+    env:
+      RAILS_ENV: test
+      SANDCASTLE_REAL_DOCKER: "1"
+      SANDCASTLE_DATA_DIR: /tmp/sandcastle-test
+      SANDCASTLE_TEST_IMAGE: sandcastle-sandbox-test:latest
+      DOCKYARD_POOL_BASE: "10.89.0.0/16"
+      DB_HOST: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build test image
+        run: /sandcastle/docker-runtime/bin/docker build -t sandcastle-sandbox-test:latest images/sandbox-test/
+      - run: mkdir -p /tmp/sandcastle-test/{users,sandboxes,traefik/dynamic}
+      - run: bin/rails db:schema:load
+      - run: bin/rails test test/integration/real_sandbox_test.rb
+      - name: Cleanup test containers
+        if: always()
+        run: /sandcastle/docker-runtime/bin/docker ps -a --filter "name=sc-test-" -q | xargs -r docker rm -f
+```
+
+### 4c. Self-Hosted Runner Setup on Sandman
+
+One-time setup (not part of code, but documented in plan):
+```bash
+ssh thies@sandman
+mkdir -p ~/actions-runner && cd ~/actions-runner
+# Download runner from GitHub repo Settings → Actions → Runners → New self-hosted runner
+# Configure with label: sandman
+# Run as systemd service
+./svc.sh install && ./svc.sh start
+```
+
+---
+
+## Part 5: VNC API → CLI Command (stretch, separate PR)
+
+After Part 0 adds the VNC API endpoint, a follow-up PR adds to `vendor/sandcastle-cli/cmd/`:
+```
+sandcastle vnc [name]      → POST /api/sandboxes/:id/vnc → opens URL in browser
+sandcastle vnc close [name] → DELETE /api/sandboxes/:id/vnc
+```
+
+Not in scope for this PR.
+
+---
+
+## File Summary
+
+### Modified
+- `config/routes.rb` — VNC API routes
+- `app/controllers/api/sandboxes_controller.rb` — VNC actions
+- `test/test_helper.rb` — require new helpers
+
+### New (test infrastructure)
+- `test/fixtures/api_tokens.yml`
+- `test/test_helpers/api_test_helper.rb`
+- `test/support/tailscale_mock.rb`
+- `test/support/vnc_mock.rb`
+
+### New (mocked API tests)
+- `test/controllers/api/sandboxes_controller_test.rb`
+- `test/controllers/api/routes_controller_test.rb`
+- `test/controllers/api/snapshots_controller_test.rb`
+- `test/controllers/api/tokens_controller_test.rb`
+- `test/controllers/api/tailscale_controller_test.rb`
+- `test/controllers/api/users_controller_test.rb`
+- `test/controllers/api/status_controller_test.rb`
+- `test/controllers/api/infos_controller_test.rb`
+
+### New (real Docker)
+- `images/sandbox-test/Dockerfile`
+- `images/sandbox-test/entrypoint.sh`
+- `test/integration/real_sandbox_test.rb`
+
+### New (CI)
+- `.github/workflows/ci.yml`
+- `.github/workflows/integration.yml`
+
+---
+
+## Verification
+
+1. `bin/rails test test/controllers/api/` — mocked API tests pass without Docker
+2. `bin/rails test` — full suite still passes
+3. Push to main → `ci.yml` goes green on GitHub-hosted runner
+4. `SANDCASTLE_REAL_DOCKER=1 bin/rails test test/integration/` on sandman → containers actually created/destroyed
+5. Push to main → `integration.yml` goes green on sandman self-hosted runner
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me analyze the conversation chronologically to create a comprehensive summary.
+
+## User Request
+The user asked to implement a comprehensive integration test suite plan that was already designed. The plan covered:
+
+1. **Part 0**: Add missing VNC API endpoints
+2. **Part 1**: Mocked API test infrastructure
+3. **Part 2**: Mocked API controller tests (8 files)
+4. **Part 3**: Real Docker integration tests
+5. **Part 4**: GitHub Actions workflows
+
+## What Was Done
+
+### Part 0: VNC API Routes and Controller
+- Added routes: `post :vnc`, `delete :vnc, action: :close_vnc`, `get :vnc_status` inside `namespace :api` sandboxes member block
+- Added 3 actions to `api/sandboxes_controller.rb`: `vnc`, `close_vnc`, `vnc_status`
+- Added policy methods: `vnc?`, `close_vnc?`, `vnc_status?` to `sandbox_policy.rb`
+- Added `VncManager::Error` rescue to `api/base_controller.rb`
+- Fixed routing bug: DELETE :vnc was routing to `#vnc` instead of `#close_vnc`; fixed with `action: :close_vnc`
+
+### Part 1: Test Infrastructure
+- Created `test/fixtures/api_tokens.yml` with alice and bob tokens
+- Created `test/test_helpers/api_test_helper.rb` with `ALICE_TOKEN`, `BOB_TOKEN`, `auth_headers`
+- Created `test/support/tailscale_mock.rb` - stubs TailscaleManager methods
+- Created `test/support/vnc_mock.rb` - stubs VncManager methods (including `prepare_traefik_config`)
+- Created `test/support/terminal_mock.rb` - stubs TerminalManager methods (write_traefik_config, prepare_traefik_config)
+- Updated `test/test_helper.rb` to require and enable all mocks
+
+### Part 2: API Controller Tests (8 new files)
+- `test/controllers/api/sandboxes_controller_test.rb` - 20 tests
+- `test/controllers/api/routes_controller_test.rb`
+- `test/controllers/api/snapshots_controller_test.rb`
+- `test/controllers/api/tokens_controller_test.rb`
+- `test/controllers/api/tailscale_controller_test.rb`
+- `test/controllers/api/users_controller_test.rb`
+- `test/controllers/api/status_controller_test.rb`
+- `test/controllers/api/infos_controller_test.rb`
+
+### Part 3: Real Docker Integration Tests
+- Created `images/sandbox-test/Dockerfile` - minimal Ubuntu 24.04 with just openssh-server
+- Created `images/sandbox-test/entrypoint.sh`
+- Created `test/integration/real_sandbox_test.rb`
+
+### Part 4: GitHub Actions
+- Created `.github/workflows/ci.yml`
+- Created `.github/workflows/integration.yml`
+- Added `gem "mocha"` and `gem "net-ssh"` to Gemfile test group
+- Added `require "mocha/minitest"` to test_helper.rb
+
+## Errors Fixed
+
+1. **`resource :status` routing bug**: `resource :status, only: :show` routes to `Api::StatusesController` but controller is `Api::StatusController`. Fixed with `controller: "status"` option.
+
+2. **`solid_errors` table missing**: `status_controller_test.rb` failing with `PG::UndefinedTable: ERROR: relation "solid_errors" does not exist`. Fixed by loading `errors_schema.rb` into test DB.
+
+3. **`Docker::Container.new` private**: DockerMock used `Docker::Container.new(nil, {})` but `private_class_method :new` was set. Fixed by using `Docker::Container.allocate`.
+
+4. **`Docker::Base#initialize` connection validation**: `Docker::Container.allocate` bypasses private but `Docker::Image.new` still validates connection. Fixed all Docker mock object creation to use `allocate`.
+
+5. **`Container.all` wrong arity**: `refresh!` calls `Docker::Container.all({all: true}, connection)` with 2 args but mock only accepts 1. Fixed: `def all(opts = {}, _connection = nil)`.
+
+6. **`container.stop` wrong arity**: Called as `container.stop(t: 10)` but mock `stop` takes no args. Fixed: `def stop(opts = {})`.
+
+7. **Missing `refresh!` override**: Mock containers without `@connection` would fail on `refresh!`. Added `def refresh!` to `ContainerInstanceMethods`.
+
+8. **`Docker::Network` missing `connect`/`disconnect`**: Added `NetworkInstanceMethods` module with these methods.
+
+9. **TerminalManager filesystem writes**: `create_container_and_start` calls `TerminalManager.new.prepare_traefik_config` which tries to write to `/data/traefik/dynamic/`. Fixed by creating `TerminalMock`.
+
+10. **VncManager filesystem writes**: Same issue with `prepare_traefik_config`. Added stub to `VncMock`.
+
+11. **Token create missing name returns 400 not 422**: `params.require(:name)` raises `ActionController::ParameterMissing` → 400. Fixed test expectation.
+
+12. **Alice is admin**: Several cross-user tests assumed Alice can't see Bob's sandbox, but she's admin. Fixed tests to use Bob accessing Alice's sandbox for 403 checks.
+
+13. **Snapshot tests fail without DockerMock containers**: Added `DockerMock.reset!` + container pre-population in setup.
+
+14. **DELETE :vnc routes to wrong action**: `delete :vnc` routes to `#vnc` (same as POST). Fixed with `delete :vnc, action: :close_vnc`.
+
+## Current State
+Running all API controller tests as a group was hanging due to parallelism + Docker mock sleeps. Individual test files pass. Currently trying to run `bin/rails test test/controllers/api/` together.
+
+## Pending Issue
+Tests run fine individually but hang when run as a group, likely due to parallel test workers combined with the `sleep 0.1`, `sleep 0.5`, etc. in DockerMock create/start/stop methods.
+
+Summary:
+1. Primary Request and Intent:
+   The user requested implementation of a comprehensive integration test suite from a pre-designed plan. The plan had 5 parts:
+   - **Part 0**: Add missing VNC API endpoints (POST/DELETE/GET) to `config/routes.rb` and `app/controllers/api/sandboxes_controller.rb`
+   - **Part 1**: Mocked API test infrastructure (fixtures, helpers, mocks for Tailscale/VNC/Terminal)
+   - **Part 2**: 8 mocked API controller test files covering all API endpoints
+   - **Part 3**: Real Docker integration tests using a lightweight sandbox-test image (skipped unless `SANDCASTLE_REAL_DOCKER=1`)
+   - **Part 4**: Two GitHub Actions workflows (ci.yml for mocked tests, integration.yml for self-hosted real Docker)
+
+2. Key Technical Concepts:
+   - Rails 8.1 API controllers with Pundit authorization and `policy_scope`
+   - `ActionDispatch::IntegrationTest` for API controller tests
+   - BCrypt API token authentication (`sc_prefix_secret` format)
+   - Mocha gem for `any_instance.stubs` mocking in Minitest
+   - DockerMock using Ruby `prepend` to intercept Docker API calls
+   - `Docker::Container.allocate` pattern to bypass `private_class_method :new` and connection validation in docker-api gem
+   - `Docker::Base#initialize` requires a `Docker::Connection` argument — bypassed with `allocate`
+   - Singular resource routing (`resource :status`) auto-pluralizes to `StatusesController` — needs `controller: "status"` override
+   - SolidErrors gem requires `solid_errors` table to exist in test DB
+   - Parallel test execution (`:number_of_processors` workers) causing test hangs with DockerMock sleeps
+   - Sysbox container runtime for real Docker integration tests
+   - GitHub Actions self-hosted runner on `sandman`
+
+3. Files and Code Sections:
+
+   - **`config/routes.rb`** — Added 3 VNC API routes inside `namespace :api` sandbox member block; fixed `resource :status` routing bug; fixed DELETE :vnc action name:
+     ```ruby
+     post   :vnc
+     delete :vnc, action: :close_vnc
+     get    :vnc_status
+     # ...
+     resource :status, only: :show, controller: "status"
+     ```
+
+   - **`app/controllers/api/sandboxes_controller.rb`** — Added `vnc`, `close_vnc`, `vnc_status` to `before_action :set_sandbox` list; added 3 action methods:
+     ```ruby
+     def vnc
+       url = VncManager.new.open(sandbox: @sandbox)
+       render json: { url:, active: true }
+     end
+     def close_vnc
+       VncManager.new.close(sandbox: @sandbox)
+       render json: { active: false }
+     end
+     def vnc_status
+       render json: { active: VncManager.new.active?(sandbox: @sandbox) }
+     end
+     ```
+
+   - **`app/controllers/api/base_controller.rb`** — Added VncManager::Error rescue:
+     ```ruby
+     rescue_from VncManager::Error do |e|
+       render json: { error: e.message }, status: :unprocessable_entity
+     end
+     ```
+
+   - **`app/policies/sandbox_policy.rb`** — Added VNC policy methods:
+     ```ruby
+     def vnc?       = owner_or_admin?
+     def close_vnc? = owner_or_admin?
+     def vnc_status? = owner_or_admin?
+     ```
+
+   - **`Gemfile`** — Added to test group:
+     ```ruby
+     gem "mocha"
+     gem "net-ssh"
+     ```
+
+   - **`test/test_helper.rb`** — Added new requires and mock enables:
+     ```ruby
+     require "mocha/minitest"
+     require_relative "test_helpers/api_test_helper"
+     require_relative "support/tailscale_mock"
+     require_relative "support/vnc_mock"
+     require_relative "support/terminal_mock"
+     TailscaleMock.enable!
+     VncMock.enable!
+     TerminalMock.enable!
+     ```
+
+   - **`test/fixtures/api_tokens.yml`** — New file with pre-computed BCrypt digests:
+     ```yaml
+     alice_token:
+       user: one
+       name: Test token
+       prefix: sc_testaaaa
+       token_digest: <%= BCrypt::Password.create("a" * 48) %>
+     bob_token:
+       user: two
+       name: Bob test token
+       prefix: sc_testbbbb
+       token_digest: <%= BCrypt::Password.create("b" * 48) %>
+     ```
+
+   - **`test/test_helpers/api_test_helper.rb`** — New file:
+     ```ruby
+     module ApiTestHelper
+       ALICE_TOKEN = "sc_testaaaa_#{"a" * 48}"
+       BOB_TOKEN   = "sc_testbbbb_#{"b" * 48}"
+       def auth_headers(raw_token = ALICE_TOKEN)
+         { "Authorization" => "Bearer #{raw_token}" }
+       end
+     end
+     ActiveSupport.on_load(:action_dispatch_integration_test) do
+       include ApiTestHelper
+     end
+     ```
+
+   - **`test/support/docker_mock.rb`** — Fixed multiple bugs:
+     - Changed all `Docker::Container.new(nil, {})` → `Docker::Container.allocate`
+     - Changed all `Docker::Image.new(nil, {})` → `Docker::Image.allocate`
+     - Changed all `Docker::Network.new(nil, {})` → `Docker::Network.allocate`
+     - Changed `def all(opts = {})` → `def all(opts = {}, _connection = nil)` for Container
+     - Changed `def stop` → `def stop(opts = {})` for Container instance
+     - Added `def refresh!` to `ContainerInstanceMethods` to avoid real Docker API call
+     - Added `NetworkInstanceMethods` module with `connect`, `disconnect`, `id`, `info` methods
+     - Added `Docker::Network.prepend(NetworkInstanceMethods)` to `setup_mocks`
+
+   - **`test/support/tailscale_mock.rb`** — New file, stubs all TailscaleManager instance methods via `prepend`
+
+   - **`test/support/vnc_mock.rb`** — New file, stubs `open`, `close`, `active?`, `prepare_traefik_config`, `write_traefik_config` on VncManager
+
+   - **`test/support/terminal_mock.rb`** — New file, stubs `write_traefik_config`, `prepare_traefik_config`, `open`, `close` on TerminalManager
+
+   - **`test/controllers/api/sandboxes_controller_test.rb`** — 20 tests; setup pre-populates DockerMock containers from fixtures; tests cover index, show, create, update, destroy, start, stop, connect, snapshot, restore, vnc, close_vnc, vnc_status, cross-user 403 (uses BOB_TOKEN against Alice's sandbox since Alice is admin)
+
+   - **`test/controllers/api/routes_controller_test.rb`** — Tests index, create HTTP route, destroy; uses `Dir.mktmpdir` + `stub_const` to avoid writing real Traefik YAML files
+
+   - **`test/controllers/api/snapshots_controller_test.rb`** — 9 tests with DockerMock pre-population in setup
+
+   - **`test/controllers/api/tokens_controller_test.rb`** — Tests list, create with password auth, wrong credentials (401), missing name (400 not 422), destroy
+
+   - **`test/controllers/api/tailscale_controller_test.rb`** — 8 tests using TailscaleMock stubs
+
+   - **`test/controllers/api/users_controller_test.rb`** — 11 tests, admin vs non-admin checks
+
+   - **`test/controllers/api/status_controller_test.rb`** — Stubs SystemStatus system calls, 3 tests
+
+   - **`test/controllers/api/infos_controller_test.rb`** — Stubs SystemStatus, 3 tests
+
+   - **`images/sandbox-test/Dockerfile`** — Minimal Ubuntu 24.04 + openssh-server + sudo only
+
+   - **`images/sandbox-test/entrypoint.sh`** — Stripped-down entrypoint (no DinD, no VNC)
+
+   - **`test/integration/real_sandbox_test.rb`** — Skipped unless `SANDCASTLE_REAL_DOCKER=1`; 5 tests: full lifecycle, snapshot+restore, SSH connectivity, concurrent creation, route Traefik config
+
+   - **`.github/workflows/ci.yml`** — New: GitHub-hosted ubuntu-latest runner with postgres service
+
+   - **`.github/workflows/integration.yml`** — New: self-hosted `sandman` runner, only on push to main
+
+4. Errors and fixes:
+   - **`resource :status` routes to `Api::StatusesController`** (doesn't exist): Fixed by adding `controller: "status"` to route definition. File: `config/routes.rb`.
+   - **`solid_errors` table missing in test DB**: Caused `ActiveRecord::StatementInvalid` in status/infos tests. Fixed by running `load Rails.root.join('db/errors_schema.rb')` to load the errors schema into the test DB.
+   - **`Docker::Container.new(nil, {})` — private method**: `docker-api` gem uses `private_class_method :new` on Container. Fixed all mock object creation to use `Docker::Container.allocate` instead.
+   - **`Docker::Base#initialize` requires `Docker::Connection`**: Both `Docker::Image.new(nil, {})` and `Docker::Network.new(nil, {})` also fail because `initialize` validates the connection. Fixed with `allocate` for all Docker classes.
+   - **`Container.all` called with 2 args**: The real `refresh!` calls `Docker::Container.all({all: true}, connection)` with a second connection arg. Mock only accepted 1 arg. Fixed: `def all(opts = {}, _connection = nil)`.
+   - **`container.stop` called with hash arg**: Code calls `container.stop(t: 10)` but mock `stop` took no args. Fixed: `def stop(opts = {})`.
+   - **`refresh!` calling real Docker API**: Added `def refresh!` to `ContainerInstanceMethods` to update `@info` from DockerMock state instead.
+   - **Missing `connect`/`disconnect` on mock Networks**: `RouteManager` calls `network.connect(container_id)`. Added `NetworkInstanceMethods` module with these methods, prepended to `Docker::Network`.
+   - **TerminalManager writes to filesystem**: `SandboxManager#create_container_and_start` calls `TerminalManager.new.prepare_traefik_config`. Created `TerminalMock` to stub this.
+   - **VncManager `prepare_traefik_config` writes to filesystem**: Same issue. Added `prepare_traefik_config` and `write_traefik_config` stubs to `VncMock`.
+   - **Token create missing name returns 400 not 422**: `params.require(:name)` raises `ActionController::ParameterMissing` → 400 Bad Request. Fixed test to use `assert_response :bad_request`.
+   - **Alice is admin — cross-user tests wrong**: Tests expecting 403 used Alice (admin) trying to access Bob's sandbox. Fixed to use BOB_TOKEN accessing Alice's sandbox.
+   - **Snapshot tests fail without DockerMock containers**: Added `DockerMock.reset!` + pre-population of fixture containers in setup blocks.
+   - **DELETE :vnc routes to `#vnc` not `#close_vnc`**: `delete :vnc` creates a route with action `vnc` (matching the route name). Fixed: `delete :vnc, action: :close_vnc`.
+   - **Tests hang when run as group**: Likely due to DockerMock's `sleep` calls combined with parallel workers. Currently unresolved.
+
+5. Problem Solving:
+   - Discovered that `docker-api` gem's `Docker::Container`, `Docker::Image`, and `Docker::Network` all inherit from `Docker::Base` which requires a real `Docker::Connection` in `initialize`. The existing DockerMock was broken from the start (pre-existing failures). All fixed using `allocate`.
+   - Discovered the `resource :status` routing bug — the route was generating `api/statuses#show` but controller was `Api::StatusController`. This was a pre-existing bug in the app never caught because no tests existed for this endpoint. Fixed with `controller: "status"`.
+   - The parallel test execution causes test hangs — individual test files run fine but `bin/rails test test/controllers/api/` hangs.
+
+6. All user messages:
+   - Initial message: "Implement the following plan: [comprehensive integration test suite plan with 5 parts including VNC API endpoints, test infrastructure, mocked API tests, real Docker tests, and GitHub Actions workflows]"
+   - Second message: "Your task is to create a detailed summary of the conversation so far..." (current message)
+
+7. Pending Tasks:
+   - Fix the parallel test execution hang when running all API controller tests together (the DockerMock `sleep` calls in `create`/`start`/`stop` are likely causing timeouts or worker contention)
+   - Verify the full test suite passes: `bin/rails test test/controllers/api/` all 8 files together
+   - The existing `sandbox_manager_test.rb` has 3 remaining failures (pre-existing issues not caused by this work): `test_create_handles_Docker_errors_gracefully`, `test_create_snapshot_creates_DB_record_and_Docker_image`, `test_start_starts_a_stopped_container`
+
+8. Current Work:
+   All 8 new API controller test files were written and individual test files verified passing. The final step was running all API controller tests together. Running `DB_USER=$(whoami) DB_PASSWORD="" bin/rails test test/controllers/api/` was attempted but the process hung/timed out. The last successful individual test runs showed:
+   - `sandboxes_controller_test.rb`: 20 runs, 59 assertions, 0 failures, 0 errors ✅
+   - `tailscale_controller_test.rb`: 8 runs, 20 assertions, 0 failures, 0 errors ✅
+   - `users_controller_test.rb`: 11 runs, 20 assertions, 0 failures, 0 errors ✅
+   - `status_controller_test.rb` + `infos_controller_test.rb`: 6 runs, 24 assertions, 0 failures, 0 errors ✅
+   - `tokens_controller_test.rb`: 7 runs, 16 assertions, 1 failure (fixed) then 0 failures ✅
+
+9. Optional Next Step:
+   The immediate next step is to investigate why `bin/rails test test/controllers/api/` hangs when run as a group. The likely cause is the `sleep` calls in `DockerMock` (`sleep 0.1` in create, `sleep 0.5` in start, `sleep 0.3` in stop, `sleep 1` in image create) combined with parallel workers. These sleeps should be removed or reduced since there's no benefit to simulating timing in unit tests. The command that was just attempted was:
+   ```
+   DB_USER=$(whoami) DB_PASSWORD="" bin/rails test test/controllers/api/ 2>&1 | tail -8
+   ```
+   which timed out. The fix is to remove the `sleep` calls from `test/support/docker_mock.rb`.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+<task-notification>
+<task-id>b03e155</task-id>
+<tool-use-id>toolu_01A3xysB84AxdGABUqDz3B7X</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Run all API controller tests with threads + thread-local DockerMock" failed with exit code 1</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>b2175ad</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Run all API controller tests sequentially" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>b607cbc</task-id>
+<tool-use-id>toolu_01JqtEzwDrUwcWwxe4wf5rje</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Run the full test suite" failed with exit code 1</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>b785b3b</task-id>
+<tool-use-id>toolu_01PrMVbjsCEQxeVzW1MU1EJo</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Run all API controller tests" failed with exit code 134</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+whet are the pre-existing failures?
+
+---
+
+create a branch - commit teh work so far, then fix all the tests!
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me analyze the conversation chronologically:
+
+1. **Session start**: Continued from previous context where an API test suite was being implemented. The previous session had implemented Parts 0-4 of a comprehensive test plan.
+
+2. **Previous session work**: All 8 API controller test files were written and individual files passed. The issue was tests hanging when run as a group (due to DockerMock sleep calls + parallelism).
+
+3. **This session work**:
+   - Removed sleep calls from DockerMock
+   - Discovered pg segfault (SSL fork issue on macOS arm64/Ruby 4.0) when running tests with process parallelism
+   - Tried `parallelize_setup` approach - didn't work (SSL state already corrupt in forked process)
+   - Tried thread-based parallelism - had connection sharing issues
+   - Fixed with `parallelize(workers: 1)` - serial execution
+   - Also made DockerMock thread-local (for future thread-safety)
+   - All 68 API tests pass: 168 runs, 169 assertions, 0 failures
+
+4. **User requested**: "create a branch - commit the work so far, then fix all the tests!"
+   - Created branch `feature/api-test-suite`
+   - Made 4 atomic commits
+   - Identified all pre-existing failures
+   - Started fixing them
+
+5. **Pre-existing failures being fixed**:
+   - AR encryption: add keys to test.rb config
+   - Missing fixtures: `thies` user and `thies_dev` sandbox
+   - DockerMock commit symbol/string key issue
+   - sandbox_manager_test: two test bugs (old container_id, wrong exception type)
+   - Invite model: generate_token overwrites manually-set tokens
+   - Registration test: "ab" is valid (2 chars), needs shorter name
+
+6. **Current failure**: Running `bin/rails test` after fixes fails with `connection to server at "::1", port 5432 failed: fe_sendauth: no password supplied`. This is a DB connection issue - the `bin/rails test` without DB_USER/DB_PASSWORD env vars fails. The fix is to run with the DB env vars.
+
+Wait, looking at the output more carefully - this is `ActiveRecord::ConnectionNotEstablished` with `fe_sendauth: no password supplied`. This is happening at schema check time (before tests run). The issue is that the `db/schema.rb` contains changes (the thies/thies_dev fixtures might have triggered schema changes? No...) Actually, this is just the normal DB connection issue - the test needs `DB_USER=$(whoami) DB_PASSWORD=""` env vars. But I ran it as just `bin/rails test` without those!
+
+So the actual test results are unknown because the DB couldn't connect. The issue is that I forgot to include `DB_USER=$(whoami) DB_PASSWORD=""` in the command.
+
+Let me verify: yes, looking at the command `DB_USER=$(whoami) DB_PASSWORD="" bin/rails test 2>&1` - oh wait, I did include those vars. Let me look again... the command was `DB_USER=$(whoami) DB_PASSWORD="" bin/rails test 2>&1` with a background task. Yes, I did include them. But the error says `fe_sendauth: no password supplied`.
+
+This is strange. Let me look at the connection string... maybe it's trying a different DB configuration. The error is at the schema check stage, not in tests themselves. This might be related to the `db/schema.rb` being detected as out of date. Let me check if the `db/schema.rb` was modified...
+
+Actually looking at the git status from the beginning: `modified: db/schema.rb` was in the git status at the start. This was already modified (probably from some previous work). But the schema check tries to create a "temporary pool" to check if schema is up to date, and this uses a different connection configuration.
+
+Actually looking more carefully at the error: it happens during `maintain_test_schema!` which tries to check if schema is current. It creates a temporary pool to the "solid" databases (queue, cable, cache) which might not have the same credentials. Let me check the database.yml.
+
+Actually, the error might be that `db/schema.rb` was modified (it was in the git status), and Rails is trying to reload the schema. This is unrelated to my changes - the schema was already modified before our work.
+
+The fix would be to either:
+1. Run `DB_USER=$(whoami) DB_PASSWORD="" bin/rails db:schema:load` first
+2. OR commit the schema changes
+
+Actually wait - looking at the current state: `db/schema.rb` was `modified` at the start. Let me check if it was part of the initial status. Yes, `modified: db/schema.rb` was in the original git status.
+
+This means the schema.rb had uncommitted changes. When Rails sees schema.rb is newer than the test DB schema version, it tries to reload it. The reload requires a new DB connection, which fails because the temporary pool doesn't have the right credentials.
+
+Actually, I think the issue might be simpler: I added `thies_dev` to the sandboxes fixture, and the `ssh_port: 2205` might conflict with something. No, that doesn't affect schema.
+
+The real fix: the previous `bin/rails test test/controllers/api/` command (with DB_USER and DB_PASSWORD) worked fine. The full suite needs those same vars but is also having the schema check issue.
+
+Actually, I think the schema issue is a pre-existing problem with `db/schema.rb` being modified. Let me just commit the schema.rb and then run the test.
+
+Or better: I need to reset the schema.rb back to the original since I don't know what changed in it, or load the schema into the test DB.
+
+Actually the simplest fix: run `DB_USER=$(whoami) DB_PASSWORD="" bin/rails db:schema:load RAILS_ENV=test` first, then run tests.
+
+But actually, looking at the error trace more carefully - `maintain_test_schema!` → `schema_up_to_date?` → tries to connect. This is Rails trying to verify the test DB schema matches schema.rb. If db/schema.rb was modified (even slightly), Rails tries to reload the schema.
+
+The fix is: just load the schema first. In the previous successful runs, this wasn't an issue because we always passed DB credentials. But now the schema check is failing before tests even start because the schema is out of date.
+
+Actually wait - I just realized: I ran the previous test (`test/controllers/api/`) with `DB_USER=$(whoami) DB_PASSWORD=""`, and it worked. The full `bin/rails test` command also has `DB_USER=$(whoami) DB_PASSWORD=""`. Let me look again at the error...
+
+"connection to server at "::1", port 5432 failed: fe_sendauth: no password supplied"
+
+This might be happening for the cache/queue/cable databases, not the main test DB. The `database.yml` has multiple DBs for Solid Cache, Queue, Cable. Those might be trying to connect to check their schemas too, and they might use different connection configs that don't pick up the DB_USER/DB_PASSWORD env vars.
+
+Looking at the `database.yml` mentioned in CLAUDE.md:
+- `sandcastle_production` — primary
+- `sandcastle_production_cache` — Solid Cache
+- `sandcastle_production_queue` — Solid Queue
+- `sandcastle_production_cable` — Solid Cable
+
+The test equivalents would be `sandcastle_test`, `sandcastle_test_cache`, etc. These might have different connection params.
+
+The fix: run `bin/rails db:schema:load` before the test run, or skip the schema check.
+
+Actually, looking at the successful previous run of `test/controllers/api/` - it worked fine. The difference with the full `bin/rails test` is that it checks ALL databases including Solid ones. Those databases might not be configured with the same credentials.
+
+For the summary, I should note that the pending task is to fix the DB connection issue for the full test run. The fix is likely to load the schema first with `DB_USER=$(whoami) DB_PASSWORD="" bin/rails db:schema:load` and then run tests.
+
+Actually, I think the issue might be simpler: the `db/schema.rb` was already modified before we started (it appeared in the original git status). This file should be committed or reset. Since it was modified but I don't know what changed, I should check what changed in it.
+
+Let me structure the summary now.
+
+Summary:
+1. Primary Request and Intent:
+   The user had two requests this session:
+   - **First**: "create a branch - commit the work so far, then fix all the tests!" — Create a git branch, make atomic commits for all API test suite work, then fix all pre-existing test failures in the repo.
+
+2. Key Technical Concepts:
+   - Rails 8.1 `parallelize(workers: 1)` — disabled process/thread parallelism to avoid pg gem segfault (SSL fork-safety bug in pg 1.6.x on macOS arm64 / Ruby 4.0)
+   - `parallelize(workers: :number_of_processors, with: :threads)` — thread mode attempted but abandoned due to pg connection sharing issues
+   - Thread-local state in DockerMock (`Thread.current[:docker_mock_store]`) for parallel test isolation
+   - ActiveRecord Encryption (`encrypts` directive) requiring `active_record_encryption.primary_key` credentials
+   - `before_validation :generate_token, on: :create` — always overwrites manually-set tokens in `Invite` model
+   - DockerMock `commit` method using string key access (`opts["repo"]`) while callers pass symbol keys (`repo: repo`)
+   - `SandboxManager#start` deletes the old container and recreates it — so old `container_id` is invalid after start
+   - User name validation regex: `/\A[a-z][a-z0-9_-]{1,30}\z/` requires 2-31 chars, so "ab" (2 chars) is VALID
+   - Atomic git commits scoped to logical units
+
+3. Files and Code Sections:
+   - **`feature/api-test-suite` branch** (created):
+     - Commit 1: VNC API + routing fix
+     - Commit 2: Test infrastructure
+     - Commit 3: API controller tests (68 tests)
+     - Commit 4: Integration tests + CI workflows
+
+   - **`config/environments/test.rb`** — Added AR encryption keys to fix `Missing Active Record encryption credential` errors:
+     ```ruby
+     config.active_record.encryption.primary_key        = "sandcastle_test_primary_key_12345"
+     config.active_record.encryption.deterministic_key  = "sandcastle_test_det_key_1234567890"
+     config.active_record.encryption.key_derivation_salt = "sandcastle_test_kdf_salt_12345678"
+     ```
+
+   - **`test/fixtures/users.yml`** — Added missing `thies` fixture:
+     ```yaml
+     thies:
+       name: thies
+       email_address: thies@example.com
+       password_digest: <%= password_digest %>
+       status: active
+     ```
+
+   - **`test/fixtures/sandboxes.yml`** — Added missing `thies_dev` fixture:
+     ```yaml
+     thies_dev:
+       name: devbox
+       user: thies
+       status: running
+       image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+       ssh_port: 2205
+       container_id: "thies123abc"
+     ```
+
+   - **`test/support/docker_mock.rb`** — Fixed `commit` to normalize symbol/string keys:
+     ```ruby
+     def commit(opts = {})
+       opts = opts.transform_keys(&:to_s)
+       image_id = "sha256:#{SecureRandom.hex(32)}"
+       repo = opts["repo"] || "snapshot"
+       tag = opts["tag"] || "latest"
+     ```
+     Also made all DockerMock state thread-local:
+     ```ruby
+     def containers    = thread_store[:containers]
+     def images        = thread_store[:images]
+     def networks      = thread_store[:networks]
+     def failure_mode  = thread_store[:failure_mode]
+     def failure_mode=(val)
+       thread_store[:failure_mode] = val
+     end
+     def reset!
+       Thread.current[:docker_mock_store] = { containers: {}, images: {}, networks: {}, failure_mode: nil }
+     end
+     private
+     def thread_store
+       Thread.current[:docker_mock_store] ||= { containers: {}, images: {}, networks: {}, failure_mode: nil }
+     end
+     ```
+
+   - **`test/services/sandbox_manager_test.rb`** — Two fixes:
+     1. `test_start_starts_a_stopped_container`: use `@sandbox.reload.container_id` after start (start deletes old container and creates a new one):
+        ```ruby
+        @manager.start(sandbox: @sandbox)
+        assert_equal "running", @sandbox.reload.status
+        container = Docker::Container.get(@sandbox.container_id)  # not old container_id
+        assert container.info["State"]["Running"]
+        ```
+     2. `test_create_handles_Docker_errors_gracefully`: changed from `SandboxManager::Error` to `Docker::Error::DockerError` since `create_container_and_start` doesn't wrap errors (only `create` does):
+        ```ruby
+        assert_raises(Docker::Error::DockerError) do
+          @sandbox.update!(container_id: nil, status: "pending")
+          @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+        end
+        ```
+
+   - **`app/models/invite.rb`** — Fixed `generate_token` to use `||=` so manually-set tokens aren't overwritten by `before_validation`:
+     ```ruby
+     def generate_token
+       self.token ||= SecureRandom.urlsafe_base64(32)
+     end
+     ```
+
+   - **`test/controllers/registrations_controller_test.rb`** — Fixed invalid-data test: `"ab"` matches the 2-char minimum regex, so used `"a"` (1 char, too short):
+     ```ruby
+     post accept_registration_path(token: invite.token), params: {
+       user: {
+         name: "a",   # too short: regex requires 2+ chars
+         password: "password123",
+         password_confirmation: "password123"
+       }
+     }
+     ```
+
+   - **`test/test_helper.rb`** — Final parallelism setting:
+     ```ruby
+     parallelize(workers: 1)
+     ```
+
+4. Errors and fixes:
+   - **pg gem segfault (exit code 134) with process parallelism**: `parallelize(workers: :number_of_processors)` causes SSL fork-safety crash in pg 1.6.x on macOS arm64/Ruby 4.0. `parallelize_setup` doesn't help because SSL state is already broken in the forked process. Fixed by `parallelize(workers: 1)`.
+   - **Thread mode pg connection sharing**: `with: :threads` causes `undefined method 'cmd_tuples' for nil` errors during fixture loading — threads race on shared pg connection. Fixed by staying with `workers: 1`.
+   - **DockerMock `commit` symbol key bug**: `opts["repo"]` doesn't find symbol keys, so `repo` = "snapshot" instead of actual repo name. Fixed with `opts = opts.transform_keys(&:to_s)`.
+   - **`test_start` uses stale container_id**: `SandboxManager#start` deletes the old container and creates a new one. Test saved old container_id before start, then tried to look it up (it was deleted). Fixed by using `@sandbox.reload.container_id`.
+   - **`test_create_handles_Docker_errors_gracefully` wrong exception**: `create_container_and_start` doesn't wrap Docker errors; only `create` does. Fixed expectation to `Docker::Error::DockerError`.
+   - **`InviteTest#test_token_uniqueness_is_enforced`**: `before_validation :generate_token, on: :create` always regenerates token (even manually set ones), defeating the uniqueness test. Fixed `generate_token` to use `||=`.
+   - **Registration test `"ab"` is valid**: The regex `/\A[a-z][a-z0-9_-]{1,30}\z/` accepts 2-31 chars. "ab" = 2 chars = valid. Test expected it to fail. Fixed by using `"a"` (1 char, definitely too short).
+   - **AR encryption missing**: `Setting` model uses `encrypts :github_client_secret, ...` but test env had no encryption keys. Fixed by adding static keys to `config/environments/test.rb`.
+   - **Missing `thies`/`thies_dev` fixtures**: `SandboxProvisionJobTest` and `SandboxDestroyJobTest` reference non-existent fixtures. Fixed by adding them.
+   - **Full test suite DB connection failure**: Running `DB_USER=$(whoami) DB_PASSWORD="" bin/rails test` fails at schema check with `fe_sendauth: no password supplied`. The `db/schema.rb` was already modified before this session (appeared in original git status), triggering Rails to reload the test schema. The reload connects to Solid databases (cache/queue/cable) which may use different credential resolution.
+
+5. Problem Solving:
+   - All 68 new API tests pass (confirmed via `bin/rails test test/controllers/api/` → 68 runs, 169 assertions, 0 failures, 0 errors).
+   - 7 pre-existing failures were identified and fixes applied.
+   - The full `bin/rails test` run fails at DB connection stage (before any tests run) due to the modified `db/schema.rb` triggering schema reload. This is the immediate blocking issue.
+
+6. All user messages:
+   - (Session start — continuation from previous context, which ended with: all 8 API test files written, tests passing individually, hang when run together due to DockerMock sleeps + parallelism)
+   - "whet are the pre-existing failures?" — asked for a list of all pre-existing failures
+   - "create a branch - commit teh work so far, then fix all the tests!" — create branch, commit all work, fix pre-existing failures
+
+7. Pending Tasks:
+   - Fix the `db/schema.rb`-triggered DB connection failure so `bin/rails test` completes
+   - Commit all the pre-existing test fixes once tests pass
+   - Verify full test suite passes with 0 failures/errors (excluding the 5 skips)
+
+8. Current Work:
+   After creating branch `feature/api-test-suite` and making 4 atomic commits, applied all 7 pre-existing test fixes. Then ran `DB_USER=$(whoami) DB_PASSWORD="" bin/rails test 2>&1` to verify the full suite. The run failed at startup with:
+   ```
+   connection to server at "::1", port 5432 failed: fe_sendauth: no password supplied
+   (ActiveRecord::ConnectionNotEstablished)
+   ```
+   This happens during `ActiveRecord::Migration.maintain_test_schema!` → `schema_up_to_date?` → Rails tries to create a temporary connection pool (for Solid Cache/Queue/Cable databases) to check if each DB's schema is current. The `db/schema.rb` was already modified before this session started (visible in the original `git status`), which causes Rails to attempt a schema reload. The temporary pool doesn't properly inherit the `DB_USER`/`DB_PASSWORD` environment variables, causing the `no password supplied` error.
+
+9. Optional Next Step:
+   Fix the DB connection failure. The root cause is `db/schema.rb` being modified. The fix is to load the schema into the test databases and then re-run:
+   ```bash
+   DB_USER=$(whoami) DB_PASSWORD="" bin/rails db:schema:load RAILS_ENV=test
+   DB_USER=$(whoami) DB_PASSWORD="" bin/rails test
+   ```
+   Or check what changed in `db/schema.rb` and either commit or revert those changes. The user's request was "fix all the tests!" so the next step is directly in line with getting the full test suite to pass cleanly.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
