@@ -1,16 +1,24 @@
 # frozen_string_literal: true
 
 # Stateful Docker API mock for testing
-# Simulates Docker container and image operations without requiring real Docker
+# Simulates Docker container and image operations without requiring real Docker.
+#
+# State is keyed on Thread.current so parallel test threads are fully isolated —
+# one thread's DockerMock.reset! never interferes with another thread's test.
 module DockerMock
   class << self
-    attr_accessor :containers, :images, :networks, :failure_mode
+    # --- thread-local accessors ---
+
+    def containers    = thread_store[:containers]
+    def images        = thread_store[:images]
+    def networks      = thread_store[:networks]
+    def failure_mode  = thread_store[:failure_mode]
+    def failure_mode=(val)
+      thread_store[:failure_mode] = val
+    end
 
     def reset!
-      @containers = {}
-      @images = {}
-      @networks = {}
-      @failure_mode = nil
+      Thread.current[:docker_mock_store] = { containers: {}, images: {}, networks: {}, failure_mode: nil }
     end
 
     def enable!
@@ -19,10 +27,14 @@ module DockerMock
     end
 
     def inject_failure(type)
-      @failure_mode = type
+      thread_store[:failure_mode] = type
     end
 
     private
+
+    def thread_store
+      Thread.current[:docker_mock_store] ||= { containers: {}, images: {}, networks: {}, failure_mode: nil }
+    end
 
     def setup_mocks
       # Mock Docker::Container
@@ -34,6 +46,7 @@ module DockerMock
 
       # Mock Docker::Network
       Docker::Network.singleton_class.prepend(NetworkMethods)
+      Docker::Network.prepend(NetworkInstanceMethods)
     end
   end
 
@@ -59,9 +72,8 @@ module DockerMock
       }
 
       DockerMock.containers[container_id] = container_data
-      sleep 0.1 # Simulate creation delay
 
-      mock_container = Docker::Container.new(nil, {})
+      mock_container = Docker::Container.allocate
       mock_container.instance_variable_set(:@id, container_id)
       mock_container.instance_variable_set(:@info, container_data)
       mock_container
@@ -71,15 +83,15 @@ module DockerMock
       raise Docker::Error::NotFoundError, "Container not found" unless DockerMock.containers.key?(id)
 
       container_data = DockerMock.containers[id]
-      mock_container = Docker::Container.new(nil, {})
+      mock_container = Docker::Container.allocate
       mock_container.instance_variable_set(:@id, id)
       mock_container.instance_variable_set(:@info, container_data)
       mock_container
     end
 
-    def all(opts = {})
+    def all(opts = {}, _connection = nil)
       DockerMock.containers.values.map do |data|
-        mock_container = Docker::Container.new(nil, {})
+        mock_container = Docker::Container.allocate
         mock_container.instance_variable_set(:@id, data["Id"])
         mock_container.instance_variable_set(:@info, data)
         mock_container
@@ -98,11 +110,10 @@ module DockerMock
       container_data["State"]["Running"] = true
       container_data["State"]["Pid"] = rand(1000..9999)
 
-      sleep 0.5 # Simulate start delay
       self
     end
 
-    def stop
+    def stop(opts = {})
       raise Docker::Error::DockerError, "Simulated stop failure" if DockerMock.failure_mode == :stop
 
       container_data = DockerMock.containers[@id]
@@ -112,7 +123,6 @@ module DockerMock
       container_data["State"]["Running"] = false
       container_data["State"]["Pid"] = 0
 
-      sleep 0.3 # Simulate stop delay
       self
     end
 
@@ -120,7 +130,6 @@ module DockerMock
       raise Docker::Error::DockerError, "Simulated delete failure" if DockerMock.failure_mode == :delete
 
       DockerMock.containers.delete(@id)
-      sleep 0.2 # Simulate delete delay
       self
     end
 
@@ -161,6 +170,14 @@ module DockerMock
       }
     end
 
+    def refresh!
+      # Re-read latest state from DockerMock store
+      if (data = DockerMock.containers[@id])
+        @info = data
+      end
+      self
+    end
+
     def json
       @info || DockerMock.containers[@id] || {}
     end
@@ -187,7 +204,7 @@ module DockerMock
 
       DockerMock.images[image_id] = image_data
 
-      mock_image = Docker::Image.new(nil, {})
+      mock_image = Docker::Image.allocate
       mock_image.instance_variable_set(:@id, image_id)
       mock_image.instance_variable_set(:@info, image_data)
       mock_image
@@ -209,9 +226,8 @@ module DockerMock
       }
 
       DockerMock.images[image_id] = image_data
-      sleep 1 # Simulate pull delay
 
-      mock_image = Docker::Image.new(nil, {})
+      mock_image = Docker::Image.allocate
       mock_image.instance_variable_set(:@id, image_id)
       mock_image.instance_variable_set(:@info, image_data)
       mock_image
@@ -219,7 +235,7 @@ module DockerMock
 
     def all(opts = {})
       DockerMock.images.values.map do |data|
-        mock_image = Docker::Image.new(nil, {})
+        mock_image = Docker::Image.allocate
         mock_image.instance_variable_set(:@id, data["Id"])
         mock_image.instance_variable_set(:@info, data)
         mock_image
@@ -232,10 +248,35 @@ module DockerMock
 
       raise Docker::Error::NotFoundError, "Image not found" unless image_data
 
-      mock_image = Docker::Image.new(nil, {})
+      mock_image = Docker::Image.allocate
       mock_image.instance_variable_set(:@id, image_data["Id"])
       mock_image.instance_variable_set(:@info, image_data)
       mock_image
+    end
+  end
+
+  module NetworkInstanceMethods
+    def connect(container_id, opts = {}, body_opts = {})
+      network_data = DockerMock.networks[@id]
+      return unless network_data
+
+      network_data["Containers"] ||= {}
+      network_data["Containers"][container_id] = {}
+    end
+
+    def disconnect(container_id, opts = {})
+      network_data = DockerMock.networks[@id]
+      return unless network_data
+
+      network_data["Containers"]&.delete(container_id)
+    end
+
+    def id
+      @id
+    end
+
+    def info
+      @info || DockerMock.networks[@id] || {}
     end
   end
 
@@ -253,7 +294,7 @@ module DockerMock
 
       DockerMock.networks[network_id] = network_data
 
-      mock_network = Docker::Network.new(nil, {})
+      mock_network = Docker::Network.allocate
       mock_network.instance_variable_set(:@id, network_id)
       mock_network.instance_variable_set(:@info, network_data)
       mock_network
@@ -265,7 +306,7 @@ module DockerMock
 
       raise Docker::Error::NotFoundError, "Network not found" unless network_data
 
-      mock_network = Docker::Network.new(nil, {})
+      mock_network = Docker::Network.allocate
       mock_network.instance_variable_set(:@id, network_data["Id"])
       mock_network.instance_variable_set(:@info, network_data)
       mock_network
@@ -273,7 +314,7 @@ module DockerMock
 
     def all(opts = {})
       DockerMock.networks.values.map do |data|
-        mock_network = Docker::Network.new(nil, {})
+        mock_network = Docker::Network.allocate
         mock_network.instance_variable_set(:@id, data["Id"])
         mock_network.instance_variable_set(:@info, data)
         mock_network

@@ -1,0 +1,18 @@
+# API tokens for use in controller tests.
+# Prefixes and secrets are fixed so tests can use a known raw token without
+# running bcrypt at runtime (the digest is pre-computed once here).
+#
+# Alice token raw: sc_testaaaa_#{"a" * 48}
+# Bob   token raw: sc_testbbbb_#{"b" * 48}
+
+alice_token:
+  user: one
+  name: Test token
+  prefix: sc_testaaaa
+  token_digest: <%= BCrypt::Password.create("a" * 48) %>
+
+bob_token:
+  user: two
+  name: Bob test token
+  prefix: sc_testbbbb
+  token_digest: <%= BCrypt::Password.create("b" * 48) %>

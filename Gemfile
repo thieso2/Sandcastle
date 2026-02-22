@@ -80,4 +80,8 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  # Mocking/stubbing support for Minitest
+  gem "mocha"
+  # SSH client for real Docker integration tests
+  gem "net-ssh"
 end
