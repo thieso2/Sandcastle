@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests (mocked)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: sandcastle
+          POSTGRES_USER: sandcastle
+          POSTGRES_DB: sandcastle_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      RAILS_ENV: test
+      DB_HOST: localhost
+      DB_USER: sandcastle
+      DB_PASSWORD: sandcastle
+      DB_NAME: sandcastle_test
+      SECRET_KEY_BASE: test_secret_key_base_for_ci_only
+      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Load database schema
+        run: bin/rails db:schema:load
+
+      - name: Run tests
+        run: bin/rails test
+
+      - name: Lint
+        run: bin/rubocop --no-color --format github

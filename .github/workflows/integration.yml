@@ -1,0 +1,52 @@
+name: Integration (Real Docker)
+
+# Run real Docker integration tests on the self-hosted runner on sandman.
+# Only runs on pushes to main (not on PRs) to protect secrets and avoid
+# running Sysbox container operations on every PR.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  real-docker:
+    name: Real Docker integration tests
+    runs-on: [self-hosted, sandman]
+
+    env:
+      RAILS_ENV: test
+      SANDCASTLE_REAL_DOCKER: "1"
+      SANDCASTLE_DATA_DIR: /tmp/sandcastle-test
+      SANDCASTLE_TEST_IMAGE: sandcastle-sandbox-test:latest
+      DOCKYARD_POOL_BASE: "10.89.0.0/16"
+      SANDCASTLE_PRIVATE_NET: "10.89.0.0/16"
+      # DB credentials are configured in the runner environment or .env.test
+      DB_HOST: localhost
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Build sandbox-test image
+        run: |
+          /sandcastle/docker-runtime/bin/docker build \
+            -t sandcastle-sandbox-test:latest \
+            images/sandbox-test/
+
+      - name: Create test data directories
+        run: mkdir -p /tmp/sandcastle-test/traefik/dynamic
+
+      - name: Load database schema
+        run: bin/rails db:schema:load
+
+      - name: Run real Docker integration tests
+        run: bin/rails test test/integration/real_sandbox_test.rb
+
+      - name: Cleanup test containers
+        if: always()
+        run: |
+          /sandcastle/docker-runtime/bin/docker ps -a \
+            --filter "name=test-" -q | xargs -r \
+            /sandcastle/docker-runtime/bin/docker rm -f || true
