@@ -1,0 +1,38 @@
+docker in docker is broken on sandmann!
+thies@thies-mydumper:~$ sudo docker ps
+failed to connect to the docker API at unix:///var/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /var/run/docker.sock: connect: no such file or directory
+thies@thies-mydumper:~$
+
+ssh sandman -l sandcastle # to debug the outer docker
+ssh 10.206.72.4 # to see whats in a castle
+
+---
+
+~/Projects/SaaS-Bonn/cloud-main [fix/archived-metrics-partitions-833] %   ssh sandcastle@sandman "/sandcastle/docker-runtime/bin/docker inspect thies-mydumper | grep -A2 Runtime"
+            "Runtime": "sysbox-runc",
+            "Isolation": "",
+            "CpuShares": 0,
+--
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+
+---
+
+login to sandman yourself! running outside docker is /sandcastle/docker-runtime/bin/docker
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+sysbos is installed via dockyard and installed in /sandcastle
+
+---
+
+creaet a GH issue for this
+
+---
+
+commit and push the entrypoint fix

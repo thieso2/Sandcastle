@@ -2,8 +2,8 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "feature/api-test-suite",
-  "checkpoints_count": 18,
+  "branch": "main",
+  "checkpoints_count": 19,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
@@ -144,13 +144,20 @@
       "context": "/82/f637d3ee6d/13/context.md",
       "content_hash": "/82/f637d3ee6d/13/content_hash.txt",
       "prompt": "/82/f637d3ee6d/13/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/14/metadata.json",
+      "transcript": "/82/f637d3ee6d/14/full.jsonl",
+      "context": "/82/f637d3ee6d/14/context.md",
+      "content_hash": "/82/f637d3ee6d/14/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/14/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 620,
-    "cache_creation_tokens": 659129,
-    "cache_read_tokens": 47687152,
-    "output_tokens": 120056,
-    "api_call_count": 530
+    "input_tokens": 693,
+    "cache_creation_tokens": 738096,
+    "cache_read_tokens": 51677797,
+    "output_tokens": 130480,
+    "api_call_count": 591
   }
 }
