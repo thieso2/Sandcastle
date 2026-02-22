@@ -34,11 +34,11 @@ class SandboxManagerTest < ActiveSupport::TestCase
     @manager.stop(sandbox: @sandbox)
     assert_equal "stopped", @sandbox.reload.status
 
-    # Start it again
+    # Start it again (start deletes the old container and creates a new one)
     @manager.start(sandbox: @sandbox)
     assert_equal "running", @sandbox.reload.status
 
-    container = Docker::Container.get(container_id)
+    container = Docker::Container.get(@sandbox.container_id)
     assert container.info["State"]["Running"]
   end
 
@@ -70,7 +70,9 @@ class SandboxManagerTest < ActiveSupport::TestCase
   test "create handles Docker errors gracefully" do
     DockerMock.inject_failure(:create)
 
-    assert_raises(SandboxManager::Error) do
+    # create_container_and_start doesn't wrap Docker errors; the high-level
+    # SandboxManager#create does.  Test the public job-facing method directly.
+    assert_raises(Docker::Error::DockerError) do
       @sandbox.update!(container_id: nil, status: "pending")
       @manager.create_container_and_start(sandbox: @sandbox, user: @user)
     end

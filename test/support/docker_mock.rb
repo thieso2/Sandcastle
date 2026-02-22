@@ -43,6 +43,7 @@ module DockerMock
 
       # Mock Docker::Image
       Docker::Image.singleton_class.prepend(ImageMethods)
+      Docker::Image.prepend(ImageInstanceMethods)
 
       # Mock Docker::Network
       Docker::Network.singleton_class.prepend(NetworkMethods)
@@ -191,6 +192,7 @@ module DockerMock
     end
 
     def commit(opts = {})
+      opts = opts.transform_keys(&:to_s)
       image_id = "sha256:#{SecureRandom.hex(32)}"
       repo = opts["repo"] || "snapshot"
       tag = opts["tag"] || "latest"
@@ -208,6 +210,25 @@ module DockerMock
       mock_image.instance_variable_set(:@id, image_id)
       mock_image.instance_variable_set(:@info, image_data)
       mock_image
+    end
+  end
+
+  module ImageInstanceMethods
+    def remove(opts = {})
+      raise Docker::Error::DockerError, "Simulated remove failure" if DockerMock.failure_mode == :remove
+
+      DockerMock.images.delete(@id)
+      # Also remove by tag
+      DockerMock.images.delete_if { |_k, v| v["RepoTags"]&.include?(@id) }
+      self
+    end
+
+    def id
+      @id
+    end
+
+    def info
+      @info || DockerMock.images[@id] || {}
     end
   end
 
