@@ -1,19 +1,15 @@
 services:
   traefik:
     image: traefik:v3.3
+    container_name: sandcastle-traefik
     restart: unless-stopped
     ports:
       - "8080:80"
       - "8443:443"
+      - "3000-3099:3000-3099"
     volumes:
-      - traefik-data:/data
-      - ./.local/certs:/data/certs
-    command:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--providers.file.directory=/data/dynamic"
-      - "--providers.file.watch=true"
-      - "--log.level=INFO"
+      - traefik-data:/etc/traefik
+      - ./.local/certs:/data/certs:ro
     networks:
       - sandcastle-web
     depends_on:
@@ -29,6 +25,21 @@ services:
       - -c
       - |
         mkdir -p /data/dynamic /data/certs
+        if [ ! -f /data/traefik.yml ]; then
+          cat > /data/traefik.yml << 'EOF'
+        entryPoints:
+          web:
+            address: ":80"
+          websecure:
+            address: ":443"
+        providers:
+          file:
+            directory: /etc/traefik/dynamic
+            watch: true
+        log:
+          level: INFO
+        EOF
+        fi
         chown -R 220568:220568 /data
 
   postgres:
@@ -82,6 +93,9 @@ services:
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: mkcert
       SANDCASTLE_TERMINAL_URL: https://dev.sand:8443
+      SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
+      SANDCASTLE_TCP_PORT_MIN: "3000"
+      SANDCASTLE_TCP_PORT_MAX: "3099"
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
@@ -118,6 +132,9 @@ services:
       SANDCASTLE_HOST: dev.sand
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: mkcert
+      SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
+      SANDCASTLE_TCP_PORT_MIN: "3000"
+      SANDCASTLE_TCP_PORT_MAX: "3099"
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}

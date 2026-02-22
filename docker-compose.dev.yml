@@ -1,19 +1,15 @@
 services:
   traefik:
     image: traefik:v3.3
+    container_name: sandcastle-traefik
     restart: unless-stopped
     ports:
       - "8080:80"
       - "8443:443"
+      - "3000-3099:3000-3099"
     volumes:
-      - traefik-data:/data
+      - traefik-data:/etc/traefik
       - ./.cert:/certs:ro
-    command:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--providers.file.directory=/data/dynamic"
-      - "--providers.file.watch=true"
-      - "--log.level=INFO"
     networks:
       - sandcastle-web
     depends_on:
@@ -29,8 +25,21 @@ services:
       - -c
       - |
         mkdir -p /data/dynamic
-        chown -R 220568:220568 /data
-        cat > /data/dynamic/rails.yml << 'EOFCONFIG'
+        if [ ! -f /data/traefik.yml ]; then
+          cat > /data/traefik.yml << 'EOF'
+        entryPoints:
+          web:
+            address: ":80"
+          websecure:
+            address: ":443"
+        providers:
+          file:
+            directory: /etc/traefik/dynamic
+            watch: true
+        log:
+          level: INFO
+        EOF
+          cat > /data/dynamic/rails.yml << 'EOFCONFIG'
         http:
           routers:
             rails-http:
@@ -50,6 +59,8 @@ services:
                 servers:
                   - url: "http://sandcastle-web:80"
         EOFCONFIG
+        fi
+        chown -R 220568:220568 /data
 
   postgres:
     image: postgres:18
@@ -115,6 +126,9 @@ services:
       SANDCASTLE_TLS_CERT_DIR: /certs
       SANDCASTLE_TERMINAL_URL: https://${DEV_HOST}:8443
       SANDCASTLE_VNC_URL: https://${DEV_HOST}:8443
+      SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
+      SANDCASTLE_TCP_PORT_MIN: "3000"
+      SANDCASTLE_TCP_PORT_MAX: "3099"
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
@@ -162,6 +176,9 @@ services:
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       SANDCASTLE_TLS_CERT_DIR: /certs
+      SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
+      SANDCASTLE_TCP_PORT_MIN: "3000"
+      SANDCASTLE_TCP_PORT_MAX: "3099"
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
