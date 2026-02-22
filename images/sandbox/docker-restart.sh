@@ -25,7 +25,8 @@ sudo chown root:root /var/lib/docker 2>/dev/null || true
 
 MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
 echo "Starting dockerd (MTU=${MTU})..."
-sudo dockerd --storage-driver=overlay2 --mtu="$MTU" &>/var/log/dockerd.log &
+# Run the full command (including log redirect) under sudo so /var/log/dockerd.log is writable.
+sudo bash -c "dockerd --storage-driver=overlay2 --mtu=${MTU} &>/var/log/dockerd.log &"
 
 echo -n "Waiting for Docker socket"
 for _i in $(seq 20); do
