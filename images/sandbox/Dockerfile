@@ -106,7 +106,8 @@ RUN ARCH="$(dpkg --print-architecture)" \
 # Shell config: PATH, mise activation, aliases
 RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
     && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
-    && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc
+    && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc \
+    && echo '[ -r /run/docker-status ] && echo "DinD: $(cat /run/docker-status)"' >> /etc/bash.bashrc
 
 # Bake version into the image
 RUN echo "${SANDCASTLE_VERSION}" > /etc/sandcastle-version
@@ -118,7 +119,8 @@ RUN mkdir -p /var/run/sshd /etc/ssh/sshd_config.d \
     && echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf
 
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY docker-restart.sh /usr/local/bin/docker-restart
+RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart
 
 COPY startchrome.sh /usr/local/bin/google-chrome
 RUN chmod +x /usr/local/bin/google-chrome \

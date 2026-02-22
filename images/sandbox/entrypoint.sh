@@ -69,18 +69,48 @@ ssh-keygen -A
 umount /dev/shm 2>/dev/null || true
 mount -t tmpfs -o size=2g,mode=1777 tmpfs /dev/shm 2>/dev/null || true
 
-# Start Docker daemon in background (requires Sysbox runtime for isolated /var/lib/docker)
-# Don't wait for it to be ready - users can check with `docker info` after SSH login
-# Note: We check for dockerd availability only; /dev/fuse is NOT required — sysbox on
-# kernel 6.17+ may not expose /dev/fuse but overlay2 still works via sysbox's kernel
-# virtualization. We also fix /var/lib/docker ownership in case sysbox left it as root.
+# Start Docker daemon with self-healing startup.
+# Runs a background watcher so sshd is not delayed.
+# Handles known sysbox/kernel incompatibilities automatically:
+#   - Wrong /var/lib/docker ownership (sysbox on kernel 6.17+)
+#   - /dev/fuse absent (not needed — overlay2 works via sysbox kernel virtualisation)
+# Status is written to /run/docker-status and shown on every SSH login.
 if command -v dockerd &>/dev/null; then
-    # Ensure /var/lib/docker is writable by the container's root (sysbox on newer kernels
-    # may create it owned by host root uid 0 instead of the userns-mapped uid).
-    chown root:root /var/lib/docker 2>/dev/null || true
-    # Match inner Docker bridge MTU to container's eth0 to avoid packet fragmentation
-    ETH0_MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
-    dockerd --storage-driver=overlay2 --mtu="$ETH0_MTU" &>/var/log/dockerd.log &
+    (
+        MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
+
+        _wait_for_socket() {
+            for _i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+                sleep 1
+                [ -S /var/run/docker.sock ] && return 0
+            done
+            return 1
+        }
+
+        _attempt_start() {
+            # Fix known ownership bug: sysbox on newer kernels may leave /var/lib/docker
+            # owned by host uid 0 instead of the container's userns-mapped uid.
+            chown root:root /var/lib/docker 2>/dev/null || true
+            dockerd --storage-driver=overlay2 --mtu="$MTU" &>/var/log/dockerd.log &
+            _wait_for_socket
+        }
+
+        if _attempt_start; then
+            echo "ready" > /run/docker-status
+        else
+            # First attempt failed — fix ownership recursively and retry once.
+            # NOTE: /var/lib/docker is NOT wiped here to preserve inner images.
+            # Use 'docker-restart --reset' inside the sandbox if a full reset is needed.
+            pkill -x dockerd 2>/dev/null || true
+            sleep 1
+            chown -R root:root /var/lib/docker 2>/dev/null || true
+            if _attempt_start; then
+                echo "ready (recovered after ownership fix)" > /run/docker-status
+            else
+                echo "FAILED — run 'docker-restart' or check /var/log/dockerd.log" > /run/docker-status
+            fi
+        fi
+    ) &
 fi
 
 # Start virtual X + VNC server for browser access.
