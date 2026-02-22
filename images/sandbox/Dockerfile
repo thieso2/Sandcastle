@@ -1,5 +1,5 @@
 # Build websockify-go: minimal WebSocket→TCP proxy (~5 MB static binary)
-FROM golang:1.23-alpine AS websockify-builder
+FROM golang:1.26-alpine AS websockify-builder
 WORKDIR /build
 COPY websockify/ .
 # go mod tidy downloads deps and generates go.sum; -mod=mod allows updating go.sum at build time
