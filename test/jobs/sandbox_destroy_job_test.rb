@@ -33,8 +33,8 @@ class SandboxDestroyJobTest < ActiveJob::TestCase
   test "handles destroy failure" do
     DockerMock.inject_failure(:delete)
 
-    assert_raises(Docker::Error::DockerError) do
-      perform_enqueued_jobs do
+    perform_enqueued_jobs do
+      assert_raises(Docker::Error::DockerError) do
         SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
       end
     end

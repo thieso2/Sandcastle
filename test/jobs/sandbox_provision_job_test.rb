@@ -8,9 +8,11 @@ class SandboxProvisionJobTest < ActiveJob::TestCase
     @sandbox = @user.sandboxes.create!(
       name: "test-provision",
       image: "ghcr.io/thieso2/sandcastle-sandbox:latest",
-      persistent: false
+      temporary: false
     )
     DockerMock.reset!
+    # Stub filesystem operations (DATA_DIR=/data doesn't exist in test env)
+    SandboxManager.any_instance.stubs(:ensure_mount_dirs)
   end
 
   test "successfully provisions sandbox" do
@@ -29,8 +31,8 @@ class SandboxProvisionJobTest < ActiveJob::TestCase
   test "handles provision failure" do
     DockerMock.inject_failure(:create)
 
-    assert_raises(Docker::Error::DockerError) do
-      perform_enqueued_jobs do
+    perform_enqueued_jobs do
+      assert_raises(Docker::Error::DockerError) do
         SandboxProvisionJob.perform_later(sandbox_id: @sandbox.id)
       end
     end

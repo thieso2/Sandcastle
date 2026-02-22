@@ -5,6 +5,13 @@ require "test_helper"
 class Api::RoutesControllerTest < ActionDispatch::IntegrationTest
   setup do
     @sandbox = sandboxes(:alice_running)
+    DockerMock.reset!
+    # Seed DockerMock with the fixture container so RouteManager can connect it
+    DockerMock.containers[@sandbox.container_id] = {
+      "Id" => @sandbox.container_id,
+      "State" => { "Status" => "running", "Running" => true },
+      "NetworkSettings" => { "Networks" => {} }
+    }
   end
 
   # --- index ---
