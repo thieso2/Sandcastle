@@ -18,3 +18,25 @@ Read the output file to retrieve the result: REDACTED.output
 ---
 
 https://demo.sandcastle.rocks/terminal/60/tmux is still broken - also vnc dies not work. examine the log on sandman!
+
+---
+
+release v0.8.17
+
+---
+
+<task-notification>
+<task-id>b404165</task-id>
+<tool-use-id>toolu_01Ank8NmL77by4s7HCZ8A6mz</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Watch v0.8.17 release run to completion" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+the fix was not in the code! a new deploy shows the same problem - fix it really this time! maybe teh changes were in docker-compose and you forgot to change it in installer.sh?
+https://demo.sandcastle.rocks/terminal/61/shell -> 404
+https://demo.sandcastle.rocks/novnc/vnc.html?path=/vnc/61/websockify&autoconnect=true
+failes to coonnect to server!
