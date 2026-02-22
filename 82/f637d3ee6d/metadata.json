@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 19,
+  "checkpoints_count": 20,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
@@ -151,13 +151,20 @@
       "context": "/82/f637d3ee6d/14/context.md",
       "content_hash": "/82/f637d3ee6d/14/content_hash.txt",
       "prompt": "/82/f637d3ee6d/14/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/15/metadata.json",
+      "transcript": "/82/f637d3ee6d/15/full.jsonl",
+      "context": "/82/f637d3ee6d/15/context.md",
+      "content_hash": "/82/f637d3ee6d/15/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/15/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 693,
-    "cache_creation_tokens": 738096,
-    "cache_read_tokens": 51677797,
-    "output_tokens": 130480,
-    "api_call_count": 591
+    "input_tokens": 707,
+    "cache_creation_tokens": 767891,
+    "cache_read_tokens": 52059010,
+    "output_tokens": 131205,
+    "api_call_count": 601
   }
 }
