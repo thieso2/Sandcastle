@@ -23,6 +23,10 @@ module Api
       render json: { error: e.message }, status: :unprocessable_entity
     end
 
+    rescue_from VncManager::Error do |e|
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+
     rescue_from Pundit::NotAuthorizedError do
       render json: { error: "Forbidden" }, status: :forbidden
     end

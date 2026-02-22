@@ -14,6 +14,9 @@ class SandboxPolicy < ApplicationPolicy
   def restore?               = owner_or_admin?
   def tailscale_connect?     = owner_or_admin?
   def tailscale_disconnect?  = owner_or_admin?
+  def vnc?                   = owner_or_admin?
+  def close_vnc?             = owner_or_admin?
+  def vnc_status?            = owner_or_admin?
 
   private
 

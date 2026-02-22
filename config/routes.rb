@@ -93,12 +93,15 @@ Rails.application.routes.draw do
         post :restore
         post :tailscale_connect
         delete :tailscale_disconnect
+        post   :vnc
+        delete :vnc, action: :close_vnc
+        get    :vnc_status
       end
       resources :routes, only: [ :index, :create, :destroy ]
     end
     resources :snapshots, only: [ :index, :create, :show, :destroy ], param: :name
     resources :users
-    resource :status, only: :show
+    resource :status, only: :show, controller: "status"
     resource :info, only: :show
     resources :tokens, only: [ :index, :create, :destroy ]
     namespace :auth do

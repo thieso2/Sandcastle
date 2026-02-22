@@ -1,6 +1,6 @@
 module Api
   class SandboxesController < BaseController
-    before_action :set_sandbox, only: %i[show update destroy start stop connect snapshot restore tailscale_connect tailscale_disconnect]
+    before_action :set_sandbox, only: %i[show update destroy start stop connect snapshot restore tailscale_connect tailscale_disconnect vnc close_vnc vnc_status]
 
     def index
       authorize Sandbox
@@ -163,6 +163,20 @@ module Api
     def tailscale_disconnect
       TailscaleManager.new.disconnect_sandbox(sandbox: @sandbox)
       render json: sandbox_json(@sandbox.reload)
+    end
+
+    def vnc
+      url = VncManager.new.open(sandbox: @sandbox)
+      render json: { url:, active: true }
+    end
+
+    def close_vnc
+      VncManager.new.close(sandbox: @sandbox)
+      render json: { active: false }
+    end
+
+    def vnc_status
+      render json: { active: VncManager.new.active?(sandbox: @sandbox) }
     end
 
     private
