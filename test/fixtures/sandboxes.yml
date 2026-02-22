@@ -28,3 +28,11 @@ alice_destroyed:
   status: destroyed
   image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
   ssh_port: 2204
+
+thies_dev:
+  name: devbox
+  user: thies
+  status: running
+  image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
+  ssh_port: 2205
+  container_id: "thies123abc"

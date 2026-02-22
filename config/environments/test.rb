@@ -50,4 +50,9 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Static AR encryption keys for test environment (not used in production).
+  config.active_record.encryption.primary_key        = "sandcastle_test_primary_key_12345"
+  config.active_record.encryption.deterministic_key  = "sandcastle_test_det_key_1234567890"
+  config.active_record.encryption.key_derivation_salt = "sandcastle_test_kdf_salt_12345678"
 end

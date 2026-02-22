@@ -42,7 +42,7 @@ class Invite < ApplicationRecord
   private
 
   def generate_token
-    self.token = SecureRandom.urlsafe_base64(32)
+    self.token ||= SecureRandom.urlsafe_base64(32)
   end
 
   def set_default_expiry

@@ -70,9 +70,9 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference "User.count" do
       post accept_registration_path(token: invite.token), params: {
         user: {
-          name: "ab",
-          password: "short",
-          password_confirmation: "short"
+          name: "a",   # too short: regex requires 2+ chars
+          password: "password123",
+          password_confirmation: "password123"
         }
       }
     end
