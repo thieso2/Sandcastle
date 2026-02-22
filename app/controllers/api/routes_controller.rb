@@ -9,14 +9,15 @@ module Api
     def create
       route = RouteManager.new.add_route(
         sandbox: @sandbox,
-        domain: params.require(:domain),
-        port: params.fetch(:port, 8080).to_i
+        domain: params[:domain],
+        port: params.fetch(:port, 8080).to_i,
+        mode: params.fetch(:mode, "http")
       )
       render json: route_json(route), status: :created
     end
 
     def destroy
-      route = @sandbox.routes.find_by!(domain: params[:domain])
+      route = @sandbox.routes.find(params[:id])
       RouteManager.new.remove_route(route: route)
       render json: { status: "removed" }
     rescue ActiveRecord::RecordNotFound
@@ -36,6 +37,8 @@ module Api
         sandbox_name: route.sandbox.name,
         domain: route.domain,
         port: route.port,
+        mode: route.mode,
+        public_port: route.public_port,
         url: route.url
       }
     end

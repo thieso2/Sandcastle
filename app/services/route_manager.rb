@@ -3,12 +3,30 @@ class RouteManager
   DYNAMIC_DIR = File.join(DATA_DIR, "traefik", "dynamic")
   NETWORK_NAME = "sandcastle-web"
 
+  TCP_PORT_MIN = ENV.fetch("SANDCASTLE_TCP_PORT_MIN", 3000).to_i
+  TCP_PORT_MAX = ENV.fetch("SANDCASTLE_TCP_PORT_MAX", 3099).to_i
+  TCP_PORT_RANGE = (TCP_PORT_MIN..TCP_PORT_MAX)
+
+  TRAEFIK_STATIC_CONFIG = ENV.fetch("SANDCASTLE_TRAEFIK_CONFIG", File.join(DATA_DIR, "traefik", "traefik.yml"))
+  TRAEFIK_CONTAINER = ENV.fetch("SANDCASTLE_TRAEFIK_CONTAINER", "sandcastle-traefik")
+
   class Error < StandardError; end
 
-  def add_route(sandbox:, domain:, port: 8080)
+  def add_route(sandbox:, domain: nil, port: 8080, mode: "http")
     raise Error, "Sandbox is not running" unless sandbox.status == "running"
 
-    route = sandbox.routes.create!(domain: domain, port: port)
+    route = Route.transaction do
+      if mode == "tcp"
+        public_port = allocate_tcp_port
+        sandbox.routes.create!(mode: "tcp", port: port, public_port: public_port)
+      else
+        sandbox.routes.create!(mode: "http", domain: domain, port: port)
+      end
+    end
+
+    if mode == "tcp"
+      ensure_tcp_entrypoint(route.public_port)
+    end
 
     ensure_network
     connect_to_network(sandbox)
@@ -223,25 +241,48 @@ class RouteManager
     FileUtils.mkdir_p(DYNAMIC_DIR)
 
     routes = sandbox.routes.reload
-    routers = {}
-    services = {}
+    http_routers = {}
+    http_services = {}
+    tcp_routers = {}
+    tcp_services = {}
 
     routes.each do |route|
-      key = "sandbox-#{sandbox.id}-r#{route.id}"
-      routers[key] = {
-        "rule" => "Host(`#{route.domain}`)",
-        "service" => key,
-        "entryPoints" => [ "websecure" ],
-        "tls" => tls_config
-      }
-      services[key] = {
-        "loadBalancer" => {
-          "servers" => [ { "url" => "http://#{sandbox.full_name}:#{route.port}" } ]
+      if route.http?
+        key = "sandbox-#{sandbox.id}-r#{route.id}"
+        http_routers[key] = {
+          "rule" => "Host(`#{route.domain}`)",
+          "service" => key,
+          "entryPoints" => [ "websecure" ],
+          "tls" => tls_config
         }
-      }
+        http_services[key] = {
+          "loadBalancer" => {
+            "servers" => [ { "url" => "http://#{sandbox.full_name}:#{route.port}" } ]
+          }
+        }
+      else
+        key = "sandbox-#{sandbox.id}-tcp-r#{route.id}"
+        tcp_routers[key] = {
+          "rule" => "HostSNI(`*`)",
+          "entryPoints" => [ "tcp-#{route.public_port}" ],
+          "service" => key
+        }
+        tcp_services[key] = {
+          "loadBalancer" => {
+            "servers" => [ { "address" => "#{sandbox.full_name}:#{route.port}" } ]
+          }
+        }
+      end
     end
 
-    config = { "http" => { "routers" => routers, "services" => services } }
+    config = {}
+    if http_routers.any?
+      config["http"] = { "routers" => http_routers, "services" => http_services }
+    end
+    if tcp_routers.any?
+      config["tcp"] = { "routers" => tcp_routers, "services" => tcp_services }
+    end
+
     File.write(config_path(sandbox), config.to_yaml)
   end
 
@@ -256,6 +297,33 @@ class RouteManager
   def delete_config(sandbox)
     path = config_path(sandbox)
     File.delete(path) if File.exist?(path)
+  end
+
+  def allocate_tcp_port
+    used = Route.where(mode: "tcp").lock.pluck(:public_port).to_set
+    TCP_PORT_RANGE.find { |p| !used.include?(p) } ||
+      raise(Error, "No TCP ports available (pool #{TCP_PORT_MIN}–#{TCP_PORT_MAX} exhausted)")
+  end
+
+  def ensure_tcp_entrypoint(port)
+    return unless File.exist?(TRAEFIK_STATIC_CONFIG)
+
+    config = YAML.safe_load(File.read(TRAEFIK_STATIC_CONFIG)) || {}
+    entry_key = "tcp-#{port}"
+
+    entry_points = config["entryPoints"] ||= {}
+    return if entry_points.key?(entry_key)
+
+    entry_points[entry_key] = { "address" => ":#{port}" }
+    File.write(TRAEFIK_STATIC_CONFIG, config.to_yaml)
+    Rails.logger.info("RouteManager: added Traefik entrypoint #{entry_key}, restarting #{TRAEFIK_CONTAINER}")
+
+    container = Docker::Container.get(TRAEFIK_CONTAINER)
+    container.restart
+  rescue Docker::Error::NotFoundError
+    Rails.logger.warn("RouteManager: Traefik container #{TRAEFIK_CONTAINER} not found, skipping restart")
+  rescue Errno::ENOENT, Errno::EACCES => e
+    Rails.logger.warn("RouteManager: could not update Traefik static config: #{e.message}")
   end
 
   def ensure_network

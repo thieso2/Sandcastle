@@ -10,6 +10,7 @@ class SandboxesController < ApplicationController
   def show
     @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
                            .select { |s| s[:source_sandbox] == @sandbox.name }
+    @routes = @sandbox.routes.order(:created_at)
     @btrfs = BtrfsHelper.btrfs?
   end
 

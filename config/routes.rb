@@ -41,6 +41,7 @@ Rails.application.routes.draw do
       delete :vnc, controller: "vnc", action: "close"
       post :snapshot, controller: "snapshots", action: "create_for_sandbox"
     end
+    resources :routes, only: [ :create, :destroy ]
   end
 
   resources :snapshots, only: [ :index, :destroy ], param: :name do
@@ -93,7 +94,7 @@ Rails.application.routes.draw do
         post :tailscale_connect
         delete :tailscale_disconnect
       end
-      resources :routes, only: [ :index, :create, :destroy ], param: :domain, constraints: { domain: %r{[^/]+} }
+      resources :routes, only: [ :index, :create, :destroy ]
     end
     resources :snapshots, only: [ :index, :create, :show, :destroy ], param: :name
     resources :users
