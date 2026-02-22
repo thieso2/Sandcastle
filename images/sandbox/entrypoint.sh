@@ -44,7 +44,7 @@ done
 # chmod 755 is required by sshd StrictModes.
 # The host creates bind-mounted home dirs with 777 so Sysbox-mapped root
 # can write during setup (see above); tighten to 755 now that setup is done.
-chown -R "$USERNAME:$USERNAME" "/home/$USERNAME"
+chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/dev/null || true
 chmod 755 "/home/$USERNAME"
 
 # Ensure workspace is accessible
