@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "feature/api-test-suite",
-  "checkpoints_count": 16,
+  "checkpoints_count": 18,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
@@ -41,6 +41,7 @@
     "mise.toml",
     "test/controllers/terminal_controller_test.rb",
     "test/services/tailscale_manager_test.rb",
+    "test/support/docker_mock.rb",
     "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/api/types.go",
     "vendor/sandcastle-cli/cmd/route.go"
@@ -136,13 +137,20 @@
       "context": "/82/f637d3ee6d/12/context.md",
       "content_hash": "/82/f637d3ee6d/12/content_hash.txt",
       "prompt": "/82/f637d3ee6d/12/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/13/metadata.json",
+      "transcript": "/82/f637d3ee6d/13/full.jsonl",
+      "context": "/82/f637d3ee6d/13/context.md",
+      "content_hash": "/82/f637d3ee6d/13/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/13/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 544,
-    "cache_creation_tokens": 592463,
-    "cache_read_tokens": 43323830,
-    "output_tokens": 110749,
-    "api_call_count": 458
+    "input_tokens": 620,
+    "cache_creation_tokens": 659129,
+    "cache_read_tokens": 47687152,
+    "output_tokens": 120056,
+    "api_call_count": 530
   }
 }

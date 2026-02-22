@@ -1,0 +1,37 @@
+cannot connect to castle:
+
+VERBOSE=1 sandcastle list
+server: demo (https://demo.sandcastle.rocks)
+Server: demo (https://demo.sandcastle.rocks)
+→ GET https://demo.sandcastle.rocks/api/sandboxes
+← 200 (1001 bytes)
+  response: [{"id":64,"name":"silent-bear","full_name":"thies-silent-bear","status":"running","image":"ghcr.io/thieso2/sandcastle-sandbox:latest","persistent_volume":false,"mount_home":false,"data_path":null,"temporary":false,"tailscale":true,"vnc_enabled":true,"vnc_geometry":"1280x900","vnc_depth":24,"routes":[{"id":1,"domain":"thies.sandcastle.rocks","port":8000,"url":"https://thies.sandcastle.rocks"}],"created_at":"2026-02-22T14:51:41.603Z","connect_command":"sandcastle connect silent-bear","job_status":null,"job_error":null,"tailscale_ip":"10.206.72.3"},{"id":65,"name":"mydumper","full_name":"thies-mydumper","status":"running","image":"ghcr.io/thieso2/sandcastle-sandbox:latest","persistent_volume":false,"mount_home":false,"data_path":null,"temporary":false,"tailscale":true,"vnc_enabled":true,"vnc_geometry":"1280x900","vnc_depth":24,"routes":[],"created_at":"2026-02-22T17:48:34.943Z","connect_command":"sandcastle connect mydumper","job_status":null,"job_error":null,"tailscale_ip":"10.206.72.4"}]
+NAME         STATUS   CREATED           ROUTE                                   TAILSCALE IP  IMAGE
+silent-bear  running  2026-02-22 15:51  https://thies.sandcastle.rocks (:8000)  10.206.72.3   ghcr.io/thieso2/sandcastle-sandbox:latest
+mydumper     running  2026-02-22 18:48                                          10.206.72.4   ghcr.io/thieso2/sandcastle-sandbox:latest
+~/io-o
+
+~/io-openconnect [main] % ssh -v 10.206.72.4
+debug1: OpenSSH_10.2p1, LibreSSL 3.3.6
+debug1: Reading configuration data /Users/thies/.ssh/config
+debug1: Reading configuration data /Users/thies/.orbstack/ssh/config
+debug1: /Users/thies/.ssh/config line 6: include /Users/thies/.colima/ssh_config matched no files
+debug1: /Users/thies/.ssh/config line 8: Applying options for *
+debug1: Reading configuration data /etc/ssh/ssh_config
+debug1: /etc/ssh/ssh_config line 21: include /etc/ssh/ssh_config.d/* matched no files
+debug1: /etc/ssh/ssh_config line 54: Applying options for *
+debug1: Authenticator provider $SSH_SK_PROVIDER did not resolve; disabling
+debug1: Connecting to 10.206.72.4 [10.206.72.4] port 22.
+debug1: connect to address 10.206.72.4 port 22: Network is unreachable
+ssh: connect to host 10.206.72.4 port 22: Network is unreachable
+~/io-openconnect [main] % traceroute 10.206.72.4
+traceroute to 10.206.72.4 (10.206.72.4), 64 hops max, 40 byte packets
+ 1  fritz.box (192.168.2.1)  9.455 ms  8.114 ms  6.604 ms
+ 2  p3e9bf0c0.dip0.t-ipconnect.de (62.155.240.192)  14.486 ms !N  15.214 ms !N  15.984 ms !N
+
+
+routing is wrong?
+
+---
+
+approve the route and patch it to the server

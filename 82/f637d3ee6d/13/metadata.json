@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "7f869daa-8465-49c9-af09-c4e91f8e5dd2",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-22T17:57:43.925959Z",
+  "branch": "feature/api-test-suite",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/services/tailscale_manager.rb",
+    "test/services/tailscale_manager_test.rb",
+    "test/support/docker_mock.rb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "c50226b0-4a65-4371-956a-8aed448d4840",
+  "token_usage": {
+    "input_tokens": 76,
+    "cache_creation_tokens": 66666,
+    "cache_read_tokens": 4363322,
+    "output_tokens": 9307,
+    "api_call_count": 72
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-22T17:57:43.900175Z",
+    "agent_lines": 71,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 71,
+    "agent_percentage": 100
+  }
+}
