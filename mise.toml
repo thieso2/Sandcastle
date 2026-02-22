@@ -129,10 +129,6 @@ IFS='.' read -r major minor patch <<< "${latest#v}"
 new_version="v${major}.${minor}.$((patch + 1))"
 echo "New version:     $new_version"
 
-# Confirm
-read -rp "Release $new_version? [y/N] " confirm
-[[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
-
 # Tag and push
 git tag "$new_version"
 git push origin "$new_version"
@@ -160,9 +156,6 @@ IFS='.' read -r major minor patch <<< "${latest#v}"
 new_version="v${major}.$((minor + 1)).0"
 echo "New version:     $new_version"
 
-read -rp "Release $new_version? [y/N] " confirm
-[[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
-
 git tag "$new_version"
 git push origin "$new_version"
 echo ""
@@ -188,9 +181,6 @@ echo "Current version: $latest"
 IFS='.' read -r major minor patch <<< "${latest#v}"
 new_version="v$((major + 1)).0.0"
 echo "New version:     $new_version"
-
-read -rp "Release $new_version? [y/N] " confirm
-[[ "$confirm" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 1; }
 
 git tag "$new_version"
 git push origin "$new_version"
