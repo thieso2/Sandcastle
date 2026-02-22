@@ -14,3 +14,11 @@ create GH isse that docker in docker does agai not work. look at the hostory and
 
 lets work on https://github.com/thieso2/Sandcastle/issues/55 - this time do a real fix that surrvives reinstalls!
 
+### Prompt 4
+
+push it
+
+### Prompt 5
+
+lets add a gh action to just rebuild the sandbox image. how would that work?
+

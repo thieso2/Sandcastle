@@ -3,30 +3,30 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "6d005203-fad0-404d-a323-a143772054b2",
   "strategy": "manual-commit",
-  "created_at": "2026-02-22T20:05:17.939938Z",
+  "created_at": "2026-02-22T20:16:49.848053Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "images/sandbox/Dockerfile",
-    "images/sandbox/docker-restart.sh",
-    "images/sandbox/entrypoint.sh"
+    ".github/workflows/sandbox-image.yml"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "e04042b8-47f2-40a9-8948-871a1c8a9a69",
+  "transcript_identifier_at_start": "5c6ccea8-815c-4704-add2-d88d81f44b10",
+  "checkpoint_transcript_start": 83,
+  "transcript_lines_at_start": 83,
   "token_usage": {
-    "input_tokens": 27,
-    "cache_creation_tokens": 52445,
-    "cache_read_tokens": 1017912,
-    "output_tokens": 13155,
-    "api_call_count": 21
+    "input_tokens": 12,
+    "cache_creation_tokens": 8037,
+    "cache_read_tokens": 554958,
+    "output_tokens": 3393,
+    "api_call_count": 8
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-22T20:05:17.899041Z",
+    "calculated_at": "2026-02-22T20:16:49.815449Z",
     "agent_lines": 0,
-    "human_added": 78,
-    "human_modified": 13,
+    "human_added": 137,
+    "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 78,
+    "total_committed": 137,
     "agent_percentage": 0
   }
 }
