@@ -40,3 +40,7 @@ the fix was not in the code! a new deploy shows the same problem - fix it really
 https://demo.sandcastle.rocks/terminal/61/shell -> 404
 https://demo.sandcastle.rocks/novnc/vnc.html?path=/vnc/61/websockify&autoconnect=true
 failes to coonnect to server!
+
+---
+
+still need to recollect tailscale after uninstall/reinstall -> remember tailscale token so that this is not needed!

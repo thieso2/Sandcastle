@@ -13,11 +13,13 @@
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
+    "app/jobs/container_sync_job.rb",
     "app/models/route.rb",
     "app/models/sandbox.rb",
     "app/models/setting.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
+    "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
     "app/views/pages/guide.html.erb",
@@ -122,10 +124,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 419,
-    "cache_creation_tokens": 496801,
-    "cache_read_tokens": 30730268,
-    "output_tokens": 71197,
-    "api_call_count": 339
+    "input_tokens": 416,
+    "cache_creation_tokens": 450218,
+    "cache_read_tokens": 31594916,
+    "output_tokens": 70905,
+    "api_call_count": 340
   }
 }

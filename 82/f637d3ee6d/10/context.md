@@ -47,3 +47,7 @@ https://demo.sandcastle.rocks/terminal/61/shell -> 404
 https://demo.sandcastle.rocks/novnc/vnc.html?path=/vnc/61/websockify&autoconnect=true
 failes to coonnect to server!
 
+### Prompt 8
+
+still need to recollect tailscale after uninstall/reinstall -> remember tailscale token so that this is not needed!
+
