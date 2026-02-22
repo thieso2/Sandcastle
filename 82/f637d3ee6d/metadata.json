@@ -5,7 +5,6 @@
   "branch": "main",
   "checkpoints_count": 21,
   "files_touched": [
-    ".github/workflows/sandbox-image.yml",
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
     "app/controllers/admin/settings_controller.rb",
@@ -34,6 +33,7 @@
     "docker-compose.local.yml",
     "docker-compose.yml",
     "images/sandbox/.Dockerfile.swp",
+    "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
     "install-defaults",
     "installer/installer.sh.in",
@@ -169,10 +169,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 719,
-    "cache_creation_tokens": 775928,
-    "cache_read_tokens": 52613968,
-    "output_tokens": 134598,
-    "api_call_count": 609
+    "input_tokens": 732,
+    "cache_creation_tokens": 775231,
+    "cache_read_tokens": 53391974,
+    "output_tokens": 131830,
+    "api_call_count": 618
   }
 }
