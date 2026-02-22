@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "3fbf8a9a-6aac-4add-b2b7-12f86bbbcac2",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-22T14:22:04.234664Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/jobs/container_sync_job.rb",
+    "app/services/tailscale_manager.rb"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "37926d53-45d7-4d4f-b867-b5bebb13bb45",
+  "token_usage": {
+    "input_tokens": 115,
+    "cache_creation_tokens": 127144,
+    "cache_read_tokens": 10767994,
+    "output_tokens": 38110,
+    "api_call_count": 111
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-22T14:22:04.157783Z",
+    "agent_lines": 71,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 71,
+    "agent_percentage": 100
+  }
+}
