@@ -3,30 +3,33 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "6d005203-fad0-404d-a323-a143772054b2",
   "strategy": "manual-commit",
-  "created_at": "2026-02-22T20:47:01.282888Z",
+  "created_at": "2026-02-22T21:21:33.952568Z",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
-    "images/sandbox/docker-restart.sh"
+    "docs/DOCKER_SYSBOX_TROUBLE.md",
+    "images/sandbox/docker-restart.sh",
+    "images/sandbox/entrypoint.sh",
+    "installer/templates/dockyard.sh"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "1d4d64a9-197e-404d-93e8-c77c0204cd60",
-  "checkpoint_transcript_start": 119,
-  "transcript_lines_at_start": 119,
+  "transcript_identifier_at_start": "bd1f6e95-bc6a-4b89-aa87-4cc954fc1210",
+  "checkpoint_transcript_start": 974,
+  "transcript_lines_at_start": 974,
   "token_usage": {
-    "input_tokens": 25,
-    "cache_creation_tokens": 7340,
-    "cache_read_tokens": 1332964,
-    "output_tokens": 625,
-    "api_call_count": 17
+    "input_tokens": 57,
+    "cache_creation_tokens": 117569,
+    "cache_read_tokens": 5270314,
+    "output_tokens": 8656,
+    "api_call_count": 51
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-22T20:47:01.193009Z",
-    "agent_lines": 0,
-    "human_added": 47,
+    "calculated_at": "2026-02-22T21:21:33.814389Z",
+    "agent_lines": 280,
+    "human_added": 30,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 47,
-    "agent_percentage": 0
+    "total_committed": 310,
+    "agent_percentage": 90.32258064516128
   }
 }

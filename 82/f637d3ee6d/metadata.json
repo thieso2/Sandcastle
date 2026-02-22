@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 21,
+  "checkpoints_count": 22,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
@@ -32,6 +32,7 @@
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "docker-compose.yml",
+    "docs/DOCKER_SYSBOX_TROUBLE.md",
     "images/sandbox/.Dockerfile.swp",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
@@ -39,6 +40,7 @@
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
     "installer/templates/docker-compose.yml.template",
+    "installer/templates/dockyard.sh",
     "mise.toml",
     "test/controllers/terminal_controller_test.rb",
     "test/services/tailscale_manager_test.rb",
@@ -169,10 +171,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 732,
-    "cache_creation_tokens": 775231,
-    "cache_read_tokens": 53391974,
-    "output_tokens": 131830,
-    "api_call_count": 618
+    "input_tokens": 764,
+    "cache_creation_tokens": 885460,
+    "cache_read_tokens": 57329324,
+    "output_tokens": 139861,
+    "api_call_count": 652
   }
 }
