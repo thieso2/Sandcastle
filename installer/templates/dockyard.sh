@@ -380,6 +380,20 @@ cmd_create() {
     # --- 1. Download and extract binaries ---
     local CACHE_DIR="${SCRIPT_DIR}/.tmp"
 
+    # Version compatibility notes — do not upgrade these without reading:
+    #
+    # DOCKER_VERSION: static binary from download.docker.com/linux/static/stable.
+    #   Uses sysbox-runc as default runtime → the bundled runc 1.3.3 is never
+    #   called for sandbox containers, so this version does NOT trigger the
+    #   sysbox procfs incompatibility (nestybox/sysbox#973).
+    #   Minimum 29.x required for the DinD ownership watcher (commit 2deac51).
+    #
+    # SYSBOX_VERSION: 0.6.7 is the last CE release (May 2024). EE archived Aug
+    #   2025. Incompatible with containerd.io ≥ 1.7.28-2 and ≥ 2.x when used
+    #   via apt (does not affect the static binary path used here).
+    #   The inner sandbox image pins containerd.io=1.7.27-1 to stay clear of
+    #   both the 1.7.28-2 runc-1.3.3 issue and the containerd-2.x breakage.
+    #   See Sandcastle issue #56, nestybox/sysbox#973, opencontainers/runc#4968.
     local DOCKER_VERSION="29.2.1"
     local DOCKER_ROOTLESS_VERSION="29.2.1"
     local SYSBOX_VERSION="0.6.7"
