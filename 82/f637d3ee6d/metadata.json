@@ -2,8 +2,8 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "main",
-  "checkpoints_count": 22,
+  "branch": "fix/pin-inner-docker-sysbox-compat",
+  "checkpoints_count": 23,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
@@ -34,6 +34,7 @@
     "docker-compose.yml",
     "docs/DOCKER_SYSBOX_TROUBLE.md",
     "images/sandbox/.Dockerfile.swp",
+    "images/sandbox/Dockerfile",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
     "install-defaults",
@@ -168,13 +169,20 @@
       "context": "/82/f637d3ee6d/16/context.md",
       "content_hash": "/82/f637d3ee6d/16/content_hash.txt",
       "prompt": "/82/f637d3ee6d/16/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/17/metadata.json",
+      "transcript": "/82/f637d3ee6d/17/full.jsonl",
+      "context": "/82/f637d3ee6d/17/context.md",
+      "content_hash": "/82/f637d3ee6d/17/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/17/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 764,
-    "cache_creation_tokens": 885460,
-    "cache_read_tokens": 57329324,
-    "output_tokens": 139861,
-    "api_call_count": 652
+    "input_tokens": 814,
+    "cache_creation_tokens": 1089748,
+    "cache_read_tokens": 60257544,
+    "output_tokens": 160964,
+    "api_call_count": 684
   }
 }

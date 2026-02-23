@@ -1,0 +1,754 @@
+add GH issue with  research and evaluate podman for the innder docker.  compare to sysbox
+
+---
+
+do a full analysis of podman vs sysbox and update the issue with as many details as needed - come up with a table that gives a decision matrix fr sandcastle
+
+---
+
+<task-notification>
+<task-id>aa5a14b8b3d54da9c</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<status>completed</status>
+<summary>Agent "Research Podman vs Sysbox DinD" completed</summary>
+<result>Perfect. Now I have comprehensive research data. Let me compile a detailed technical report with findings organized by the user's research questions.
+
+## Comprehensive Research Report: Podman vs Sysbox for Docker-in-Docker
+
+Based on current (2024-2025) information, here are detailed technical findings across all eight research dimensions:
+
+---
+
+### 1. **Podman Inside a Container: Kernel Features & Capabilities**
+
+**Rootless Podman in Sysbox containers:**
+- Rootless Podman can run inside a Sysbox container, leveraging Sysbox's user-namespace isolation. Sysbox provides "VM-like capabilities" allowing unprivileged users to run system-level applications like Docker and Kubernetes securely from workspace containers.
+- **Key requirement:** Sysbox enables containers to run without the `--privileged` flag while still supporting system software.
+
+**Rootless Podman in plain --privileged runc container:**
+- Technically possible but defeats the security purpose of rootless mode. Privileged runc containers break isolation completely—the container gains full host device access, kernel module loading, and can exploit cgroup release_agent escape vectors to gain host root.
+
+**Kernel features needed for rootless Podman (regardless of outer runtime):**
+- User namespaces (mapped to unprivileged host UIDs via `/etc/subuid`)
+- Network namespaces (for slirp4netns or pasta)
+- Mount namespaces
+- Capabilities: minimal set (no SYS_ADMIN required as of 2025 with `--isolation chroot` + Buildah improvements)
+- FUSE support for fuse-overlayfs (or native overlayfs if kernel supports user-ns mapping)
+
+**2025 improvement:** Kernel-level enhancements now allow rootless Podman to operate without SYS_ADMIN using container isolation techniques, matching Docker native overlay performance.
+
+---
+
+### 2. **Sysbox Current State: Maintenance & Compatibility**
+
+**Release history & maintenance status:**
+- **Latest release:** v0.6.5 (November 2024) — actively maintained
+- **Previous:** v0.6.4 (2024) with CVE hardening against CVE-2024-21626
+- **Ownership:** Nestybox acquired by Docker; Docker sponsors the project but does NOT officially support it (best-effort support via GitHub)
+- **Community:** Active Slack workspace + GitHub issues (as of 2024, updates still flowing)
+
+**Docker 29 compatibility issues:**
+- **Runc interaction:** Docker 29 updated to runc v1.3.3+, causing issues because sysbox-runc depends on specific runc version behavior
+- **Known issues (2024):**
+  - Issue #882: "Can not run with sysbox-runc runtime" (December 2024, Ubuntu 22.04 kernel 6.8.0-49)
+  - Issue #892: "Docker inside sysbox sporadically causes filesystem operations to fail" (suggests data-root backing-dir issues)
+  - Issue #973: "Docker Release 28.5.2 breaks Buildx Build on Sysbox Runtime v0.6.7"
+- **Root cause of backing-dir bug:** Docker 29 made `chmod` operations on data-root **fatal** (not just warnings). Sysbox 0.6.7 creates overlay backing directories at `${DOCKYARD_ROOT}/sysbox/docker/<container-id>/` owned by `root:root`. When the inner container (uid 0) tries to access these, it maps to uid 231072 (from `/etc/subuid: sysbox:231072:65536`), so the container sees files as `nobody:nogroup`. Newer Docker versions fail hard on permission errors during initialization.
+- **Your workaround in 2deac51:** Background watcher in dockyard.sh that chowns new backing dirs to sysbox uid offset within ~1 second — still in use and working.
+
+**UID-shift mechanism:**
+- Sysbox uses ID-mapped mounts (or shiftfs on Ubuntu with kernel module) to map container uids to different host uids
+- Bind-mount source should be owned by range [165536:231071] (sysbox subuid range)
+- Only Ubuntu ships shiftfs kernel module; other distros require manual ownership setup
+- Normal bind-mount (no shiftfs) used if directory already owned by sysbox uid range (avoids overhead)
+
+---
+
+### 3. **Podman Docker Compatibility: Tooling & Compose**
+
+**Docker socket emulation (`podman system service`):**
+- Podman exposes a REST API compatible with Docker v1.40 API
+- Default endpoints: rootful `unix:///run/podman/podman.sock` | rootless `unix://$XDG_RUNTIME_DIR/podman/podman.sock` (e.g., `unix:///run/user/1000/podman/podman.sock`)
+- **DOCKER_HOST environment variable:** Tools can point to Podman socket for Docker compatibility
+- **Limitation:** `/run/docker.sock` does NOT work for rootless users by default; must symlink user socket and enable `systemctl --user enable --now podman.socket`
+
+**Docker Compose / Podman Compose compatibility (2024):**
+- **Docker Compose v2** (Go rewrite, 2021) — officially supported in Podman v4.1+ (though Buildkit API support still pending)
+- **Podman Compose:** Native Python wrapper, lighter weight, executes podman directly (no socket overhead)
+- **Docker Compose precedence:** If both installed, docker-compose takes precedence
+- **Compose spec:** Both tools implement the Compose specification; network naming differs (Docker removes hyphens, Podman keeps them when project names contain hyphens)
+- **docker compose up** works via Podman compose provider on recent Podman versions
+
+**VS Code Remote / Dev Containers:**
+- **Status (2025):** Works, but not officially supported; Docker extension being evolved into "Container Tools extension" to support Podman
+- **Setup:** Change `dev.containers.dockerPath` setting to `podman`
+- **Auto-detection:** Container Tools extension auto-detects Podman if Docker is not running (via DOCKER_HOST env var)
+- **2025 improvement:** Microsoft announced improvements for Podman integration; setup is now simpler than before
+
+**kind (Kubernetes in Docker):**
+- k3d uses Docker API; compatible with Podman v4+ (experimental, not guaranteed)
+- Requires careful Docker socket configuration + network/cgroup setup
+- Users report workarounds needed, not drop-in replacement
+
+**k3d (k3s in Docker):**
+- Experimental Podman support documented in k3d v5.8.3+ via `docs/usage/advanced/podman.md`
+- Rootless Podman + k3d has known bugs (issue #1120: "k3s refuses to start with rootless Podman")
+- Not a reliable production replacement yet
+
+**Skaffold:**
+- Can run with rootless Podman + kind (documented examples exist); requires local registry in kind
+- Not officially supported by Google; community-driven integration
+
+**Summary:** Podman is ~85-90% compatible with Docker tooling ecosystem. Compose works well; dev tools have varying levels of support.
+
+---
+
+### 4. **Security Comparison: Sysbox vs Rootless Podman vs Privileged runc**
+
+| Dimension | Sysbox | Rootless Podman | Privileged runc |
+|-----------|--------|-----------------|-----------------|
+| **Root privilege in container** | Mapped to unprivileged host uid (via user-namespace) | Mapped to unprivileged host uid | Actual host root (UID 0) |
+| **UID shifting** | Via ID-mapped mounts or shiftfs | Via user namespaces (`/etc/subuid` mapping) | No mapping; real uids |
+| **Sandboxing** | Strong isolation via Linux kernel namespaces; container is NOT privileged | Strong isolation via user-namespace + capabilities filtering | **BROKEN** — container has raw device access, can mount filesystems, load kernel modules |
+| **Escape vectors** | Requires kernel exploit (high bar); even if escaped, attacker is unprivileged user on host | Requires kernel exploit; attacker gains unprivileged user on host | **CRITICAL:** Cgroup release_agent, mount namespace tricks, device access → host root |
+| **Docker-in-Docker security** | Safe; inner docker is unprivileged within container | Safe; rootless podman in rootless podman is nested unprivileged | **Dangerous** — inner docker runs as root, can be weaponized |
+| **System software (systemd, K8s)** | Supported natively | Supported natively (v5+) | Works but unnecessary risk |
+| **Host resource access** | Controlled via cgroups + namespaces | Controlled via cgroups + capabilities | Full device access (dangerous) |
+| **Linux Security Modules (LSM)** | Respected (AppArmor/SELinux still enforced) | Respected | Often bypassed by privileged containers |
+
+**Key insight:** Privileged runc is NOT safer than it sounds — it's fundamentally insecure for multi-tenant scenarios. Sysbox and rootless Podman both achieve strong isolation; Sysbox has additional kernel features (shiftfs, id-mapping) tailored for system software.
+
+**Attack surface:**
+- **Privileged runc:** Large (kernel syscalls, device drivers, LSM bypass)
+- **Rootless Podman:** Medium (user-namespace boundary + kernel)
+- **Sysbox:** Medium (similar to rootless Podman, plus shiftfs/id-mapping kernel code)
+
+---
+
+### 5. **Storage Drivers Inside a Container**
+
+**Sysbox + Docker DinD (current Sandcastle setup):**
+- Overlay2 on BTRFS: Works well (copy-on-write efficient, subvolume snapshots)
+- Overlay2 on ext4: Works but no CoW benefits; BTRFS strongly recommended
+- VFS: Works but slow; only fallback
+
+**Podman inside container (rootless):**
+- **fuse-overlayfs:** User-space overlay; ~88% storage savings vs vfs, but slower I/O (every read/write interpreted by FUSE daemon)
+- **Native overlay2:** Fast (kernel-based), but requires kernel support for user-ns mapping; Podman 5.0+ prefers it if available
+- **VFS:** Fallback, no CoW; prohibitively slow for large workloads
+
+**Performance data (2024):**
+- Native overlay2 performs better for heavy I/O workloads (tested with large COPY layers)
+- Fuse-overlayfs shines for storage efficiency and build speed (smaller graphroot)
+- Pasta networking + native overlay2 = optimal rootless Podman performance
+
+**Nested overlay (overlay on overlay):** Kernel often denies this, so fuse-overlayfs used inside container for Podman-in-Podman scenarios.
+
+---
+
+### 6. **Networking Inside Container**
+
+**Current Sandcastle (Docker DinD in Sysbox):**
+- Dockerd manages its own bridge networks inside the container
+- Host ports (2201-2299) exposed via Docker port bindings
+- Tailscale sidecars on separate bridge network (`sc-ts-net-{user}`)
+- iptables MASQUERADE rules handle internet NAT
+
+**Podman rootless networking:**
+- **Default (Podman 5.0+):** pasta (faster, no NAT by default, copies host network config into container namespace)
+- **Previous default:** slirp4netns (slower NAT-based, but more compatible)
+- **Performance:** Pasta outperforms slirp4netns up to 8 parallel connections; beyond that slirp4netns wins (paradoxically)
+- **Network setup:** Rootless Podman requires additional setup for host network access (user-mode network stack)
+
+**Podman inside Sysbox container:**
+- Podman's networking would work within Sysbox's user-namespace isolation
+- Pasta would avoid nested NAT complexity
+- Sysbox's iptables rules still apply to outer network
+
+**Key constraint (from your CLAUDE.md notes):**
+- `DOCKYARD_POOL_BASE` /16 must be passed to web/worker containers as env var
+- `subnet_for()` in TailscaleManager reads it to pick Tailscale subnet
+- Masquerade rules (set by systemd unit, not dockerd) must cover entire pool
+- Changing networking architecture requires destroying all containers first
+
+---
+
+### 7. **Alternative Approaches: nerdctl, Kata, gVisor**
+
+**nerdctl + containerd (Docker replacement):**
+- **What it is:** Docker-compatible CLI for containerd (containerd = CRI + OCI runtime manager)
+- **Advantages:**
+  - Modern architecture (no daemon); Buildkit integration
+  - Lazy pulling (Stargz) — pull metadata instantly, fetch file chunks on demand
+  - Native WASM as first-class runtime
+  - IPFS image distribution support
+- **Rootless support:** Yes, via systemd user service (`systemctl --user start containerd.service`)
+- **Docker compatibility:** Supports Dockerfile, docker-compose commands; mirrors Docker CLI experience
+- **Drawbacks:** Still emerging; less tooling integration than Docker or Podman
+- **For Sandcastle:** Would require rewriting entrypoint.sh to use nerdctl instead of docker CLI; feasible but not a drop-in replacement
+
+**Kata Containers (lightweight VM approach):**
+- **What it is:** OCI runtime using lightweight VMs (Firecracker, Cloud Hypervisor, QEMU backends) for hardware-level isolation
+- **Startup time:** 150-300ms (slower than containers; VM overhead)
+- **Use case:** Maximum isolation for untrusted code; not practical for interactive DinD with SSH
+- **Package availability:** Only Fedora/CentOS repos + Ubuntu Snap (2024); not as mature as Docker/Podman
+- **For Sandcastle:** Overkill; adds startup latency, no Docker-in-Docker advantage over Sysbox
+
+**gVisor (user-space kernel):**
+- **What it is:** Runsc intercepts Linux syscalls; containers get their own kernel-like environment
+- **Startup time:** 50-100ms (lower than Kata, higher than standard containers)
+- **Use case:** Strong isolation for untrusted workloads; syscall compatibility not 100% (some syscalls unsupported)
+- **Performance:** Slower than native containers (syscall interception overhead); ~5-10% for typical workloads
+- **For Sandcastle:** Not suitable — users need full Docker + SSH + docker-compose; gVisor's syscall gaps would cause issues
+
+**Summary comparison:**
+- **nerdctl:** Modern, good for new projects; requires integration work
+- **Kata:** Strongest isolation but VM overhead; overkill for DinD
+- **gVisor:** Good isolation-to-performance ratio; syscall compatibility concerns for dev workloads
+- **Sysbox:** Best fit for your use case (system software + DinD without --privileged)
+- **Rootless Podman:** Lighter than Sysbox, good for single-user scenarios, less system software support
+
+---
+
+### 8. **Migration Complexity: Docker → Podman or nerdctl**
+
+**What breaks when switching from Docker to Podman:**
+
+1. **Entrypoint.sh changes (medium complexity):**
+   - Replace `docker` CLI calls with `podman` (mostly compatible)
+   - If using `/var/run/docker.sock` hardcoded paths → switch to `DOCKER_HOST` env var or Podman socket path
+   - SSH key injection via `docker exec` → still works with `podman exec`
+   - Example: `docker exec -i $container bash -s < /tmp/keys.sh` → `podman exec -i $container bash -s < /tmp/keys.sh` (identical)
+
+2. **Networking assumptions (medium complexity):**
+   - Podman's network naming (hyphens retained) may differ from Docker-compose assumptions
+   - Default rootless networking (slirp4netns or pasta) requires different port mapping logic
+   - Tailscale sidecar integration would need testing (subnet allocation might differ)
+
+3. **Docker daemon vs Podman daemon model (high complexity):**
+   - Docker has a central daemon; Podman is daemonless (each command spawns podman process)
+   - This affects how you'd run continuous health checks or monitoring
+   - Solid Queue container sync jobs would need adjustment (polling vs socket events)
+
+4. **Storage driver differences (low-medium complexity):**
+   - Overlay2 works in both; fuse-overlayfs adds complexity if inside Sysbox container
+   - BTRFS subvolume handling differs slightly between Docker and Podman
+
+5. **Systemd integration (medium complexity):**
+   - Instead of `systemctl restart docker`, you'd restart/reload Podman socket/service
+   - Container management via systemd user service (Podman 4+) vs system service
+
+6. **Testing requirements (high effort):**
+   - All SSH port mappings, volume mounts, network routes need re-testing
+   - Terminal manager (WeTTY) integration testing with Podman socket
+   - Tailscale sidecar creation / network bridge verification
+   - User home bind mounts, data persistence validation
+
+**Estimated effort:** 2-3 weeks for robust migration (testing + edge cases).
+
+**What stays the same:**
+- Rails app code (uses docker-api gem — would need to switch to podman-api or HTTP client)
+- User SSH access (still port 2201-2299 mapping)
+- Persistent data paths (bind mounts work identically)
+- BTRFS subvolume management (if using BtrfsHelper)
+
+---
+
+### 9. **Key Risk Assessment: Staying with Sysbox vs Switching**
+
+**Risks of staying with Sysbox (0.6.5 as of Nov 2024):**
+- Upstream maintained by Docker but not officially supported (best-effort basis)
+- Docker runc updates (v1.3.x) may cause future incompatibilities
+- Your workaround for backing-dir ownership (dockyard.sh watcher) is solid but requires vigilance on new Docker/runc updates
+- Sysbox development pace appears slower (last release Nov 2024; unclear if v0.6.6 in progress)
+
+**Risks of switching to Podman:**
+- Requires significant integration work (entrypoint, networking, testing)
+- Tooling ecosystem still catching up (VS Code, k3d, skaffold less mature than Docker)
+- Daemonless model requires rethinking container lifecycle monitoring
+- Rootless Podman in a Sysbox container achieves same security; performance TBD
+
+**Recommendation for Sandcastle:**
+- **Short term (next 6-12 months):** Stay with Sysbox + Docker. Your current setup is battle-tested; back-ported fixes are working. Monitor Sysbox releases for Docker 30+ compatibility.
+- **Medium term:** Evaluate Podman 6.x (late 2025) once more tools mature (k3d, VS Code, kind stabilize)
+- **Long term:** Consider nerdctl + containerd if you want a modern, daemon-free architecture, but this is a 3-4 month migration.
+
+---
+
+### 10. **Sources & Further Reading**
+
+- [Podman inside container (Red Hat Blog)](https://www.redhat.com/en/blog/podman-inside-container)
+- [Sysbox GitHub releases](https://github.com/nestybox/sysbox/releases)
+- [Sysbox storage documentation](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/storage.md)
+- [Podman docker-compose compatibility](https://www.redhat.com/en/blog/podman-compose-docker-compose)
+- [Podman socket compatibility (Podman Desktop docs)](https://podman-desktop.io/docs/migrating-from-docker/managing-docker-compatibility)
+- [Rootless Podman tutorial](https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md)
+- [Fuse-overlayfs performance (Eclipse Che 2024)](https://che.eclipseprojects.io/2024/03/28/@david.kwon-fuse-storage-driver.html)
+- [Podman rootless networking (Discussion #22559)](https://github.com/containers/podman/discussions/22559)
+- [nerdctl repository](https://github.com/containerd/nerdctl)
+- [Kata vs gVisor vs Firecracker (Northflank)](https://northflank.com/blog/kata-containers-vs-firecracker-vs-gvisor)
+- [Docker privileged container escape risks (HackTricks)](https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/docker-security/docker-privileged.html)
+- [Secure DinD with Sysbox (Medium)](https://ctalledo.medium.com/secure-docker-in-docker-with-nestybox-529c5c419582)
+- [k3d Podman support](https://k3d.io/v5.8.3/usage/advanced/podman/)
+- [Docker 29 release notes](https://docs.docker.com/engine/release-notes/29/)
+
+---
+
+This research should provide solid ground for your architecture decisions. Your current Sysbox setup is well-engineered (especially the dockyard.sh ownership fix), and the marginal gains from switching to Podman don't justify the migration effort in the near term.
+
+Sources:
+- [How to use Podman inside of a container](https://www.redhat.com/en/blog/podman-inside-container)
+- [Understanding Docker-in-Docker (DinD): Power and Pitfalls](https://tiendu.github.io/2025/04/18/dind-eng.html)
+- [Rootless containers with Podman: The basics](https://developers.redhat.com/blog/2020/09/25/rootless-containers-with-podman-the-basics)
+- [Sysbox GitHub releases](https://github.com/nestybox/sysbox/releases)
+- [Sysbox storage documentation](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/storage.md)
+- [Managing Docker compatibility | Podman Desktop](https://podman-desktop.io/docs/migrating-from-docker/managing-docker-compatibility)
+- [podman-system-service — Podman documentation](https://docs.podman.io/en/latest/markdown/podman-system-service.1.html)
+- [Comparison: Sysbox and Related Technologies](https://blog.nestybox.com/2020/10/06/related-tech-comparison.html)
+- [Drive a coupe with the overlay storage driver - a Podman build comparison](https://che.eclipseprojects.io/2024/03/28/@david.kwon-fuse-storage-driver.html)
+- [Efficient image builds with FUSE in Red Hat OpenShift Dev Spaces](https://developers.redhat.com/articles/2024/04/30/efficient-image-builds-fuse-red-hat-openshift-dev-spaces)
+- [Podman is gaining rootless overlay support](https://www.redhat.com/en/blog/podman-rootless-overlay)
+- [Rootless network performance (pasta vs slirp4netns)](https://github.com/containers/podman/discussions/22559)
+- [Use Pasta Networking with Podman on Oracle Linux](https://docs.oracle.com/en/learn/ol-podman-pasta-networking/)
+- [Docker vs. Podman vs. Containerd vs. nerdctl: 2025 Showdown](https://sanj.dev/post/docker-vs-podman-comparison)
+- [Embracing Nerdctl: Shift from DockerD to ContainerD](https://blogs.halodoc.io/docker-removal-nerdctl-adoption/)
+- [GitHub - containerd/nerdctl](https://github.com/containerd/nerdctl)
+- [Kata Containers vs Firecracker vs gVisor: Which container isolation tool should you use?](https://northflank.com/blog/kata-containers-vs-firecracker-vs-gvisor)
+- [Kata Containers for Docker in 2024](https://habr.com/en/articles/840538/)
+- [Why Is Running Docker Inside Docker Not Recommended?](https://www.baeldung.com/ops/docker-in-docker)
+- [Secure, Efficient Docker-in-Docker with Nestybox](https://ctalledo.medium.com/secure-docker-in-docker-with-nestybox-529c5c419582)
+- [Escaping Docker Privileged Containers](https://vickieli.dev/system%20security/escape-docker/)
+- [Docker Breakout / Privilege Escalation](https://book.hacktricks.wiki/en/linux-hardening/privilege-escalation/docker-security/docker-breakout-privilege-escalation/index.html)
+- [Supercharge Your Container Development in VS Code with Podman and Podman Desktop](https://podman-desktop.io/blog/2025/05/05/vs-code-with-podman-desktop)
+- [Remote container development with VS Code and Podman](https://developers.redhat.com/articles/2023/02/14/remote-container-development-vs-code-and-podman)
+- [Using the Docker integration with Podman container runtime](https://docs.datadoghq.com/containers/guide/podman-support-with-docker-integration/)
+- [Podman Compose or Docker Compose: Which should you use in Podman?](https://www.redhat.com/en/blog/podman-compose-docker-compose)
+- [podman-compose — Podman documentation](https://docs.podman.io/en/latest/markdown/podman-compose.1.html)
+- [Using the Podman instead of Docker - k3d](https://k3d.io/v5.8.3/usage/advanced/podman/)
+- [Running Docker inside a sysbox container sporadically causes all filesystem operations to fail](https://github.com/nestybox/sysbox/issues/892)
+- [Can not run with sysbox-runc runtime](https://github.com/nestybox/sysbox/issues/882)
+- [Docker Release 28.5.2 breaks Buildx Build on Sysbox Runtime version v0.6.7](https://github.com/nestybox/sysbox/issues/973)
+- [Engine v29 | Docker Docs](https://docs.docker.com/engine/release-notes/29/)
+- [Docker in Workspaces | Coder Docs](https://coder.com/docs/admin/templates/extending-templates/docker-in-workspaces)</result>
+<usage><total_tokens>49220</total_tokens><tool_uses>20</tool_uses><duration_ms>127130</duration_ms></usage>
+</task-notification>
+Full transcript available at: REDACTED.output
+
+---
+
+<task-notification>
+<task-id>ae7f6160ed2d1408a</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<status>completed</status>
+<summary>Agent "Research Podman ecosystem 2024-2025" completed</summary>
+<result>Now I have comprehensive data across all six topics. Let me compile the full structured report.
+
+---
+
+# Deep Web Research Report: Container Runtimes & Security (2024-2025)
+
+---
+
+## Topic 1: Podman Rootless Inside Containers
+
+### Kernel & Capability Requirements
+
+Running Podman inside a container (nested) requires different configurations depending on whether the inner Podman runs rootful or rootless:
+
+**Rootful Podman inside a container (without `--privileged`):**
+- `--cap-add=sys_admin,mknod` — CAP_SYS_ADMIN is needed to mount filesystems, CAP_MKNOD to create devices under `/dev`
+- `--device=/dev/fuse` — exposes FUSE to the container so fuse-overlayfs can function
+- `--security-opt label=disable` — disables SELinux, which otherwise blocks required filesystem mounts
+
+**Rootless Podman inside a container (without `--privileged`):**
+- Does NOT require CAP_SYS_ADMIN or CAP_MKNOD
+- Still requires `--device=/dev/fuse` (unless running kernel >= 5.12 with native overlay)
+- Requires `--security-opt label=disable` and `--security-opt unmask=ALL`
+- Requires `/etc/subuid` and `/etc/subgid` with enough UID/GID range entries for the user namespace, and `newuidmap`/`newgidmap` executables with proper file capabilities (`cap_setuid`, `cap_setgid`)
+- The container running Podman must have CAP_SETUID and CAP_SETGID within its own user namespace
+
+**Example command (rootful, no `--privileged`):**
+```
+podman run --cap-add=sys_admin,mknod \
+           --device=/dev/fuse \
+           --security-opt label=disable \
+           quay.io/podman/stable \
+           podman run ubi8-minimal echo hello
+```
+
+### Native Overlay vs fuse-overlayfs
+
+- **Kernel < 5.12 or Podman < 3.1:** Must use fuse-overlayfs (hence the `/dev/fuse` device requirement)
+- **Kernel >= 5.12, Podman >= 3.1:** Native unprivileged overlayfs is available (introduced in 5.11, SELinux bug fixed in 5.13). Once native overlay is used, `/dev/fuse` is no longer required at all
+- Arch Linux confirmed: fuse-overlayfs is no longer a required dependency with Linux >= 5.11
+- Networking in rootless mode uses `pasta` (default since Podman 5.0) or `slirp4netns`, both of which operate in user space — slower than root-mode networking
+
+### The `--privileged` Path
+
+`--privileged` works but is the least secure option: it grants all capabilities and removes seccomp/AppArmor/SELinux restrictions. The preferred approach for production is the explicit capability grant described above.
+
+**Sources:**
+- [How to use Podman inside of a container (Red Hat)](https://www.redhat.com/en/blog/podman-inside-container)
+- [Running Podman inside a container (Aditya's blog)](https://aditya6767.github.io/blog/podman.html)
+- [Podman rootless overlay gaining support (Red Hat)](https://www.redhat.com/en/blog/podman-rootless-overlay)
+- [Podman rootless tutorial](https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md)
+- [Native overlayfs vs fuse-overlayfs discussion](https://github.com/containers/podman/discussions/9772)
+- [fuse-overlayfs no longer required on Linux 5.11 (Arch)](https://bugs.archlinux.org/task/71358)
+
+---
+
+## Topic 2: Sysbox Maintenance Status 2024-2025
+
+### Release Timeline
+
+| Version | Release Date | Key Changes |
+|---------|-------------|-------------|
+| v0.6.6 | January 4, 2024 | Filesystem operation fixes, containerd rollback workaround for Docker 26/27 |
+| v0.6.7 | May 9, 2024 | binfmt_misc namespacing (kernel 6.7+), bug fixes for large layer counts, fuse unmount fix |
+
+**The last release (v0.6.7) was May 9, 2024 — over 9 months ago at time of this research.** No releases have been issued since.
+
+### Project Status
+
+- Nestybox was acquired by Docker in May 2022
+- Sysbox-CE (community edition) remains open-source and nominally maintained
+- **Sysbox Enterprise Edition was archived by Docker on August 7, 2025** — it is now read-only and no longer maintained
+- Docker provides "best effort" support via GitHub and Slack only — Sysbox is NOT covered by Docker subscriptions
+- The community is active (issues opened as recently as late 2025), but the maintainer team is thin
+
+### Critical Open Issue: Docker 28.5.2 / runc 1.3.3 Breaks Sysbox
+
+**GitHub Issue #973** (opened November 7, 2025, status: UNRESOLVED) documents a severe breakage:
+
+- Docker 28.5.2 ships runc v1.3.3 which includes security patches for CVE-2025-52881 (procfs write redirect)
+- runc v1.3.3 added protections that detect "unsafe" `/proc` overmounts and reject them with `EXDEV`
+- Sysbox virtualizes `/proc` and `/sys` — runc now detects these as unsafe cross-device operations and aborts container init
+- Error: `"error during container init: open sysctl net.ipv4.ip_unprivileged_port_start file: unsafe procfs detected: openat2 /proc/./sys/net/ipv4/ip_unprivileged_port_start: invalid cross-device link"`
+- **Workaround:** Pin `containerd.io` to version 1.7.28-1 (not a production-ready fix)
+- **No fix from Sysbox maintainers as of research date.** The runc team confirms this is intentional security behavior. Sysbox would need to stop virtualizing `/proc` or patch their own runc fork to remove the CVE protection — both architecturally problematic
+
+This is a serious compatibility cliff: any host running Docker >= 28.5.2 (which ships runc 1.3.3) will have a broken Sysbox installation with no upstream fix available.
+
+### Other Recent Issues
+
+- **Issue #892:** Sporadic filesystem operation failures with Docker 26/27 inside Sysbox containers (~1 in 10,000 rate); workaround was rolling back containerd to 1.7.23, fixed in Sysbox 0.6.6
+- **Issue #866:** `docker cp` into Sysbox containers results in `nobody:nogroup` owned files on Ubuntu 24.04 (the same ownership-shift problem Sandcastle hit)
+- **Issue #946:** Inner Docker network connectivity failures on Ubuntu 24.04 + Kubernetes 1.32
+- **Issue #849:** ZFS + Sysbox breakage
+
+**Sources:**
+- [Sysbox Releases](https://github.com/nestybox/sysbox/releases)
+- [Issue #973: Docker 28.5.2 breaks Buildx on Sysbox v0.6.7](https://github.com/nestybox/sysbox/issues/973)
+- [Issue #892: Sporadic filesystem failures](https://github.com/nestybox/sysbox/issues/892)
+- [Issue #866: docker cp nobody:nogroup](https://github.com/nestybox/sysbox/issues/866)
+- [Sysbox-EE archived](https://github.com/nestybox/sysbox-ee)
+- [Docker acquires Nestybox](https://www.docker.com/blog/docker-advances-container-isolation-and-workloads-with-acquisition-of-nestybox/)
+- [Docker Community Forum: Sysbox native support?](https://forums.docker.com/t/sysbox-runc-native-support-now-that-docker-has-bought-nestybox/130939)
+
+---
+
+## Topic 3: Podman Socket Docker API Compatibility
+
+### How `podman system service` Works
+
+Podman exposes two socket endpoints:
+1. A **Docker compatibility layer** implementing Docker API v1.40/1.41
+2. A **libpod-native layer** with Podman-specific extensions
+
+The socket is activated via `systemctl --user enable --now podman.socket` (rootless) or the system-level equivalent. Tools that set `DOCKER_HOST` to the Podman socket path can use it as a drop-in replacement — with important caveats.
+
+### Major API Compatibility Gap (2024-2025): API Version Floor
+
+**Docker client v29 requires a minimum server API version of 1.44.** Podman currently caps its compatibility layer at API version **1.41**. This is documented in:
+- [GitHub Discussion #27877](https://github.com/containers/podman/discussions/27877): "API version 1.41 is not supported by this client: the minimum supported API version is 1.44"
+- [Issue #27890](https://github.com/containers/podman/issues/27890): "Docker client v29 now requires Docker server v25"
+
+This means: any tool that ships or uses Docker CLI v29+ will fail against the Podman socket. The gap is 3 API minor versions behind.
+
+### BuildKit Incompatibility
+
+`docker build` with BuildKit (`DOCKER_BUILDKIT=1`, which is the default in recent Docker) fails against Podman because:
+- The `/v1.41/build/cancel` endpoint is missing from Podman's compat layer
+- BuildKit also tries to upgrade the connection to h2c (HTTP/2 cleartext) and receives 404
+- Error: `"failed to dial gRPC: unable to upgrade to h2c, received 404"`
+- [Issue #17836](https://github.com/containers/podman/issues/17836): `docker build` fails with BuildKit due to missing API
+
+### VS Code Remote Containers
+
+- Works, but requires manual configuration: set `DOCKER_HOST` or configure the Docker extension to use the Podman socket path
+- Rootless socket path (`$XDG_RUNTIME_DIR/podman/podman.sock`) differs from Docker's `/var/run/docker.sock` — some tools hardcode the Docker path
+- [Issue #10005 (VS Code)](https://github.com/microsoft/vscode-remote-release/issues/10005): rootless socket path mismatch
+- [Issue #17306 (containers/podman)](https://github.com/containers/podman/issues/17306): VS Code Docker extension v1.23.0 broke Podman compatibility
+- Red Hat published a 2023 guide covering the workarounds: [Remote container dev with VS Code and Podman](https://developers.redhat.com/articles/2023/02/14/remote-container-development-vs-code-and-podman)
+
+### kind / k3d
+
+- **kind:** No official Podman support documented; kind relies on Docker socket and Docker-specific behaviors
+- **k3d:** Podman support is **explicitly labeled experimental** as of 2024; requires either symlinking the Podman socket to `/var/run/docker.sock` or exporting `DOCKER_HOST` and `DOCKER_SOCK`; not guaranteed to work
+- [k3d Podman docs](https://k3d.io/v5.8.3/usage/advanced/podman/)
+
+### General Conclusion
+
+Podman's Docker socket emulation works well for simple `docker run`, `docker ps`, `docker images` use cases and basic CI scripts. It breaks down for: newer Docker CLI clients (v29+), BuildKit-enabled builds, tools that rely on Docker's streaming APIs or undocumented behaviors, and anything requiring API > 1.41.
+
+**Sources:**
+- [Discussion #27877: API version minimum 1.44 issue](https://github.com/containers/podman/discussions/27877)
+- [Issue #27890: Docker client v29 minimum API](https://github.com/containers/podman/issues/27890)
+- [Issue #17836: BuildKit missing endpoint](https://github.com/containers/podman/issues/17836)
+- [k3d Podman usage](https://k3d.io/v5.8.3/usage/advanced/podman/)
+- [VS Code + Podman guide](https://developers.redhat.com/articles/2023/02/14/remote-container-development-vs-code-and-podman)
+- [Podman system service docs](https://docs.podman.io/en/latest/markdown/podman-system-service.1.html)
+
+---
+
+## Topic 4: fuse-overlayfs Performance vs overlay2
+
+### The Hierarchy of Storage Drivers
+
+From fastest to slowest in nested container contexts:
+1. **Native overlay2** (kernel overlay on BTRFS/XFS host) — fastest, requires kernel-level privilege or kernel 5.12+ unprivileged support
+2. **Native rootless overlay** (kernel 5.12+, unprivileged) — ~same speed as above for runtime, slightly slower container creation
+3. **fuse-overlayfs** — 20-40% slower than native overlay2 for general I/O; user-space FUSE hop for every read/write
+4. **vfs** — no CoW, complete layer copies on every new layer; extremely slow for image-heavy workflows but stable
+
+### Quantified Performance Data
+
+- **fuse-overlayfs vs native overlay2:** 20-40% slower generally; the FUSE userspace round-trip adds overhead for every I/O call
+- **Extreme case (nested Podman-in-Podman builds):** One reported case ([Issue #401](https://github.com/containers/fuse-overlayfs/issues/401)) showed copying 130K files / 1.3 GB taking **over an hour** with fuse-overlayfs overlay driver vs **1.5 minutes** with vfs in that specific nested-container scenario. This is anomalous but illustrates pathological behavior under heavy small-file workloads in FUSE
+- **Container creation time:** Native rootless overlay creates containers more slowly than fuse-overlayfs in some configurations, but does not affect runtime speed
+- **Storage efficiency:** fuse-overlayfs is ~88% smaller storage footprint than vfs (CoW vs full copy)
+- A 2024 Red Hat article confirms fuse-overlayfs outperforms vfs while being slower than native overlay for image builds in OpenShift Dev Spaces
+
+### When vfs Is Forced
+
+vfs fallback happens when:
+- The host filesystem doesn't support overlayfs (e.g., NFS, some CIFS mounts)
+- Running inside a container where the backing storage is itself an overlay layer (overlay-on-overlay) — the "upper fs missing required features" error
+- No `/dev/fuse` access and kernel < 5.12 (no native rootless overlay either)
+
+### Native Overlay in Rootless Mode (Modern Approach)
+
+Since kernel 5.12 + Podman 3.1+, native unprivileged overlayfs eliminates the need for `/dev/fuse` entirely. Red Hat recommends preferring native overlay unless you have a specific reason (e.g., UID mapping requirements) to use fuse-overlayfs.
+
+**Note:** Container creation with native overlayfs can actually be slower than fuse-overlayfs in some configurations (a known issue tracked in Fedora CoreOS issue #1749), though runtime performance is equivalent or better.
+
+**Sources:**
+- [fuse-overlayfs performance tweaks PR #88](https://github.com/containers/fuse-overlayfs/pull/88)
+- [Recommend native overlayfs discussion #15465](https://github.com/containers/podman/discussions/15465)
+- [Issue #321: Very slow fuse-overlayfs vs vfs](https://github.com/containers/fuse-overlayfs/issues/321)
+- [Issue #401: Nested Podman overlay vs vfs extreme case](https://github.com/containers/fuse-overlayfs/issues/401)
+- [Efficient image builds with FUSE in OpenShift Dev Spaces (Red Hat, April 2024)](https://developers.redhat.com/articles/2024/04/30/efficient-image-builds-fuse-red-hat-openshift-dev-spaces)
+- [Podman performance docs](https://github.com/containers/podman/blob/main/docs/tutorials/performance.md)
+- [Eclipse Che blog: fuse vs overlay storage driver (March 2024)](https://che.eclipseprojects.io/2024/03/28/@david.kwon-fuse-storage-driver.html)
+
+---
+
+## Topic 5: Docker `--privileged` Security Alternatives
+
+### What `--privileged` Actually Does
+
+`--privileged` grants:
+- All Linux capabilities (including CAP_SYS_ADMIN, CAP_NET_ADMIN, CAP_SYS_PTRACE, etc.)
+- Disables seccomp filtering
+- Disables AppArmor/SELinux confinement
+- Makes all host devices accessible
+
+A process that escapes the container filesystem has full root on the host. This is the attack surface that Sysbox eliminates.
+
+### Sysbox Security Model: What It Avoids
+
+Sysbox uses a Linux user namespace on every container with these specific protections:
+
+| Property | --privileged + runc | Sysbox |
+|----------|-------------------|--------|
+| Root in container = root on host | Yes | No (maps to UID ~100000+) |
+| All capabilities active on host | Yes | No (capabilities scoped to user namespace) |
+| seccomp enforcement | Disabled | Active (Sysbox adds syscall interception) |
+| AppArmor/SELinux | Disabled | Active |
+| `/proc` write access to host | Yes | No (virtualized /proc) |
+| Kernel module loading | Yes | Blocked (EPERM) |
+| BPF modifications | Yes | Blocked |
+| Cross-container privilege escalation | Possible | Prevented by unique UID ranges |
+
+The key mechanism: even if a process inside a Sysbox container has all capabilities, those capabilities only apply to resources within the container's user namespace. Escaping the filesystem jail gives the attacker a UID in the range 100000-165535 with zero host privileges.
+
+### Is `--privileged` + runc a Viable Secure Option? (2025 Verdict: No)
+
+Three critical runc vulnerabilities disclosed in **November 2025** (affecting all runc versions prior to 1.2.8 / 1.3.3 / 1.4.0-rc.3) demonstrate the attack surface:
+
+- **CVE-2025-31133:** `/dev/null` bind-mount replaced with symlink, allowing host file access during container init
+- **CVE-2025-52565:** `/dev/console` bind-mount exploitation via pts symlink
+- **CVE-2025-52881:** Race condition on shared mounts redirects runc writes to `/proc/sysrq-trigger` and other dangerous procfs files, enabling host crash or privilege escalation
+
+These vulnerabilities affect `--privileged` containers particularly severely. They require ability to start containers with custom mount configurations, which any user with Docker socket access has.
+
+**Note the painful irony for Sysbox:** the fix for CVE-2025-52881 (runc 1.3.3) added procfs safety checks that detect Sysbox's `/proc` virtualization as unsafe, breaking Sysbox on Docker 28.5.2 (Issue #973, documented above).
+
+### Alternative Approaches Ranked by Security
+
+1. **Sysbox (sysbox-runc):** Best isolation, no `--privileged` needed for DinD, uses user namespaces. Currently has a critical unresolved compatibility issue with Docker >= 28.5.2.
+2. **Docker Enhanced Container Isolation (ECI):** Built on Sysbox, available in Docker Desktop for Business. Intercepts `--privileged` at the runtime level and runs it through Sysbox anyway.
+3. **Rootless Docker daemon:** The entire dockerd runs unprivileged. Containers it spawns have reduced capabilities. But rootless Docker has networking limitations (no `--net=host` without workarounds, port binding quirks).
+4. **gVisor (`runsc`):** User-space kernel intercepts all syscalls. Strong isolation but significant performance overhead and incomplete syscall coverage. Cannot run DinD.
+5. **Kata Containers:** VM-based isolation. Strong security, full DinD support possible, but requires nested KVM or baremetal, higher overhead.
+6. **`--privileged` + runc:** Do not use for multi-tenant or untrusted workloads. Acceptable only on single-tenant hosts where the container owner is trusted.
+
+**Sources:**
+- [Sysbox security documentation](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/security.md)
+- [Sysbox DinD documentation](https://github.com/nestybox/sysbox/blob/master/docs/user-guide/dind.md)
+- [CVE-2025-31133, CVE-2025-52565, CVE-2025-52881 (Sysdig)](https://www.sysdig.com/blog/runc-container-escape-vulnerabilities)
+- [runc container breakout technical overview (CNCF, November 2025)](https://www.cncf.io/blog/2025/11/28/runc-container-breakout-vulnerabilities-a-technical-overview/)
+- [Docker ECI documentation](https://docs.docker.com/enterprise/security/hardened-desktop/enhanced-container-isolation/)
+- [Coder: Docker in Workspaces comparison](https://coder.com/docs/admin/templates/extending-templates/docker-in-workspaces)
+- [System container security features (Nestybox blog)](https://blog.nestybox.com/2019/11/20/syscont-security.html)
+
+---
+
+## Topic 6: nerdctl + containerd as Docker Replacement Inside Containers
+
+### What nerdctl Is
+
+nerdctl is a Docker-compatible CLI for containerd, developed by NTT. It is the closest 1:1 CLI replacement for the Docker CLI — commands are nearly identical (`nerdctl run`, `nerdctl build`, `nerdctl compose`). Unlike Podman (daemonless), nerdctl requires a running containerd daemon.
+
+**GitHub:** [containerd/nerdctl](https://github.com/containerd/nerdctl)
+
+### Rootless Support
+
+nerdctl supports rootless mode via **RootlessKit** (a user-space network + UID mapping tool). The setup:
+```
+containerd-rootless-setuptool.sh install
+systemctl --user start containerd
+nerdctl run --rm hello-world
+```
+
+- Network in rootless mode uses slirp4netns or `bypass4netns` (nerdctl's accelerated variant, which can match rootful network speeds in some workloads)
+- Rootless nerdctl uses `~/.local/share/containerd` for storage
+
+### Running nerdctl Inside a Container (DinD)
+
+This is harder than it looks. Unlike Sysbox which handles this transparently, running containerd inside a container faces:
+
+1. **cgroup issues:** Rootless buildkitd inside a rootless nerdctl container fails with `runc run failed: no cgroup mount found in mountinfo` (Issue #3668, 2024). cgroup v2 delegation must be configured for unprivileged access.
+2. **containerd daemon bootstrapping:** You need to run `containerd` as a process inside the container, which requires either root or user-namespace tricks.
+3. **No official DinD image for nerdctl/containerd:** Unlike Docker's `docker:dind` image, there is no widely-maintained `nerdctl-dind` equivalent.
+
+For true DinD with nerdctl, the practical path is running a rootful containerd inside a privileged or Sysbox container — which doesn't improve the security situation compared to Docker DinD.
+
+### Compose Support and Gaps
+
+nerdctl compose parses standard `docker-compose.yaml` files. Known gaps vs Docker Compose:
+
+**Unimplemented flags:**
+- `--resolve-image-digests`, `--no-interpolate`, `--format`, `--output`, `--profiles` (config subcommand)
+- `--no-deps`, `--force-recreate`, `--always-recreate-deps`, `--no-recreate`, `--no-start`, `--abort-on-container-exit` (up subcommand)
+
+**YAML field gaps:**
+- `services.<SERVICE>.links` (unimplemented docker run flag)
+- `services.<SERVICE>.build.extra_hosts`
+- Various other fields that map to unimplemented nerdctl run/build flags
+
+**Known bugs (2024):**
+- `nerdctl compose` hangs in version 2.0 under certain conditions (Issue #3678)
+- `nerdctl compose up` stuck on container creation (Issue #3520)
+- Global compose lock prevents concurrent compose operations
+
+### nerdctl vs Podman: Head-to-Head for DinD Use Cases
+
+| Factor | nerdctl + containerd | Podman |
+|--------|---------------------|--------|
+| DinD support | Requires rootful containerd or privileged | Works with cap-add (no --privileged) |
+| Rootless | Yes (RootlessKit) | Yes (native, daemonless) |
+| Docker API socket emulation | No (no socket; uses containerd socket) | Yes (podman system service, but capped at API 1.41) |
+| Docker Compose compat | Good, with gaps listed above | Good, via `podman compose` or `podman-compose` |
+| Kubernetes CRI | Yes (containerd is a CRI runtime) | No |
+| Image pull performance | Supports lazy pull / eStargz | Standard pull |
+| WASM support | Yes (runwasi) | No |
+| Daemon requirement | Yes (containerd must run) | No (daemonless) |
+| Maturity for nested containers | Limited / needs work | Better documented |
+
+### Practical Assessment
+
+For a Sandcastle-like use case (DinD inside sandboxes), nerdctl+containerd does not offer a meaningful advantage over Podman. The main appeal of nerdctl is for Kubernetes-adjacent workloads where containerd is already the CRI, or for teams that want lazy image pulling (eStargz). For nested container scenarios, Podman's daemonless architecture is actually better suited since there is no daemon to keep alive inside each sandbox.
+
+**Sources:**
+- [nerdctl GitHub repository](https://github.com/containerd/nerdctl)
+- [nerdctl rootless documentation](https://github.com/containerd/nerdctl/blob/main/docs/rootless.md)
+- [nerdctl compose documentation](https://github.com/containerd/nerdctl/blob/main/docs/compose.md)
+- [Issue #3678: nerdctl compose hangs in 2.0](https://github.com/containerd/nerdctl/issues/3678)
+- [Issue #3668: cgroup mount not found in rootless buildkitd](https://github.com/containerd/nerdctl/issues/3668)
+- [rootlesscontaine.rs: containerd/nerdctl setup](https://rootlesscontaine.rs/getting-started/containerd/)
+- [Docker vs Podman vs containerd vs nerdctl 2025 (sanj.dev)](https://sanj.dev/post/docker-vs-podman-comparison)
+- [podman vs nerdctl comparison (DevOps.dev)](https://blog.devops.dev/podman-vs-nerdctl-whats-the-deal-8f9511fb975d)
+- [Halodoc: Docker removal, nerdctl adoption](https://blogs.halodoc.io/docker-removal-nerdctl-adoption/)
+
+---
+
+## Key Takeaways for Sandcastle
+
+1. **Sysbox is in a precarious position.** The last release was May 2024. Docker 28.5.2 (with runc 1.3.3) breaks Sysbox with no fix in sight (Issue #973). Your DinD ownership watcher fix (commit 2deac51) addressed the Docker 29 chown bug, but the runc 1.3.3 procfs conflict is a separate, deeper architectural incompatibility that Sysbox maintainers have not resolved. This should be monitored closely.
+
+2. **Podman rootless is a credible Sysbox alternative** for the sandbox use case IF you can guarantee kernel >= 5.12 (Ubuntu 24.04 ships 6.8, so this is met). It requires `--device=/dev/fuse` or native overlay, `--security-opt label=disable`, and proper `/etc/subuid` mapping — no `--privileged`. The API socket emulation is broken for Docker CLI v29+ clients (API 1.41 vs required 1.44), which would affect any CLI tooling inside sandboxes that talks to the Podman socket.
+
+3. **The runc vulnerabilities (CVE-2025-52881 et al.)** confirm that `--privileged` + runc is not safe for multi-tenant. Sysbox's user namespace approach remains architecturally correct — the tragedy is that the security fix that broke Sysbox was itself addressing a real attack vector.
+
+4. **nerdctl/containerd does not solve the DinD problem** better than Podman for Sandcastle's architecture. It introduces daemon management complexity inside each sandbox container with no meaningful security advantage.</result>
+<usage><total_tokens>59561</total_tokens><tool_uses>32</tool_uses><duration_ms>324386</duration_ms></usage>
+</task-notification>
+Full transcript available at: REDACTED.output
+
+---
+
+research and add references from the web that also describe the issue, we're not the only ones having it?
+
+---
+
+the outer docker is setuped and maintained by dockyards (bundles im installer - repo is ../dockyard) the inner docker is part of images/sandbox - 
+what changes are required to both?
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+avalable versions:
+--- docker-ce ---
+ docker-ce | 5:29.2.1-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.2.0-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.1.5-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.1.4-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.1.3-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.1.2-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.1.1-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.1.0-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.0.4-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+ docker-ce | 5:29.0.3-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+--- containerd.io ---
+containerd.io | 2.2.1-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io | 2.2.0-2~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io | 2.1.5-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io | 1.7.29-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io | 1.7.28-2~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io | 1.7.28-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io | 1.7.28-0~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io |   1.7.27-1 | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io |   1.7.26-1 | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+containerd.io |   1.7.25-1 | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+--- docker-buildx-plugin ---
+docker-buildx-plugin | 0.31.1-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.30.1-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.30.0-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.29.1-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.29.0-0~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.28.0-0~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.27.0-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.26.1-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.25.0-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-buildx-plugin | 0.24.0-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+--- docker-compose-plugin ---
+docker-compose-plugin | 5.0.2-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-compose-plugin | 5.0.1-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-compose-plugin | 5.0.0-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-compose-plugin | 2.40.3-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+docker-compose-plugin | 2.40.2-1~ubuntu.24.04~noble | https://download.docker.com/linux/ubuntu noble/stable amd64 Packages
+root@37e702db6826:/#

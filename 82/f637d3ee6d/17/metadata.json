@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "a6a58d97-b8a0-4124-a655-20c46342f7fd",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-23T07:29:57.029189Z",
+  "branch": "fix/pin-inner-docker-sysbox-compat",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "images/sandbox/Dockerfile",
+    "installer/templates/dockyard.sh"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "c37dedd3-2e1c-4625-b80f-c16e35245a1d",
+  "token_usage": {
+    "input_tokens": 50,
+    "cache_creation_tokens": 204288,
+    "cache_read_tokens": 2928220,
+    "output_tokens": 21103,
+    "api_call_count": 32
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-23T07:29:56.900449Z",
+    "agent_lines": 0,
+    "human_added": 23,
+    "human_modified": 11,
+    "human_removed": 0,
+    "total_committed": 25,
+    "agent_percentage": 0
+  }
+}
