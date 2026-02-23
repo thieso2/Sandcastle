@@ -66,22 +66,29 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && chmod a+r /etc/apt/keyrings/docker.asc \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" > /etc/apt/sources.list.d/docker.list \
     && apt-get update \
-    && apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+    && apt-get install -y \
+         docker-ce=5:29.0.3-1~ubuntu.24.04~noble \
+         docker-ce-cli=5:29.0.3-1~ubuntu.24.04~noble \
+         containerd.io=1.7.27-1 \
+         docker-buildx-plugin=0.24.0-1~ubuntu.24.04~noble \
+         docker-compose-plugin=2.40.3-1~ubuntu.24.04~noble \
     && rm -rf /var/lib/apt/lists/*
 
-# Pin runc to 1.1.x — runc 1.2+ added a procfs safety check that fails
-# inside sysbox containers (sysbox-fs mounts /proc/sys as separate FUSE)
+# Pin runc — multiple runc versions break inside sysbox containers:
+#   runc 1.2+  — /proc/thread-self handling change (fixed in sysbox 0.6.6)
+#   runc 1.3.3 — CVE-2025-52881 fix detects sysbox's virtual /proc as an
+#                unsafe cross-device mount and aborts ALL container init
+#                (nestybox/sysbox#973, unresolved as of Feb 2026)
+# Also: containerd.io ≥ 2.x breaks sysbox-runc entirely (nestybox/sysbox#958).
+# Pinned above to containerd.io=1.7.27-1 (last safe version before both
+# the 1.7.28-2 behavioural change and the 2.x series). See Sandcastle issue #56.
+# containerd calls /usr/bin/runc — overwriting it here pins it regardless of
+# which docker-ce or containerd.io version is installed above.
 RUN RUNC_VERSION="v1.1.15" \
     && ARCH=$(dpkg --print-architecture) \
     && curl -fsSL "https://github.com/opencontainers/runc/releases/download/${RUNC_VERSION}/runc.${ARCH}" \
        -o /usr/bin/runc \
     && chmod +x /usr/bin/runc
-
-# Docker Compose plugin
-RUN mkdir -p /usr/local/lib/docker/cli-plugins \
-    && curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" \
-       -o /usr/local/lib/docker/cli-plugins/docker-compose \
-    && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 # Stage mise + Claude Code in /opt/sandcastle/bin (seeded to ~/.local/bin on first boot)
 RUN mkdir -p /opt/sandcastle/bin \
