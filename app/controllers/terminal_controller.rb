@@ -24,11 +24,7 @@ class TerminalController < ApplicationController
   private
 
   def find_sandbox
-    if Current.user.admin?
-      Sandbox.active.find(params[:id])
-    else
-      Current.user.sandboxes.active.find(params[:id])
-    end
+    Current.user.sandboxes.active.find(params[:id])
   end
 
   # Build the full terminal URL. In production, Traefik is the entry point
@@ -60,7 +56,7 @@ class TerminalController < ApplicationController
 
     user    = session_record.user
     sandbox = Sandbox.active.find_by(id: match[1].to_i)
-    head(:unauthorized) and return unless sandbox && (sandbox.user_id == user.id || user.admin?)
+    head(:unauthorized) and return unless sandbox && sandbox.user_id == user.id
 
     head :ok
   end

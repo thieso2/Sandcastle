@@ -177,11 +177,11 @@ module Api
         raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} not found"
       elsif sandbox.status == "destroyed"
         raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} has been destroyed"
-      elsif sandbox.user_id != current_user.id && !current_user.admin?
+      elsif sandbox.user_id != current_user.id
         raise Pundit::NotAuthorizedError, "You don't have access to this sandbox"
       else
         # Sandbox exists and belongs to user, but not in policy scope - this shouldn't happen
-        Rails.logger.error("Sandbox #{params[:id]} exists (status: #{sandbox.status}, user: #{sandbox.user_id}) but not in policy_scope for user #{current_user.id} (admin: #{current_user.admin?})")
+        Rails.logger.error("Sandbox #{params[:id]} exists (status: #{sandbox.status}, user: #{sandbox.user_id}) but not in policy_scope for user #{current_user.id}")
         raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} is not accessible (status: #{sandbox.status})"
       end
     end
