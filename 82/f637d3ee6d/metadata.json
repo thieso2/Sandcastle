@@ -3,12 +3,13 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "fix/pin-inner-docker-sysbox-compat",
-  "checkpoints_count": 23,
+  "checkpoints_count": 24,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
     "app/controllers/admin/settings_controller.rb",
     "app/controllers/api/routes_controller.rb",
+    "app/controllers/api/sandboxes_controller.rb",
     "app/controllers/routes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
@@ -17,6 +18,7 @@
     "app/models/route.rb",
     "app/models/sandbox.rb",
     "app/models/setting.rb",
+    "app/policies/sandbox_policy.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
     "app/services/tailscale_manager.rb",
@@ -176,13 +178,20 @@
       "context": "/82/f637d3ee6d/17/context.md",
       "content_hash": "/82/f637d3ee6d/17/content_hash.txt",
       "prompt": "/82/f637d3ee6d/17/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/18/metadata.json",
+      "transcript": "/82/f637d3ee6d/18/full.jsonl",
+      "context": "/82/f637d3ee6d/18/context.md",
+      "content_hash": "/82/f637d3ee6d/18/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/18/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 814,
-    "cache_creation_tokens": 1089748,
-    "cache_read_tokens": 60257544,
-    "output_tokens": 160964,
-    "api_call_count": 684
+    "input_tokens": 836,
+    "cache_creation_tokens": 1141819,
+    "cache_read_tokens": 61012142,
+    "output_tokens": 162240,
+    "api_call_count": 700
   }
 }

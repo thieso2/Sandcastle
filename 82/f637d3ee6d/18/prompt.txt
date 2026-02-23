@@ -1,0 +1,128 @@
+Implement the following plan:
+
+# Plan: Scope Sandboxes Strictly by Owner
+
+## Context
+
+Currently, admin users see **all** sandboxes (from every user) on the main dashboard because `SandboxPolicy::Scope#resolve` returns `scope.active` for admins. Additionally, admins can open terminals and VNC sessions into any user's sandbox, which is a serious privilege escalation risk.
+
+**Desired behaviour:**
+- Main dashboard and API: show/operate only **your own** sandboxes, even for admins
+- Admin panel: see all sandboxes, can start/stop/destroy — but **cannot connect/terminal/VNC**
+- `connect`, terminal, VNC, snapshot, restore, tailscale: **owner only, period**
+
+---
+
+## Root Causes
+
+| Issue | Location |
+|---|---|
+| Admins see all sandboxes in dashboard | `SandboxPolicy::Scope#resolve` returns `scope.active` for admins |
+| Admins can open terminal into any sandbox | `TerminalController#find_sandbox` calls `Sandbox.active.find()` for admins |
+| Admins can open VNC into any sandbox | `VncController#find_sandbox` — same pattern |
+| Traefik forwardAuth allows admin into any terminal | `TerminalController#auth` + `VncController#auth` have `|| user.admin?` |
+| Policy allows admin to `connect?` / `snapshot?` etc. | `owner_or_admin?` on sensitive actions |
+| API error handler has admin bypass | `api/sandboxes_controller.rb:180` `!current_user.admin?` guard |
+
+---
+
+## Changes
+
+### 1. `app/policies/sandbox_policy.rb`
+
+**Scope:** Remove admin exception — always filter to current user's sandboxes.
+The admin panel uses `Sandbox.active.find()` directly (no `policy_scope`) so it is unaffected.
+
+```ruby
+class Scope < ApplicationPolicy::Scope
+  def resolve
+    scope.where(user:).active   # owner-only, always
+  end
+end
+```
+
+**Policy actions:** Introduce `owner_only?` private method (`record.user_id == user.id`).
+Apply it to all actions that grant direct access to sandbox internals:
+
+| Action | Before | After |
+|---|---|---|
+| `show?` | `owner_or_admin?` | `owner_only?` |
+| `retry?` | `owner_or_admin?` | `owner_only?` |
+| `card?` | `owner_or_admin?` | `owner_only?` |
+| `connect?` | `owner_or_admin?` | `owner_only?` |
+| `snapshot?` | `owner_or_admin?` | `owner_only?` |
+| `restore?` | `owner_or_admin?` | `owner_only?` |
+| `tailscale_connect?` | `owner_or_admin?` | `owner_only?` |
+| `tailscale_disconnect?` | `owner_or_admin?` | `owner_only?` |
+| `start?` | `owner_or_admin?` | **keep** (admin panel needs this) |
+| `stop?` | `owner_or_admin?` | **keep** (admin panel needs this) |
+| `destroy?` | `owner_or_admin?` | **keep** (admin panel needs this) |
+| `stats?` | `owner_or_admin?` | **keep** (admin panel needs this) |
+
+### 2. `app/controllers/terminal_controller.rb`
+
+`find_sandbox`: Remove admin branch — always scope to current user.
+```ruby
+def find_sandbox
+  Current.user.sandboxes.active.find(params[:id])
+end
+```
+
+`auth`: Remove `|| user.admin?` from the ownership check.
+```ruby
+head(:unauthorized) and return unless sandbox && sandbox.user_id == user.id
+```
+
+### 3. `app/controllers/vnc_controller.rb`
+
+Same two changes as `terminal_controller.rb`.
+
+### 4. `app/controllers/api/sandboxes_controller.rb`
+
+`set_sandbox` rescue block (line 180): Remove `&& !current_user.admin?` exception so admins get a clean `NotAuthorizedError` (not silently allowed through).
+
+```ruby
+elsif sandbox.user_id != current_user.id
+  raise Pundit::NotAuthorizedError, "You don't have access to this sandbox"
+```
+
+---
+
+## Files to Modify
+
+- `app/policies/sandbox_policy.rb`
+- `app/controllers/terminal_controller.rb`
+- `app/controllers/vnc_controller.rb`
+- `app/controllers/api/sandboxes_controller.rb`
+
+---
+
+## What Is NOT Changed
+
+- `Admin::SandboxesController` — already uses direct `Sandbox.active.find()` and `require_admin` guard; only has start/stop/destroy/stats routes (no connect)
+- Admin dashboard view — no terminal/connect buttons exist there already
+- `SandboxPolicy#start?`, `stop?`, `destroy?`, `stats?` — keep `owner_or_admin?` so admin panel continues to work
+
+---
+
+## Verification
+
+1. **As admin user:** Visit `/` → only own sandboxes visible (not other users')
+2. **As admin user:** Visit admin panel → all users' sandboxes still visible with start/stop/destroy
+3. **As admin user:** Directly GET `/sandboxes/:id` for another user's sandbox → 404 (scope filters it)
+4. **As admin user:** POST `/sandboxes/:id/connect` for another user's sandbox → 404
+5. **As admin user:** Attempt to open terminal for another user's sandbox → 404
+6. **As admin user:** Traefik auth for another user's terminal URL → 401
+7. **As regular user:** Own sandboxes visible, operations work normally
+8. **CLI:** `sandcastle list` returns only own sandboxes; `sandcastle connect` on own sandbox works
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+run the tests
+
+---
+
+just commit and push
