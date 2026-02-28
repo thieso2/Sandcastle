@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     openssh-server sudo curl git tmux vim neovim \
     build-essential \
     jq ripgrep fd-find htop wget unzip ca-certificates net-tools iproute2 iputils-ping \
+    mosh \
     && rm -rf /var/lib/apt/lists/*
 
 # GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined) and window manager.
@@ -142,5 +143,6 @@ LABEL org.opencontainers.image.licenses="MIT"
 
 WORKDIR /workspace
 EXPOSE 22 5900 6080 7681 7682
+EXPOSE 60000-61000/udp
 
 ENTRYPOINT ["/entrypoint.sh"]
