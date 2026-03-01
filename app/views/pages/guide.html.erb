@@ -287,6 +287,58 @@ SANDCASTLE_TLS_MODE=selfsigned</code></pre>
     </div>
   </section>
 
+  <%# ── Backup and Restore ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">14. Backup and restore <span class="text-sm font-normal text-gray-500">(admin)</span></h2>
+    <p class="text-gray-700 mb-3">
+      The <code class="bg-gray-100 px-1.5 py-0.5 rounded">sandcastle-admin</code> tool creates and restores full instance backups
+      as a single <code class="bg-gray-100 px-1.5 py-0.5 rounded">.tar.zst</code> file. It backs up databases, user data, secrets,
+      and snapshot images. Sandcastle can stay <strong>online</strong> during backup.
+    </p>
+
+    <p class="text-gray-700 mb-3"><strong>Create a backup:</strong></p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Full backup to current directory
+sandcastle-admin backup
+
+# Specify output path
+sandcastle-admin backup --output /backups/pre-upgrade.tar.zst
+
+# Skip large sandbox volumes (faster)
+sandcastle-admin backup --no-sandbox-volumes
+
+# Skip snapshot Docker images (faster)
+sandcastle-admin backup --no-snapshot-images</code></pre>
+
+    <p class="text-gray-700 mb-3 mt-4"><strong>Restore from a backup:</strong></p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Interactive restore with preflight check
+sandcastle-admin restore sandcastle-backup-2026-03-01_120000-0.2.3.tar.zst
+
+# Non-interactive (skip confirmation prompt)
+sandcastle-admin restore backup.tar.zst --yes
+
+# Restore only the database (keep current filesystem data)
+sandcastle-admin restore backup.tar.zst --skip-data --skip-images</code></pre>
+
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4 text-sm text-yellow-800">
+      <strong>Warning:</strong> Restore stops Sandcastle, overwrites data, and restarts services.
+      Always test a restore on a staging machine before using it in production.
+    </div>
+
+    <p class="text-gray-700 mb-3 mt-4"><strong>What is backed up:</strong></p>
+    <ul class="list-disc list-inside text-gray-700 ml-4 space-y-1 text-sm mb-3">
+      <li>PostgreSQL databases (all 4, using <code class="bg-gray-100 px-1 rounded">pg_dump --format=custom</code>)</li>
+      <li>Rails AR encryption keys and DB password</li>
+      <li>User home and data directories</li>
+      <li>Sandbox persistent volumes (unless <code class="bg-gray-100 px-1 rounded">--no-sandbox-volumes</code>)</li>
+      <li>Snapshot directories and Docker images (unless <code class="bg-gray-100 px-1 rounded">--no-snapshot-images</code>)</li>
+      <li>Let's Encrypt certificate (<code class="bg-gray-100 px-1 rounded">acme.json</code>) — prevents re-issue rate limits</li>
+    </ul>
+
+    <p class="text-gray-700 mb-1 mt-4"><strong>Cross-version restore:</strong> restore works across versions — after restoring the
+    database, <code class="bg-gray-100 px-1.5 py-0.5 rounded">rails db:prepare</code> runs all pending migrations to bring the schema
+    up to the current version.</p>
+  </section>
+
   <div class="border-t border-gray-200 pt-6 text-center">
     <p class="text-sm text-gray-500">
       Run <code class="bg-gray-100 px-1.5 py-0.5 rounded">sandcastle --help</code> for the full command reference.

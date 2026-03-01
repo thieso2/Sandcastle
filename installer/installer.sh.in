@@ -208,7 +208,7 @@ setup_passwordless_sudo() {
 setup_bashrc_path() {
   local profile="${SANDCASTLE_HOME}/.profile"
   local bashrc="${SANDCASTLE_HOME}/.bashrc"
-  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
+  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:${SANDCASTLE_HOME}/bin:\$PATH"
 
   info "Configuring PATH in .profile and .bashrc..."
 
@@ -216,6 +216,8 @@ setup_bashrc_path() {
   touch "$profile"
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$profile"
 
+  # Remove old single-entry path export if present (idempotent upgrade)
+  sed -i "\|export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\\\$PATH|d" "$profile" 2>/dev/null || true
   if ! grep -qF "$path_export" "$profile" 2>/dev/null; then
     echo "$path_export" >> "$profile"
     wrote "$profile"
@@ -225,6 +227,7 @@ setup_bashrc_path() {
   touch "$bashrc"
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$bashrc"
 
+  sed -i "\|export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\\\$PATH|d" "$bashrc" 2>/dev/null || true
   if ! grep -qF "$path_export" "$bashrc" 2>/dev/null; then
     echo "$path_export" >> "$bashrc"
     wrote "$bashrc"
@@ -255,6 +258,7 @@ BANNER_SCRIPT
 
 ensure_dirs() {
   mkdir -p "$SANDCASTLE_HOME"/etc
+  mkdir -p "$SANDCASTLE_HOME"/bin
   mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty,postgres,snapshots}
   mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
@@ -413,6 +417,17 @@ exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml logs -f "\$
 LOGS
   chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
   wrote "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+
+  write_admin_script
+}
+
+write_admin_script() {
+  cat > "${SANDCASTLE_HOME}/bin/sandcastle-admin" <<'ADMINEOF'
+@@TEMPLATE:templates/sandcastle-admin.sh@@
+ADMINEOF
+  chmod +x "${SANDCASTLE_HOME}/bin/sandcastle-admin"
+  chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "${SANDCASTLE_HOME}/bin/sandcastle-admin"
+  wrote "${SANDCASTLE_HOME}/bin/sandcastle-admin"
 }
 
 write_compose() {
@@ -658,6 +673,18 @@ cmd_install() {
   show_image_info "sandcastle"
   show_image_info "sandcastle-sandbox"
   echo ""
+
+  # ── Install prerequisites ─────────────────────────────────────────────────
+
+  local pkgs_to_install=()
+  command -v zstd  &>/dev/null || pkgs_to_install+=(zstd)
+  command -v rsync &>/dev/null || pkgs_to_install+=(rsync)
+
+  if [ ${#pkgs_to_install[@]} -gt 0 ]; then
+    info "Installing prerequisites: ${pkgs_to_install[*]}..."
+    apt-get install -y "${pkgs_to_install[@]}" >/dev/null
+    ok "Prerequisites installed: ${pkgs_to_install[*]}"
+  fi
 
   # ── Install Dockyard ──────────────────────────────────────────────────────
 
@@ -1194,6 +1221,7 @@ INITDB
   echo -e "  Config:     $SANDCASTLE_HOME/etc/sandcastle.env"
   echo -e "  Docker:     $DOCKER"
   echo -e "  Logs:       ${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  echo -e "  Backup:     sandcastle-admin backup"
 
   print_written_files
   echo ""
