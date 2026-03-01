@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sandcastle/cli/api"
+	"github.com/sandcastle/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +24,7 @@ func init() {
 
 var connectCmd = &cobra.Command{
 	Use:   "connect [name]",
-	Short: "SSH into sandbox and attach tmux (auto-starts if stopped)",
+	Short: "Connect to sandbox and attach tmux (auto-starts if stopped)",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := resolveSandboxName(args)
@@ -60,12 +61,22 @@ var connectCmd = &cobra.Command{
 			return err
 		}
 
-		if connectMosh {
-			return moshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+		prefs := cfg.LoadPreferences()
+
+		var remoteCmd string
+		if *prefs.UseTmux {
+			remoteCmd = "tmux new-session -A -s main"
 		}
 
-		// SSH with tmux attach-or-create
-		return sshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
+		// --mosh flag takes precedence over ConnectProtocol preference
+		if connectMosh || prefs.ConnectProtocol == "mosh" {
+			return moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
+		}
+		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
 	},
 }
 
@@ -99,7 +110,13 @@ var sshCmd = &cobra.Command{
 			return err
 		}
 
-		return sshExec(info.Host, info.Port, info.User, "")
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+		prefs := cfg.LoadPreferences()
+
+		return sshExec(info.Host, info.Port, info.User, "", prefs.SSHExtraArgs)
 	},
 }
 
@@ -143,14 +160,17 @@ func waitForSSH(host string, port int) error {
 	return fmt.Errorf("timeout waiting for SSH at %s", addr)
 }
 
-func sshExec(host string, port int, user string, remoteCmd string) error {
+func sshExec(host string, port int, user string, remoteCmd string, extraArgs string) error {
 	sshArgs := []string{
 		"-p", strconv.Itoa(port),
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "LogLevel=ERROR",
-		fmt.Sprintf("%s@%s", user, host),
 	}
+	if extraArgs != "" {
+		sshArgs = append(sshArgs, strings.Fields(extraArgs)...)
+	}
+	sshArgs = append(sshArgs, fmt.Sprintf("%s@%s", user, host))
 	if remoteCmd != "" {
 		sshArgs = append(sshArgs, "-t", remoteCmd)
 	}
@@ -182,22 +202,24 @@ func sshExec(host string, port int, user string, remoteCmd string) error {
 	return nil
 }
 
-func moshExec(host string, port int, user string, remoteCmd string) error {
-	moshPath, err := exec.LookPath("mosh")
-	if err != nil {
-		return fmt.Errorf("mosh not found in PATH — install mosh on your local machine first (https://mosh.org)")
-	}
-
-	// Build the SSH options string for mosh --ssh=
+func moshExec(host string, port int, user string, remoteCmd string, extraArgs string) error {
 	sshOpts := fmt.Sprintf("ssh -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR", port)
+	if extraArgs != "" {
+		sshOpts += " " + extraArgs
+	}
 
 	moshArgs := []string{
-		fmt.Sprintf("--ssh=%s", sshOpts),
+		"--ssh=" + sshOpts,
+		fmt.Sprintf("%s@%s", user, host),
 	}
 	if remoteCmd != "" {
-		moshArgs = append(moshArgs, "--", fmt.Sprintf("%s@%s", user, host), remoteCmd)
-	} else {
-		moshArgs = append(moshArgs, fmt.Sprintf("%s@%s", user, host))
+		moshArgs = append(moshArgs, "--")
+		moshArgs = append(moshArgs, strings.Fields(remoteCmd)...)
+	}
+
+	moshPath, err := exec.LookPath("mosh")
+	if err != nil {
+		return fmt.Errorf("mosh not found in PATH — install mosh on your local machine first (https://mosh.org): %w", err)
 	}
 
 	if os.Getenv("VERBOSE") == "1" {
