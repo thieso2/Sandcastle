@@ -205,6 +205,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		if loadErr != nil {
 			return loadErr
 		}
+		autoDetectProtocol(cfg, info)
 		prefs := cfg.LoadPreferences()
 
 		var remoteCmd string

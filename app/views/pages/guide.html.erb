@@ -92,6 +92,11 @@ sandcastle ssh my-dev</code></pre>
       Mosh uses UDP ports 60000–61000 — if your sandbox is reachable only via SSH tunneling, use
       <a href="#tailscale" class="underline">Tailscale</a> instead (it handles UDP natively).
     </div>
+    <p class="text-gray-700 mt-3">
+      On your <strong>first connect</strong> the CLI auto-detects whether mosh is available both locally and on
+      the server, and saves the result as your default protocol — no manual configuration needed.
+      Override any time with <code class="bg-gray-100 px-1 rounded">sandcastle config set connect_protocol ssh</code>.
+    </p>
   </section>
 
   <%# ── Web Terminal ── %>
@@ -306,11 +311,13 @@ SANDCASTLE_TLS_MODE=selfsigned</code></pre>
     <h2 class="text-xl font-semibold text-gray-900 mb-3">14. CLI preferences</h2>
     <p class="text-gray-700 mb-3">
       Persist connection preferences in <code class="bg-gray-100 px-1 rounded">~/.sandcastle/config.yaml</code>.
+      On your first <code class="bg-gray-100 px-1 rounded">sandcastle connect</code> or <code class="bg-gray-100 px-1 rounded">sandcastle create</code>
+      the CLI auto-detects whether mosh is installed locally and on the server, and saves the best protocol automatically.
       Environment variables override the file (useful with
       <code class="bg-gray-100 px-1 rounded">mise</code> or <code class="bg-gray-100 px-1 rounded">direnv</code>).
     </p>
-    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Use mosh instead of SSH by default
-sandcastle config set connect_protocol mosh
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Override the auto-detected protocol
+sandcastle config set connect_protocol mosh  # or: ssh
 
 # Disable automatic tmux session attachment
 sandcastle config set use_tmux false
@@ -319,7 +326,7 @@ sandcastle config set use_tmux false
 sandcastle config show</code></pre>
 
     <p class="text-gray-700 mb-2 mt-4">Environment variable overrides (highest priority):</p>
-    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>SANDCASTLE_CONNECT_PROTOCOL=mosh  # "ssh" (default) | "mosh"
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>SANDCASTLE_CONNECT_PROTOCOL=mosh  # "ssh" | "mosh" (auto-detected on first connect)
 SANDCASTLE_USE_TMUX=false         # "true" (default) | "false"
 SANDCASTLE_SSH_EXTRA_ARGS="-v"   # extra flags appended to ssh/mosh</code></pre>
 

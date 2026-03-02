@@ -65,6 +65,7 @@ var connectCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		autoDetectProtocol(cfg, info)
 		prefs := cfg.LoadPreferences()
 
 		var remoteCmd string
