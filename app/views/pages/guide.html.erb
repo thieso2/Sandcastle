@@ -78,6 +78,20 @@ sandcastle connect my-dev
 
 # Plain SSH
 sandcastle ssh my-dev</code></pre>
+
+    <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Mosh (persistent, roaming sessions)</h3>
+    <p class="text-gray-700 mb-3">
+      Use <a href="https://mosh.org" target="_blank" class="text-blue-600 hover:text-blue-800 underline">mosh</a>
+      for a connection that survives network changes and high-latency links. Mosh is pre-installed in every sandbox.
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle connect --mosh my-dev</code></pre>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3 text-sm text-blue-800">
+      <strong>Requirements:</strong> <code class="bg-blue-100 px-1 rounded">mosh</code> must be installed on your local machine
+      (<code class="bg-blue-100 px-1 rounded">brew install mosh</code> on macOS,
+      <code class="bg-blue-100 px-1 rounded">apt install mosh</code> on Debian/Ubuntu).
+      Mosh uses UDP ports 60000–61000 — if your sandbox is reachable only via SSH tunneling, use
+      <a href="#tailscale" class="underline">Tailscale</a> instead (it handles UDP natively).
+    </div>
   </section>
 
   <%# ── Web Terminal ── %>

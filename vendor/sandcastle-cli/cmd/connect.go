@@ -13,9 +13,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var connectMosh bool
+
 func init() {
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(sshCmd)
+	connectCmd.Flags().BoolVar(&connectMosh, "mosh", false, "Connect using mosh instead of SSH (requires mosh on client)")
 }
 
 var connectCmd = &cobra.Command{
@@ -55,6 +58,10 @@ var connectCmd = &cobra.Command{
 
 		if err := waitForSSH(info.Host, info.Port); err != nil {
 			return err
+		}
+
+		if connectMosh {
+			return moshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
 		}
 
 		// SSH with tmux attach-or-create
@@ -163,6 +170,46 @@ func sshExec(host string, port int, user string, remoteCmd string) error {
 	process, err := os.StartProcess(sshPath, append([]string{"ssh"}, sshArgs...), proc)
 	if err != nil {
 		return fmt.Errorf("starting ssh: %w", err)
+	}
+
+	state, err := process.Wait()
+	if err != nil {
+		return err
+	}
+	if !state.Success() {
+		os.Exit(state.ExitCode())
+	}
+	return nil
+}
+
+func moshExec(host string, port int, user string, remoteCmd string) error {
+	moshPath, err := exec.LookPath("mosh")
+	if err != nil {
+		return fmt.Errorf("mosh not found in PATH — install mosh on your local machine first (https://mosh.org)")
+	}
+
+	// Build the SSH options string for mosh --ssh=
+	sshOpts := fmt.Sprintf("ssh -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR", port)
+
+	moshArgs := []string{
+		fmt.Sprintf("--ssh=%s", sshOpts),
+	}
+	if remoteCmd != "" {
+		moshArgs = append(moshArgs, "--", fmt.Sprintf("%s@%s", user, host), remoteCmd)
+	} else {
+		moshArgs = append(moshArgs, fmt.Sprintf("%s@%s", user, host))
+	}
+
+	if os.Getenv("VERBOSE") == "1" {
+		fmt.Fprintf(os.Stderr, "→ mosh %s\n", shellJoin(moshArgs))
+	}
+
+	proc := &os.ProcAttr{
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+	}
+	process, err := os.StartProcess(moshPath, append([]string{"mosh"}, moshArgs...), proc)
+	if err != nil {
+		return fmt.Errorf("starting mosh: %w", err)
 	}
 
 	state, err := process.Wait()
