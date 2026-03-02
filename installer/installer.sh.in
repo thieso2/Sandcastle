@@ -62,6 +62,9 @@ Commands:
   uninstall    Remove Sandcastle completely
   help         Show this help message
 
+Install options:
+  --from-backup <file>   Restore from a sandcastle-admin backup archive
+
 Environment:
   SANDCASTLE_ENV   Path to config file (default search order:
                    ./sandcastle.env → <script_dir>/sandcastle.env →
@@ -71,6 +74,11 @@ Workflow:
   1. installer.sh gen-env              # generate config
   2. vi sandcastle.env                 # edit to taste
   3. sudo installer.sh install         # install (finds ./sandcastle.env)
+
+Restore from backup:
+  1. installer.sh gen-env              # generate config (no admin password needed)
+  2. vi sandcastle.env                 # set SANDCASTLE_HOST and SANDCASTLE_ADMIN_EMAIL
+  3. sudo installer.sh install --from-backup backup.tar.zst
 USAGE
   exit 0
 fi
@@ -208,7 +216,7 @@ setup_passwordless_sudo() {
 setup_bashrc_path() {
   local profile="${SANDCASTLE_HOME}/.profile"
   local bashrc="${SANDCASTLE_HOME}/.bashrc"
-  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
+  local path_export="export PATH=${SANDCASTLE_HOME}/bin:${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
 
   info "Configuring PATH in .profile and .bashrc..."
 
@@ -250,11 +258,46 @@ BANNER_SCRIPT
   ok "Login banner configured"
 }
 
+# ═══ install_prerequisites ═══════════════════════════════════════════════
+# Install system packages needed for backup/restore (zstd, rsync). Idempotent.
+
+install_prerequisites() {
+  local missing=()
+  command -v zstd  &>/dev/null || missing+=("zstd")
+  command -v rsync &>/dev/null || missing+=("rsync")
+
+  if [ ${#missing[@]} -eq 0 ]; then
+    return 0
+  fi
+
+  info "Installing prerequisites: ${missing[*]}..."
+  if apt-get install -y "${missing[@]}" >/dev/null 2>&1; then
+    ok "Prerequisites installed: ${missing[*]}"
+  else
+    warn "Failed to install ${missing[*]} — backup/restore may not work"
+  fi
+}
+
+# ═══ write_admin_script ══════════════════════════════════════════════════
+# Install sandcastle-admin to $SANDCASTLE_HOME/bin/
+
+write_admin_script() {
+  mkdir -p "$SANDCASTLE_HOME/bin"
+  cat > "$SANDCASTLE_HOME/bin/sandcastle-admin" <<'__ADMIN_EOF__'
+@@TEMPLATE:templates/sandcastle-admin.sh@@
+__ADMIN_EOF__
+  chmod +x "$SANDCASTLE_HOME/bin/sandcastle-admin"
+  chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME/bin/sandcastle-admin"
+  wrote "$SANDCASTLE_HOME/bin/sandcastle-admin"
+  ok "sandcastle-admin installed to $SANDCASTLE_HOME/bin/sandcastle-admin"
+}
+
 # ═══ ensure_dirs ═════════════════════════════════════════════════════════
 # Create/fix data directories and ownership. Safe to run repeatedly.
 
 ensure_dirs() {
   mkdir -p "$SANDCASTLE_HOME"/etc
+  mkdir -p "$SANDCASTLE_HOME"/bin
   mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty,postgres,snapshots}
   mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
@@ -642,6 +685,24 @@ cmd_destroy() {
 # ═══ cmd_install ═════════════════════════════════════════════════════════════
 
 cmd_install() {
+  # Parse --from-backup option
+  local BACKUP_FILE=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --from-backup)
+        if [ $# -lt 2 ] || [ -z "${2:-}" ]; then
+          die "--from-backup requires a backup file path argument"
+        fi
+        BACKUP_FILE="$2"
+        [ -f "$BACKUP_FILE" ] || die "Backup file not found: $BACKUP_FILE"
+        shift 2
+        ;;
+      *)
+        die "Unknown option: $1"
+        ;;
+    esac
+  done
+
   require_root
 
   if ! grep -qi ubuntu /etc/os-release 2>/dev/null; then
@@ -756,6 +817,42 @@ DYEOF
   setup_bashrc_path
   setup_login_banner
 
+  # ── Install prerequisites (backup/restore tools) ──────────────────────────
+
+  install_prerequisites
+
+  # ── Install admin script ──────────────────────────────────────────────────
+
+  write_admin_script
+
+  # ── Extract backup secrets (if restoring from backup) ─────────────────────
+
+  if [ -n "$BACKUP_FILE" ]; then
+    info "Extracting secrets from backup: $BACKUP_FILE"
+    local bk_tmp
+    bk_tmp=$(mktemp -d)
+    trap 'rm -rf "$bk_tmp"' EXIT
+    zstd -d "$BACKUP_FILE" --stdout | tar -C "$bk_tmp" -xf - backup/secrets backup/manifest.json 2>/dev/null || \
+      zstd -d "$BACKUP_FILE" --stdout | tar -C "$bk_tmp" -xf -
+
+    local bk_dir="$bk_tmp/backup"
+    [ -d "$bk_dir" ] || die "Invalid backup archive — missing backup/ directory"
+
+    if [ -f "$bk_dir/secrets/postgres.secrets" ]; then
+      mkdir -p "$SANDCASTLE_HOME/data/postgres"
+      cp "$bk_dir/secrets/postgres.secrets" "$SANDCASTLE_HOME/data/postgres/.secrets"
+      chmod 600 "$SANDCASTLE_HOME/data/postgres/.secrets"
+      ok "Extracted postgres secrets from backup"
+    fi
+
+    if [ -f "$bk_dir/secrets/rails.secrets" ]; then
+      mkdir -p "$SANDCASTLE_HOME/data/rails"
+      cp "$bk_dir/secrets/rails.secrets" "$SANDCASTLE_HOME/data/rails/.secrets"
+      chmod 600 "$SANDCASTLE_HOME/data/rails/.secrets"
+      ok "Extracted rails secrets from backup"
+    fi
+  fi
+
   # ── Detect fresh install vs upgrade ─────────────────────────────────────
 
   FRESH_INSTALL=false
@@ -766,8 +863,11 @@ DYEOF
   if [ "$FRESH_INSTALL" = true ]; then
     [ -z "${SANDCASTLE_HOST:-}" ] && die "SANDCASTLE_HOST is required (set in sandcastle.env)"
     [ -z "${SANDCASTLE_ADMIN_EMAIL:-}" ] && die "SANDCASTLE_ADMIN_EMAIL is required (set in sandcastle.env)"
-    [ -z "${SANDCASTLE_ADMIN_PASSWORD:-}" ] && die "SANDCASTLE_ADMIN_PASSWORD is required (set in sandcastle.env or use SANDCASTLE_ADMIN_PASSWORD_FILE)"
-    [ ${#SANDCASTLE_ADMIN_PASSWORD} -lt 6 ] && die "SANDCASTLE_ADMIN_PASSWORD must be at least 6 characters"
+    # When restoring from backup, admin password from backup DB is used — not required in env
+    if [ -z "$BACKUP_FILE" ]; then
+      [ -z "${SANDCASTLE_ADMIN_PASSWORD:-}" ] && die "SANDCASTLE_ADMIN_PASSWORD is required (set in sandcastle.env or use SANDCASTLE_ADMIN_PASSWORD_FILE)"
+      [ ${#SANDCASTLE_ADMIN_PASSWORD} -lt 6 ] && die "SANDCASTLE_ADMIN_PASSWORD must be at least 6 characters"
+    fi
 
     # SANDCASTLE_SUBNET no longer needed - networks allocated from dockyard pool
 
@@ -777,9 +877,8 @@ DYEOF
     # Preserve DB password across reinstalls (user data)
     POSTGRES_SECRETS_FILE="$SANDCASTLE_HOME/data/postgres/.secrets"
     if [ -f "$POSTGRES_SECRETS_FILE" ]; then
-      # shellcheck source=/dev/null
-      source "$POSTGRES_SECRETS_FILE"
-      info "Reusing existing database password"
+      DB_PASSWORD=$(awk -F= '/^DB_PASSWORD=/{print $2}' "$POSTGRES_SECRETS_FILE")
+      info "Using database password from backup"
     else
       DB_PASSWORD=$(openssl rand -hex 32)
       mkdir -p "$SANDCASTLE_HOME/data/postgres"
@@ -793,8 +892,12 @@ DYEOF
     # Each install gets unique keys; losing them makes encrypted values unrecoverable.
     RAILS_SECRETS_FILE="$SANDCASTLE_HOME/data/rails/.secrets"
     if [ -f "$RAILS_SECRETS_FILE" ]; then
-      # shellcheck source=/dev/null
-      source "$RAILS_SECRETS_FILE"
+      AR_ENCRYPTION_PRIMARY_KEY=$(awk -F= '/^AR_ENCRYPTION_PRIMARY_KEY=/{print $2}' "$RAILS_SECRETS_FILE")
+      AR_ENCRYPTION_DETERMINISTIC_KEY=$(awk -F= '/^AR_ENCRYPTION_DETERMINISTIC_KEY=/{print $2}' "$RAILS_SECRETS_FILE")
+      AR_ENCRYPTION_KEY_DERIVATION_SALT=$(awk -F= '/^AR_ENCRYPTION_KEY_DERIVATION_SALT=/{print $2}' "$RAILS_SECRETS_FILE")
+      [ -n "$AR_ENCRYPTION_PRIMARY_KEY" ] || die "Could not extract AR_ENCRYPTION_PRIMARY_KEY from $RAILS_SECRETS_FILE"
+      [ -n "$AR_ENCRYPTION_DETERMINISTIC_KEY" ] || die "Could not extract AR_ENCRYPTION_DETERMINISTIC_KEY from $RAILS_SECRETS_FILE"
+      [ -n "$AR_ENCRYPTION_KEY_DERIVATION_SALT" ] || die "Could not extract AR_ENCRYPTION_KEY_DERIVATION_SALT from $RAILS_SECRETS_FILE"
       info "Reusing existing AR encryption keys"
     else
       mkdir -p "$SANDCASTLE_HOME/data/rails"
@@ -827,7 +930,7 @@ AR_ENCRYPTION_KEY_DERIVATION_SALT="${AR_ENCRYPTION_KEY_DERIVATION_SALT}"
 DB_PASSWORD="${DB_PASSWORD}"
 SANDCASTLE_ADMIN_USER="${SANDCASTLE_ADMIN_USER}"
 SANDCASTLE_ADMIN_EMAIL="${SANDCASTLE_ADMIN_EMAIL}"
-SANDCASTLE_ADMIN_PASSWORD="${SANDCASTLE_ADMIN_PASSWORD}"
+SANDCASTLE_ADMIN_PASSWORD="${SANDCASTLE_ADMIN_PASSWORD:-}"
 SANDCASTLE_ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-}"
 DOCKER_GID="${DOCKER_GID}"
 DOCKER_SOCK="${DOCKER_SOCK}"
@@ -1136,13 +1239,102 @@ INITDB
 
   # ── Start services ────────────────────────────────────────────────────────
 
-  info "Starting Sandcastle..."
-  cd "$SANDCASTLE_HOME"
-  $DOCKER compose up -d
+  if [ -n "$BACKUP_FILE" ] && [ "$FRESH_INSTALL" = true ]; then
+    # When restoring from backup: start only postgres first, restore data,
+    # then start remaining services.
+    info "Starting PostgreSQL for restore..."
+    cd "$SANDCASTLE_HOME"
+    $DOCKER compose up -d postgres
 
-  # ── Seed database (fresh install) ─────────────────────────────────────────
+    # Wait for postgres
+    info "Waiting for PostgreSQL to be ready..."
+    local pg_ready=false
+    for i in $(seq 1 60); do
+      if $DOCKER compose exec -T postgres pg_isready -U sandcastle -d sandcastle_production &>/dev/null; then
+        pg_ready=true
+        break
+      fi
+      sleep 1
+    done
 
-  if [ "$FRESH_INSTALL" = true ]; then
+    if [ "$pg_ready" != true ]; then
+      error "PostgreSQL not ready after 60s"
+      exit 1
+    fi
+    ok "PostgreSQL ready"
+
+    # Re-extract backup to get data and databases
+    info "Restoring data from backup..."
+    local restore_tmp
+    restore_tmp=$(mktemp -d)
+    trap 'rm -rf "$restore_tmp"' EXIT
+    zstd -d "$BACKUP_FILE" --stdout | tar -C "$restore_tmp" -xf -
+    local restore_bk_dir="$restore_tmp/backup"
+
+    # Restore databases
+    if [ -d "$restore_bk_dir/databases" ] && ls "$restore_bk_dir/databases"/*.dump &>/dev/null; then
+      for dump_file in "$restore_bk_dir/databases"/*.dump; do
+        local db
+        db=$(basename "$dump_file" .dump)
+        info "Restoring database: $db"
+
+        if ! $DOCKER compose exec -T postgres \
+            psql -U sandcastle -lqt 2>/dev/null | cut -d'|' -f1 | grep -qw "$db" 2>/dev/null; then
+          if ! $DOCKER compose exec -T postgres createdb -U sandcastle "$db"; then
+            error "Failed to create database: $db"
+            exit 1
+          fi
+        fi
+
+        if ! $DOCKER compose exec -T postgres pg_restore -U sandcastle -d "$db" < "$dump_file"; then
+          error "Failed to restore database: $db"
+          exit 1
+        fi
+        ok "Restored database: $db"
+      done
+    fi
+
+    # Restore user/sandbox/snapshot data
+    if [ -d "$restore_bk_dir/data/users" ]; then
+      info "Restoring users directory..."
+      rsync -a --delete "$restore_bk_dir/data/users/" "$SANDCASTLE_HOME/data/users/"
+      ok "Restored users directory"
+    fi
+    if [ -d "$restore_bk_dir/data/sandboxes" ]; then
+      info "Restoring sandboxes directory..."
+      rsync -a --delete "$restore_bk_dir/data/sandboxes/" "$SANDCASTLE_HOME/data/sandboxes/"
+      ok "Restored sandboxes directory"
+    fi
+    if [ -d "$restore_bk_dir/data/snapshots" ]; then
+      info "Restoring snapshots directory..."
+      rsync -a --delete "$restore_bk_dir/data/snapshots/" "$SANDCASTLE_HOME/data/snapshots/"
+      ok "Restored snapshots directory"
+    fi
+
+    # Load snapshot Docker images
+    if [ -f "$restore_bk_dir/images/snapshots.tar" ]; then
+      info "Loading snapshot Docker images..."
+      if $DOCKER load < "$restore_bk_dir/images/snapshots.tar"; then
+        ok "Loaded snapshot images"
+      else
+        warn "Failed to load some snapshot images"
+      fi
+    fi
+
+    # Start all remaining services
+    info "Starting remaining Sandcastle services..."
+    cd "$SANDCASTLE_HOME"
+    $DOCKER compose up -d
+    ok "All services started"
+  else
+    info "Starting Sandcastle..."
+    cd "$SANDCASTLE_HOME"
+    $DOCKER compose up -d
+  fi
+
+  # ── Seed database (fresh install, not from backup) ─────────────────────────
+
+  if [ "$FRESH_INSTALL" = true ] && [ -z "$BACKUP_FILE" ]; then
     info "Waiting for app to be ready..."
     for i in $(seq 1 30); do
       if curl -sfk https://localhost:${SANDCASTLE_HTTPS_PORT}/up >/dev/null 2>&1; then
@@ -1256,6 +1448,8 @@ ARKEYS
   echo ""
 
   ensure_dirs
+  install_prerequisites
+  write_admin_script
 
   info "Pulling images..."
   $DOCKER pull "$APP_IMAGE" &
@@ -1282,8 +1476,8 @@ ARKEYS
 
 case "$COMMAND" in
   gen-env)    cmd_gen_env ;;
-  install)    load_env; derive_vars; cmd_install ;;
+  install)    load_env; derive_vars; cmd_install "$@" ;;
   update)     load_env; derive_vars; cmd_update ;;
-  reset)      load_env; derive_vars; cmd_destroy true; cmd_install ;;
+  reset)      load_env; derive_vars; cmd_destroy true; cmd_install "$@" ;;
   uninstall)  load_env; derive_vars; cmd_destroy ;;
 esac
