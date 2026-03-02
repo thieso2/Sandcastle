@@ -201,7 +201,23 @@ Flags explicitly passed on the command line take precedence over environment var
 			return err
 		}
 
-		sshErr := sshExec(info.Host, info.Port, info.User, "tmux new-session -A -s main")
+		cfg, loadErr := config.Load()
+		if loadErr != nil {
+			return loadErr
+		}
+		prefs := cfg.LoadPreferences()
+
+		var remoteCmd string
+		if *prefs.UseTmux {
+			remoteCmd = "tmux new-session -A -s main"
+		}
+
+		var sshErr error
+		if prefs.ConnectProtocol == "mosh" {
+			sshErr = moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
+		} else {
+			sshErr = sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
+		}
 
 		if sandboxRemove {
 			// Re-fetch to check if user toggled to "keep" during the session

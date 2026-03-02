@@ -301,6 +301,35 @@ SANDCASTLE_TLS_MODE=selfsigned</code></pre>
     </div>
   </section>
 
+  <%# ── CLI Preferences ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">14. CLI preferences</h2>
+    <p class="text-gray-700 mb-3">
+      Persist connection preferences in <code class="bg-gray-100 px-1 rounded">~/.sandcastle/config.yaml</code>.
+      Environment variables override the file (useful with
+      <code class="bg-gray-100 px-1 rounded">mise</code> or <code class="bg-gray-100 px-1 rounded">direnv</code>).
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Use mosh instead of SSH by default
+sandcastle config set connect_protocol mosh
+
+# Disable automatic tmux session attachment
+sandcastle config set use_tmux false
+
+# Show effective settings (merged from config file + env vars)
+sandcastle config show</code></pre>
+
+    <p class="text-gray-700 mb-2 mt-4">Environment variable overrides (highest priority):</p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>SANDCASTLE_CONNECT_PROTOCOL=mosh  # "ssh" (default) | "mosh"
+SANDCASTLE_USE_TMUX=false         # "true" (default) | "false"
+SANDCASTLE_SSH_EXTRA_ARGS="-v"   # extra flags appended to ssh/mosh</code></pre>
+
+    <p class="text-gray-700 mb-2 mt-4">Example: per-project override with mise:</p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># .mise.toml
+[env]
+SANDCASTLE_CONNECT_PROTOCOL = "mosh"
+SANDCASTLE_USE_TMUX = "false"</code></pre>
+  </section>
+
   <div class="border-t border-gray-200 pt-6 text-center">
     <p class="text-sm text-gray-500">
       Run <code class="bg-gray-100 px-1.5 py-0.5 rounded">sandcastle --help</code> for the full command reference.

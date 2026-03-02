@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/sandcastle/cli/internal/config"
@@ -11,6 +12,7 @@ import (
 func init() {
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(showConfigCmd)
+	configCmd.AddCommand(configSetCmd)
 
 	rootCmd.AddCommand(serverCmd)
 	serverCmd.AddCommand(serverListCmd)
@@ -55,6 +57,83 @@ var showConfigCmd = &cobra.Command{
 			fmt.Println("Token:  (not set)")
 		}
 		fmt.Printf("Config: %s\n", config.Path())
+
+		// Show effective preferences with source annotation
+		prefs := cfg.LoadPreferences()
+		fmt.Println()
+		fmt.Println("Preferences (effective):")
+
+		protocolSrc := sourceLabel(
+			os.Getenv("SANDCASTLE_CONNECT_PROTOCOL") != "",
+			cfg.Preferences.ConnectProtocol != "",
+		)
+		fmt.Printf("  connect_protocol: %-6s  [%s]\n", prefs.ConnectProtocol, protocolSrc)
+
+		useTmuxVal := "true"
+		if prefs.UseTmux != nil && !*prefs.UseTmux {
+			useTmuxVal = "false"
+		}
+		tmuxSrc := sourceLabel(
+			os.Getenv("SANDCASTLE_USE_TMUX") != "",
+			cfg.Preferences.UseTmux != nil,
+		)
+		fmt.Printf("  use_tmux:         %-6s  [%s]\n", useTmuxVal, tmuxSrc)
+
+		extraArgs := prefs.SSHExtraArgs
+		if extraArgs == "" {
+			extraArgs = "(not set)"
+		}
+		extraArgsSrc := sourceLabel(
+			os.Getenv("SANDCASTLE_SSH_EXTRA_ARGS") != "",
+			cfg.Preferences.SSHExtraArgs != "",
+		)
+		fmt.Printf("  ssh_extra_args:   %s  [%s]\n", extraArgs, extraArgsSrc)
+
+		return nil
+	},
+}
+
+// sourceLabel returns "env", "config", or "default" to annotate where a value comes from.
+func sourceLabel(fromEnv, fromConfig bool) string {
+	if fromEnv {
+		return "env"
+	}
+	if fromConfig {
+		return "config"
+	}
+	return "default"
+}
+
+var configSetCmd = &cobra.Command{
+	Use:   "set <key> <value>",
+	Short: "Set a CLI preference",
+	Long: `Set a CLI preference and save it to ~/.sandcastle/config.yaml.
+
+Valid keys:
+  connect_protocol   Connection protocol: "ssh" (default) or "mosh"
+  use_tmux           Wrap connection in tmux: "true" (default) or "false"
+  ssh_extra_args     Extra flags appended to the ssh/mosh invocation
+
+ENV vars override config file values at runtime:
+  SANDCASTLE_CONNECT_PROTOCOL, SANDCASTLE_USE_TMUX, SANDCASTLE_SSH_EXTRA_ARGS`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		key, value := args[0], args[1]
+
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+
+		if err := cfg.SetPreference(key, value); err != nil {
+			return err
+		}
+
+		if err := config.Save(cfg); err != nil {
+			return err
+		}
+
+		fmt.Printf("Set %s = %s\n", key, value)
 		return nil
 	},
 }
@@ -67,8 +146,8 @@ var serverCmd = &cobra.Command{
 }
 
 var serverListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List configured servers",
+	Use:     "list",
+	Short:   "List configured servers",
 	Aliases: []string{"ls"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
@@ -132,10 +211,10 @@ var serverUseCmd = &cobra.Command{
 }
 
 var serverRemoveCmd = &cobra.Command{
-	Use:   "remove <alias>",
-	Short: "Remove a configured server",
+	Use:     "remove <alias>",
+	Short:   "Remove a configured server",
 	Aliases: []string{"rm"},
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		alias := args[0]
 		cfg, err := config.Load()
@@ -165,4 +244,3 @@ var serverRemoveCmd = &cobra.Command{
 		return nil
 	},
 }
-

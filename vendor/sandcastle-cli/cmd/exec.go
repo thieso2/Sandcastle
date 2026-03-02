@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/sandcastle/cli/api"
+	"github.com/sandcastle/cli/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +37,12 @@ var execCmd = &cobra.Command{
 			return err
 		}
 
-		return sshExec(info.Host, info.Port, info.User, remoteCmd)
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+		prefs := cfg.LoadPreferences()
+
+		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
 	},
 }
