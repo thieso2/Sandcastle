@@ -2,8 +2,8 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "fix/pin-inner-docker-sysbox-compat",
-  "checkpoints_count": 24,
+  "branch": "claude/issue-62-20260301-2117",
+  "checkpoints_count": 26,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
@@ -50,7 +50,10 @@
     "test/support/docker_mock.rb",
     "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/api/types.go",
-    "vendor/sandcastle-cli/cmd/route.go"
+    "vendor/sandcastle-cli/cmd/connect.go",
+    "vendor/sandcastle-cli/cmd/detect.go",
+    "vendor/sandcastle-cli/cmd/route.go",
+    "vendor/sandcastle-cli/cmd/sandbox.go"
   ],
   "sessions": [
     {
@@ -185,13 +188,20 @@
       "context": "/82/f637d3ee6d/18/context.md",
       "content_hash": "/82/f637d3ee6d/18/content_hash.txt",
       "prompt": "/82/f637d3ee6d/18/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/19/metadata.json",
+      "transcript": "/82/f637d3ee6d/19/full.jsonl",
+      "context": "/82/f637d3ee6d/19/context.md",
+      "content_hash": "/82/f637d3ee6d/19/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/19/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 836,
-    "cache_creation_tokens": 1141819,
-    "cache_read_tokens": 61012142,
-    "output_tokens": 162240,
-    "api_call_count": 700
+    "input_tokens": 908,
+    "cache_creation_tokens": 1426260,
+    "cache_read_tokens": 67062469,
+    "output_tokens": 199105,
+    "api_call_count": 766
   }
 }

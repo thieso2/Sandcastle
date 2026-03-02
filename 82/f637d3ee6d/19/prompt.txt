@@ -1,0 +1,9 @@
+we have done some massive chnages to dockyard in ../dockyard/ explore and analyze what sandcastle needs to do to use the new dockyrds. create a GH issue firthatl
+
+---
+
+get resolve the conflict in claude/issue-62-20260301-2117
+
+---
+
+we shoudl make mosh the default is a) mosh is avalable lcally and b) it's installes on the server. maybe on teh 1st connect do a detection an dstore the result in the conf file?
