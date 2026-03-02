@@ -133,8 +133,8 @@ derive_vars() {
   DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-${SANDCASTLE_PRIVATE_NET}}"
   DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
 
-  DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
-  DOCKER="${DOCKYARD_ROOT}/docker-runtime/bin/docker"
+  DOCKER_SOCK="${DOCKYARD_ROOT}/run/docker.sock"
+  DOCKER="${DOCKYARD_ROOT}/bin/docker"
 
   ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 
@@ -203,12 +203,12 @@ setup_passwordless_sudo() {
 }
 
 # ═══ setup_bashrc_path ════════════════════════════════════════════════════
-# Add docker-runtime/bin to PATH in .profile and .bashrc (idempotent)
+# Add bin to PATH in .profile and .bashrc (idempotent)
 
 setup_bashrc_path() {
   local profile="${SANDCASTLE_HOME}/.profile"
   local bashrc="${SANDCASTLE_HOME}/.bashrc"
-  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
+  local path_export="export PATH=${SANDCASTLE_HOME}/bin:\$PATH"
 
   info "Configuring PATH in .profile and .bashrc..."
 
@@ -444,7 +444,7 @@ LOADED_ENV_FILE=""
 # Exits immediately if DOCKYARD_ENV is set but the file is missing.
 try_load_env() {
     local script_env="${SCRIPT_DIR}/../etc/dockyard.env"
-    local root_env="${DOCKYARD_ROOT:-/dockyard}/docker-runtime/etc/dockyard.env"
+    local root_env="${DOCKYARD_ROOT:-/dockyard}/etc/dockyard.env"
 
     if [ -n "${DOCKYARD_ENV:-}" ]; then
         if [ ! -f "$DOCKYARD_ENV" ]; then
@@ -482,17 +482,16 @@ derive_vars() {
     DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-172.31.0.0/16}"
     DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
 
-    RUNTIME_DIR="${DOCKYARD_ROOT}/docker-runtime"
-    BIN_DIR="${RUNTIME_DIR}/bin"
-    ETC_DIR="${RUNTIME_DIR}/etc"
-    LOG_DIR="${RUNTIME_DIR}/log"
-    RUN_DIR="${RUNTIME_DIR}/run"
+    BIN_DIR="${DOCKYARD_ROOT}/bin"
+    ETC_DIR="${DOCKYARD_ROOT}/etc"
+    LOG_DIR="${DOCKYARD_ROOT}/log"
+    RUN_DIR="${DOCKYARD_ROOT}/run"
     BRIDGE="${DOCKYARD_DOCKER_PREFIX}docker0"
-    EXEC_ROOT="/run/${DOCKYARD_DOCKER_PREFIX}docker"
     SERVICE_NAME="${DOCKYARD_DOCKER_PREFIX}docker"
-    DOCKER_SOCKET="${DOCKYARD_ROOT}/docker.sock"
-    CONTAINERD_SOCKET="${EXEC_ROOT}/containerd/containerd.sock"
-    DOCKER_DATA="${DOCKYARD_ROOT}/docker"
+    DOCKER_SOCKET="${DOCKYARD_ROOT}/run/docker.sock"
+    CONTAINERD_SOCKET="${DOCKYARD_ROOT}/run/containerd/containerd.sock"
+    DOCKER_DATA="${DOCKYARD_ROOT}/lib/docker"
+    SYSBOX_DATA_DIR="${DOCKYARD_ROOT}/lib/sysbox"
     SYSBOX_SERVICE_NAME="${DOCKYARD_DOCKER_PREFIX}sysbox"
 }
 
@@ -620,8 +619,8 @@ check_prefix_conflict() {
 
 check_root_conflict() {
     local root="${1:-$DOCKYARD_ROOT}"
-    if [ -d "${root}/docker-runtime/bin" ]; then
-        echo "Error: ${root}/docker-runtime/bin/ already exists — dockyard is already installed at this root." >&2
+    if [ -d "${root}/bin" ]; then
+        echo "Error: ${root}/bin/ already exists — dockyard is already installed at this root." >&2
         echo "Use: DOCKYARD_ROOT=/other/path ./dockyard.sh gen-env" >&2
         return 1
     fi
@@ -795,9 +794,8 @@ cmd_create() {
     echo "  DOCKYARD_POOL_SIZE:     ${DOCKYARD_POOL_SIZE}"
     echo ""
     echo "  bridge:      ${BRIDGE}"
-    echo "  exec-root:   ${EXEC_ROOT}"
     echo "  service:     ${SERVICE_NAME}.service"
-    echo "  runtime:     ${RUNTIME_DIR}"
+    echo "  bin:         ${BIN_DIR}"
     echo "  data:        ${DOCKER_DATA}"
     echo "  socket:      ${DOCKER_SOCKET}"
     echo ""
@@ -838,8 +836,9 @@ cmd_create() {
 
     mkdir -p "$LOG_DIR" "$RUN_DIR" "$ETC_DIR" "$BIN_DIR"
     mkdir -p "$DOCKER_DATA"
+    mkdir -p "$SYSBOX_DATA_DIR"
     mkdir -p "$CACHE_DIR"
-    mkdir -p /run/sysbox
+    mkdir -p "${DOCKYARD_ROOT}/run/sysbox"
 
     # Allow sysbox-fs FUSE mounts at the dockyard sysbox mountpoint.
     # The default fusermount3 AppArmor profile (tightened in Ubuntu 25.10+)
@@ -850,8 +849,8 @@ cmd_create() {
         mkdir -p /etc/apparmor.d/local
         cat > /etc/apparmor.d/local/fusermount3 <<APPARMOR
 # Allow sysbox-fs FUSE mounts
-mount fstype=fuse options=(nosuid,nodev) options in (ro,rw) -> ${DOCKYARD_ROOT}/sysbox/**/,
-umount ${DOCKYARD_ROOT}/sysbox/**/,
+mount fstype=fuse options=(nosuid,nodev) options in (ro,rw) -> ${SYSBOX_DATA_DIR}/**/,
+umount ${SYSBOX_DATA_DIR}/**/,
 APPARMOR
         if [ -f /etc/apparmor.d/fusermount3 ]; then
             apparmor_parser -r /etc/apparmor.d/fusermount3
@@ -891,7 +890,7 @@ APPARMOR
     cp -f "$SYSBOX_EXTRACT/usr/bin/sysbox-mgr" "$BIN_DIR/"
     cp -f "$SYSBOX_EXTRACT/usr/bin/sysbox-fs" "$BIN_DIR/"
 
-    mkdir -p "${RUNTIME_DIR}/lib/docker"
+    mkdir -p "${DOCKYARD_ROOT}/lib/docker-config"
 
     chmod +x "$BIN_DIR"/*
 
@@ -900,7 +899,7 @@ APPARMOR
     cat > "${BIN_DIR}/docker" <<DOCKEREOF
 #!/bin/bash
 export DOCKER_HOST="unix://${DOCKER_SOCKET}"
-export DOCKER_CONFIG="${RUNTIME_DIR}/lib/docker"
+export DOCKER_CONFIG="${DOCKYARD_ROOT}/lib/docker-config"
 exec "\$(dirname "\$0")/docker-cli" "\$@"
 DOCKEREOF
     chmod +x "${BIN_DIR}/docker"
@@ -967,11 +966,11 @@ cmd_start() {
 
     export PATH="${BIN_DIR}:${PATH}"
 
-    mkdir -p "$LOG_DIR" "$RUN_DIR" "${EXEC_ROOT}/containerd" "$DOCKER_DATA/containerd"
+    mkdir -p "$LOG_DIR" "$RUN_DIR" "${DOCKYARD_ROOT}/run/containerd" "$DOCKER_DATA/containerd"
 
     # Clean up stale sockets/pids from previous runs
     rm -f "$CONTAINERD_SOCKET" "$DOCKER_SOCKET"
-    for pidfile in "${RUN_DIR}/containerd.pid" "${EXEC_ROOT}/dockerd.pid"; do
+    for pidfile in "${RUN_DIR}/containerd.pid" "${RUN_DIR}/dockerd.pid"; do
         if [ -f "$pidfile" ]; then
             local pid
             pid=$(cat "$pidfile")
@@ -995,10 +994,10 @@ cmd_start() {
     }
 
     # --- 1. Start bundled sysbox daemons ---
-    mkdir -p /run/sysbox
+    mkdir -p "${DOCKYARD_ROOT}/run/sysbox"
 
     echo "Starting sysbox-mgr..."
-    "${BIN_DIR}/sysbox-mgr" --data-root "${DOCKYARD_ROOT}/sysbox" &>"${LOG_DIR}/sysbox-mgr.log" &
+    "${BIN_DIR}/sysbox-mgr" --data-root "${SYSBOX_DATA_DIR}" --run-dir "${DOCKYARD_ROOT}/run/sysbox" &>"${LOG_DIR}/sysbox-mgr.log" &
     SYSBOX_MGR_PID=$!
     echo "$SYSBOX_MGR_PID" > "${RUN_DIR}/sysbox-mgr.pid"
     STARTED_PIDS+=("$SYSBOX_MGR_PID")
@@ -1010,8 +1009,7 @@ cmd_start() {
     echo "  sysbox-mgr ready (pid ${SYSBOX_MGR_PID})"
 
     echo "Starting sysbox-fs..."
-    # sysbox-fs 0.6.7+ uses --mountpoint instead of --data-root
-    "${BIN_DIR}/sysbox-fs" --mountpoint "${DOCKYARD_ROOT}/sysbox" &>"${LOG_DIR}/sysbox-fs.log" &
+    "${BIN_DIR}/sysbox-fs" --mountpoint "${SYSBOX_DATA_DIR}" --run-dir "${DOCKYARD_ROOT}/run/sysbox" &>"${LOG_DIR}/sysbox-fs.log" &
     SYSBOX_FS_PID=$!
     echo "$SYSBOX_FS_PID" > "${RUN_DIR}/sysbox-fs.pid"
     STARTED_PIDS+=("$SYSBOX_FS_PID")
@@ -1030,7 +1028,7 @@ cmd_start() {
     # data-root fatal, so DinD breaks on every new container.
     # Fix: read the actual sysbox uid offset and chown each backing dir to it.
     SYSBOX_UID_OFFSET=$(awk -F: '$1=="sysbox" {print $2; exit}' /etc/subuid 2>/dev/null || echo 231072)
-    SYSBOX_DOCKER_DIR="${DOCKYARD_ROOT}/sysbox/docker"
+    SYSBOX_DOCKER_DIR="${SYSBOX_DATA_DIR}/docker"
 
     # Fix any dirs left over from before this watcher existed (e.g. after reinstall).
     find "$SYSBOX_DOCKER_DIR" -maxdepth 1 -mindepth 1 -uid 0 \
@@ -1066,7 +1064,7 @@ cmd_start() {
     echo "Starting containerd..."
     "${BIN_DIR}/containerd" \
         --root "$DOCKER_DATA/containerd" \
-        --state "${EXEC_ROOT}/containerd" \
+        --state "${DOCKYARD_ROOT}/run/containerd" \
         --address "$CONTAINERD_SOCKET" \
         &>"${LOG_DIR}/containerd.log" &
     CONTAINERD_PID=$!
@@ -1082,8 +1080,8 @@ cmd_start() {
         --config-file "${ETC_DIR}/daemon.json" \
         --containerd "$CONTAINERD_SOCKET" \
         --data-root "$DOCKER_DATA" \
-        --exec-root "$EXEC_ROOT" \
-        --pidfile "${EXEC_ROOT}/dockerd.pid" \
+        --exec-root "${DOCKYARD_ROOT}/run" \
+        --pidfile "${RUN_DIR}/dockerd.pid" \
         --bridge "$BRIDGE" \
         --fixed-cidr "$DOCKYARD_FIXED_CIDR" \
         --default-address-pool "base=${DOCKYARD_POOL_BASE},size=${DOCKYARD_POOL_SIZE}" \
@@ -1103,7 +1101,7 @@ cmd_stop() {
     require_root
 
     # Reverse startup order: dockerd -> containerd -> sysbox-fs -> sysbox-mgr
-    stop_daemon dockerd "${EXEC_ROOT}/dockerd.pid" 20
+    stop_daemon dockerd "${RUN_DIR}/dockerd.pid" 20
     stop_daemon containerd "${RUN_DIR}/containerd.pid" 10
     stop_daemon sysbox-fs "${RUN_DIR}/sysbox-fs.pid" 10
     stop_daemon sysbox-mgr "${RUN_DIR}/sysbox-mgr.pid" 10
@@ -1138,9 +1136,10 @@ cmd_status() {
     echo ""
 
     echo "Derived:"
-    echo "  RUNTIME_DIR=${RUNTIME_DIR}"
+    echo "  BIN_DIR=${BIN_DIR}"
     echo "  RUN_DIR=${RUN_DIR}"
-    echo "  EXEC_ROOT=${EXEC_ROOT}"
+    echo "  DOCKER_DATA=${DOCKER_DATA}"
+    echo "  SYSBOX_DATA_DIR=${SYSBOX_DATA_DIR}"
     echo "  BRIDGE=${BRIDGE}"
     echo "  SERVICE_NAME=${SERVICE_NAME}"
     echo "  DOCKER_SOCKET=${DOCKER_SOCKET}"
@@ -1183,7 +1182,7 @@ cmd_status() {
     check_pid "sysbox-mgr" "${RUN_DIR}/sysbox-mgr.pid"
     check_pid "sysbox-fs " "${RUN_DIR}/sysbox-fs.pid"
     check_pid "containerd" "${RUN_DIR}/containerd.pid"
-    check_pid "dockerd   " "${EXEC_ROOT}/dockerd.pid"
+    check_pid "dockerd   " "${RUN_DIR}/dockerd.pid"
 
     # --- bridge ---
     if ip link show "$BRIDGE" &>/dev/null; then
@@ -1220,9 +1219,9 @@ cmd_status() {
     # --- paths ---
     echo ""
     echo "Paths:"
-    echo "  runtime:  ${RUNTIME_DIR}"
+    echo "  bin:      ${BIN_DIR}"
     echo "  data:     ${DOCKER_DATA}"
-    echo "  exec:     ${EXEC_ROOT}"
+    echo "  sysbox:   ${SYSBOX_DATA_DIR}"
     echo "  logs:     ${LOG_DIR}"
 }
 
@@ -1257,13 +1256,13 @@ StartLimitIntervalSec=60
 Type=forking
 
 # Create runtime directories
-ExecStartPre=/bin/mkdir -p /run/sysbox ${LOG_DIR}
+ExecStartPre=/bin/mkdir -p ${DOCKYARD_ROOT}/run/sysbox ${LOG_DIR}
 
 # Start sysbox-mgr
-ExecStartPre=/bin/bash -c '${BIN_DIR}/sysbox-mgr --data-root ${DOCKYARD_ROOT}/sysbox &>${LOG_DIR}/sysbox-mgr.log & echo \$! > ${RUN_DIR}/sysbox-mgr.pid; sleep 2'
+ExecStartPre=/bin/bash -c '${BIN_DIR}/sysbox-mgr --data-root ${SYSBOX_DATA_DIR} --run-dir ${DOCKYARD_ROOT}/run/sysbox &>${LOG_DIR}/sysbox-mgr.log & echo \$! > ${RUN_DIR}/sysbox-mgr.pid; sleep 2'
 
-# Start sysbox-fs (0.6.7+ uses --mountpoint instead of --data-root)
-ExecStart=/bin/bash -c '${BIN_DIR}/sysbox-fs --mountpoint ${DOCKYARD_ROOT}/sysbox &>${LOG_DIR}/sysbox-fs.log & echo \$! > ${RUN_DIR}/sysbox-fs.pid; sleep 2'
+# Start sysbox-fs
+ExecStart=/bin/bash -c '${BIN_DIR}/sysbox-fs --mountpoint ${SYSBOX_DATA_DIR} --run-dir ${DOCKYARD_ROOT}/run/sysbox &>${LOG_DIR}/sysbox-fs.log & echo \$! > ${RUN_DIR}/sysbox-fs.pid; sleep 2'
 
 # Stop sysbox-fs first
 ExecStop=/bin/bash -c 'if [ -f ${RUN_DIR}/sysbox-fs.pid ]; then kill \$(cat ${RUN_DIR}/sysbox-fs.pid) 2>/dev/null || true; rm -f ${RUN_DIR}/sysbox-fs.pid; fi; sleep 1'
@@ -1301,10 +1300,10 @@ StartLimitIntervalSec=60
 
 [Service]
 Type=forking
-PIDFile=${EXEC_ROOT}/dockerd.pid
+PIDFile=${RUN_DIR}/dockerd.pid
 
 # Create directories
-ExecStartPre=/bin/mkdir -p ${LOG_DIR} ${RUN_DIR} ${EXEC_ROOT}/containerd ${DOCKER_DATA}/containerd
+ExecStartPre=/bin/mkdir -p ${LOG_DIR} ${RUN_DIR} ${DOCKYARD_ROOT}/run/containerd ${DOCKER_DATA}/containerd
 
 # Clean stale sockets
 ExecStartPre=-/bin/rm -f ${CONTAINERD_SOCKET} ${DOCKER_SOCKET}
@@ -1319,10 +1318,10 @@ ExecStartPre=/bin/bash -c 'iptables -I FORWARD -i ${BRIDGE} -o ${BRIDGE} -j ACCE
 ExecStartPre=/bin/bash -c 'iptables -I FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT && iptables -I FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT && iptables -t nat -I POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE'
 
 # Start containerd and wait for socket
-ExecStartPre=/bin/bash -c '${BIN_DIR}/containerd --root ${DOCKER_DATA}/containerd --state ${EXEC_ROOT}/containerd --address ${CONTAINERD_SOCKET} &>${LOG_DIR}/containerd.log & echo \$! > ${RUN_DIR}/containerd.pid; i=0; while [ ! -e ${CONTAINERD_SOCKET} ]; do sleep 1; i=\$((i+1)); if [ \$i -ge 30 ]; then echo "containerd did not start within 30s" >&2; exit 1; fi; done'
+ExecStartPre=/bin/bash -c '${BIN_DIR}/containerd --root ${DOCKER_DATA}/containerd --state ${DOCKYARD_ROOT}/run/containerd --address ${CONTAINERD_SOCKET} &>${LOG_DIR}/containerd.log & echo \$! > ${RUN_DIR}/containerd.pid; i=0; while [ ! -e ${CONTAINERD_SOCKET} ]; do sleep 1; i=\$((i+1)); if [ \$i -ge 30 ]; then echo "containerd did not start within 30s" >&2; exit 1; fi; done'
 
 # Start dockerd
-ExecStart=/bin/bash -c '${BIN_DIR}/dockerd --config-file ${ETC_DIR}/daemon.json --containerd ${CONTAINERD_SOCKET} --data-root ${DOCKER_DATA} --exec-root ${EXEC_ROOT} --pidfile ${EXEC_ROOT}/dockerd.pid --bridge ${BRIDGE} --fixed-cidr ${DOCKYARD_FIXED_CIDR} --default-address-pool base=${DOCKYARD_POOL_BASE},size=${DOCKYARD_POOL_SIZE} --host unix://${DOCKER_SOCKET} --iptables=false &>${LOG_DIR}/dockerd.log & i=0; while [ ! -e ${DOCKER_SOCKET} ]; do sleep 1; i=\$((i+1)); if [ \$i -ge 30 ]; then echo "dockerd did not start within 30s" >&2; exit 1; fi; done'
+ExecStart=/bin/bash -c '${BIN_DIR}/dockerd --config-file ${ETC_DIR}/daemon.json --containerd ${CONTAINERD_SOCKET} --data-root ${DOCKER_DATA} --exec-root ${DOCKYARD_ROOT}/run --pidfile ${RUN_DIR}/dockerd.pid --bridge ${BRIDGE} --fixed-cidr ${DOCKYARD_FIXED_CIDR} --default-address-pool base=${DOCKYARD_POOL_BASE},size=${DOCKYARD_POOL_SIZE} --host unix://${DOCKER_SOCKET} --iptables=false &>${LOG_DIR}/dockerd.log & i=0; while [ ! -e ${DOCKER_SOCKET} ]; do sleep 1; i=\$((i+1)); if [ \$i -ge 30 ]; then echo "dockerd did not start within 30s" >&2; exit 1; fi; done'
 
 # Stop containerd
 ExecStopPost=-/bin/bash -c 'if [ -f ${RUN_DIR}/containerd.pid ]; then kill \$(cat ${RUN_DIR}/containerd.pid) 2>/dev/null; rm -f ${RUN_DIR}/containerd.pid; fi'
@@ -1413,22 +1412,37 @@ cmd_disable() {
 cmd_destroy() {
     require_root
 
+    local YES=false
+    local KEEP_DATA=false
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --yes|-y) YES=true; shift ;;
+            --keep-data) KEEP_DATA=true; shift ;;
+            *) echo "Unknown option: $1" >&2; exit 1 ;;
+        esac
+    done
+
     local SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
     local SYSBOX_SERVICE_FILE="/etc/systemd/system/${SYSBOX_SERVICE_NAME}.service"
 
     echo "This will remove all installed dockyard docker files:"
-    echo "  ${SYSBOX_SERVICE_FILE}         (sysbox systemd service)"
-    echo "  ${SERVICE_FILE}              (docker systemd service)"
-    echo "  ${RUNTIME_DIR}/    (binaries, config, logs, pids)"
-    echo "  ${DOCKER_DATA}/            (images, containers, volumes)"
-    echo "  ${DOCKYARD_ROOT}/sysbox/          (sysbox data)"
-    echo "  ${DOCKER_SOCKET}        (socket)"
-    echo "  ${EXEC_ROOT}/                         (runtime state)"
+    echo "  ${SYSBOX_SERVICE_FILE}  (sysbox systemd service)"
+    echo "  ${SERVICE_FILE}         (docker systemd service)"
+    echo "  ${BIN_DIR}/             (binaries)"
+    echo "  ${ETC_DIR}/             (config)"
+    echo "  ${LOG_DIR}/             (logs)"
+    echo "  ${RUN_DIR}/             (runtime state)"
+    if [ "$KEEP_DATA" = false ]; then
+        echo "  ${DOCKER_DATA}/         (images, containers, volumes)"
+        echo "  ${SYSBOX_DATA_DIR}/     (sysbox data)"
+    fi
     echo ""
-    read -p "Continue? [y/N] " confirm
-    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-        echo "Aborted."
-        exit 0
+    if [ "$YES" = false ]; then
+        read -p "Continue? [y/N] " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 0
+        fi
     fi
 
     # --- 1. Stop and remove systemd services (or stop daemons directly) ---
@@ -1436,7 +1450,7 @@ cmd_destroy() {
         cmd_disable
     else
         # No systemd services — stop daemons directly
-        for pidfile in "${EXEC_ROOT}/dockerd.pid" "${RUN_DIR}/containerd.pid" "${RUN_DIR}/sysbox-fs.pid" "${RUN_DIR}/sysbox-mgr.pid"; do
+        for pidfile in "${RUN_DIR}/dockerd.pid" "${RUN_DIR}/containerd.pid" "${RUN_DIR}/sysbox-fs.pid" "${RUN_DIR}/sysbox-mgr.pid"; do
             if [ -f "$pidfile" ]; then
                 local pid
                 pid=$(cat "$pidfile")
@@ -1458,41 +1472,32 @@ cmd_destroy() {
     # --- 1.5. Remove leftover user-defined network bridges from the pool ---
     cleanup_pool_bridges
 
-    # --- 2. Remove runtime state ---
-    if [ -d "$EXEC_ROOT" ]; then
-        rm -rf "$EXEC_ROOT"
-        echo "Removed ${EXEC_ROOT}/"
+    # --- 2. Remove runtime directories (bin, etc, log, run) ---
+    for d in "$BIN_DIR" "$ETC_DIR" "$LOG_DIR" "$RUN_DIR"; do
+        if [ -d "$d" ]; then
+            rm -rf "$d"
+            echo "Removed ${d}/"
+        fi
+    done
+
+    # --- 3. Remove docker data (images, containers, volumes) ---
+    if [ "$KEEP_DATA" = false ]; then
+        if [ -d "$DOCKER_DATA" ]; then
+            rm -rf "$DOCKER_DATA"
+            echo "Removed ${DOCKER_DATA}/"
+        fi
+
+        # --- 4. Remove sysbox data ---
+        if [ -d "$SYSBOX_DATA_DIR" ]; then
+            rm -rf "$SYSBOX_DATA_DIR"
+            echo "Removed ${SYSBOX_DATA_DIR}/"
+        fi
+    else
+        echo "Skipped ${DOCKER_DATA}/ (--keep-data)"
+        echo "Skipped ${SYSBOX_DATA_DIR}/ (--keep-data)"
     fi
 
-    # --- 3. Remove socket ---
-    if [ -e "$DOCKER_SOCKET" ]; then
-        rm -f "$DOCKER_SOCKET"
-        echo "Removed ${DOCKER_SOCKET}"
-    fi
-
-    # --- 4. Remove runtime binaries, config, logs, pids ---
-    if [ -d "$RUNTIME_DIR" ]; then
-        rm -rf "$RUNTIME_DIR"
-        echo "Removed ${RUNTIME_DIR}/"
-    fi
-
-    # --- 5. Remove docker data (images, containers, volumes) ---
-    if [ -d "$DOCKER_DATA" ]; then
-        rm -rf "$DOCKER_DATA"
-        echo "Removed ${DOCKER_DATA}/"
-    fi
-
-    # --- 6. Remove sysbox data ---
-    if [ -d "${DOCKYARD_ROOT}/sysbox" ]; then
-        rm -rf "${DOCKYARD_ROOT}/sysbox"
-        echo "Removed ${DOCKYARD_ROOT}/sysbox/"
-    fi
-
-    # --- 7. Remove env file ---
-    rm -f "${ETC_DIR}/dockyard.env"
-    echo "Removed ${ETC_DIR}/dockyard.env"
-
-    # --- 8. Remove DOCKYARD_ROOT if empty ---
+    # --- 5. Remove DOCKYARD_ROOT if empty ---
     if [ -d "$DOCKYARD_ROOT" ]; then
         if rmdir "$DOCKYARD_ROOT" 2>/dev/null; then
             echo "Removed ${DOCKYARD_ROOT}/ (was empty)"
@@ -1525,7 +1530,7 @@ All commands except gen-env require a config file:
   1. $DOCKYARD_ENV (if set)
   2. ./dockyard.env (in current directory)
   3. ../etc/dockyard.env (relative to script — for installed copy)
-  4. $DOCKYARD_ROOT/docker-runtime/etc/dockyard.env
+  4. $DOCKYARD_ROOT/etc/dockyard.env
 
 Examples:
   ./dockyard.sh gen-env
@@ -1534,7 +1539,7 @@ Examples:
   sudo ./dockyard.sh start
   sudo ./dockyard.sh stop
   ./dockyard.sh status
-  sudo ./dockyard.sh destroy
+  sudo ./dockyard.sh destroy [--yes|-y] [--keep-data]
 
   # Multiple instances
   DOCKYARD_DOCKER_PREFIX=test_ DOCKYARD_ROOT=/test ./dockyard.sh gen-env
@@ -1640,7 +1645,7 @@ case "$COMMAND" in
     destroy)
         load_env
         derive_vars
-        cmd_destroy
+        cmd_destroy "$@"
         ;;
     -h|--help|"")
         usage
@@ -1655,12 +1660,12 @@ __DOCKYARD_BUNDLED_EOF__
 }
 
 write_helper_scripts() {
-  cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
+  cat > "${DOCKYARD_ROOT}/bin/docker-logs" <<LOGS
 #!/bin/bash
 exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml logs -f "\$@"
 LOGS
-  chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
-  wrote "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  chmod +x "${DOCKYARD_ROOT}/bin/docker-logs"
+  wrote "${DOCKYARD_ROOT}/bin/docker-logs"
 }
 
 write_compose() {
@@ -1951,7 +1956,7 @@ cmd_destroy() {
   if [ -f "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
     info "Destroying Dockyard..."
     if [ -f "$DOCKYARD_ENV_FILE" ] && write_dockyard_sh 2>/dev/null; then
-      echo "y" | DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy >/dev/null 2>&1 || true
+      DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy --yes >/dev/null 2>&1 || true
       rm -f /tmp/dockyard.sh
     else
       systemctl stop "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
@@ -2049,7 +2054,7 @@ cmd_install() {
     # The docker CLI binary ships with compose built-in. A leftover standalone
     # compose plugin in cli-plugins/ shadows the built-in and may segfault.
     # Remove it so the built-in is used instead.
-    local _stale_plugin="${DOCKYARD_ROOT}/docker-runtime/lib/docker/cli-plugins/docker-compose"
+    local _stale_plugin="${DOCKYARD_ROOT}/lib/docker/cli-plugins/docker-compose"
     if [ -f "$_stale_plugin" ]; then
       rm -f "$_stale_plugin"
       ok "Removed stale compose plugin (compose is now built into docker CLI)"
@@ -2232,7 +2237,7 @@ EOF
 
   # Backfill vars that may be missing in older .env files
   if [ -z "${DOCKER_SOCK:-}" ]; then
-    DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
+    DOCKER_SOCK="${DOCKYARD_ROOT}/run/docker.sock"
     echo "DOCKER_SOCK=$DOCKER_SOCK" >> "$SANDCASTLE_HOME/.env"
   fi
   # Backfill DOCKYARD_POOL_BASE — required so docker-compose passes the correct subnet to Rails
@@ -2589,7 +2594,7 @@ INITDB
   echo -e "  Home:       $SANDCASTLE_HOME"
   echo -e "  Config:     $SANDCASTLE_HOME/etc/sandcastle.env"
   echo -e "  Docker:     $DOCKER"
-  echo -e "  Logs:       ${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  echo -e "  Logs:       ${DOCKYARD_ROOT}/bin/docker-logs"
 
   print_written_files
   echo ""

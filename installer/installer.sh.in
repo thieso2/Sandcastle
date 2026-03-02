@@ -133,8 +133,8 @@ derive_vars() {
   DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-${SANDCASTLE_PRIVATE_NET}}"
   DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
 
-  DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
-  DOCKER="${DOCKYARD_ROOT}/docker-runtime/bin/docker"
+  DOCKER_SOCK="${DOCKYARD_ROOT}/run/docker.sock"
+  DOCKER="${DOCKYARD_ROOT}/bin/docker"
 
   ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 
@@ -203,12 +203,12 @@ setup_passwordless_sudo() {
 }
 
 # ═══ setup_bashrc_path ════════════════════════════════════════════════════
-# Add docker-runtime/bin to PATH in .profile and .bashrc (idempotent)
+# Add bin to PATH in .profile and .bashrc (idempotent)
 
 setup_bashrc_path() {
   local profile="${SANDCASTLE_HOME}/.profile"
   local bashrc="${SANDCASTLE_HOME}/.bashrc"
-  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:\$PATH"
+  local path_export="export PATH=${SANDCASTLE_HOME}/bin:\$PATH"
 
   info "Configuring PATH in .profile and .bashrc..."
 
@@ -407,12 +407,12 @@ __DOCKYARD_BUNDLED_EOF__
 }
 
 write_helper_scripts() {
-  cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
+  cat > "${DOCKYARD_ROOT}/bin/docker-logs" <<LOGS
 #!/bin/bash
 exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml logs -f "\$@"
 LOGS
-  chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
-  wrote "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  chmod +x "${DOCKYARD_ROOT}/bin/docker-logs"
+  wrote "${DOCKYARD_ROOT}/bin/docker-logs"
 }
 
 write_compose() {
@@ -568,7 +568,7 @@ cmd_destroy() {
   if [ -f "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
     info "Destroying Dockyard..."
     if [ -f "$DOCKYARD_ENV_FILE" ] && write_dockyard_sh 2>/dev/null; then
-      echo "y" | DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy >/dev/null 2>&1 || true
+      DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy --yes >/dev/null 2>&1 || true
       rm -f /tmp/dockyard.sh
     else
       systemctl stop "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
@@ -666,7 +666,7 @@ cmd_install() {
     # The docker CLI binary ships with compose built-in. A leftover standalone
     # compose plugin in cli-plugins/ shadows the built-in and may segfault.
     # Remove it so the built-in is used instead.
-    local _stale_plugin="${DOCKYARD_ROOT}/docker-runtime/lib/docker/cli-plugins/docker-compose"
+    local _stale_plugin="${DOCKYARD_ROOT}/lib/docker/cli-plugins/docker-compose"
     if [ -f "$_stale_plugin" ]; then
       rm -f "$_stale_plugin"
       ok "Removed stale compose plugin (compose is now built into docker CLI)"
@@ -849,7 +849,7 @@ EOF
 
   # Backfill vars that may be missing in older .env files
   if [ -z "${DOCKER_SOCK:-}" ]; then
-    DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
+    DOCKER_SOCK="${DOCKYARD_ROOT}/run/docker.sock"
     echo "DOCKER_SOCK=$DOCKER_SOCK" >> "$SANDCASTLE_HOME/.env"
   fi
   # Backfill DOCKYARD_POOL_BASE — required so docker-compose passes the correct subnet to Rails
@@ -1193,7 +1193,7 @@ INITDB
   echo -e "  Home:       $SANDCASTLE_HOME"
   echo -e "  Config:     $SANDCASTLE_HOME/etc/sandcastle.env"
   echo -e "  Docker:     $DOCKER"
-  echo -e "  Logs:       ${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  echo -e "  Logs:       ${DOCKYARD_ROOT}/bin/docker-logs"
 
   print_written_files
   echo ""

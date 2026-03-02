@@ -76,7 +76,7 @@ Sandcastle automatically detects and uses BTRFS subvolumes when the filesystem s
   - `$SANDCASTLE_HOME/data/postgres` (database)
   - `$SANDCASTLE_HOME/data/wetty` (terminal keys)
   - `$SANDCASTLE_HOME/data/traefik` (proxy config)
-  - `$DOCKYARD_ROOT/docker` (Docker data)
+  - `$DOCKYARD_ROOT/lib/docker` (Docker data)
 
 **Rails** (`BtrfsHelper` service):
 - Creates per-user subvolumes: `/data/users/<username>`
@@ -216,8 +216,8 @@ ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No
 
 - **Host**: `100.106.185.92` (Tailscale IP), SSH user `thies`; SSH alias `sandman`
 - **Sandcastle home on host**: `/sandcastle` (not `/data` — that's the data dir inside containers)
-- **Dockyard Docker CLI on host**: `/sandcastle/docker-runtime/bin/docker` (isolated daemon, not system Docker)
-  - To run docker commands on sandman: `ssh sandman "/sandcastle/docker-runtime/bin/docker ps"`
+- **Dockyard Docker CLI on host**: `/sandcastle/bin/docker` (isolated daemon, not system Docker)
+  - To run docker commands on sandman: `ssh sandman "/sandcastle/bin/docker ps"`
 - **Registry**: `ghcr.io/thieso2/sandcastle` (GitHub Container Registry)
 - **Deploy**: `docker-compose up -d` (see `docker-compose.yml`)
 - **Host bootstrap**: `bootstrap/sandcastle-bootstrap.sh` (Docker, Sysbox, Caddy, UFW)
