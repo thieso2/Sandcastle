@@ -134,7 +134,26 @@ sandcastle ssh my-dev</code></pre>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle list              # Show all your sandboxes
 sandcastle stop my-dev       # Stop a running sandbox
 sandcastle start my-dev      # Start a stopped sandbox
-sandcastle delete my-dev     # Permanently remove a sandbox</code></pre>
+sandcastle delete my-dev     # Archive sandbox (soft-delete, data kept)</code></pre>
+
+    <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Archive &amp; restore</h3>
+    <p class="text-gray-700 mb-3">
+      When you delete a sandbox it is <strong>archived</strong> rather than immediately purged.
+      Archived sandboxes have no running container but their data is preserved on disk.
+      After the retention period (default: 30 days) a background job permanently deletes them.
+      Admins can adjust the system-wide retention on the Settings page, and each user can override it
+      in their profile settings.
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># List archived sandboxes
+sandcastle list --archived
+
+# Restore an archived sandbox (recreates the container in stopped state)
+sandcastle unarchive my-dev
+sandcastle start my-dev</code></pre>
+    <p class="text-gray-500 text-sm mt-2">
+      Archived sandboxes also appear as a collapsible section on your dashboard with a <strong>Restore</strong> button.
+      The sandbox name is freed immediately on archive, so you can create a new sandbox with the same name.
+    </p>
   </section>
 
   <%# ── Routes ── %>
@@ -235,6 +254,7 @@ sandcastle snapshot delete before-migration</code></pre>
       <li><strong>Profile</strong> — Update your email address and change your password</li>
       <li><strong>Tailscale</strong> — View connection status and toggle auto-connect for new sandboxes</li>
       <li><strong>Browser</strong> — Toggle Chrome profile persistence across sandbox recreations</li>
+      <li><strong>Sandbox Archive</strong> — Set your personal archive retention period (overrides the system default)</li>
       <li><strong>API Tokens</strong> — Create, list, and revoke multiple named API tokens for different devices or applications</li>
     </ul>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-sm text-blue-800">

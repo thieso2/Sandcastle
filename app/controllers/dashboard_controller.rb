@@ -1,6 +1,7 @@
 class DashboardController < ApplicationController
   def index
     @sandboxes = policy_scope(Sandbox).includes(:user, :routes).order(:name)
+    @archived_sandboxes = Current.user.sandboxes.archived.includes(:routes).order(:name)
     @vnc_active_ids = running_vnc_ids
     @tailscale_ips = tailscale_ips_for(@sandboxes)
   end

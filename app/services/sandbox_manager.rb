@@ -130,7 +130,7 @@ class SandboxManager
     raise Error, "Failed to create mount directories: #{e.message}"
   end
 
-  def destroy(sandbox:, keep_volume: false)
+  def destroy(sandbox:, keep_volume: false, archive: false)
     begin
       TerminalManager.new.close(sandbox: sandbox)
     rescue TerminalManager::Error, Docker::Error::DockerError
@@ -159,11 +159,63 @@ class SandboxManager
       end
     end
 
-    unless keep_volume
-      FileUtils.rm_rf(sandbox.volume_path) if sandbox.volume_path.present?
+    if archive
+      # Soft-delete: keep volume on disk, mark as archived
+      sandbox.update!(status: "archived", container_id: nil, archived_at: Time.current)
+    else
+      unless keep_volume
+        FileUtils.rm_rf(sandbox.volume_path) if sandbox.volume_path.present?
+      end
+      sandbox.update!(status: "destroyed", container_id: nil)
+    end
+  end
+
+  # Restore an archived sandbox: recreate the container from the existing volume.
+  # Sets status to "stopped"; user starts it manually.
+  def restore_from_archive(sandbox:)
+    raise Error, "Sandbox is not archived" unless sandbox.status == "archived"
+
+    user = sandbox.user
+
+    ensure_image(sandbox.image)
+    ensure_mount_dirs(user, sandbox)
+
+    container = Docker::Container.create(
+      "name" => sandbox.full_name,
+      "Image" => sandbox.image,
+      "Hostname" => sandbox.full_name,
+      "Env" => container_env(user, sandbox),
+      "Labels" => { "sandcastle.sandbox" => "true" },
+      "HostConfig" => {
+        "Runtime" => container_runtime,
+        "NetworkMode" => NETWORK_NAME,
+        "Binds" => volume_binds(user, sandbox),
+        "RestartPolicy" => { "Name" => "unless-stopped" }
+      },
+      "NetworkingConfig" => {
+        "EndpointsConfig" => { NETWORK_NAME => {} }
+      }
+    )
+
+    container.start
+    container.refresh!
+    unless container.json.dig("State", "Running")
+      state_error = container.json.dig("State", "Error").presence || container.json.dig("State", "Status")
+      raise Error, "Container failed to start: #{state_error}"
     end
 
-    sandbox.update!(status: "destroyed", container_id: nil)
+    sandbox.update!(container_id: container.id, status: "running", archived_at: nil)
+
+    TerminalManager.new.prepare_traefik_config(sandbox)
+    VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+
+    if sandbox.tailscale? && user.tailscale_enabled?
+      TailscaleManager.new.connect_sandbox(sandbox: sandbox)
+    end
+
+    sandbox
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to restore archived sandbox: #{e.message}"
   end
 
   def start(sandbox:)

@@ -1,6 +1,7 @@
 module Admin
   class SandboxesController < BaseController
-    before_action :set_sandbox, except: [:stats]
+    before_action :set_sandbox, except: [ :stats, :archive_restore, :purge ]
+    before_action :set_archived_sandbox, only: [ :archive_restore, :purge ]
 
     def destroy
       authorize @sandbox
@@ -50,6 +51,22 @@ module Admin
       end
     end
 
+    def archive_restore
+      authorize @sandbox, :archive_restore?
+      SandboxManager.new.restore_from_archive(sandbox: @sandbox)
+      redirect_to admin_dashboard_path, notice: "Sandbox #{@sandbox.name} restored."
+    rescue SandboxManager::Error => e
+      redirect_to admin_dashboard_path, alert: "Failed to restore: #{e.message}"
+    end
+
+    def purge
+      authorize @sandbox, :purge?
+      SandboxManager.new.destroy(sandbox: @sandbox, archive: false)
+      redirect_to admin_dashboard_path, notice: "Sandbox #{@sandbox.name} purged."
+    rescue SandboxManager::Error => e
+      redirect_to admin_dashboard_path, alert: "Failed to purge: #{e.message}"
+    end
+
     def stats
       @sandbox = Sandbox.find(params[:id])
       authorize @sandbox
@@ -88,6 +105,10 @@ module Admin
 
     def set_sandbox
       @sandbox = Sandbox.active.find(params[:id])
+    end
+
+    def set_archived_sandbox
+      @sandbox = Sandbox.archived.find(params[:id])
     end
 
     def calculate_cpu_percent(stats)

@@ -50,4 +50,8 @@ class User < ApplicationRecord
   def chrome_persist_profile?
     chrome_persist_profile
   end
+
+  def effective_archive_retention_days
+    sandbox_archive_retention_days.presence || Setting.instance.sandbox_archive_retention_days || 30
+  end
 end

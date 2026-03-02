@@ -274,6 +274,18 @@ func (c *Client) DestroySandbox(id int) error {
 	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d", id), nil, nil)
 }
 
+func (c *Client) ListArchivedSandboxes() ([]Sandbox, error) {
+	var sandboxes []Sandbox
+	err := c.do("GET", "/api/archived_sandboxes", nil, &sandboxes)
+	return sandboxes, err
+}
+
+func (c *Client) ArchiveRestoreSandbox(id int) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/archive_restore", id), nil, &s)
+	return &s, err
+}
+
 func (c *Client) StartSandbox(id int) (*Sandbox, error) {
 	var s Sandbox
 	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/start", id), nil, &s)
