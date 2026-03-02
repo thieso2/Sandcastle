@@ -330,6 +330,65 @@ SANDCASTLE_CONNECT_PROTOCOL = "mosh"
 SANDCASTLE_USE_TMUX = "false"</code></pre>
   </section>
 
+  <%# ── Backup and Restore ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">15. Backup and restore <span class="text-sm font-normal text-gray-500">(admin, host)</span></h2>
+    <p class="text-gray-700 mb-3">
+      The <code class="bg-gray-100 px-1.5 py-0.5 rounded">sandcastle-admin</code> tool (installed to <code class="bg-gray-100 px-1.5 py-0.5 rounded">$SANDCASTLE_HOME/bin/</code>) creates
+      and restores full-instance backups as a single <code class="bg-gray-100 px-1.5 py-0.5 rounded">.tar.zst</code> archive. Run it as the <code class="bg-gray-100 px-1.5 py-0.5 rounded">sandcastle</code>
+      unix user on the host. Sandcastle stays <strong>online</strong> during backup.
+    </p>
+
+    <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Create a backup</h3>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Full backup → ./sandcastle-backup-&lt;timestamp&gt;-&lt;version&gt;.tar.zst
+sandcastle-admin backup
+
+# Save to a specific path
+sandcastle-admin backup --output /mnt/backups/my-backup.tar.zst
+
+# Faster/smaller: skip sandbox volumes and snapshot images
+sandcastle-admin backup --no-sandbox-volumes --no-snapshot-images</code></pre>
+
+    <p class="text-gray-700 mb-2 mt-4">The archive contains:</p>
+    <ul class="list-disc pl-6 text-gray-700 mb-3 space-y-1">
+      <li>All 4 PostgreSQL databases (<code class="bg-gray-100 px-1 rounded">pg_dump --format=custom</code>)</li>
+      <li>Rails AR encryption keys + database password (<code class="bg-gray-100 px-1 rounded">secrets/</code>)</li>
+      <li>User home and data directories, sandbox volumes, snapshot dirs</li>
+      <li>Snapshot Docker images (<code class="bg-gray-100 px-1 rounded">docker save</code>)</li>
+      <li>Let&apos;s Encrypt certificate (<code class="bg-gray-100 px-1 rounded">acme.json</code>)</li>
+      <li><code class="bg-gray-100 px-1 rounded">manifest.json</code> with version, timestamp, and content flags</li>
+    </ul>
+
+    <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Restore on an existing install</h3>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Restore (prompts for confirmation, stops/starts Sandcastle)
+sandcastle-admin restore sandcastle-backup-2026-03-01_120000-v0.2.3.tar.zst
+
+# Skip confirmation prompt
+sandcastle-admin restore backup.tar.zst --yes
+
+# Selective restore
+sandcastle-admin restore backup.tar.zst --skip-db
+sandcastle-admin restore backup.tar.zst --skip-data
+sandcastle-admin restore backup.tar.zst --skip-images</code></pre>
+
+    <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Install fresh from a backup</h3>
+    <p class="text-gray-700 mb-3">
+      To migrate to a new host or recover from a failed upgrade, run the installer with <code class="bg-gray-100 px-1.5 py-0.5 rounded">--from-backup</code>.
+      Admin credentials come from the restored database — you do <strong>not</strong> need to set them in <code class="bg-gray-100 px-1.5 py-0.5 rounded">sandcastle.env</code>.
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># 1. Generate config (only SANDCASTLE_HOST is required)
+installer.sh gen-env
+vi sandcastle.env   # set SANDCASTLE_HOST, TLS mode
+
+# 2. Install from backup (restores databases, user data, and secrets)
+sudo installer.sh install --from-backup ./sandcastle-backup-2026-03-01.tar.zst</code></pre>
+
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4 text-sm text-yellow-800">
+      <strong>Cross-version restores:</strong> The installer runs <code class="bg-yellow-100 px-1 rounded">rails db:migrate</code> after restoring the
+      database, so a backup taken from an older version is safe to restore on a newer version.
+    </div>
+  </section>
+
   <div class="border-t border-gray-200 pt-6 text-center">
     <p class="text-sm text-gray-500">
       Run <code class="bg-gray-100 px-1.5 py-0.5 rounded">sandcastle --help</code> for the full command reference.
