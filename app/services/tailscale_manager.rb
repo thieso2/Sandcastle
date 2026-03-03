@@ -34,6 +34,14 @@ class TailscaleManager
     )
     container.start
 
+    # Re-advertise routes after tailscaled reconnects — the subnet may have changed
+    # after a reinstall (Docker reallocates from the pool). No --reset so we preserve
+    # hostname, credentials and other settings already in the persisted state.
+    container.exec([
+      "sh", "-c",
+      "sleep 3 && tailscale up --advertise-routes=#{subnet} --accept-routes --timeout=60s &"
+    ])
+
     user.update!(
       tailscale_state: "enabled",
       tailscale_auto_connect: true,
