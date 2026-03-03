@@ -1,0 +1,5 @@
+shoudl be sc-{sandcastle_name}
+
+---
+
+commit and realease a new version
