@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 28,
+  "checkpoints_count": 29,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
@@ -24,8 +24,10 @@
     "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
     "app/views/pages/guide.html.erb",
     "app/views/sandboxes/show.html.erb",
+    "app/views/settings/show.html.erb",
     "app/views/tailscale/show.html.erb",
     "config/initializers/active_record_encryption.rb",
     "config/initializers/container_sync.rb",
@@ -211,13 +213,20 @@
       "context": "/82/f637d3ee6d/21/context.md",
       "content_hash": "/82/f637d3ee6d/21/content_hash.txt",
       "prompt": "/82/f637d3ee6d/21/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/22/metadata.json",
+      "transcript": "/82/f637d3ee6d/22/full.jsonl",
+      "context": "/82/f637d3ee6d/22/context.md",
+      "content_hash": "/82/f637d3ee6d/22/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/22/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 998,
-    "cache_creation_tokens": 1490276,
-    "cache_read_tokens": 75819125,
-    "output_tokens": 230246,
-    "api_call_count": 852
+    "input_tokens": 1017,
+    "cache_creation_tokens": 1528981,
+    "cache_read_tokens": 76477585,
+    "output_tokens": 234030,
+    "api_call_count": 867
   }
 }

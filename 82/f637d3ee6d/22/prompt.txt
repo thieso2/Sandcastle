@@ -1,0 +1,5 @@
+rename "Browser" im the UI to "VNC" everywhere (also in the code)
+
+---
+
+commit and push
