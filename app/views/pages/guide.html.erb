@@ -147,9 +147,11 @@ sandcastle delete my-dev     # Archive sandbox (soft-delete, data kept)</code></
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># List archived sandboxes
 sandcastle list --archived
 
-# Restore an archived sandbox (recreates the container in stopped state)
+# Restore an archived sandbox (recreates and starts the container)
 sandcastle unarchive my-dev
-sandcastle start my-dev</code></pre>
+
+# Permanently delete an archived sandbox immediately, bypassing the retention period
+sandcastle purge my-dev</code></pre>
     <p class="text-gray-500 text-sm mt-2">
       Archived sandboxes also appear as a collapsible section on your dashboard with a <strong>Restore</strong> button.
       The sandbox name is freed immediately on archive, so you can create a new sandbox with the same name.

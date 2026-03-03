@@ -12,6 +12,7 @@ class User < ApplicationRecord
     format: { with: /\A[a-z][a-z0-9_-]{1,30}\z/, message: "must be lowercase alphanumeric (2-31 chars, start with letter)" }
   validates :email_address, presence: true, uniqueness: true
   validates :status, inclusion: { in: %w[active suspended pending_approval] }
+  validates :sandbox_archive_retention_days, numericality: { only_integer: true, greater_than_or_equal_to: 0, allow_nil: true }
 
   scope :active, -> { where(status: "active") }
 
@@ -52,6 +53,8 @@ class User < ApplicationRecord
   end
 
   def effective_archive_retention_days
-    sandbox_archive_retention_days.presence || Setting.instance.sandbox_archive_retention_days || 30
+    return sandbox_archive_retention_days if sandbox_archive_retention_days.present?
+
+    @effective_archive_retention_days_fallback ||= Setting.instance.sandbox_archive_retention_days || 30
   end
 end

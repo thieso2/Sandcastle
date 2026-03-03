@@ -53,18 +53,16 @@ module Admin
 
     def archive_restore
       authorize @sandbox, :archive_restore?
-      SandboxManager.new.restore_from_archive(sandbox: @sandbox)
-      redirect_to admin_dashboard_path, notice: "Sandbox #{@sandbox.name} restored."
-    rescue SandboxManager::Error => e
-      redirect_to admin_dashboard_path, alert: "Failed to restore: #{e.message}"
+      @sandbox.start_job("restoring")
+      SandboxRestoreJob.perform_later(sandbox_id: @sandbox.id)
+      redirect_to admin_dashboard_path, notice: "Restoring sandbox #{@sandbox.name}..."
     end
 
     def purge
       authorize @sandbox, :purge?
-      SandboxManager.new.destroy(sandbox: @sandbox, archive: false)
-      redirect_to admin_dashboard_path, notice: "Sandbox #{@sandbox.name} purged."
-    rescue SandboxManager::Error => e
-      redirect_to admin_dashboard_path, alert: "Failed to purge: #{e.message}"
+      @sandbox.start_job("destroying")
+      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: false)
+      redirect_to admin_dashboard_path, notice: "Purging sandbox #{@sandbox.name}..."
     end
 
     def stats

@@ -89,10 +89,9 @@ class SandboxesController < ApplicationController
       return
     end
 
-    SandboxManager.new.restore_from_archive(sandbox: @sandbox)
-    redirect_to root_path, notice: "Sandcastle #{@sandbox.name} restored."
-  rescue SandboxManager::Error => e
-    redirect_to root_path, alert: "Failed to restore: #{e.message}"
+    @sandbox.start_job("restoring")
+    SandboxRestoreJob.perform_later(sandbox_id: @sandbox.id)
+    redirect_to root_path, notice: "Restoring sandcastle #{@sandbox.name}..."
   end
 
   def start

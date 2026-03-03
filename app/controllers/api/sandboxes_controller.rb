@@ -12,10 +12,10 @@ module Api
     def archived_index
       authorize Sandbox
       sandboxes = if current_user.admin?
-        Sandbox.archived.includes(:user, :routes).order(:name)
+        Sandbox.archived
       else
-        current_user.sandboxes.archived.includes(:routes).order(:name)
-      end
+        current_user.sandboxes.archived
+      end.includes(:user, :routes).order(:name)
       render json: sandboxes.map { |s| sandbox_json(s) }
     end
 
@@ -100,7 +100,7 @@ module Api
         return
       end
 
-      archive = current_user.effective_archive_retention_days > 0
+      archive = @sandbox.user.effective_archive_retention_days > 0
       SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: archive)
 
       render json: sandbox_json(@sandbox.reload)
@@ -166,13 +166,15 @@ module Api
     end
 
     def archive_restore
-      SandboxManager.new.restore_from_archive(sandbox: @sandbox)
-      render json: sandbox_json(@sandbox.reload)
+      @sandbox.start_job("restoring")
+      SandboxRestoreJob.perform_later(sandbox_id: @sandbox.id)
+      render json: sandbox_json(@sandbox.reload), status: :accepted
     end
 
     def purge
-      SandboxManager.new.destroy(sandbox: @sandbox, archive: false)
-      render json: { status: "destroyed" }
+      @sandbox.start_job("destroying")
+      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: false)
+      render json: { status: "accepted" }, status: :accepted
     end
 
     def tailscale_connect

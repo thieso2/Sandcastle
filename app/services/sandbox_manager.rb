@@ -75,6 +75,8 @@ class SandboxManager
     container.refresh!
     unless container.json.dig("State", "Running")
       state_error = container.json.dig("State", "Error").presence || container.json.dig("State", "Status")
+      container.stop rescue nil
+      container.delete(force: true) rescue nil
       raise Error, "Container failed to start: #{state_error}"
     end
     sandbox.update!(container_id: container.id, status: "running")
@@ -171,7 +173,7 @@ class SandboxManager
   end
 
   # Restore an archived sandbox: recreate the container from the existing volume.
-  # Sets status to "stopped"; user starts it manually.
+  # The container is started immediately; status is set to "running".
   def restore_from_archive(sandbox:)
     raise Error, "Sandbox is not archived" unless sandbox.status == "archived"
 
@@ -180,34 +182,8 @@ class SandboxManager
     ensure_image(sandbox.image)
     ensure_mount_dirs(user, sandbox)
 
-    container = Docker::Container.create(
-      "name" => sandbox.full_name,
-      "Image" => sandbox.image,
-      "Hostname" => sandbox.full_name,
-      "Env" => container_env(user, sandbox),
-      "Labels" => { "sandcastle.sandbox" => "true" },
-      "HostConfig" => {
-        "Runtime" => container_runtime,
-        "NetworkMode" => NETWORK_NAME,
-        "Binds" => volume_binds(user, sandbox),
-        "RestartPolicy" => { "Name" => "unless-stopped" }
-      },
-      "NetworkingConfig" => {
-        "EndpointsConfig" => { NETWORK_NAME => {} }
-      }
-    )
-
-    container.start
-    container.refresh!
-    unless container.json.dig("State", "Running")
-      state_error = container.json.dig("State", "Error").presence || container.json.dig("State", "Status")
-      raise Error, "Container failed to start: #{state_error}"
-    end
-
-    sandbox.update!(container_id: container.id, status: "running", archived_at: nil)
-
-    TerminalManager.new.prepare_traefik_config(sandbox)
-    VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+    create_container_and_start(sandbox: sandbox, user: user)
+    sandbox.update!(archived_at: nil)
 
     if sandbox.tailscale? && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
