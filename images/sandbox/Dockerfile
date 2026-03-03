@@ -19,6 +19,15 @@ RUN apt-get update && apt-get install -y \
     mosh \
     && rm -rf /var/lib/apt/lists/*
 
+# GitHub CLI (gh)
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+        -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y gh \
+    && rm -rf /var/lib/apt/lists/*
+
 # GUI tools: TigerVNC (Xvnc = virtual X server + VNC server combined) and window manager.
 # Xvnc sends the RFB banner immediately on connect, unlike x11vnc 0.9.17+ which waits
 # for client data first (breaking websockify's server-speaks-first expectation).
