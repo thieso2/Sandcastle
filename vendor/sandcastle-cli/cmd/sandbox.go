@@ -213,7 +213,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		var sshErr error
-		if prefs.ConnectProtocol == "mosh" {
+		if pickProtocol(cfg, info.Host, info.Port, info.User, prefs.SSHExtraArgs) == "mosh" {
 			sshErr = moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
 		} else {
 			sshErr = sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)

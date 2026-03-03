@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -15,11 +16,13 @@ import (
 )
 
 var connectMosh bool
+var connectSSH bool
 
 func init() {
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(sshCmd)
-	connectCmd.Flags().BoolVar(&connectMosh, "mosh", false, "Connect using mosh instead of SSH (requires mosh on client)")
+	connectCmd.Flags().BoolVar(&connectMosh, "mosh", false, "Connect using mosh (overrides config preference)")
+	connectCmd.Flags().BoolVar(&connectSSH, "ssh", false, "Connect using SSH (overrides config preference)")
 }
 
 var connectCmd = &cobra.Command{
@@ -72,8 +75,18 @@ var connectCmd = &cobra.Command{
 			remoteCmd = "tmux new-session -A -s main"
 		}
 
-		// --mosh flag takes precedence over ConnectProtocol preference
-		if connectMosh || prefs.ConnectProtocol == "mosh" {
+		// Explicit flags take precedence; otherwise auto-detect or use saved preference
+		var protocol string
+		switch {
+		case connectMosh:
+			protocol = "mosh"
+		case connectSSH:
+			protocol = "ssh"
+		default:
+			protocol = pickProtocol(cfg, info.Host, info.Port, info.User, prefs.SSHExtraArgs)
+		}
+
+		if protocol == "mosh" {
 			return moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
 		}
 		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
@@ -242,6 +255,55 @@ func moshExec(host string, port int, user string, remoteCmd string, extraArgs st
 		os.Exit(state.ExitCode())
 	}
 	return nil
+}
+
+// moshAvailableLocally reports whether mosh is installed on this machine.
+func moshAvailableLocally() bool {
+	_, err := exec.LookPath("mosh")
+	return err == nil
+}
+
+// moshAvailableRemotely probes the remote host by running `which mosh` over SSH.
+func moshAvailableRemotely(host string, port int, user, extraArgs string) bool {
+	sshArgs := []string{
+		"-p", strconv.Itoa(port),
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "LogLevel=ERROR",
+		"-o", "ConnectTimeout=5",
+	}
+	if extraArgs != "" {
+		sshArgs = append(sshArgs, strings.Fields(extraArgs)...)
+	}
+	sshArgs = append(sshArgs, fmt.Sprintf("%s@%s", user, host), "which mosh")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	return exec.CommandContext(ctx, "ssh", sshArgs...).Run() == nil
+}
+
+// pickProtocol returns "mosh" or "ssh". When no protocol is explicitly configured
+// it auto-detects mosh availability on both sides, saves "mosh" to config if found,
+// and falls back to "ssh" otherwise.
+func pickProtocol(cfg *config.Config, host string, port int, user, extraArgs string) string {
+	// Explicit env var or saved config preference → honour it.
+	if os.Getenv("SANDCASTLE_CONNECT_PROTOCOL") != "" || cfg.Preferences.ConnectProtocol != "" {
+		return cfg.LoadPreferences().ConnectProtocol
+	}
+
+	// Auto-detect: need mosh on both sides.
+	if !moshAvailableLocally() {
+		return "ssh"
+	}
+	fmt.Print("Checking for mosh on remote...")
+	if !moshAvailableRemotely(host, port, user, extraArgs) {
+		fmt.Println(" not found, using SSH")
+		return "ssh"
+	}
+	fmt.Println(" found! Using mosh (saved to config)")
+	cfg.Preferences.ConnectProtocol = "mosh"
+	_ = config.Save(cfg)
+	return "mosh"
 }
 
 func shellJoin(args []string) string {

@@ -146,10 +146,14 @@ func (c *Config) LoadPreferences() Preferences {
 func (c *Config) SetPreference(key, value string) error {
 	switch key {
 	case "connect_protocol":
-		if value != "ssh" && value != "mosh" {
-			return fmt.Errorf("connect_protocol must be 'ssh' or 'mosh', got %q", value)
+		if value != "ssh" && value != "mosh" && value != "auto" {
+			return fmt.Errorf("connect_protocol must be 'ssh', 'mosh', or 'auto', got %q", value)
 		}
-		c.Preferences.ConnectProtocol = value
+		if value == "auto" {
+			c.Preferences.ConnectProtocol = ""
+		} else {
+			c.Preferences.ConnectProtocol = value
+		}
 	case "use_tmux":
 		switch strings.ToLower(value) {
 		case "true", "1", "yes":
