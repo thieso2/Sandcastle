@@ -92,11 +92,15 @@ RUN RUNC_VERSION="v1.1.15" \
     && chmod +x /usr/bin/runc
 
 # Stage mise + Claude Code in /opt/sandcastle/bin (seeded to ~/.local/bin on first boot)
+# Claude Code is installed via npm (the claude.ai/install.sh convenience script is unreliable).
+# mise provides Node.js; npm installs @anthropic-ai/claude-code (native pre-built binary).
 RUN mkdir -p /opt/sandcastle/bin \
     && curl https://mise.run | MISE_INSTALL_PATH=/opt/sandcastle/bin/mise sh \
-    && curl -fsSL https://claude.ai/install.sh | bash \
-    && cp -L /root/.local/bin/claude /opt/sandcastle/bin/claude \
-    && rm -rf /root/.local/share/claude /root/.local/bin/claude
+    && /opt/sandcastle/bin/mise use --global node@lts \
+    && PATH="/root/.local/share/mise/shims:$PATH" npm install -g @anthropic-ai/claude-code \
+    && NODE_VER=$(/opt/sandcastle/bin/mise current node) \
+    && cp -L "/root/.local/share/mise/installs/node/${NODE_VER}/bin/claude" \
+       /opt/sandcastle/bin/claude
 
 # ttyd — web terminal (two ports: 7681=tmux, 7682=shell)
 RUN ARCH=$(dpkg --print-architecture) \
