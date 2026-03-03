@@ -26,6 +26,13 @@ SANDCASTLE_GROUP="sandcastle"  # defaults to SANDCASTLE_USER
 SANDCASTLE_UID="220568"
 SANDCASTLE_GID="220568"
 
+# ─── Server identity ────────────────────────────────────────────────────────
+
+# Human-readable name for this Sandcastle instance (auto-detected from hostname by gen-env).
+# Used as the Tailscale machine name for sidecar containers: sc-<name>
+# Spaces and special characters are slugified automatically (e.g. "My Server" → sc-my-server).
+# SANDCASTLE_NAME="sandman"
+
 # ─── Network & TLS ──────────────────────────────────────────────────────────
 
 # Host IP or domain name (auto-detected by gen-env)

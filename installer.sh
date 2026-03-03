@@ -861,6 +861,7 @@ BANNER_SCRIPT
 
 ensure_dirs() {
   mkdir -p "$SANDCASTLE_HOME"/etc
+  mkdir -p "$SANDCASTLE_HOME"/bin
   mkdir -p "$SANDCASTLE_HOME"/data/{users,sandboxes,wetty,postgres,snapshots}
   mkdir -p "$SANDCASTLE_HOME"/data/traefik/{dynamic,certs}
   chown "${SANDCASTLE_USER}:${SANDCASTLE_GROUP}" "$SANDCASTLE_HOME"
@@ -2296,6 +2297,7 @@ services:
       AR_ENCRYPTION_DETERMINISTIC_KEY: \${AR_ENCRYPTION_DETERMINISTIC_KEY}
       AR_ENCRYPTION_KEY_DERIVATION_SALT: \${AR_ENCRYPTION_KEY_DERIVATION_SALT}
       SANDCASTLE_HOST: \${SANDCASTLE_HOST}
+      SANDCASTLE_NAME: \${SANDCASTLE_NAME:-}
       SANDCASTLE_DATA_DIR: ${DATA_MOUNT}
       SANDCASTLE_TLS_MODE: \${SANDCASTLE_TLS_MODE:-letsencrypt}
       SANDCASTLE_ADMIN_USER: \${SANDCASTLE_ADMIN_USER:-admin}
@@ -2337,6 +2339,7 @@ services:
       AR_ENCRYPTION_DETERMINISTIC_KEY: \${AR_ENCRYPTION_DETERMINISTIC_KEY}
       AR_ENCRYPTION_KEY_DERIVATION_SALT: \${AR_ENCRYPTION_KEY_DERIVATION_SALT}
       SANDCASTLE_HOST: \${SANDCASTLE_HOST}
+      SANDCASTLE_NAME: \${SANDCASTLE_NAME:-}
       SANDCASTLE_DATA_DIR: ${DATA_MOUNT}
       SANDCASTLE_TLS_MODE: \${SANDCASTLE_TLS_MODE:-letsencrypt}
       DB_HOST: postgres
@@ -2421,6 +2424,10 @@ cmd_gen_env() {
   local dy_pool="${DOCKYARD_POOL_BASE:-${priv_net}}"
   local dy_pool_size="${DOCKYARD_POOL_SIZE:-24}"
 
+  # Auto-derive server name from short hostname (used for Tailscale machine names)
+  local sc_name="${SANDCASTLE_NAME:-$(hostname -s 2>/dev/null || true)}"
+  sc_name="${sc_name:-sandcastle}"
+
   cat > "$out" <<EOF
 # Sandcastle configuration
 # Edit values below, then run: sudo installer.sh install
@@ -2435,6 +2442,12 @@ SANDCASTLE_USER=${user}
 SANDCASTLE_GROUP=${group}
 SANDCASTLE_UID=${uid}
 SANDCASTLE_GID=${gid}
+
+# ─── Server identity ────────────────────────────────────────────────────────
+# Human-readable name for this Sandcastle instance.
+# Used as the Tailscale machine name for sidecar containers: sc-<name>
+# (spaces and special chars are slugified automatically).
+SANDCASTLE_NAME=${sc_name}
 
 # ─── Network & TLS ──────────────────────────────────────────────────────────
 SANDCASTLE_HOST=${host}
@@ -2831,6 +2844,7 @@ SECRETS
     cat > "$SANDCASTLE_HOME/.env" <<EOF
 # Sandcastle runtime — generated $(date -Iseconds)
 SANDCASTLE_HOME="${SANDCASTLE_HOME}"
+SANDCASTLE_NAME="${SANDCASTLE_NAME:-$(hostname -s 2>/dev/null || echo sandcastle)}"
 SANDCASTLE_HOST="${SANDCASTLE_HOST}"
 SANDCASTLE_TLS_MODE="${SANDCASTLE_TLS_MODE}"
 SANDCASTLE_USER="${SANDCASTLE_USER}"
@@ -2872,6 +2886,9 @@ EOF
   # Backfill DOCKYARD_POOL_BASE — required so docker-compose passes the correct subnet to Rails
   grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}" >> "$SANDCASTLE_HOME/.env"
+  # Backfill SANDCASTLE_NAME — used for Tailscale sidecar machine names (sc-<name>)
+  grep -q '^SANDCASTLE_NAME=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
+    echo "SANDCASTLE_NAME=${SANDCASTLE_NAME:-$(hostname -s 2>/dev/null || echo sandcastle)}" >> "$SANDCASTLE_HOME/.env"
   # Backfill AR encryption keys — generated once, never rotated (losing them breaks encrypted DB values)
   if ! grep -q '^AR_ENCRYPTION_PRIMARY_KEY=' "$SANDCASTLE_HOME/.env" 2>/dev/null; then
     RAILS_SECRETS_FILE="$SANDCASTLE_HOME/data/rails/.secrets"
@@ -2920,6 +2937,7 @@ SANDCASTLE_USER="${SANDCASTLE_USER}"
 SANDCASTLE_GROUP="${SANDCASTLE_GROUP}"
 SANDCASTLE_UID="${SANDCASTLE_UID}"
 SANDCASTLE_GID="${SANDCASTLE_GID}"
+SANDCASTLE_NAME="${SANDCASTLE_NAME:-$(hostname -s 2>/dev/null || echo sandcastle)}"
 SANDCASTLE_HOST="${SANDCASTLE_HOST}"
 SANDCASTLE_TLS_MODE="${SANDCASTLE_TLS_MODE}"
 SANDCASTLE_HTTP_PORT="${SANDCASTLE_HTTP_PORT}"
