@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "d7f93195-97b8-43c8-b9c1-e5cf665dd7b6",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-03T16:47:35.59684Z",
+  "branch": "claude/issue-63-20260302-2039",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/controllers/admin/sandboxes_controller.rb",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/jobs/sandbox_destroy_job.rb",
+    "app/jobs/sandbox_purge_job.rb",
+    "app/jobs/sandbox_restore_job.rb",
+    "app/models/setting.rb",
+    "app/models/user.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/dashboard/index.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "db/migrate/20260302000002_add_archive_retention_to_settings.rb",
+    "db/migrate/20260302000003_add_archive_retention_to_users.rb",
+    "vendor/sandcastle-cli/cmd/sandbox.go"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "a579c05e-c753-4cbc-8c04-54ee4db82ea2",
+  "token_usage": {
+    "input_tokens": 64,
+    "cache_creation_tokens": 106159,
+    "cache_read_tokens": 5000976,
+    "output_tokens": 26110,
+    "api_call_count": 62
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-03T16:47:35.536094Z",
+    "agent_lines": 0,
+    "human_added": 459,
+    "human_modified": 27,
+    "human_removed": 0,
+    "total_committed": 471,
+    "agent_percentage": 0
+  }
+}

@@ -2,11 +2,12 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "main",
-  "checkpoints_count": 29,
+  "branch": "claude/issue-63-20260302-2039",
+  "checkpoints_count": 30,
   "files_touched": [
     "CLAUDE.md",
     "VNC_AND_TTYD_AUTH.md",
+    "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/admin/settings_controller.rb",
     "app/controllers/api/routes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
@@ -15,9 +16,13 @@
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
     "app/jobs/container_sync_job.rb",
+    "app/jobs/sandbox_destroy_job.rb",
+    "app/jobs/sandbox_purge_job.rb",
+    "app/jobs/sandbox_restore_job.rb",
     "app/models/route.rb",
     "app/models/sandbox.rb",
     "app/models/setting.rb",
+    "app/models/user.rb",
     "app/policies/sandbox_policy.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
@@ -25,6 +30,7 @@
     "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
     "app/views/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb",
     "app/views/pages/guide.html.erb",
     "app/views/sandboxes/show.html.erb",
     "app/views/settings/show.html.erb",
@@ -34,6 +40,8 @@
     "config/initializers/mission_control_jobs.rb",
     "config/routes.rb",
     "db/migrate/20260222074421_add_mode_and_public_port_to_routes.rb",
+    "db/migrate/20260302000002_add_archive_retention_to_settings.rb",
+    "db/migrate/20260302000003_add_archive_retention_to_users.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "docker-compose.yml",
@@ -220,13 +228,20 @@
       "context": "/82/f637d3ee6d/22/context.md",
       "content_hash": "/82/f637d3ee6d/22/content_hash.txt",
       "prompt": "/82/f637d3ee6d/22/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/23/metadata.json",
+      "transcript": "/82/f637d3ee6d/23/full.jsonl",
+      "context": "/82/f637d3ee6d/23/context.md",
+      "content_hash": "/82/f637d3ee6d/23/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/23/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1017,
-    "cache_creation_tokens": 1528981,
-    "cache_read_tokens": 76477585,
-    "output_tokens": 234030,
-    "api_call_count": 867
+    "input_tokens": 1081,
+    "cache_creation_tokens": 1635140,
+    "cache_read_tokens": 81478561,
+    "output_tokens": 260140,
+    "api_call_count": 929
   }
 }
