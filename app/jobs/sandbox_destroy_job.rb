@@ -1,12 +1,13 @@
 class SandboxDestroyJob < ApplicationJob
   queue_as :default
 
-  def perform(sandbox_id:)
-    sandbox = Sandbox.find(sandbox_id)
-    return if sandbox.status == "destroyed" # Idempotent
+  def perform(sandbox_id:, archive: false)
+    sandbox = Sandbox.find_by(id: sandbox_id)
+    return unless sandbox
+    return if sandbox.status.in?(%w[destroyed archived]) # Idempotent
 
     begin
-      SandboxManager.new.destroy(sandbox: sandbox)
+      SandboxManager.new.destroy(sandbox: sandbox, archive: archive)
       sandbox.finish_job
 
     rescue => e

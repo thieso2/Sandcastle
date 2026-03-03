@@ -33,6 +33,7 @@ Rails.application.routes.draw do
       post :start
       post :stop
       post :retry
+      post :archive_restore
       get :stats, controller: "dashboard", action: "stats"
       get :card, controller: "dashboard", action: "card"
       post :terminal, controller: "terminal", action: "open"
@@ -73,6 +74,8 @@ Rails.application.routes.draw do
         post :start
         post :stop
         get :stats
+        post :archive_restore
+        delete :purge
       end
     end
 
@@ -84,6 +87,7 @@ Rails.application.routes.draw do
   end
 
   namespace :api do
+    get "archived_sandboxes", to: "sandboxes#archived_index"
     resources :sandboxes do
       member do
         post :start
@@ -91,6 +95,8 @@ Rails.application.routes.draw do
         post :connect
         post :snapshot
         post :restore
+        post :archive_restore
+        delete :purge
         post :tailscale_connect
         delete :tailscale_disconnect
       end

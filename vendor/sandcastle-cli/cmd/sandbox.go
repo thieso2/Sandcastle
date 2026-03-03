@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"strconv"
 	"text/tabwriter"
 	"time"
 
@@ -27,6 +28,7 @@ var (
 	sandboxNoVNC         bool
 	sandboxVNCGeometry   string
 	sandboxVNCDepth      int
+	listArchived         bool
 )
 
 func init() {
@@ -37,6 +39,9 @@ func init() {
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(useCmd)
 	rootCmd.AddCommand(setCmd)
+	rootCmd.AddCommand(archiveRestoreCmd)
+
+	listCmd.Flags().BoolVar(&listArchived, "archived", false, "List archived (soft-deleted) sandboxes")
 
 	createCmd.Flags().StringVar(&sandboxImage, "image", "ghcr.io/thieso2/sandcastle-sandbox:latest", "Container image")
 	createCmd.Flags().BoolVar(&sandboxPersistent, "persistent", false, "Enable persistent volume")
@@ -249,6 +254,29 @@ var listCmd = &cobra.Command{
 		}
 		printServer(client)
 
+		if listArchived {
+			sandboxes, err := client.ListArchivedSandboxes()
+			if err != nil {
+				return err
+			}
+			if len(sandboxes) == 0 {
+				fmt.Println("No archived sandboxes.")
+				return nil
+			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+			fmt.Fprintln(w, "ID\tNAME\tARCHIVED\tCREATED\tIMAGE")
+			for _, s := range sandboxes {
+				archivedAt := ""
+				if s.ArchivedAt != nil {
+					archivedAt = s.ArchivedAt.Local().Format("2006-01-02 15:04")
+				}
+				created := s.CreatedAt.Local().Format("2006-01-02 15:04")
+				fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\n", s.ID, s.Name, archivedAt, created, s.Image)
+			}
+			w.Flush()
+			return nil
+		}
+
 		sandboxes, err := client.ListSandboxes()
 		if err != nil {
 			return err
@@ -298,6 +326,34 @@ var listCmd = &cobra.Command{
 			}
 		}
 		w.Flush()
+		return nil
+	},
+}
+
+var archiveRestoreCmd = &cobra.Command{
+	Use:   "unarchive <id>",
+	Short: "Restore an archived sandbox",
+	Long: `Restore an archived sandbox by its ID, recreating the container from the preserved volume.
+The sandbox is restored in running state. Use 'sandcastle list --archived' to see IDs.`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			return fmt.Errorf("invalid sandbox ID %q: must be a number (use 'sandcastle list --archived' to see IDs)", args[0])
+		}
+
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+		printServer(client)
+
+		sandbox, err := client.ArchiveRestoreSandbox(id)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Sandbox %q restored (status: %s).\n", sandbox.Name, sandbox.Status)
 		return nil
 	},
 }

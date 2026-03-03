@@ -20,7 +20,8 @@ type Sandbox struct {
 	VNCDepth         int            `json:"vnc_depth,omitempty"`
 	Routes           []SandboxRoute `json:"routes"`
 	ConnectCommand   string         `json:"connect_command"`
-	CreatedAt        time.Time `json:"created_at"`
+	CreatedAt        time.Time      `json:"created_at"`
+	ArchivedAt       *time.Time     `json:"archived_at,omitempty"`
 }
 
 type SandboxRoute struct {

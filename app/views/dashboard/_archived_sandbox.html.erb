@@ -1,0 +1,26 @@
+<div class="bg-gray-50 rounded-lg border border-gray-200 p-4 flex items-center justify-between gap-4"
+     id="<%= dom_id(sandbox) %>-archived">
+
+  <div class="flex items-center gap-2 flex-wrap">
+    <span class="inline-block w-2.5 h-2.5 rounded-full bg-gray-400"></span>
+    <span class="font-mono font-medium text-gray-600"><%= sandbox.name %></span>
+    <span class="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">archived</span>
+    <% if sandbox.persistent_volume? %>
+      <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">volume</span>
+    <% end %>
+    <% if sandbox.mount_home? %>
+      <span class="text-xs font-medium text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">home</span>
+    <% end %>
+  </div>
+
+  <div class="flex items-center gap-3 shrink-0 text-xs text-gray-400">
+    <% if sandbox.archived_at %>
+      <% retention = Current.user.effective_archive_retention_days %>
+      <% expires_at = sandbox.archived_at + retention.days %>
+      <span>Expires <%= time_ago_in_words(expires_at) %> <%= expires_at > Time.current ? "from now" : "ago" %></span>
+    <% end %>
+
+    <%= button_to "Restore", archive_restore_sandbox_path(sandbox), method: :post,
+          class: "px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" %>
+  </div>
+</div>

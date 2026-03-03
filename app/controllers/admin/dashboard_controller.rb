@@ -3,6 +3,7 @@ module Admin
     def index
       authorize :user, :index?
       @sandboxes = Sandbox.active.includes(:user, :routes).order(:name)
+      @archived_sandboxes = Sandbox.archived.includes(:user, :routes).order(:name)
       @users = User.includes(:sandboxes).order(:name)
     end
 

@@ -67,7 +67,8 @@ module Admin
         :github_client_id, :github_client_secret,
         :google_client_id, :google_client_secret,
         :smtp_address, :smtp_port, :smtp_username, :smtp_password,
-        :smtp_authentication, :smtp_starttls, :smtp_from_address
+        :smtp_authentication, :smtp_starttls, :smtp_from_address,
+        :sandbox_archive_retention_days
       ])
     end
   end

@@ -1,5 +1,6 @@
 class SandboxesController < ApplicationController
   before_action :set_sandbox, only: [ :show, :destroy, :start, :stop, :retry ]
+  before_action :set_archived_sandbox, only: [ :archive_restore ]
 
   def new
     authorize Sandbox
@@ -69,13 +70,28 @@ class SandboxesController < ApplicationController
       return
     end
 
-    @sandbox.start_job("destroying")
-    SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
+    user = Current.user
+    archive = user.effective_archive_retention_days > 0
 
+    @sandbox.start_job("destroying")
+    SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: archive)
+
+    notice = archive ? "Archiving sandcastle #{@sandbox.name}..." : "Destroying sandcastle #{@sandbox.name}..."
     respond_to do |format|
-      format.html { redirect_to root_path, notice: "Destroying sandcastle #{@sandbox.name}..." }
+      format.html { redirect_to root_path, notice: notice }
       format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "dashboard/sandbox", locals: { sandbox: @sandbox }) }
     end
+  end
+
+  def archive_restore
+    if @sandbox.job_in_progress?
+      redirect_to root_path, alert: "Operation already in progress"
+      return
+    end
+
+    @sandbox.start_job("restoring")
+    SandboxRestoreJob.perform_later(sandbox_id: @sandbox.id)
+    redirect_to root_path, notice: "Restoring sandcastle #{@sandbox.name}..."
   end
 
   def start
@@ -129,5 +145,10 @@ class SandboxesController < ApplicationController
   def set_sandbox
     @sandbox = policy_scope(Sandbox).find(params[:id])
     authorize @sandbox
+  end
+
+  def set_archived_sandbox
+    @sandbox = Current.user.sandboxes.archived.find(params[:id])
+    authorize @sandbox, :archive_restore?
   end
 end

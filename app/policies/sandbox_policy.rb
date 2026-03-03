@@ -12,6 +12,8 @@ class SandboxPolicy < ApplicationPolicy
   def connect?               = owner_only?
   def snapshot?              = owner_only?
   def restore?               = owner_only?
+  def archive_restore?       = owner_or_admin?
+  def purge?                 = admin?
   def tailscale_connect?     = owner_only?
   def tailscale_disconnect?  = owner_only?
 

@@ -54,4 +54,15 @@ class SandboxDestroyJobTest < ActiveJob::TestCase
     @sandbox.reload
     assert_equal "destroyed", @sandbox.status
   end
+
+  test "is idempotent - skips if already archived" do
+    @sandbox.update!(status: "archived", archived_at: Time.current)
+
+    perform_enqueued_jobs do
+      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
+    end
+
+    @sandbox.reload
+    assert_equal "archived", @sandbox.status
+  end
 end

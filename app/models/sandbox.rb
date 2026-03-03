@@ -8,14 +8,15 @@ class Sandbox < ApplicationRecord
   VNC_DEPTHS = [ 8, 16, 24, 32 ].freeze
 
   validates :name, presence: true,
-    uniqueness: { scope: :user_id, conditions: -> { where.not(status: "destroyed") } },
+    uniqueness: { scope: :user_id, conditions: -> { where.not(status: %w[destroyed archived]) } },
     format: { with: /\A[a-z][a-z0-9_-]{0,62}\z/, message: "must be lowercase alphanumeric" }
-  validates :status, inclusion: { in: %w[pending running stopped destroyed] }
+  validates :status, inclusion: { in: %w[pending running stopped destroyed archived] }
   validates :image, presence: true
   validates :vnc_geometry, inclusion: { in: VNC_GEOMETRIES }
   validates :vnc_depth, inclusion: { in: VNC_DEPTHS }
 
-  scope :active, -> { where.not(status: "destroyed") }
+  scope :active, -> { where.not(status: %w[destroyed archived]) }
+  scope :archived, -> { where(status: "archived") }
   scope :running, -> { where(status: "running") }
 
   # Turbo Streams for real-time UI updates
@@ -74,8 +75,8 @@ class Sandbox < ApplicationRecord
   end
 
   def broadcast_replace_to_dashboard
-    # If sandbox is destroyed, remove it from the dashboard instead of replacing
-    if status == "destroyed"
+    # If sandbox is destroyed or archived, remove it from the active dashboard
+    if status.in?(%w[destroyed archived])
       broadcast_remove_to([ user, "dashboard" ], target: dom_id(self))
     else
       broadcast_replace_to(

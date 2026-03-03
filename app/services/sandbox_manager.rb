@@ -75,6 +75,8 @@ class SandboxManager
     container.refresh!
     unless container.json.dig("State", "Running")
       state_error = container.json.dig("State", "Error").presence || container.json.dig("State", "Status")
+      container.stop rescue nil
+      container.delete(force: true) rescue nil
       raise Error, "Container failed to start: #{state_error}"
     end
     sandbox.update!(container_id: container.id, status: "running")
@@ -130,7 +132,7 @@ class SandboxManager
     raise Error, "Failed to create mount directories: #{e.message}"
   end
 
-  def destroy(sandbox:, keep_volume: false)
+  def destroy(sandbox:, keep_volume: false, archive: false)
     begin
       TerminalManager.new.close(sandbox: sandbox)
     rescue TerminalManager::Error, Docker::Error::DockerError
@@ -159,11 +161,37 @@ class SandboxManager
       end
     end
 
-    unless keep_volume
-      FileUtils.rm_rf(sandbox.volume_path) if sandbox.volume_path.present?
+    if archive
+      # Soft-delete: keep volume on disk, mark as archived
+      sandbox.update!(status: "archived", container_id: nil, archived_at: Time.current)
+    else
+      unless keep_volume
+        FileUtils.rm_rf(sandbox.volume_path) if sandbox.volume_path.present?
+      end
+      sandbox.update!(status: "destroyed", container_id: nil)
+    end
+  end
+
+  # Restore an archived sandbox: recreate the container from the existing volume.
+  # The container is started immediately; status is set to "running".
+  def restore_from_archive(sandbox:)
+    raise Error, "Sandbox is not archived" unless sandbox.status == "archived"
+
+    user = sandbox.user
+
+    ensure_image(sandbox.image)
+    ensure_mount_dirs(user, sandbox)
+
+    create_container_and_start(sandbox: sandbox, user: user)
+    sandbox.update!(archived_at: nil)
+
+    if sandbox.tailscale? && user.tailscale_enabled?
+      TailscaleManager.new.connect_sandbox(sandbox: sandbox)
     end
 
-    sandbox.update!(status: "destroyed", container_id: nil)
+    sandbox
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to restore archived sandbox: #{e.message}"
   end
 
   def start(sandbox:)

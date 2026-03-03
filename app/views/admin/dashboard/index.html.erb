@@ -31,6 +31,54 @@
     <% end %>
   </div>
 
+  <% if @archived_sandboxes.any? %>
+    <div class="mb-8">
+      <details class="group">
+        <summary class="flex items-center gap-2 cursor-pointer text-gray-500 hover:text-gray-700 mb-4 list-none">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 group-open:rotate-90 transition-transform">
+            <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+          </svg>
+          <span class="text-base font-semibold text-gray-700">Archived Sandcastles (<%= @archived_sandboxes.count %>)</span>
+        </summary>
+
+        <div class="grid gap-3 mt-3">
+          <% @archived_sandboxes.each do |sandbox| %>
+            <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 flex items-center justify-between gap-4">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-gray-400"></span>
+                <span class="font-mono font-medium text-gray-700"><%= sandbox.name %></span>
+                <span class="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded"><%= sandbox.user.name %></span>
+                <% if sandbox.persistent_volume? %>
+                  <span class="text-xs text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">volume</span>
+                <% end %>
+                <% if sandbox.archived_at %>
+                  <span class="text-xs text-gray-500">Archived <%= time_ago_in_words(sandbox.archived_at) %> ago</span>
+                  <% retention = sandbox.user.effective_archive_retention_days %>
+                  <% expires_at = sandbox.archived_at + retention.days %>
+                  <span class="text-xs <%= expires_at < Time.current ? 'text-red-500' : 'text-gray-400' %>">
+                    Expires <%= time_ago_in_words(expires_at) %> <%= expires_at > Time.current ? "from now" : "ago (pending purge)" %>
+                  </span>
+                <% end %>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <%= button_to "Restore", archive_restore_admin_sandbox_path(sandbox), method: :post,
+                      class: "text-xs px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" %>
+                <div data-controller="inline-confirm" class="inline-block">
+                  <%= button_to "Purge", purge_admin_sandbox_path(sandbox), method: :delete,
+                        class: "text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
+                        data: {
+                          action: "click->inline-confirm#confirm",
+                          confirm_message: "Purge? (data permanently deleted)"
+                        } %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </details>
+    </div>
+  <% end %>
+
   <div>
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold text-gray-900">Users</h2>

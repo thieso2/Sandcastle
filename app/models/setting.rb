@@ -1,6 +1,8 @@
 class Setting < ApplicationRecord
   encrypts :github_client_secret, :google_client_secret, :smtp_password
 
+  validates :sandbox_archive_retention_days, numericality: { only_integer: true, greater_than_or_equal_to: 0, allow_nil: true }
+
   def self.instance
     find_or_create_by(id: 1)
   end

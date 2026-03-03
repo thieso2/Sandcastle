@@ -1,10 +1,21 @@
 module Api
   class SandboxesController < BaseController
     before_action :set_sandbox, only: %i[show update destroy start stop connect snapshot restore tailscale_connect tailscale_disconnect]
+    before_action :set_archived_sandbox, only: %i[archive_restore purge]
 
     def index
       authorize Sandbox
       sandboxes = policy_scope(Sandbox)
+      render json: sandboxes.map { |s| sandbox_json(s) }
+    end
+
+    def archived_index
+      authorize Sandbox
+      sandboxes = if current_user.admin?
+        Sandbox.archived
+      else
+        current_user.sandboxes.archived
+      end.includes(:user, :routes).order(:name)
       render json: sandboxes.map { |s| sandbox_json(s) }
     end
 
@@ -89,10 +100,9 @@ module Api
         return
       end
 
-      # Enqueue async job
-      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
+      archive = @sandbox.user.effective_archive_retention_days > 0
+      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: archive)
 
-      # Return immediately with job_status so CLI can poll
       render json: sandbox_json(@sandbox.reload)
     end
 
@@ -155,6 +165,18 @@ module Api
       render json: sandbox_json(@sandbox.reload)
     end
 
+    def archive_restore
+      @sandbox.start_job("restoring")
+      SandboxRestoreJob.perform_later(sandbox_id: @sandbox.id)
+      render json: sandbox_json(@sandbox.reload), status: :accepted
+    end
+
+    def purge
+      @sandbox.start_job("destroying")
+      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: false)
+      render json: { status: "accepted" }, status: :accepted
+    end
+
     def tailscale_connect
       TailscaleManager.new.connect_sandbox(sandbox: @sandbox)
       render json: sandbox_json(@sandbox.reload)
@@ -175,8 +197,8 @@ module Api
       sandbox = Sandbox.find_by(id: params[:id])
       if sandbox.nil?
         raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} not found"
-      elsif sandbox.status == "destroyed"
-        raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} has been destroyed"
+      elsif sandbox.status.in?(%w[destroyed archived])
+        raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} has been #{sandbox.status}"
       elsif sandbox.user_id != current_user.id
         raise Pundit::NotAuthorizedError, "You don't have access to this sandbox"
       else
@@ -184,6 +206,17 @@ module Api
         Rails.logger.error("Sandbox #{params[:id]} exists (status: #{sandbox.status}, user: #{sandbox.user_id}) but not in policy_scope for user #{current_user.id}")
         raise ActiveRecord::RecordNotFound, "Sandbox with ID #{params[:id]} is not accessible (status: #{sandbox.status})"
       end
+    end
+
+    def set_archived_sandbox
+      @sandbox = if current_user.admin?
+        Sandbox.archived.find(params[:id])
+      else
+        current_user.sandboxes.archived.find(params[:id])
+      end
+      authorize @sandbox, action_name == "purge" ? :purge? : :archive_restore?
+    rescue ActiveRecord::RecordNotFound
+      raise ActiveRecord::RecordNotFound, "Archived sandbox with ID #{params[:id]} not found"
     end
 
     def sandbox_json(sandbox)
@@ -203,6 +236,7 @@ module Api
         vnc_depth: sandbox.vnc_depth,
         routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
         created_at: sandbox.created_at,
+        archived_at: sandbox.archived_at,
         connect_command: sandbox.connect_command,
         job_status: sandbox.job_status,
         job_error: sandbox.job_error
