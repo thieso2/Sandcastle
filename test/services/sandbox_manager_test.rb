@@ -169,4 +169,39 @@ class SandboxManagerTest < ActiveSupport::TestCase
     assert_equal "legacy-test", result[:name]
     assert result[:image].present?
   end
+
+  # Regression test for: SSH and VNC broken when user home is mounted (issue #68)
+  #
+  # Root cause: Sysbox user-namespace UID remapping means the bind-mounted home
+  # dir (created by host root) appears owned by nobody (UID 65534) inside the
+  # container. The entrypoint's `chown -R` fails silently, leaving the dir with
+  # wrong ownership. Without ensure_mount_dirs being called on restart, the dir
+  # can be left at chmod 755 from the previous container run, making it
+  # unwritable by the sandbox user → SSH StrictModes rejects keys, VNC can't
+  # create ~/.Xauthority.
+  test "start calls ensure_mount_dirs for sandboxes with mount_home to reset bind-mount permissions" do
+    @sandbox.update!(mount_home: true, status: "stopped", container_id: nil)
+
+    ensure_called = false
+    @manager.stub(:ensure_mount_dirs, ->(_user, _sandbox) { ensure_called = true }) do
+      @manager.start(sandbox: @sandbox)
+    end
+
+    assert ensure_called,
+      "SandboxManager#start must call ensure_mount_dirs before creating the container " \
+      "so the home dir is reset to 777; without this, Sysbox UID remapping leaves the " \
+      "dir owned by nobody (chmod 755) and breaks SSH StrictModes and VNC ~/.Xauthority"
+  end
+
+  test "start calls ensure_mount_dirs for sandboxes with data_path to reset bind-mount permissions" do
+    @sandbox.update!(data_path: "mydata", status: "stopped", container_id: nil)
+
+    ensure_called = false
+    @manager.stub(:ensure_mount_dirs, ->(_user, _sandbox) { ensure_called = true }) do
+      @manager.start(sandbox: @sandbox)
+    end
+
+    assert ensure_called,
+      "SandboxManager#start must call ensure_mount_dirs for data_path sandboxes too"
+  end
 end

@@ -4,6 +4,14 @@ class TailscaleManager
   TAILSCALE_TAG = ENV.fetch("SANDCASTLE_TAILSCALE_TAG", "").presence
   LOGIN_URL_PATTERN = %r{https://login\.tailscale\.com/\S+}
 
+  # Stable Tailscale machine name for this server's sidecar containers.
+  # Derived from SANDCASTLE_NAME (set in .env) or falls back to the system hostname.
+  # Slugified: lowercase, non-alphanumeric runs → "-", leading/trailing "-" stripped.
+  TAILSCALE_HOSTNAME = begin
+    name = ENV.fetch("SANDCASTLE_NAME", "").presence || Socket.gethostname
+    "sc-" + name.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/\A-+|-+\z/, "")
+  end
+
   class Error < StandardError; end
 
   # Restore sidecar from persisted tailscaled.state without re-authentication.
@@ -34,11 +42,25 @@ class TailscaleManager
     )
     container.start
 
+    # Re-advertise routes after tailscaled reconnects — the subnet may have changed
+    # after a reinstall (Docker reallocates from the pool). No --reset so we preserve
+    # credentials and other settings in the persisted state. Also re-applies the
+    # canonical hostname so it reflects the current SANDCASTLE_NAME.
+    container.exec([
+      "sh", "-c",
+      "sleep 3 && tailscale up" \
+      " --advertise-routes=#{subnet}" \
+      " --accept-routes" \
+      " --hostname=#{TAILSCALE_HOSTNAME}" \
+      " --timeout=60s &"
+    ])
+
     user.update!(
       tailscale_state: "enabled",
       tailscale_auto_connect: true,
       tailscale_container_id: container.id,
-      tailscale_network: network_name
+      tailscale_network: network_name,
+      tailscale_subnet: subnet
     )
     user
   rescue Docker::Error::DockerError => e
@@ -307,6 +329,9 @@ class TailscaleManager
     )
     container.start
 
+    # Persist the subnet so it survives reinstalls (subnet_for reads this first).
+    user.update_column(:tailscale_subnet, subnet)
+
     [ network_name, container ]
   end
 
@@ -377,7 +402,10 @@ class TailscaleManager
   end
 
   def subnet_for(user)
-    # If the network already exists, read its actual subnet (stable across restarts)
+    # 1. Use the subnet stored in the DB — stable across Docker/reinstalls
+    return user.tailscale_subnet if user.tailscale_subnet.present?
+
+    # 2. If the network already exists on Docker, read its actual subnet
     begin
       network = Docker::Network.get("sc-ts-net-#{user.name}")
       ipam = network.info.dig("IPAM", "Config")
@@ -386,6 +414,7 @@ class TailscaleManager
       # Network doesn't exist yet — fall through to generate a random /24
     end
 
+    # 3. Generate a random /24 from the pool (first allocation)
     base = ENV["DOCKYARD_POOL_BASE"]
     if base
       parts = base.split("/").first.split(".").map(&:to_i)
@@ -410,7 +439,7 @@ class TailscaleManager
 
   def create_sidecar(name:, user:, network:, subnet:, auth_key:, hostname: nil)
     state_dir = "#{DATA_DIR}/users/#{user.name}/tailscale"
-    ts_hostname = hostname.presence || "sc-#{user.name}"
+    ts_hostname = hostname.presence || TAILSCALE_HOSTNAME
 
     config = {
       "Image" => TAILSCALE_IMAGE,

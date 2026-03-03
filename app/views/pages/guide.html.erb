@@ -109,19 +109,19 @@ sandcastle ssh my-dev</code></pre>
     </div>
   </section>
 
-  <%# ── Browser ── %>
+  <%# ── VNC ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">7. Web browser</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">7. VNC</h2>
     <p class="text-gray-700 mb-3">
-      Click the <strong>Browser</strong> button on any running sandbox to access Google Chrome with a graphical desktop environment.
+      Click the <strong>VNC</strong> button on any running sandbox to access Google Chrome with a graphical desktop environment.
       Perfect for browser automation, visual testing, or running GUI applications.
     </p>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 mb-3">
       <strong>How it works:</strong> Each sandbox includes Google Chrome, Xvfb (virtual X server), and x11vnc.
-      Clicking Browser launches a noVNC container that connects to the sandbox's VNC server, giving you a full graphical browser in your web browser.
+      Clicking VNC launches a noVNC container that connects to the sandbox's VNC server, giving you a full graphical browser in your web browser.
     </div>
     <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800">
-      <strong>Chrome profile persistence:</strong> Go to Settings → Browser to enable Chrome profile persistence.
+      <strong>Chrome profile persistence:</strong> Go to Settings → VNC to enable Chrome profile persistence.
       When enabled, your Chrome extensions, bookmarks, and settings are saved and persist across sandbox recreations.
       If you use <strong>Mount Home</strong>, profiles are stored in <code class="bg-green-100 px-1 rounded">~/.config/google-chrome</code> alongside all your other home directory files.
       Without Mount Home, profiles are stored separately in a dedicated directory.
@@ -253,8 +253,8 @@ sandcastle snapshot delete before-migration</code></pre>
     <ul class="list-disc list-inside text-gray-700 ml-4 space-y-1 text-sm">
       <li><strong>Profile</strong> — Update your email address and change your password</li>
       <li><strong>Tailscale</strong> — View connection status and toggle auto-connect for new sandboxes</li>
-      <li><strong>Browser</strong> — Toggle Chrome profile persistence across sandbox recreations</li>
       <li><strong>Sandbox Archive</strong> — Set your personal archive retention period (overrides the system default)</li>
+      <li><strong>VNC</strong> — Toggle Chrome profile persistence across sandbox recreations</li>
       <li><strong>API Tokens</strong> — Create, list, and revoke multiple named API tokens for different devices or applications</li>
     </ul>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-sm text-blue-800">

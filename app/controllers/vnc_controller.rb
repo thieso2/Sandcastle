@@ -15,7 +15,7 @@ class VncController < ApplicationController
     sandbox = find_sandbox
 
     VncManager.new.close(sandbox: sandbox)
-    redirect_to root_path, notice: "Browser session closed"
+    redirect_to root_path, notice: "VNC session closed"
   rescue VncManager::Error => e
     redirect_to root_path, alert: e.message
   end
