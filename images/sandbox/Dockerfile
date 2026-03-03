@@ -121,10 +121,17 @@ RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
 RUN echo "${SANDCASTLE_VERSION}" > /etc/sandcastle-version
 
 # SSH configuration (key-only auth) — use drop-in config for Ubuntu 25.10 compatibility
+# StrictModes no: the home dir is bind-mounted from the host.  Sysbox user-
+# namespace UID remapping means it appears owned by nobody (not the sandbox
+# user) inside the container — chown fails silently.  StrictModes would
+# refuse to accept authorized_keys from a home dir it doesn't own, so we
+# disable it.  There is no security regression: password auth is disabled and
+# key injection is managed exclusively by entrypoint.sh.
 RUN mkdir -p /var/run/sshd /etc/ssh/sshd_config.d \
     && echo "PermitRootLogin no" > /etc/ssh/sshd_config.d/10-sandcastle.conf \
     && echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config.d/10-sandcastle.conf \
-    && echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf
+    && echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf \
+    && echo "StrictModes no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf
 
 COPY entrypoint.sh /entrypoint.sh
 COPY docker-restart.sh /usr/local/bin/docker-restart

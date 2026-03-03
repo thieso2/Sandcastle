@@ -182,6 +182,13 @@ class SandboxManager
       end
     end
 
+    # Reset bind-mount directory permissions before starting the new container.
+    # Sysbox user-namespace UID remapping means the home/data dirs (created by
+    # host root) appear owned by nobody (UID 65534) inside the container, so
+    # chown in the entrypoint fails silently.  Resetting to 777 here ensures
+    # the new container's entrypoint can write .ssh, .Xauthority, etc.
+    ensure_mount_dirs(user, sandbox)
+
     create_container_and_start(sandbox: sandbox, user: user)
 
     TailscaleManager.new.connect_sandbox(sandbox: sandbox) if sandbox.tailscale? && user.tailscale_enabled?
