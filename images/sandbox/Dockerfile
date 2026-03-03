@@ -106,7 +106,7 @@ RUN RUNC_VERSION="v1.1.15" \
 RUN mkdir -p /opt/sandcastle/bin \
     && curl https://mise.run | MISE_INSTALL_PATH=/opt/sandcastle/bin/mise sh \
     && /opt/sandcastle/bin/mise use --global node@lts \
-    && PATH="/root/.local/share/mise/shims:$PATH" npm install -g @anthropic-ai/claude-code \
+    && /opt/sandcastle/bin/mise exec -- npm install -g @anthropic-ai/claude-code \
     && NODE_VER=$(/opt/sandcastle/bin/mise current node) \
     && cp -L "/root/.local/share/mise/installs/node/${NODE_VER}/bin/claude" \
        /opt/sandcastle/bin/claude
