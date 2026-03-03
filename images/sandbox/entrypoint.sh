@@ -41,11 +41,16 @@ done
 
 # Set correct ownership and permissions on the home directory.
 # chown -R covers .ssh, .local, and anything else created above.
-# chmod 755 is required by sshd StrictModes.
-# The host creates bind-mounted home dirs with 777 so Sysbox-mapped root
-# can write during setup (see above); tighten to 755 now that setup is done.
+#
+# NOTE: when the home dir is bind-mounted, it may be owned by a host UID that
+# falls outside this Sysbox container's user-namespace mapping (e.g. host
+# root, UID 0).  That host UID appears as nobody (65534) inside the container,
+# so chown fails silently for the directory itself.  We keep the dir world-
+# writable (777) so the sandbox user can still write ~/.Xauthority (VNC) and
+# other home-dir files even when they don't own the directory.  sshd is
+# configured with StrictModes no to accept this arrangement.
 chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/dev/null || true
-chmod 755 "/home/$USERNAME"
+chmod 777 "/home/$USERNAME"
 
 # Ensure workspace is accessible
 chown "$USERNAME:$USERNAME" /workspace 2>/dev/null || true
