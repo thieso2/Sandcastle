@@ -1,0 +1,16 @@
+analyze and debug why VERBOSE=1 sandcastle connect test does not work.
+
+---
+
+[Request interrupted by user]
+
+---
+
+it cannot connect to the tailscale ip. why?
+see sandcastle list
+
+---
+
+use tailscale status to find out.
+i reinstalled sandcastle on sandman - maybe the subnet has changed but tailscale thinks its the old one?
+debug!
