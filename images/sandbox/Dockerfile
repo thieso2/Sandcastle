@@ -107,6 +107,7 @@ RUN mkdir -p /opt/sandcastle/bin \
     && curl https://mise.run | MISE_INSTALL_PATH=/opt/sandcastle/bin/mise sh \
     && /opt/sandcastle/bin/mise use --global node@lts \
     && /opt/sandcastle/bin/mise exec -- npm install -g @anthropic-ai/claude-code \
+    && /opt/sandcastle/bin/mise exec -- npm install -g @openai/codex \
     && NODE_VER=$(/opt/sandcastle/bin/mise current node) \
     && cp -L "/root/.local/share/mise/installs/node/${NODE_VER}/bin/claude" \
        /opt/sandcastle/bin/claude
@@ -128,6 +129,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
     && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
     && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc \
+    && echo "alias ycodex='codex --dangerously-bypass-approvals-and-sandbox'" >> /etc/bash.bashrc \
     && echo '[ -r /run/docker-status ] && echo "DinD: $(cat /run/docker-status)"' >> /etc/bash.bashrc
 
 # Bake version into the image
