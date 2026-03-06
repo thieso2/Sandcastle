@@ -27,7 +27,7 @@ func init() {
 
 var connectCmd = &cobra.Command{
 	Use:     "connect [name]",
-	Aliases: []string{"co"},
+	Aliases: []string{"c"},
 	Short:   "Connect to sandbox and attach tmux (auto-starts if stopped)",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

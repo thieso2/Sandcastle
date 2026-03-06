@@ -62,7 +62,7 @@ func init() {
 
 var createCmd = &cobra.Command{
 	Use:     "create [name]",
-	Aliases: []string{"c"},
+	Aliases: []string{"cr"},
 	Short:   "Create a new sandbox",
 	Long: `Create a new sandbox.
 
