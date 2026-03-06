@@ -64,8 +64,10 @@ sandcastle tailscale enable --auth-key tskey-auth-...</code></pre>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle create my-dev --home --data</code></pre>
 
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4 text-sm text-blue-800">
-      <strong>Tip:</strong> Set environment variables to make flags the default:<br>
-      <code class="bg-blue-100 px-1 rounded">export SANDCASTLE_HOME=1 SANDCASTLE_DATA=. SANDCASTLE_RM=1</code>
+      <strong>Tip:</strong> Make these flags the default with config or env vars:<br>
+      <code class="bg-blue-100 px-1 rounded">sandcastle config set mount_home true</code><br>
+      <code class="bg-blue-100 px-1 rounded">sandcastle config set data_path .</code><br>
+      <span class="text-blue-600 text-xs mt-1 block">Or via env: <code class="bg-blue-100 px-1 rounded">export SANDCASTLE_HOME=1 SANDCASTLE_DATA=. SANDCASTLE_RM=1</code></span>
     </div>
   </section>
 
@@ -343,13 +345,21 @@ sandcastle config set connect_protocol mosh
 # Disable automatic tmux session attachment
 sandcastle config set use_tmux false
 
+# Always mount persistent home directory on create
+sandcastle config set mount_home true
+
+# Always mount user data directory on create
+sandcastle config set data_path .
+
 # Show effective settings (merged from config file + env vars)
 sandcastle config show</code></pre>
 
     <p class="text-gray-700 mb-2 mt-4">Environment variable overrides (highest priority):</p>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>SANDCASTLE_CONNECT_PROTOCOL=mosh  # "ssh" (default) | "mosh"
 SANDCASTLE_USE_TMUX=false         # "true" (default) | "false"
-SANDCASTLE_SSH_EXTRA_ARGS="-v"   # extra flags appended to ssh/mosh</code></pre>
+SANDCASTLE_SSH_EXTRA_ARGS="-v"    # extra flags appended to ssh/mosh
+SANDCASTLE_HOME=1                 # mount persistent home on create
+SANDCASTLE_DATA=.                 # mount user data dir on create</code></pre>
 
     <p class="text-gray-700 mb-2 mt-4">Example: per-project override with mise:</p>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># .mise.toml

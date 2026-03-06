@@ -21,6 +21,8 @@ type Preferences struct {
 	ConnectProtocol string `yaml:"connect_protocol,omitempty"` // "ssh" (default) | "mosh"
 	UseTmux         *bool  `yaml:"use_tmux,omitempty"`         // default true
 	SSHExtraArgs    string `yaml:"ssh_extra_args,omitempty"`   // extra flags for ssh/mosh
+	MountHome       *bool  `yaml:"mount_home,omitempty"`       // default false; --home on create
+	DataPath        string `yaml:"data_path,omitempty"`        // default ""; --data on create
 }
 
 type Config struct {
@@ -129,6 +131,16 @@ func (c *Config) LoadPreferences() Preferences {
 	if v := os.Getenv("SANDCASTLE_SSH_EXTRA_ARGS"); v != "" {
 		p.SSHExtraArgs = v
 	}
+	if v := os.Getenv("SANDCASTLE_HOME"); v != "" {
+		b := strings.ToLower(v) == "true" || v == "1"
+		p.MountHome = &b
+	}
+	if v := os.Getenv("SANDCASTLE_DATA"); v != "" {
+		if v == "1" || v == "true" {
+			v = "."
+		}
+		p.DataPath = v
+	}
 
 	// Apply built-in defaults
 	if p.ConnectProtocol == "" {
@@ -167,8 +179,28 @@ func (c *Config) SetPreference(key, value string) error {
 		}
 	case "ssh_extra_args":
 		c.Preferences.SSHExtraArgs = value
+	case "mount_home":
+		switch strings.ToLower(value) {
+		case "true", "1", "yes":
+			t := true
+			c.Preferences.MountHome = &t
+		case "false", "0", "no":
+			f := false
+			c.Preferences.MountHome = &f
+		default:
+			return fmt.Errorf("mount_home must be 'true' or 'false', got %q", value)
+		}
+	case "data_path":
+		if value == "false" || value == "0" || value == "no" || value == "off" {
+			c.Preferences.DataPath = ""
+		} else {
+			if value == "true" || value == "1" {
+				value = "."
+			}
+			c.Preferences.DataPath = value
+		}
 	default:
-		return fmt.Errorf("unknown preference %q; valid keys: connect_protocol, use_tmux, ssh_extra_args", key)
+		return fmt.Errorf("unknown preference %q; valid keys: connect_protocol, use_tmux, ssh_extra_args, mount_home, data_path", key)
 	}
 	return nil
 }

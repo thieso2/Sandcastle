@@ -76,18 +76,21 @@ Environment variables can set defaults for commonly used flags:
 Flags explicitly passed on the command line take precedence over environment variables.`,
 	Args: cobra.MaximumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if !cmd.Flags().Changed("home") && envTruthy("SANDCASTLE_HOME") {
-			sandboxHome = true
+		// Priority: explicit flag > env var > config preference
+		cfg, _ := config.Load()
+		prefs := cfg.LoadPreferences()
+
+		if !cmd.Flags().Changed("home") {
+			if prefs.MountHome != nil && *prefs.MountHome {
+				sandboxHome = true
+			}
 		}
 		if !cmd.Flags().Changed("rm") && envTruthy("SANDCASTLE_RM") {
 			sandboxRemove = true
 		}
 		if !cmd.Flags().Changed("data") {
-			if v := os.Getenv("SANDCASTLE_DATA"); v != "" {
-				if v == "1" || v == "true" {
-					v = "."
-				}
-				sandboxData = v
+			if prefs.DataPath != "" {
+				sandboxData = prefs.DataPath
 			}
 		}
 	},

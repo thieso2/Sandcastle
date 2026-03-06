@@ -89,6 +89,26 @@ var showConfigCmd = &cobra.Command{
 		)
 		fmt.Printf("  ssh_extra_args:   %s  [%s]\n", extraArgs, extraArgsSrc)
 
+		mountHomeVal := "false"
+		if prefs.MountHome != nil && *prefs.MountHome {
+			mountHomeVal = "true"
+		}
+		mountHomeSrc := sourceLabel(
+			os.Getenv("SANDCASTLE_HOME") != "",
+			cfg.Preferences.MountHome != nil,
+		)
+		fmt.Printf("  mount_home:       %-6s  [%s]\n", mountHomeVal, mountHomeSrc)
+
+		dataPathVal := prefs.DataPath
+		if dataPathVal == "" {
+			dataPathVal = "(not set)"
+		}
+		dataPathSrc := sourceLabel(
+			os.Getenv("SANDCASTLE_DATA") != "",
+			cfg.Preferences.DataPath != "",
+		)
+		fmt.Printf("  data_path:        %s  [%s]\n", dataPathVal, dataPathSrc)
+
 		return nil
 	},
 }
@@ -113,9 +133,12 @@ Valid keys:
   connect_protocol   Connection protocol: "ssh" (default) or "mosh"
   use_tmux           Wrap connection in tmux: "true" (default) or "false"
   ssh_extra_args     Extra flags appended to the ssh/mosh invocation
+  mount_home         Mount persistent home on create: "true" or "false" (default)
+  data_path          Mount user data dir on create: "." (root), subpath, or "off"
 
 ENV vars override config file values at runtime:
-  SANDCASTLE_CONNECT_PROTOCOL, SANDCASTLE_USE_TMUX, SANDCASTLE_SSH_EXTRA_ARGS`,
+  SANDCASTLE_CONNECT_PROTOCOL, SANDCASTLE_USE_TMUX, SANDCASTLE_SSH_EXTRA_ARGS,
+  SANDCASTLE_HOME, SANDCASTLE_DATA`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key, value := args[0], args[1]
