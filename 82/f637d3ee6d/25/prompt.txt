@@ -1,0 +1,17 @@
+add a button "logs" that does "docker logs <sandcastle>" for a sandcastle that i own or am an admin
+
+---
+
+Tool loaded.
+
+---
+
+Tool loaded.
+
+---
+
+Tool loaded.
+
+---
+
+commit
