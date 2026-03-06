@@ -101,3 +101,8 @@ Error: buildx failed with: ERROR: failed to build: failed to solve: process "/bi
 we have repeated erros in  CI - fix or add sleep and retry add a retry for this command
 Error: buildx failed with: ERROR: failed to build: failed to solve: process "/bin/sh -c mkdir -p /opt/sandcastle/bin     && curl https://mise.run | REDACTED sh     && /opt/sandcastle/bin/mise use --global node@lts     && /opt/sandcastle/bin/mise exec -- npm install -g @anthropic-ai/claude-code     && /opt/sandcastle/bin/mise exec -- npm install -g @openai/codex     && NODE_VE...
 
+### Prompt 20
+
+for the sandbix build - can we not publish a base image that contains all teh base stuff so that when we add or change entrypoint the build is fast?
+how to optmize tezh image so that we can leverage a cache...
+
