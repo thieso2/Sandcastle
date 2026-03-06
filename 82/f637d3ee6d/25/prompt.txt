@@ -261,3 +261,7 @@ Error: buildx failed with: ERROR: failed to build: failed to solve: process "/bi
 
 for the sandbix build - can we not publish a base image that contains all teh base stuff so that when we add or change entrypoint the build is fast?
 how to optmize tezh image so that we can leverage a cache...
+
+---
+
+in sandcastle cli - cretae working 1-2 letter abbrev for teh common comamnds.
