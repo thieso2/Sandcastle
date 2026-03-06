@@ -44,13 +44,17 @@ chmod 777 "/home/$USERNAME"
 # Ensure workspace is accessible
 chown "$USERNAME:$USERNAME" /workspace 2>/dev/null || true
 
-# Configure git identity system-wide if provided
-if [ -n "$USER_FULLNAME" ] || [ -n "$USER_EMAIL" ]; then
+# Configure git identity in user's ~/.gitconfig (skip if it already exists,
+# e.g. from a bind-mounted home directory with prior customizations)
+GITCONFIG="/home/$USERNAME/.gitconfig"
+if [ ! -f "$GITCONFIG" ] && { [ -n "$USER_FULLNAME" ] || [ -n "$USER_EMAIL" ]; }; then
     {
         echo "[user]"
-        [ -n "$USER_FULLNAME" ] && echo "    name = $USER_FULLNAME"
-        [ -n "$USER_EMAIL" ] && echo "    email = $USER_EMAIL"
-    } >> /etc/gitconfig
+        [ -n "$USER_FULLNAME" ] && echo "        name = $USER_FULLNAME"
+        [ -n "$USER_EMAIL" ] && echo "        email = $USER_EMAIL"
+        [ -n "$GITHUB_USERNAME" ] && echo "[github]" && echo "        user = $GITHUB_USERNAME"
+    } > "$GITCONFIG"
+    chown "$USERNAME:$USERNAME" "$GITCONFIG" 2>/dev/null || true
 fi
 
 # Generate SSH host keys if missing
