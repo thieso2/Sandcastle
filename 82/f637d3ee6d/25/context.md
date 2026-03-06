@@ -110,3 +110,7 @@ how to optmize tezh image so that we can leverage a cache...
 
 in sandcastle cli - cretae working 1-2 letter abbrev for teh common comamnds.
 
+### Prompt 22
+
+make connect c and create cr
+
