@@ -26,8 +26,9 @@ func init() {
 }
 
 var connectCmd = &cobra.Command{
-	Use:   "connect [name]",
-	Short: "Connect to sandbox and attach tmux (auto-starts if stopped)",
+	Use:     "connect [name]",
+	Aliases: []string{"co"},
+	Short:   "Connect to sandbox and attach tmux (auto-starts if stopped)",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := resolveSandboxName(args)
@@ -94,8 +95,9 @@ var connectCmd = &cobra.Command{
 }
 
 var sshCmd = &cobra.Command{
-	Use:   "ssh [name]",
-	Short: "SSH into sandbox shell (without tmux)",
+	Use:     "ssh [name]",
+	Aliases: []string{"s"},
+	Short:   "SSH into sandbox shell (without tmux)",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := resolveSandboxName(args)

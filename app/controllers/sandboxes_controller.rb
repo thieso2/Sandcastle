@@ -1,5 +1,5 @@
 class SandboxesController < ApplicationController
-  before_action :set_sandbox, only: [ :show, :destroy, :start, :stop, :retry, :logs ]
+  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :retry, :logs ]
   before_action :set_archived_sandbox, only: [ :archive_restore ]
 
   def new
@@ -13,6 +13,19 @@ class SandboxesController < ApplicationController
                            .select { |s| s[:source_sandbox] == @sandbox.name }
     @routes = @sandbox.routes.order(:created_at)
     @btrfs = BtrfsHelper.btrfs?
+  end
+
+  def update
+    if @sandbox.update(params.require(:sandbox).permit(:name))
+      redirect_to @sandbox, notice: "Sandbox renamed to #{@sandbox.name}."
+    else
+      @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+                             .select { |s| s[:source_sandbox] == @sandbox.name }
+      @routes = @sandbox.routes.order(:created_at)
+      @btrfs = BtrfsHelper.btrfs?
+      flash.now[:alert] = @sandbox.errors.full_messages.join(", ")
+      render :show, status: :unprocessable_entity
+    end
   end
 
   def create

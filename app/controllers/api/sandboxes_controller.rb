@@ -90,7 +90,7 @@ module Api
     end
 
     def update
-      @sandbox.update!(params.permit(:temporary))
+      @sandbox.update!(params.permit(:temporary, :name))
       render json: sandbox_json(@sandbox)
     end
 

@@ -193,7 +193,8 @@ type CreateSandboxRequest struct {
 }
 
 type UpdateSandboxRequest struct {
-	Temporary *bool `json:"temporary,omitempty"`
+	Temporary *bool   `json:"temporary,omitempty"`
+	Name      *string `json:"name,omitempty"`
 }
 
 type CreateTokenRequest struct {

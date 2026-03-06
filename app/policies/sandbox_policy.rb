@@ -2,7 +2,7 @@ class SandboxPolicy < ApplicationPolicy
   def index?                 = true
   def show?                  = owner_only?
   def create?                = true
-  def update?                = true
+  def update?                = owner_only?
   def destroy?               = owner_or_admin?
   def start?                 = owner_or_admin?
   def stop?                  = owner_or_admin?

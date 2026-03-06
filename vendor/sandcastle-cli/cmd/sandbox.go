@@ -39,6 +39,7 @@ func init() {
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(useCmd)
 	rootCmd.AddCommand(setCmd)
+	rootCmd.AddCommand(renameCmd)
 	rootCmd.AddCommand(archiveRestoreCmd)
 
 	listCmd.Flags().BoolVar(&listArchived, "archived", false, "List archived (soft-deleted) sandboxes")
@@ -60,8 +61,9 @@ func init() {
 }
 
 var createCmd = &cobra.Command{
-	Use:   "create [name]",
-	Short: "Create a new sandbox",
+	Use:     "create [name]",
+	Aliases: []string{"c"},
+	Short:   "Create a new sandbox",
 	Long: `Create a new sandbox.
 
 If no name is provided, creates a temporary sandbox with an auto-generated name like "temp-<timestamp>".
@@ -359,8 +361,9 @@ The sandbox is restored in running state. Use 'sandcastle list --archived' to se
 }
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete <name>",
-	Short: "Delete a sandbox",
+	Use:     "delete <name>",
+	Aliases: []string{"rm", "d"},
+	Short:   "Delete a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
@@ -384,8 +387,9 @@ var deleteCmd = &cobra.Command{
 }
 
 var startCmd = &cobra.Command{
-	Use:   "start <name>",
-	Short: "Start a stopped sandbox",
+	Use:     "start <name>",
+	Aliases: []string{"up"},
+	Short:   "Start a stopped sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
@@ -410,8 +414,9 @@ var startCmd = &cobra.Command{
 }
 
 var stopCmd = &cobra.Command{
-	Use:   "stop <name>",
-	Short: "Stop a running sandbox",
+	Use:     "stop <name>",
+	Aliases: []string{"dn"},
+	Short:   "Stop a running sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
@@ -546,6 +551,34 @@ var setCmd = &cobra.Command{
 		} else {
 			fmt.Printf("Sandbox %q set to keep (will not be removed on exit).\n", sandbox.Name)
 		}
+		return nil
+	},
+}
+
+var renameCmd = &cobra.Command{
+	Use:     "rename <name> <new-name>",
+	Aliases: []string{"mv"},
+	Short:   "Rename a sandbox",
+	Args:    cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+		printServer(client)
+
+		sandbox, err := findSandboxByName(client, args[0])
+		if err != nil {
+			return err
+		}
+
+		newName := args[1]
+		sandbox, err = client.UpdateSandbox(sandbox.ID, api.UpdateSandboxRequest{Name: &newName})
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Sandbox renamed to %q.\n", sandbox.Name)
 		return nil
 	},
 }

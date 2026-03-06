@@ -4,9 +4,21 @@
   <%# Header %>
   <div class="flex items-start justify-between gap-4">
     <div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3" data-controller="inline-edit">
         <span class="inline-block w-3 h-3 rounded-full <%= @sandbox.status == 'running' ? 'bg-green-500' : @sandbox.status == 'stopped' ? 'bg-yellow-500' : 'bg-gray-400' %>"></span>
-        <h1 class="text-2xl font-bold text-gray-900 font-mono"><%= @sandbox.name %></h1>
+        <h1 class="text-2xl font-bold text-gray-900 font-mono" data-inline-edit-target="display">
+          <%= @sandbox.name %>
+          <button data-action="click->inline-edit#edit" class="ml-1 text-gray-400 hover:text-gray-600 align-middle" title="Rename">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 inline">
+              <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L3.22 10.303a.75.75 0 0 0-.178.311l-.93 3.255a.75.75 0 0 0 .926.926l3.255-.93a.75.75 0 0 0 .311-.178l7.79-7.79a1.75 1.75 0 0 0 0-2.475l-.906-.906ZM11.72 3.22a.25.25 0 0 1 .354 0l.905.906a.25.25 0 0 1 0 .354l-7.79 7.79-1.596.456.455-1.597 7.672-7.91Z" />
+            </svg>
+          </button>
+        </h1>
+        <%= form_with model: @sandbox, data: { inline_edit_target: "form" }, class: "hidden items-center gap-2" do |f| %>
+          <%= f.text_field :name, value: @sandbox.name, class: "text-2xl font-bold font-mono bg-white border border-gray-300 rounded px-2 py-0 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500", autofocus: true, data: { action: "keydown.escape->inline-edit#cancel" } %>
+          <%= f.submit "Save", class: "px-2 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer" %>
+          <button type="button" data-action="click->inline-edit#cancel" class="px-2 py-1 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+        <% end %>
         <span class="text-xs font-medium px-2 py-0.5 rounded
           <%= @sandbox.status == 'running' ? 'bg-green-100 text-green-800' :
               @sandbox.status == 'stopped' ? 'bg-yellow-100 text-yellow-800' :

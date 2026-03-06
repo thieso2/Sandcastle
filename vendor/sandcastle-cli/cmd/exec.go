@@ -14,8 +14,9 @@ func init() {
 }
 
 var execCmd = &cobra.Command{
-	Use:   "exec <name> -- <command...>",
-	Short: "Run a single command in a sandbox",
+	Use:     "exec <name> -- <command...>",
+	Aliases: []string{"x"},
+	Short:   "Run a single command in a sandbox",
 	Args:  cobra.MinimumNArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]

@@ -134,7 +134,13 @@ sandcastle ssh my-dev</code></pre>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle list              # Show all your sandboxes
 sandcastle stop my-dev       # Stop a running sandbox
 sandcastle start my-dev      # Start a stopped sandbox
-sandcastle delete my-dev     # Archive sandbox (soft-delete, data kept)</code></pre>
+sandcastle rename my-dev new # Rename a sandbox
+sandcastle delete my-dev     # Archive sandbox (soft-delete, data kept)
+
+# Copy files to/from a sandbox
+sandcastle cp file.txt my-dev:~/           # local → sandbox
+sandcastle cp my-dev:~/data.csv .          # sandbox → local
+sandcastle cp -r my-dev:~/project ./       # recursive</code></pre>
 
     <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Archive &amp; restore</h3>
     <p class="text-gray-700 mb-3">
@@ -350,6 +356,28 @@ SANDCASTLE_SSH_EXTRA_ARGS="-v"   # extra flags appended to ssh/mosh</code></pre>
 [env]
 SANDCASTLE_CONNECT_PROTOCOL = "mosh"
 SANDCASTLE_USE_TMUX = "false"</code></pre>
+  </section>
+
+  <section class="mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">15. Short aliases</h2>
+    <p class="text-gray-700 mb-3">
+      Common commands have 1-2 letter shortcuts:
+    </p>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle c         # create (temp sandbox)
+sandcastle c dev     # create dev
+sandcastle co dev    # connect dev
+sandcastle s dev     # ssh dev
+sandcastle x dev -- cmd  # exec
+sandcastle ls        # list
+sandcastle rm dev    # delete dev
+sandcastle mv dev new  # rename dev → new
+sandcastle up dev    # start dev
+sandcastle dn dev    # stop dev
+sandcastle cp f dev:~/ # scp file to sandbox
+sandcastle i         # info
+sandcastle st        # status
+sandcastle snap      # snapshot
+sandcastle ts        # tailscale</code></pre>
   </section>
 
   <div class="border-t border-gray-200 pt-6 text-center">

@@ -13,8 +13,9 @@ func init() {
 }
 
 var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show system status",
+	Use:     "status",
+	Aliases: []string{"st"},
+	Short:   "Show system status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {

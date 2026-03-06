@@ -14,8 +14,9 @@ func init() {
 }
 
 var infoCmd = &cobra.Command{
-	Use:   "info",
-	Short: "Show server information",
+	Use:     "info",
+	Aliases: []string{"i"},
+	Short:   "Show server information",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {
