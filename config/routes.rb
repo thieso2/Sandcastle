@@ -34,6 +34,7 @@ Rails.application.routes.draw do
       post :stop
       post :retry
       post :archive_restore
+      get :logs
       get :stats, controller: "dashboard", action: "stats"
       get :card, controller: "dashboard", action: "card"
       post :terminal, controller: "terminal", action: "open"
@@ -92,6 +93,7 @@ Rails.application.routes.draw do
       member do
         post :start
         post :stop
+        get :logs
         post :connect
         post :snapshot
         post :restore

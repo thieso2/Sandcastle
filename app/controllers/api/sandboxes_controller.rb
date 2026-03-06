@@ -1,6 +1,6 @@
 module Api
   class SandboxesController < BaseController
-    before_action :set_sandbox, only: %i[show update destroy start stop connect snapshot restore tailscale_connect tailscale_disconnect]
+    before_action :set_sandbox, only: %i[show update destroy start stop logs connect snapshot restore tailscale_connect tailscale_disconnect]
     before_action :set_archived_sandbox, only: %i[archive_restore purge]
 
     def index
@@ -124,6 +124,12 @@ module Api
 
       SandboxStopJob.perform_later(sandbox_id: @sandbox.id)
       render json: sandbox_json(@sandbox.reload)
+    end
+
+    def logs
+      tail = (params[:tail] || 200).to_i.clamp(1, 5000)
+      logs = SandboxManager.new.logs(sandbox: @sandbox, tail: tail, timestamps: params[:timestamps] == "true")
+      render json: { logs: logs }
     end
 
     def connect

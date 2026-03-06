@@ -258,6 +258,17 @@ class SandboxManager
     sandbox
   end
 
+  def logs(sandbox:, tail: 200, timestamps: false)
+    raise Error, "Sandbox has no container" if sandbox.container_id.blank?
+
+    container = Docker::Container.get(sandbox.container_id)
+    container.logs(stdout: true, stderr: true, follow: false, tail: tail, timestamps: timestamps)
+  rescue Docker::Error::NotFoundError
+    raise Error, "Container not found"
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to fetch logs: #{e.message}"
+  end
+
   def status(sandbox:)
     return { state: "destroyed" } if sandbox.container_id.blank?
 

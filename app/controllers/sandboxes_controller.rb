@@ -1,5 +1,5 @@
 class SandboxesController < ApplicationController
-  before_action :set_sandbox, only: [ :show, :destroy, :start, :stop, :retry ]
+  before_action :set_sandbox, only: [ :show, :destroy, :start, :stop, :retry, :logs ]
   before_action :set_archived_sandbox, only: [ :archive_restore ]
 
   def new
@@ -62,6 +62,15 @@ class SandboxesController < ApplicationController
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     flash.now[:alert] = "Failed to create sandbox: #{e.message}"
     render :new, status: :unprocessable_entity
+  end
+
+  def logs
+    tail = (params[:tail] || 200).to_i.clamp(1, 5000)
+    @tail = tail
+    @logs = SandboxManager.new.logs(sandbox: @sandbox, tail: tail, timestamps: true)
+  rescue SandboxManager::Error => e
+    @logs = nil
+    @log_error = e.message
   end
 
   def destroy
