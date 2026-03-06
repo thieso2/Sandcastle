@@ -1,0 +1,195 @@
+Implement the following plan:
+
+# Sandbox CPU & Memory Sparkline Graphs
+
+## Context
+Stats are currently fetched on-demand from Docker and shown as text on the dashboard. No historical data is persisted. We want small inline sparkline graphs (CPU and MEM, last 30 min) on the sandbox show page for running sandboxes, combining persisted history (survives page reload) with live real-time polling.
+
+## Architecture
+- **Background job** collects CPU/MEM every 5 min → DB (historical backbone)
+- **Show page** polls the existing `stats` endpoint every 5s → appends live points in JS
+- **On page load**: fetch persisted history from DB, then start live polling — seamless merge
+- **SVG sparklines** rendered client-side by a Stimulus controller (no chart library)
+
+## Implementation Steps
+
+### 1. Migration: `container_metrics` table
+```ruby
+create_table :container_metrics do |t|
+  t.references :sandbox, null: false, foreign_key: true
+  t.float :cpu_percent, null: false
+  t.float :memory_mb, null: false
+  t.datetime :recorded_at, null: false
+end
+add_index :container_metrics, [:sandbox_id, :recorded_at]
+```
+**File:** `db/migrate/TIMESTAMP_create_container_metrics.rb`
+
+### 2. Model: `ContainerMetric`
+- `belongs_to :sandbox`
+- Scope `recent`: `where("recorded_at > ?", 30.minutes.ago).order(:recorded_at)`
+- No timestamps needed (we have `recorded_at`)
+
+**File:** `app/models/container_metric.rb`
+**Edit:** `app/models/sandbox.rb` — add `has_many :container_metrics, dependent: :delete_all`
+
+### 3. Background Job: `ContainerMetricsJob`
+Every 5 min (via `config/recurring.yml`). For each running sandbox:
+- Fetch `Docker::Container.get(container_id).stats(stream: false)`
+- Extract CPU % and memory MB (reuse existing `calculate_cpu_percent` logic — extract to a module `StatsCalculator`)
+- Insert `ContainerMetric` record
+- Purge records older than 1 hour: `ContainerMetric.where("recorded_at < ?", 1.hour.ago).delete_all`
+
+**Files:**
+- `app/jobs/container_metrics_job.rb`
+- `config/recurring.yml` — add `collect_container_metrics` entry
+- `app/services/stats_calculator.rb` — extract shared CPU calc (used by job + DashboardController + Admin)
+
+### 4. Metrics JSON endpoint
+Returns persisted history for initial page load.
+
+```ruby
+# GET /sandboxes/:id/metrics.json
+def metrics
+  points = @sandbox.container_metrics.recent
+  render json: points.map { |m| { t: m.recorded_at.to_i, cpu: m.cpu_percent, mem: m.memory_mb.round(0) } }
+end
+```
+
+**Files:**
+- `app/controllers/sandboxes_controller.rb` — add `metrics` action
+- `config/routes.rb` — add `get :metrics, on: :member`
+- `app/policies/sandbox_policy.rb` — add `metrics?`
+
+### 5. Live stats: reuse existing endpoint
+The existing `DashboardController#stats` already returns live Docker stats. The Stimulus controller will poll `GET /sandboxes/:id/stats.json` every 5s for the current CPU/MEM values and append them to the in-memory data array.
+
+**Edit:** `app/controllers/dashboard_controller.rb` — add `respond_to` block so it can return JSON (currently renders a partial). OR: add a `stats` action to `SandboxesController` that returns JSON. Simpler: add to SandboxesController.
+
+**File:** `app/controllers/sandboxes_controller.rb` — add `stats` action returning JSON `{ cpu: X, mem: Y }`
+
+### 6. Stimulus sparkline controller
+`app/javascript/controllers/sparkline_controller.js`
+
+**Behavior:**
+1. `connect()`: fetch `/sandboxes/:id/metrics.json` → populate `this.cpuData` and `this.memData` arrays
+2. Start polling `/sandboxes/:id/stats.json` every 5s → append new point with current timestamp
+3. Keep only last 30 min of data points (trim old entries)
+4. After each update, redraw two `<svg>` elements with `<polyline>` sparklines
+5. Show current value as text label next to each sparkline
+6. `disconnect()`: clear polling interval
+
+**SVG rendering:**
+- Each sparkline: ~200×36px, no axes, just the line + subtle fill
+- CPU: fixed Y scale 0–100%
+- MEM: auto-scaled Y based on max value in window
+- Tailwind classes for colors: blue for CPU, purple for MEM
+
+### 7. Show page update
+`app/views/sandboxes/show.html.erb` — add between Actions and Routes (only for running sandboxes):
+
+```erb
+<% if @sandbox.status == "running" %>
+  <div class="bg-white rounded-lg border border-gray-200 px-5 py-3"
+       data-controller="sparkline"
+       data-sparkline-metrics-url-value="<%= metrics_sandbox_path(@sandbox, format: :json) %>"
+       data-sparkline-stats-url-value="<%= stats_sandbox_path(@sandbox, format: :json) %>">
+    <div class="flex items-center gap-6">
+      <div class="flex-1">
+        <span class="text-xs text-gray-500">CPU</span>
+        <span class="text-xs font-mono font-medium" data-sparkline-target="cpuValue">—</span>
+        <div data-sparkline-target="cpuChart"></div>
+      </div>
+      <div class="flex-1">
+        <span class="text-xs text-gray-500">MEM</span>
+        <span class="text-xs font-mono font-medium" data-sparkline-target="memValue">—</span>
+        <div data-sparkline-target="memChart"></div>
+      </div>
+    </div>
+  </div>
+<% end %>
+```
+
+### 8. Refactor: extract `StatsCalculator`
+Move `calculate_cpu_percent` out of DashboardController and Admin::SandboxesController into a shared module.
+
+**File:** `app/services/stats_calculator.rb`
+```ruby
+module StatsCalculator
+  def self.cpu_percent(stats) ... end
+  def self.memory_mb(stats) ... end
+end
+```
+Update DashboardController and Admin::SandboxesController to use it.
+
+## Files summary
+
+| File | Action |
+|------|--------|
+| `db/migrate/*_create_container_metrics.rb` | Create |
+| `app/models/container_metric.rb` | Create |
+| `app/models/sandbox.rb` | Edit |
+| `app/services/stats_calculator.rb` | Create |
+| `app/jobs/container_metrics_job.rb` | Create |
+| `config/recurring.yml` | Edit |
+| `app/controllers/sandboxes_controller.rb` | Edit |
+| `app/controllers/dashboard_controller.rb` | Edit (use StatsCalculator) |
+| `app/controllers/admin/sandboxes_controller.rb` | Edit (use StatsCalculator) |
+| `app/policies/sandbox_policy.rb` | Edit |
+| `config/routes.rb` | Edit |
+| `app/javascript/controllers/sparkline_controller.js` | Create |
+| `app/views/sandboxes/show.html.erb` | Edit |
+
+## Verification
+1. `bin/rails db:migrate`
+2. `bin/rails test` — all pass
+3. `ContainerMetricsJob.perform_now` in console — creates records
+4. Visit running sandbox show page — sparklines appear and update live every 5s
+5. Reload page — persisted history loads instantly, live polling resumes
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+
+---
+
+Tool loaded.
+
+---
+
+use deploy:local to bring up lostgres (add a note to CLAUDE.md)
+
+---
+
+[Request interrupted by user]
+
+---
+
+just use a diffrent port for sandcastle postgres!
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+just use a diffrent port for sandcastle postgres! (7633)
+
+---
+
+how can i connect to my local sandcasle deploy?
+
+---
+
+both 404
+
+---
+
+createing a sandcaste on http://dev.sand:8080 is broken. debug.
+
+---
+
+[Request interrupted by user]
+
+---
+
+commit and push new version

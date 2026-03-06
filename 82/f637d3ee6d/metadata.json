@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 31,
+  "checkpoints_count": 33,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -17,15 +17,19 @@
     "app/controllers/admin/settings_controller.rb",
     "app/controllers/api/routes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/dashboard_controller.rb",
     "app/controllers/routes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
     "app/javascript/controllers/inline_edit_controller.js",
+    "app/javascript/controllers/sparkline_controller.js",
+    "app/jobs/container_metrics_job.rb",
     "app/jobs/container_sync_job.rb",
     "app/jobs/sandbox_destroy_job.rb",
     "app/jobs/sandbox_purge_job.rb",
     "app/jobs/sandbox_restore_job.rb",
+    "app/models/container_metric.rb",
     "app/models/route.rb",
     "app/models/sandbox.rb",
     "app/models/setting.rb",
@@ -33,6 +37,7 @@
     "app/policies/sandbox_policy.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
+    "app/services/stats_calculator.rb",
     "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
     "app/services/vnc_manager.rb",
@@ -46,10 +51,12 @@
     "config/initializers/active_record_encryption.rb",
     "config/initializers/container_sync.rb",
     "config/initializers/mission_control_jobs.rb",
+    "config/recurring.yml",
     "config/routes.rb",
     "db/migrate/20260222074421_add_mode_and_public_port_to_routes.rb",
     "db/migrate/20260302000002_add_archive_retention_to_settings.rb",
     "db/migrate/20260302000003_add_archive_retention_to_users.rb",
+    "db/migrate/20260306153839_create_container_metrics.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "docker-compose.yml",
@@ -69,6 +76,7 @@
     "test/controllers/terminal_controller_test.rb",
     "test/services/tailscale_manager_test.rb",
     "test/support/docker_mock.rb",
+    "tmp/pids/server.pid",
     "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/api/types.go",
     "vendor/sandcastle-cli/cmd/config.go",
@@ -264,13 +272,20 @@
       "context": "/82/f637d3ee6d/25/context.md",
       "content_hash": "/82/f637d3ee6d/25/content_hash.txt",
       "prompt": "/82/f637d3ee6d/25/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/26/metadata.json",
+      "transcript": "/82/f637d3ee6d/26/full.jsonl",
+      "context": "/82/f637d3ee6d/26/context.md",
+      "content_hash": "/82/f637d3ee6d/26/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/26/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3337,
-    "cache_creation_tokens": 1709207,
-    "cache_read_tokens": 82696123,
-    "output_tokens": 268217,
-    "api_call_count": 949
+    "input_tokens": 3410,
+    "cache_creation_tokens": 1791271,
+    "cache_read_tokens": 86012370,
+    "output_tokens": 280632,
+    "api_call_count": 1006
   }
 }
