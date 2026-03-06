@@ -2277,7 +2277,7 @@ write_compose() {
   cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
 services:
   traefik:
-    image: traefik:v3.3
+    image: traefik:v3.6
     runtime: runc
     container_name: sandcastle-traefik
     restart: unless-stopped
@@ -3183,7 +3183,7 @@ TEOF
   info "Pulling images..."
   $DOCKER pull "$APP_IMAGE" &
   $DOCKER pull "$SANDBOX_IMAGE" &
-  $DOCKER pull traefik:v3.3 &
+  $DOCKER pull traefik:v3.6 &
   wait
   ok "Images pulled"
 
