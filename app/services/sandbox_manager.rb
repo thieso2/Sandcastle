@@ -98,17 +98,13 @@ class SandboxManager
 
   # Public method for job usage
   def ensure_mount_dirs(user, sandbox)
-    # Directories bind-mounted into Sysbox containers must be world-writable
-    # because Sysbox maps container root to a high host UID (via /etc/subuid)
-    # that won't match the directory owner.
-
     # Create BTRFS subvolume for user directory if on BTRFS
     BtrfsHelper.create_user_subvolume(user.name)
 
     if sandbox.mount_home
       dir = "#{DATA_DIR}/users/#{user.name}/home"
       FileUtils.mkdir_p(dir)
-      FileUtils.chmod(0o777, dir)
+      prepare_bind_mount(dir)
     end
     if sandbox.data_path.present?
       # Create BTRFS subvolume for data directory if on BTRFS
@@ -116,17 +112,17 @@ class SandboxManager
 
       dir = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
       FileUtils.mkdir_p(dir)
-      FileUtils.chmod(0o777, dir)
+      prepare_bind_mount(dir)
     end
     if sandbox.persistent_volume && sandbox.volume_path
       FileUtils.mkdir_p(sandbox.volume_path)
-      FileUtils.chmod(0o777, sandbox.volume_path)
+      prepare_bind_mount(sandbox.volume_path)
     end
     # Chrome profile persistence: mount .config/google-chrome separately if not mounting full home
     if user.chrome_persist_profile? && !sandbox.mount_home
       dir = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
       FileUtils.mkdir_p(dir)
-      FileUtils.chmod(0o777, dir)
+      prepare_bind_mount(dir)
     end
   rescue Errno::EACCES, Errno::ENOENT => e
     raise Error, "Failed to create mount directories: #{e.message}"
@@ -663,6 +659,20 @@ class SandboxManager
         "runc"
       end
     end
+  end
+
+  # Prepare a directory for bind-mounting into Sysbox containers.
+  # Sets 777 mode and root ownership. On kernel 6.17+, Sysbox cannot create
+  # entries inside bind-mounted dirs owned by UIDs outside the container's
+  # user-namespace mapping (even with 777 mode). Host root (UID 0) is always
+  # mapped inside Sysbox. Uses sudo because the directory may already be owned
+  # by a Sysbox-remapped UID from a previous container run.
+  def prepare_bind_mount(path)
+    stat = File.stat(path)
+    system("/usr/bin/sudo", "-n", "/usr/bin/chmod", "777", path) unless stat.mode & 0o777 == 0o777
+    system("/usr/bin/sudo", "-n", "/usr/bin/chown", "0:0", path) unless stat.uid == 0
+  rescue Errno::ENOENT
+    # directory disappeared — race condition, ignore
   end
 
   def volume_binds(user, sandbox)

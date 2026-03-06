@@ -16,14 +16,16 @@ fi
 # this user's home directory via bind mount).
 if [ -n "$SSH_KEY" ]; then
     SSH_DIR="/home/$USERNAME/.ssh"
-    mkdir -p "$SSH_DIR"
-    if [ -f "$SSH_DIR/authorized_keys" ]; then
-        grep -qF "$SSH_KEY" "$SSH_DIR/authorized_keys" || echo "$SSH_KEY" >> "$SSH_DIR/authorized_keys"
-    else
-        echo "$SSH_KEY" > "$SSH_DIR/authorized_keys"
+    mkdir -p "$SSH_DIR" 2>/dev/null || true
+    if [ -d "$SSH_DIR" ]; then
+        if [ -f "$SSH_DIR/authorized_keys" ]; then
+            grep -qF "$SSH_KEY" "$SSH_DIR/authorized_keys" || echo "$SSH_KEY" >> "$SSH_DIR/authorized_keys"
+        else
+            echo "$SSH_KEY" > "$SSH_DIR/authorized_keys"
+        fi
+        chmod 700 "$SSH_DIR" 2>/dev/null || true
+        chmod 600 "$SSH_DIR/authorized_keys" 2>/dev/null || true
     fi
-    chmod 700 "$SSH_DIR"
-    chmod 600 "$SSH_DIR/authorized_keys"
 fi
 
 # Seed mise + Claude Code into user's ~/.local/bin on first boot.
@@ -32,12 +34,14 @@ fi
 # host UID, so standard DAC applies on bind mounts.  While home is still 777
 # root can freely create dirs; after chmod 755 root can no longer write inside.
 USER_LOCAL_BIN="/home/$USERNAME/.local/bin"
-mkdir -p "$USER_LOCAL_BIN"
-for tool in mise claude; do
-    if [ ! -f "$USER_LOCAL_BIN/$tool" ] && [ -f "/opt/sandcastle/bin/$tool" ]; then
-        cp "/opt/sandcastle/bin/$tool" "$USER_LOCAL_BIN/$tool"
-    fi
-done
+mkdir -p "$USER_LOCAL_BIN" 2>/dev/null || true
+if [ -d "$USER_LOCAL_BIN" ]; then
+    for tool in mise claude; do
+        if [ ! -f "$USER_LOCAL_BIN/$tool" ] && [ -f "/opt/sandcastle/bin/$tool" ]; then
+            cp "/opt/sandcastle/bin/$tool" "$USER_LOCAL_BIN/$tool"
+        fi
+    done
+fi
 
 # Set correct ownership and permissions on the home directory.
 # chown -R covers .ssh, .local, and anything else created above.
