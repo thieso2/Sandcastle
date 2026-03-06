@@ -95,3 +95,14 @@ sandcastle-traefik     | 2026-03-06T16:31:53Z WRN A new release of Traefik has b
 
 update traefik everywhere
 
+### Prompt 22
+
+commti and push
+
+### Prompt 23
+
+add Fullname and GH username to User model - add to https://demo.sandcastle.rocks/settings and when createing a sandbox add it to  .gitconfig (unless it alread exiss)
+[user]
+        email = thieso@gmail.com
+        name = Thies
+
