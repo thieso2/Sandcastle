@@ -3,9 +3,15 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 32,
+  "checkpoints_count": 31,
   "files_touched": [
+    ".github/workflows/app-base-image.yml",
+    ".github/workflows/release.yml",
+    ".github/workflows/sandbox-base-image.yml",
+    ".github/workflows/sandbox-image.yml",
     "CLAUDE.md",
+    "Dockerfile",
+    "Dockerfile.base",
     "VNC_AND_TTYD_AUTH.md",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/admin/settings_controller.rb",
@@ -15,6 +21,7 @@
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
+    "app/javascript/controllers/inline_edit_controller.js",
     "app/jobs/container_sync_job.rb",
     "app/jobs/sandbox_destroy_job.rb",
     "app/jobs/sandbox_purge_job.rb",
@@ -32,6 +39,7 @@
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/dashboard/index.html.erb",
     "app/views/pages/guide.html.erb",
+    "app/views/sandboxes/logs.html.erb",
     "app/views/sandboxes/show.html.erb",
     "app/views/settings/show.html.erb",
     "app/views/tailscale/show.html.erb",
@@ -48,6 +56,7 @@
     "docs/DOCKER_SYSBOX_TROUBLE.md",
     "images/sandbox/.Dockerfile.swp",
     "images/sandbox/Dockerfile",
+    "images/sandbox/Dockerfile.base",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
     "install-defaults",
@@ -55,6 +64,7 @@
     "installer/templates/.dockyard..swp",
     "installer/templates/docker-compose.yml.template",
     "installer/templates/dockyard.sh",
+    "installer/templates/sandcastle-admin.sh",
     "mise.toml",
     "test/controllers/terminal_controller_test.rb",
     "test/services/tailscale_manager_test.rb",
@@ -63,9 +73,13 @@
     "vendor/sandcastle-cli/api/types.go",
     "vendor/sandcastle-cli/cmd/config.go",
     "vendor/sandcastle-cli/cmd/connect.go",
+    "vendor/sandcastle-cli/cmd/cp.go",
     "vendor/sandcastle-cli/cmd/detect.go",
+    "vendor/sandcastle-cli/cmd/exec.go",
+    "vendor/sandcastle-cli/cmd/info.go",
     "vendor/sandcastle-cli/cmd/route.go",
     "vendor/sandcastle-cli/cmd/sandbox.go",
+    "vendor/sandcastle-cli/cmd/status.go",
     "vendor/sandcastle-cli/internal/config/config.go"
   ],
   "sessions": [
@@ -253,10 +267,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1133,
-    "cache_creation_tokens": 1773182,
-    "cache_read_tokens": 83558226,
-    "output_tokens": 271016,
-    "api_call_count": 965
+    "input_tokens": 3337,
+    "cache_creation_tokens": 1709207,
+    "cache_read_tokens": 82696123,
+    "output_tokens": 268217,
+    "api_call_count": 949
   }
 }

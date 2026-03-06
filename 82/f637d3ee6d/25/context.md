@@ -151,3 +151,24 @@ Tool loaded.
 
 Tool loaded.
 
+### Prompt 31
+
+add 2 small line graphs for each sandcastle thats runnign (CPU and MEM over the last 30m) - 
+use the  docker stats  (is ther an API) and persist the data in the db (ever 5 min).
+
+### Prompt 32
+
+Tool loaded.
+
+### Prompt 33
+
+Tool loaded.
+
+### Prompt 34
+
+Tool loaded.
+
+### Prompt 35
+
+[Request interrupted by user for tool use]
+
