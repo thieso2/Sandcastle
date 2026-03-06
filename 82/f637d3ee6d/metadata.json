@@ -17,7 +17,6 @@
     "app/controllers/admin/settings_controller.rb",
     "app/controllers/api/routes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
-    "app/controllers/dashboard_controller.rb",
     "app/controllers/routes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
@@ -276,9 +275,9 @@
   ],
   "token_usage": {
     "input_tokens": 3352,
-    "cache_creation_tokens": 1714561,
-    "cache_read_tokens": 83829932,
-    "output_tokens": 271413,
+    "cache_creation_tokens": 1713357,
+    "cache_read_tokens": 83882953,
+    "output_tokens": 270216,
     "api_call_count": 960
   }
 }

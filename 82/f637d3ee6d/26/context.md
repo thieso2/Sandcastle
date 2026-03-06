@@ -87,3 +87,11 @@ commit, push and release!
 
 when loading the dashboar or a detail page - make sure teh graphs are instant! (keep the not persisted data in cache?)
 
+### Prompt 20
+
+sandcastle-traefik     | 2026-03-06T16:31:53Z WRN A new release of Traefik has been found: 3.6.10. Please consider updating.
+
+### Prompt 21
+
+update traefik everywhere
+
