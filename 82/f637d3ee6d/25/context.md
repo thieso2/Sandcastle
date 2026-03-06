@@ -88,3 +88,16 @@ actually sandcastle is in the docker group
 
 commit and release a new version
 
+### Prompt 17
+
+Error: buildx failed with: ERROR: failed to build: failed to solve: process "/bin/sh -c mkdir -p /opt/sandcastle/bin     && curl https://mise.run | REDACTED sh     && /opt/sandcastle/bin/mise use --global node@lts     && /opt/sandcastle/bin/mise exec -- npm install -g @anthropic-ai/claude-code     && /opt/sandcastle/bin/mise exec -- npm install -g @openai/codex     && NODE_VER=$(/opt/sandcastle/bin/mise current node)     && cp -L \"/root/.local/share/mise/instal...
+
+### Prompt 18
+
+[Request interrupted by user]
+
+### Prompt 19
+
+we have repeated erros in  CI - fix or add sleep and retry add a retry for this command
+Error: buildx failed with: ERROR: failed to build: failed to solve: process "/bin/sh -c mkdir -p /opt/sandcastle/bin     && curl https://mise.run | REDACTED sh     && /opt/sandcastle/bin/mise use --global node@lts     && /opt/sandcastle/bin/mise exec -- npm install -g @anthropic-ai/claude-code     && /opt/sandcastle/bin/mise exec -- npm install -g @openai/codex     && NODE_VE...
+
