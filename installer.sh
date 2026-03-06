@@ -760,6 +760,34 @@ cmd_restore() {
   echo ""
 }
 
+# ═══ cmd_update ═══════════════════════════════════════════════════════════════
+
+cmd_update() {
+  local app_image="${APP_IMAGE:-ghcr.io/thieso2/sandcastle:latest}"
+  local sandbox_image="${SANDBOX_IMAGE:-ghcr.io/thieso2/sandcastle-sandbox:latest}"
+
+  echo ""
+  echo -e "${BLUE}═══ Sandcastle Update ═══${NC}"
+  echo ""
+
+  info "Pulling images..."
+  info "  App:     $app_image"
+  info "  Sandbox: $sandbox_image"
+  $DOCKER pull "$app_image" &
+  $DOCKER pull "$sandbox_image" &
+  wait
+  ok "Images pulled"
+
+  info "Restarting services..."
+  cd "$SANDCASTLE_HOME"
+  $DOCKER compose -f "$COMPOSE_FILE" up -d
+  ok "Services restarted"
+
+  echo ""
+  echo -e "${GREEN}  Sandcastle updated!${NC}"
+  echo ""
+}
+
 # ═══ Help ════════════════════════════════════════════════════════════════════
 
 cmd_help() {
@@ -769,6 +797,7 @@ Usage: sandcastle-admin <command> [options]
 Commands:
   backup     Create a full backup of this Sandcastle instance
   restore    Restore a Sandcastle instance from a backup file
+  update     Pull latest app & sandbox images and restart services
   help       Show this help message
 
 backup [options]:
@@ -787,6 +816,7 @@ Examples:
   sandcastle-admin backup --output /mnt/backups/sc.tar.zst --no-snapshot-images
   sandcastle-admin restore /mnt/backups/sandcastle-backup-2026-03-01.tar.zst
   sandcastle-admin restore /mnt/backups/sc.tar.zst --skip-db --yes
+  sandcastle-admin update
 USAGE
 }
 
@@ -798,6 +828,7 @@ shift 2>/dev/null || true
 case "$COMMAND" in
   backup)         cmd_backup "$@" ;;
   restore)        cmd_restore "$@" ;;
+  update)         cmd_update ;;
   help|-h|--help) cmd_help ;;
   *) die "Unknown command: $COMMAND — run 'sandcastle-admin help'" ;;
 esac
