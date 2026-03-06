@@ -185,11 +185,25 @@
       <% end %>
     </div>
 
-    <div class="w-80 shrink-0 text-right">
+    <div class="shrink-0 text-right">
       <% if sandbox.status == "running" %>
-        <%= turbo_frame_tag "sandbox_stats_#{sandbox.id}", src: stats_sandbox_path(sandbox), loading: :lazy do %>
-          <span class="text-xs text-gray-400">loading stats...</span>
-        <% end %>
+        <div data-controller="sparkline"
+             data-sparkline-metrics-url-value="<%= metrics_sandbox_path(sandbox, format: :json) %>"
+             data-sparkline-stats-url-value="<%= stats_sandbox_path(sandbox, format: :json) %>"
+             data-sparkline-compact-value="true">
+          <div class="flex items-center gap-3 justify-end">
+            <div class="flex items-center gap-1">
+              <span class="text-xs text-gray-400">CPU</span>
+              <span class="text-xs font-mono font-medium text-gray-500" data-sparkline-target="cpuValue">&mdash;</span>
+              <div class="w-16" data-sparkline-target="cpuChart"></div>
+            </div>
+            <div class="flex items-center gap-1">
+              <span class="text-xs text-gray-400">MEM</span>
+              <span class="text-xs font-mono font-medium text-gray-500" data-sparkline-target="memValue">&mdash;</span>
+              <div class="w-16" data-sparkline-target="memChart"></div>
+            </div>
+          </div>
+        </div>
       <% end %>
     </div>
   </div>
