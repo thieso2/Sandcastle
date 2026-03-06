@@ -59,3 +59,23 @@ createing a sandcaste on http://dev.sand:8080 is broken. debug.
 
 commit and push new version
 
+### Prompt 13
+
+release
+
+### Prompt 14
+
+Tool loaded.
+
+### Prompt 15
+
+mise run deploy:dev does not show the stat graphs!
+
+### Prompt 16
+
+[Request interrupted by user]
+
+### Prompt 17
+
+add smal version on teh dashboard view as well!
+
