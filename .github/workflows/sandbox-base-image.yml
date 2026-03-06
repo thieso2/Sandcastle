@@ -1,4 +1,4 @@
-name: Rebuild Sandbox Image
+name: Rebuild Sandbox Base Image
 
 on:
   workflow_dispatch:
@@ -11,19 +11,14 @@ on:
     branches:
       - main
     paths:
-      - 'images/sandbox/Dockerfile'
-      - 'images/sandbox/entrypoint.sh'
-      - 'images/sandbox/docker-restart.sh'
-      - 'images/sandbox/startchrome.sh'
-      - 'images/sandbox/tmux.conf'
-      - 'images/sandbox/gitconfig'
+      - 'images/sandbox/Dockerfile.base'
+      - 'images/sandbox/websockify/**'
 
 env:
   REGISTRY: ghcr.io
-  IMAGE: ghcr.io/thieso2/sandcastle-sandbox
+  IMAGE: ghcr.io/thieso2/sandcastle-sandbox-base
 
 jobs:
-  # ── Determine build matrix ─────────────────────────────────────────────────
   prepare:
     runs-on: ubuntu-latest
     outputs:
@@ -38,7 +33,6 @@ jobs:
             echo 'value=["linux/amd64"]' >> "$GITHUB_OUTPUT"
           fi
 
-  # ── Build per platform (parallel) ─────────────────────────────────────────
   build:
     needs: prepare
     runs-on: ubuntu-latest
@@ -76,9 +70,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: images/sandbox
+          file: images/sandbox/Dockerfile.base
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: SANDCASTLE_VERSION=${{ github.sha }}
+          cache-from: type=gha,scope=sandbox-base-${{ matrix.platform }}
+          cache-to: type=gha,scope=sandbox-base-${{ matrix.platform }},mode=max
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
@@ -90,12 +86,11 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-digest-${{ strategy.job-index }}
+          name: sandbox-base-digest-${{ strategy.job-index }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
 
-  # ── Merge into manifest (latest + sha tag) ─────────────────────────────────
   merge:
     needs: build
     runs-on: ubuntu-latest
@@ -107,7 +102,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: sandbox-digest-*
+          pattern: sandbox-base-digest-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
