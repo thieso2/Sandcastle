@@ -102,24 +102,22 @@ RUN RUNC_VERSION="v1.1.15" \
        -o /usr/bin/runc \
     && chmod +x /usr/bin/runc
 
-# Stage mise + Claude Code in /opt/sandcastle/bin (seeded to ~/.local/bin on first boot)
-# Claude Code is installed via npm (the claude.ai/install.sh convenience script is unreliable).
-# mise provides Node.js; npm installs @anthropic-ai/claude-code (native pre-built binary).
-# Retry: mise install/exec can fail transiently in Docker builds (exit 127) when the
-# Node binary isn't immediately visible after `mise use --global`.
-RUN mkdir -p /opt/sandcastle/bin \
-    && curl https://mise.run | MISE_INSTALL_PATH=/opt/sandcastle/bin/mise sh \
-    && /opt/sandcastle/bin/mise use --global node@lts \
-    && /opt/sandcastle/bin/mise install \
+# Install mise + Claude Code + Codex to /usr/local/bin so they are available
+# even when the user's home directory is bind-mounted from the host.
+# mise provides Node.js; npm installs @anthropic-ai/claude-code (native binary).
+# Retry: mise install/exec can fail transiently in Docker builds (exit 127).
+RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh \
+    && /usr/local/bin/mise use --global node@lts \
+    && /usr/local/bin/mise install \
     && for attempt in 1 2 3; do \
-         /opt/sandcastle/bin/mise exec -- npm install -g @anthropic-ai/claude-code \
-         && /opt/sandcastle/bin/mise exec -- npm install -g @openai/codex \
+         /usr/local/bin/mise exec -- npm install -g @anthropic-ai/claude-code \
+         && /usr/local/bin/mise exec -- npm install -g @openai/codex \
          && break; \
          echo "Retry $attempt: mise exec failed, retrying in 5s..."; sleep 5; \
        done \
-    && NODE_VER=$(/opt/sandcastle/bin/mise current node) \
+    && NODE_VER=$(/usr/local/bin/mise current node) \
     && cp -L "/root/.local/share/mise/installs/node/${NODE_VER}/bin/claude" \
-       /opt/sandcastle/bin/claude
+       /usr/local/bin/claude
 
 # ttyd — web terminal (two ports: 7681=tmux, 7682=shell)
 RUN ARCH=$(dpkg --print-architecture) \
@@ -134,9 +132,9 @@ RUN ARCH="$(dpkg --print-architecture)" \
        | tar -xz -C /usr/local/bin entire \
     && chmod +x /usr/local/bin/entire
 
-# Shell config: PATH, mise activation, aliases
-RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> /etc/bash.bashrc \
-    && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
+# Shell config: mise activation, aliases
+# Tools are in /usr/local/bin (already on PATH), no need for ~/.local/bin
+RUN echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
     && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc \
     && echo "alias ycodex='codex --dangerously-bypass-approvals-and-sandbox'" >> /etc/bash.bashrc \
     && echo '[ -r /run/docker-status ] && echo "DinD: $(cat /run/docker-status)"' >> /etc/bash.bashrc

@@ -28,21 +28,6 @@ if [ -n "$SSH_KEY" ]; then
     fi
 fi
 
-# Seed mise + Claude Code into user's ~/.local/bin on first boot.
-# IMPORTANT: must run before chown/chmod of the home dir below.
-# With Sysbox user-namespace mapping, container root maps to a non-privileged
-# host UID, so standard DAC applies on bind mounts.  While home is still 777
-# root can freely create dirs; after chmod 755 root can no longer write inside.
-USER_LOCAL_BIN="/home/$USERNAME/.local/bin"
-mkdir -p "$USER_LOCAL_BIN" 2>/dev/null || true
-if [ -d "$USER_LOCAL_BIN" ]; then
-    for tool in mise claude; do
-        if [ ! -f "$USER_LOCAL_BIN/$tool" ] && [ -f "/opt/sandcastle/bin/$tool" ]; then
-            cp "/opt/sandcastle/bin/$tool" "$USER_LOCAL_BIN/$tool"
-        fi
-    done
-fi
-
 # Set correct ownership and permissions on the home directory.
 # chown -R covers .ssh, .local, and anything else created above.
 #
