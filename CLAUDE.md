@@ -23,6 +23,18 @@ bin/rubocop                          # Lint (rubocop-rails-omakase style)
 bin/brakeman                         # Security scan
 ```
 
+### Local Dev Environment
+
+There is no local Postgres — use `mise run deploy:dev` to bring up the full stack (Postgres, Rails, worker, Traefik) in Docker. The dev compose file mounts source code for live reload. Postgres is on host port 7633 to avoid conflicts with OrbStack. See `LOCAL.md` for details.
+
+```bash
+mise run deploy:dev              # Start (builds image + runs)
+mise run deploy:dev:down         # Stop
+mise run deploy:dev:reset        # Nuclear reset (removes volumes)
+docker exec -it sandcastle-web ./bin/rails db:migrate   # Run migrations
+docker exec -it sandcastle-web ./bin/rails console       # Rails console
+```
+
 ### Go CLI (vendor/sandcastle-cli/)
 
 ```bash

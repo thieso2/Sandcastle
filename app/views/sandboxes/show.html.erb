@@ -111,6 +111,31 @@
     </div>
   </div>
 
+  <%# Sparklines %>
+  <% if @sandbox.status == "running" %>
+    <div class="bg-white rounded-lg border border-gray-200 px-5 py-3"
+         data-controller="sparkline"
+         data-sparkline-metrics-url-value="<%= metrics_sandbox_path(@sandbox, format: :json) %>"
+         data-sparkline-stats-url-value="<%= stats_sandbox_path(@sandbox, format: :json) %>">
+      <div class="flex items-center gap-6">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs text-gray-500">CPU</span>
+            <span class="text-xs font-mono font-medium" data-sparkline-target="cpuValue">&mdash;</span>
+          </div>
+          <div data-sparkline-target="cpuChart"></div>
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs text-gray-500">MEM</span>
+            <span class="text-xs font-mono font-medium" data-sparkline-target="memValue">&mdash;</span>
+          </div>
+          <div data-sparkline-target="memChart"></div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
   <%# Routes %>
   <div class="bg-white rounded-lg border border-gray-200">
     <div class="px-6 py-4 border-b border-gray-200">

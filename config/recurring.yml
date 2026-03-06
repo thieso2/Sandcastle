@@ -17,3 +17,7 @@ production:
   purge_archived_sandboxes:
     class: SandboxPurgeJob
     schedule: at 3am every day
+
+  collect_container_metrics:
+    class: ContainerMetricsJob
+    schedule: every 5 minutes

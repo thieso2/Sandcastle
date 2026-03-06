@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_21_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_06_153839) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -25,6 +25,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_120000) do
     t.integer "user_id", null: false
     t.index ["prefix"], name: "index_api_tokens_on_prefix", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
+  end
+
+  create_table "container_metrics", force: :cascade do |t|
+    t.float "cpu_percent", null: false
+    t.float "memory_mb", null: false
+    t.datetime "recorded_at", null: false
+    t.bigint "sandbox_id", null: false
+    t.index ["sandbox_id", "recorded_at"], name: "index_container_metrics_on_sandbox_id_and_recorded_at"
+    t.index ["sandbox_id"], name: "index_container_metrics_on_sandbox_id"
   end
 
   create_table "device_codes", force: :cascade do |t|
@@ -70,15 +79,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_120000) do
 
   create_table "routes", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "domain", null: false
+    t.string "domain"
+    t.string "mode", default: "http", null: false
     t.integer "port", default: 8080, null: false
+    t.integer "public_port"
     t.integer "sandbox_id", null: false
     t.datetime "updated_at", null: false
     t.index ["domain"], name: "index_routes_on_domain", unique: true
+    t.index ["public_port"], name: "index_routes_on_public_port", unique: true, where: "(public_port IS NOT NULL)"
     t.index ["sandbox_id"], name: "index_routes_on_sandbox_id"
   end
 
   create_table "sandboxes", force: :cascade do |t|
+    t.datetime "archived_at"
     t.string "container_id"
     t.datetime "created_at", null: false
     t.string "data_path"
@@ -101,9 +114,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_120000) do
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
     t.index ["job_status"], name: "index_sandboxes_on_job_status"
-    t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "((status)::text <> 'destroyed'::text)"
+    t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "(((status)::text <> ALL ((ARRAY['destroyed'::character varying, 'archived'::character varying])::text[])) AND (ssh_port IS NOT NULL))"
     t.index ["user_id", "job_status"], name: "index_sandboxes_on_user_id_and_job_status"
-    t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "((status)::text <> 'destroyed'::text)"
+    t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "((status)::text <> ALL ((ARRAY['destroyed'::character varying, 'archived'::character varying])::text[]))"
     t.index ["user_id"], name: "index_sandboxes_on_user_id"
   end
 
@@ -122,6 +135,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_120000) do
     t.text "github_client_secret"
     t.string "google_client_id"
     t.text "google_client_secret"
+    t.integer "sandbox_archive_retention_days", default: 30, null: false
     t.string "smtp_address"
     t.string "smtp_authentication", default: "plain"
     t.string "smtp_from_address"
@@ -159,6 +173,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_120000) do
     t.boolean "must_change_password", default: false, null: false
     t.string "name", null: false
     t.string "password_digest", null: false
+    t.integer "sandbox_archive_retention_days"
     t.text "ssh_public_key"
     t.string "status", default: "active", null: false
     t.string "tailscale_auth_key"
@@ -166,12 +181,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_21_120000) do
     t.string "tailscale_container_id"
     t.string "tailscale_network"
     t.string "tailscale_state", default: "disabled", null: false
+    t.string "tailscale_subnet"
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["name"], name: "index_users_on_name", unique: true
+    t.check_constraint "sandbox_archive_retention_days IS NULL OR sandbox_archive_retention_days >= 0", name: "users_sandbox_archive_retention_days_non_negative"
   end
 
   add_foreign_key "api_tokens", "users"
+  add_foreign_key "container_metrics", "sandboxes"
   add_foreign_key "device_codes", "api_tokens"
   add_foreign_key "device_codes", "users"
   add_foreign_key "invites", "users", column: "invited_by_id"

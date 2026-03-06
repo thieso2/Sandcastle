@@ -3,6 +3,7 @@ class Sandbox < ApplicationRecord
 
   belongs_to :user
   has_many :routes, dependent: :destroy
+  has_many :container_metrics, dependent: :delete_all
 
   VNC_GEOMETRIES = %w[1280x900 1366x768 1440x900 1600x900 1920x1080 2560x1440].freeze
   VNC_DEPTHS = [ 8, 16, 24, 32 ].freeze

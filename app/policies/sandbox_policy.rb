@@ -9,6 +9,7 @@ class SandboxPolicy < ApplicationPolicy
   def retry?                 = owner_only?
   def logs?                  = owner_or_admin?
   def stats?                 = owner_or_admin?
+  def metrics?               = owner_or_admin?
   def card?                  = owner_only?
   def connect?               = owner_only?
   def snapshot?              = owner_only?

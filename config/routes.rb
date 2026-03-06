@@ -36,6 +36,7 @@ Rails.application.routes.draw do
       post :archive_restore
       get :logs
       get :stats, controller: "dashboard", action: "stats"
+      get :metrics
       get :card, controller: "dashboard", action: "card"
       post :terminal, controller: "terminal", action: "open"
       delete :terminal, controller: "terminal", action: "close"

@@ -1,5 +1,5 @@
 class SandboxesController < ApplicationController
-  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :retry, :logs ]
+  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :retry, :logs, :metrics ]
   before_action :set_archived_sandbox, only: [ :archive_restore ]
 
   def new
@@ -75,6 +75,11 @@ class SandboxesController < ApplicationController
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     flash.now[:alert] = "Failed to create sandbox: #{e.message}"
     render :new, status: :unprocessable_entity
+  end
+
+  def metrics
+    points = @sandbox.container_metrics.recent
+    render json: points.map { |m| { t: m.recorded_at.to_i, cpu: m.cpu_percent, mem: m.memory_mb.round(0) } }
   end
 
   def logs

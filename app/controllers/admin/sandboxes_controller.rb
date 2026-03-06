@@ -81,8 +81,8 @@ module Admin
         disk_write = blkio.select { |e| e["op"]&.downcase == "write" }.sum { |e| e["value"] || 0 }
 
         @stats = {
-          cpu_percent: calculate_cpu_percent(raw),
-          memory_mb: (raw.dig("memory_stats", "usage") || 0) / 1_048_576.0,
+          cpu_percent: StatsCalculator.cpu_percent(raw),
+          memory_mb: StatsCalculator.memory_mb(raw),
           memory_limit_mb: (raw.dig("memory_stats", "limit") || 0) / 1_048_576.0,
           net_rx: net_rx,
           net_tx: net_tx,
@@ -107,17 +107,6 @@ module Admin
 
     def set_archived_sandbox
       @sandbox = Sandbox.archived.find(params[:id])
-    end
-
-    def calculate_cpu_percent(stats)
-      cpu_delta = stats.dig("cpu_stats", "cpu_usage", "total_usage").to_f -
-                  stats.dig("precpu_stats", "cpu_usage", "total_usage").to_f
-      system_delta = stats.dig("cpu_stats", "system_cpu_usage").to_f -
-                     stats.dig("precpu_stats", "system_cpu_usage").to_f
-      num_cpus = stats.dig("cpu_stats", "online_cpus") || 1
-
-      return 0.0 if system_delta.zero?
-      ((cpu_delta / system_delta) * num_cpus * 100.0).round(1)
     end
   end
 end
