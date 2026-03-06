@@ -79,7 +79,26 @@ class SandboxesController < ApplicationController
 
   def metrics
     points = @sandbox.container_metrics.recent
-    render json: points.map { |m| { t: m.recorded_at.to_i, cpu: m.cpu_percent, mem: m.memory_mb.round(0) } }
+      .map { |m| { t: m.recorded_at.to_i, cpu: m.cpu_percent, mem: m.memory_mb.round(0) } }
+
+    # Append current live stats so graphs render instantly on page load
+    if @sandbox.status == "running" && @sandbox.container_id.present?
+      full = Rails.cache.fetch("sandbox_stats_full:#{@sandbox.id}", expires_in: 4.seconds) do
+        raw = Docker::Container.get(@sandbox.container_id).stats(stream: false)
+        next nil if raw.blank?
+        {
+          cpu_percent: StatsCalculator.cpu_percent(raw),
+          memory_mb: StatsCalculator.memory_mb(raw),
+          memory_limit_mb: (raw.dig("memory_stats", "limit") || 0) / 1_048_576.0,
+          net_rx: 0, net_tx: 0, disk_read: 0, disk_write: 0, pids: 0
+        }
+      rescue Docker::Error::DockerError
+        nil
+      end
+      points << { t: Time.current.to_i, cpu: full[:cpu_percent], mem: full[:memory_mb].round(0) } if full
+    end
+
+    render json: points
   end
 
   def logs

@@ -19,11 +19,12 @@ class DashboardController < ApplicationController
     authorize sandbox, :stats?
 
     if sandbox.status == "running" && sandbox.container_id.present?
-      container = Docker::Container.get(sandbox.container_id)
-      raw = container.stats(stream: false)
+      @stats = Rails.cache.fetch("sandbox_stats_full:#{sandbox.id}", expires_in: 4.seconds) do
+        container = Docker::Container.get(sandbox.container_id)
+        raw = container.stats(stream: false)
 
-      # Handle case where container is shutting down and returns nil/incomplete stats
-      if raw.present?
+        next nil if raw.blank?
+
         networks = raw["networks"] || {}
         net_rx = networks.values.sum { |n| n["rx_bytes"] || 0 }
         net_tx = networks.values.sum { |n| n["tx_bytes"] || 0 }
@@ -32,7 +33,7 @@ class DashboardController < ApplicationController
         disk_read = blkio.select { |e| e["op"]&.downcase == "read" }.sum { |e| e["value"] || 0 }
         disk_write = blkio.select { |e| e["op"]&.downcase == "write" }.sum { |e| e["value"] || 0 }
 
-        @stats = {
+        {
           cpu_percent: StatsCalculator.cpu_percent(raw),
           memory_mb: StatsCalculator.memory_mb(raw),
           memory_limit_mb: (raw.dig("memory_stats", "limit") || 0) / 1_048_576.0,
