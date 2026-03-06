@@ -3,32 +3,31 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "c93de87c-485e-4d6d-a378-3a2d3ce77840",
   "strategy": "manual-commit",
-  "created_at": "2026-03-06T16:20:49.438744Z",
+  "created_at": "2026-03-06T16:32:32.488472Z",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 1,
   "files_touched": [
-    "app/javascript/controllers/sparkline_controller.js",
-    "app/views/dashboard/_sandbox.html.erb",
-    "tmp/pids/server.pid"
+    "app/controllers/dashboard_controller.rb",
+    "app/controllers/sandboxes_controller.rb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "3a8ed80a-770d-4eef-b960-a085a23910ec",
-  "checkpoint_transcript_start": 365,
-  "transcript_lines_at_start": 365,
+  "transcript_identifier_at_start": "be8a5290-aabb-446a-b4b4-10f228cf092a",
+  "checkpoint_transcript_start": 463,
+  "transcript_lines_at_start": 463,
   "token_usage": {
-    "input_tokens": 33,
-    "cache_creation_tokens": 18532,
-    "cache_read_tokens": 1882512,
-    "output_tokens": 4898,
-    "api_call_count": 21
+    "input_tokens": 15,
+    "cache_creation_tokens": 5354,
+    "cache_read_tokens": 1133809,
+    "output_tokens": 3196,
+    "api_call_count": 11
   },
   "initial_attribution": {
-    "calculated_at": "2026-03-06T16:20:49.339823Z",
-    "agent_lines": 47,
-    "human_added": 0,
-    "human_modified": 1,
-    "human_removed": 1,
-    "total_committed": 47,
-    "agent_percentage": 100
+    "calculated_at": "2026-03-06T16:32:32.394353Z",
+    "agent_lines": 0,
+    "human_added": 20,
+    "human_modified": 7,
+    "human_removed": 0,
+    "total_committed": 20,
+    "agent_percentage": 0
   }
 }

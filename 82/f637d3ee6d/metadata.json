@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 33,
+  "checkpoints_count": 32,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -17,12 +17,12 @@
     "app/controllers/admin/settings_controller.rb",
     "app/controllers/api/routes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/dashboard_controller.rb",
     "app/controllers/routes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
     "app/javascript/controllers/inline_edit_controller.js",
-    "app/javascript/controllers/sparkline_controller.js",
     "app/jobs/container_sync_job.rb",
     "app/jobs/sandbox_destroy_job.rb",
     "app/jobs/sandbox_purge_job.rb",
@@ -70,7 +70,6 @@
     "test/controllers/terminal_controller_test.rb",
     "test/services/tailscale_manager_test.rb",
     "test/support/docker_mock.rb",
-    "tmp/pids/server.pid",
     "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/api/types.go",
     "vendor/sandcastle-cli/cmd/config.go",
@@ -276,10 +275,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3370,
-    "cache_creation_tokens": 1727739,
-    "cache_read_tokens": 84578635,
-    "output_tokens": 273115,
-    "api_call_count": 970
+    "input_tokens": 3352,
+    "cache_creation_tokens": 1714561,
+    "cache_read_tokens": 83829932,
+    "output_tokens": 271413,
+    "api_call_count": 960
   }
 }

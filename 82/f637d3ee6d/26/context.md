@@ -79,3 +79,11 @@ mise run deploy:dev does not show the stat graphs!
 
 add smal version on teh dashboard view as well!
 
+### Prompt 18
+
+commit, push and release!
+
+### Prompt 19
+
+when loading the dashboar or a detail page - make sure teh graphs are instant! (keep the not persisted data in cache?)
+
