@@ -269,3 +269,7 @@ in sandcastle cli - cretae working 1-2 letter abbrev for teh common comamnds.
 ---
 
 make connect c and create cr
+
+---
+
+all things instlled in sandbox image shouel be installed /usr/local so they are availabele even when the home is overlayed!

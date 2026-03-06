@@ -48,6 +48,7 @@
     "docs/DOCKER_SYSBOX_TROUBLE.md",
     "images/sandbox/.Dockerfile.swp",
     "images/sandbox/Dockerfile",
+    "images/sandbox/Dockerfile.base",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
     "install-defaults",
@@ -252,10 +253,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1100,
-    "cache_creation_tokens": 1679483,
-    "cache_read_tokens": 82823609,
-    "output_tokens": 265411,
-    "api_call_count": 944
+    "input_tokens": 1102,
+    "cache_creation_tokens": 1684909,
+    "cache_read_tokens": 83167032,
+    "output_tokens": 266771,
+    "api_call_count": 946
   }
 }
