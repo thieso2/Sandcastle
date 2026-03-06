@@ -9,26 +9,23 @@
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 ARG RUBY_VERSION=4.0.0
-FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
-# Rails app lives here
+# ── Build stage: install gems and precompile assets ──────────────────────────
+FROM docker.io/library/ruby:$RUBY_VERSION-slim AS build
+
 WORKDIR /rails
 
-# Install base packages
+# Install base packages needed at runtime (for bootsnap precompile)
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y curl libjemalloc2 libvips libpq5 postgresql-client openssh-client && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Set production environment variables and enable jemalloc for reduced memory usage and latency.
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development:test" \
     LD_PRELOAD="/usr/local/lib/libjemalloc.so"
-
-# Throw-away build stage to reduce size of final image
-FROM base AS build
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
@@ -58,12 +55,15 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails novnc:download
 
 
-# Development stage for live source mounting
-FROM base AS development
+# ── Development stage for live source mounting ───────────────────────────────
+FROM docker.io/library/ruby:$RUBY_VERSION-slim AS development
+
+WORKDIR /rails
 
 # Install development dependencies
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
+    curl libjemalloc2 libvips libpq5 postgresql-client openssh-client \
     build-essential \
     git \
     libpq-dev \
@@ -72,6 +72,7 @@ RUN apt-get update -qq && \
     python-is-python3 \
     ca-certificates \
     gnupg && \
+    ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install Docker CLI
@@ -116,33 +117,8 @@ EXPOSE 80
 CMD ["./bin/dev"]
 
 
-# Final stage for app image
-FROM base
-
-# Install Docker CLI for container management via mounted socket
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y ca-certificates gnupg && \
-    install -m 0755 -d /etc/apt/keyrings && \
-    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
-    chmod a+r /etc/apt/keyrings/docker.asc && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list && \
-    apt-get update -qq && \
-    apt-get install --no-install-recommends -y docker-ce-cli sudo btrfs-progs && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
-# Run and own only the runtime files as a non-root user for security
-RUN groupadd --system --gid 220568 sandcastle && \
-    useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/bash && \
-    groupadd --system docker && \
-    usermod -aG docker sandcastle && \
-    printf 'sandcastle ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume *\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chown\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chmod\n' > /etc/sudoers.d/sandcastle && \
-    chmod 0440 /etc/sudoers.d/sandcastle
-
-# Install mkcert for automatic cert generation in mkcert TLS mode
-RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
-    curl -fsSL "https://dl.filippo.io/mkcert/latest?for=linux/${ARCH}" \
-         -o /usr/local/bin/mkcert && \
-    chmod +x /usr/local/bin/mkcert
+# ── Final production stage: thin layer on pre-built base ─────────────────────
+FROM ghcr.io/thieso2/sandcastle-base:latest
 
 USER 220568:220568
 

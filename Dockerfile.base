@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1
+# sandcastle-base — production runtime base with all system dependencies.
+# Published as ghcr.io/thieso2/sandcastle-base:latest
+# Rebuild only when Ruby version, system packages, or Docker CLI change.
+
+ARG RUBY_VERSION=4.0.0
+FROM docker.io/library/ruby:$RUBY_VERSION-slim
+
+WORKDIR /rails
+
+# Install base packages + Docker CLI + tools needed at runtime
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+      curl libjemalloc2 libvips libpq5 postgresql-client openssh-client \
+      ca-certificates gnupg sudo btrfs-progs && \
+    ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list && \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y docker-ce-cli && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Set production environment and enable jemalloc
+ENV RAILS_ENV="production" \
+    BUNDLE_DEPLOYMENT="1" \
+    BUNDLE_PATH="/usr/local/bundle" \
+    BUNDLE_WITHOUT="development:test" \
+    LD_PRELOAD="/usr/local/lib/libjemalloc.so"
+
+# Non-root user with Docker socket access and limited sudo
+RUN groupadd --system --gid 220568 sandcastle && \
+    useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/bash && \
+    groupadd --system docker && \
+    usermod -aG docker sandcastle && \
+    printf 'sandcastle ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume *\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chown\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chmod\n' > /etc/sudoers.d/sandcastle && \
+    chmod 0440 /etc/sudoers.d/sandcastle
+
+# mkcert for automatic cert generation in mkcert TLS mode
+RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
+    curl -fsSL "https://dl.filippo.io/mkcert/latest?for=linux/${ARCH}" \
+         -o /usr/local/bin/mkcert && \
+    chmod +x /usr/local/bin/mkcert
+
+LABEL org.opencontainers.image.source="https://github.com/thieso2/sandcastle"
+LABEL org.opencontainers.image.description="Sandcastle app base image — Ruby runtime with Docker CLI and system tools"
+LABEL org.opencontainers.image.licenses="MIT"

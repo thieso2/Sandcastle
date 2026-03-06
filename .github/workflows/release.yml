@@ -73,8 +73,8 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=app-${{ matrix.platform }}
-          cache-to: type=gha,scope=app-${{ matrix.platform }},mode=max
+          cache-from: type=gha,scope=app-build-${{ matrix.platform }}
+          cache-to: type=gha,scope=app-build-${{ matrix.platform }},mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/thieso2/sandcastle,push-by-digest=true,name-canonical=true,push=true
           build-args: |
             BUILD_VERSION=${{ github.ref_name }}
@@ -183,8 +183,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             SANDCASTLE_VERSION=${{ github.ref_name }}
-          cache-from: type=gha,scope=sandbox-${{ matrix.platform }}
-          cache-to: type=gha,scope=sandbox-${{ matrix.platform }},mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/thieso2/sandcastle-sandbox,push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest
