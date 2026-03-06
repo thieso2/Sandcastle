@@ -48,7 +48,6 @@
     "docs/DOCKER_SYSBOX_TROUBLE.md",
     "images/sandbox/.Dockerfile.swp",
     "images/sandbox/Dockerfile",
-    "images/sandbox/Dockerfile.base",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
     "install-defaults",
@@ -62,6 +61,7 @@
     "test/support/docker_mock.rb",
     "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/config.go",
     "vendor/sandcastle-cli/cmd/connect.go",
     "vendor/sandcastle-cli/cmd/detect.go",
     "vendor/sandcastle-cli/cmd/route.go",
@@ -253,10 +253,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1102,
-    "cache_creation_tokens": 1684909,
-    "cache_read_tokens": 83167032,
-    "output_tokens": 266771,
-    "api_call_count": 946
+    "input_tokens": 1133,
+    "cache_creation_tokens": 1773182,
+    "cache_read_tokens": 83558226,
+    "output_tokens": 271016,
+    "api_call_count": 965
   }
 }

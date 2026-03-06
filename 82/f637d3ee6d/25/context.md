@@ -118,3 +118,36 @@ make connect c and create cr
 
 all things instlled in sandbox image shouel be installed /usr/local so they are availabele even when the home is overlayed!
 
+### Prompt 24
+
+what tools are included in the base image now?
+
+### Prompt 25
+
+commit and push - create new relase if not yet released
+
+### Prompt 26
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+   - **Complete Dockyard test renumbering**: Finish renumbering tests 18-29 → 19-30 in `/Users/thies/Projects/GitHub/Dockyard/cmd/dockyardtest/main.go` after inserting test 17 (sysbox bind-mount mkdir). Update total count from 29 to 30. (COMPLETED)
+   - **Commit and release Sandcastle changes**: Commit t...
+
+### Prompt 27
+
+Tool loaded.
+
+### Prompt 28
+
+yes - ush and release
+
+### Prompt 29
+
+Tool loaded.
+
+### Prompt 30
+
+Tool loaded.
+

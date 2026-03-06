@@ -273,3 +273,299 @@ make connect c and create cr
 ---
 
 all things instlled in sandbox image shouel be installed /usr/local so they are availabele even when the home is overlayed!
+
+---
+
+what tools are included in the base image now?
+
+---
+
+commit and push - create new relase if not yet released
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+   - **Complete Dockyard test renumbering**: Finish renumbering tests 18-29 → 19-30 in `/Users/thies/Projects/GitHub/Dockyard/cmd/dockyardtest/main.go` after inserting test 17 (sysbox bind-mount mkdir). Update total count from 29 to 30. (COMPLETED)
+   - **Commit and release Sandcastle changes**: Commit the bind-mount fix (sandbox_manager.rb, entrypoint.sh, Dockerfile) and sandcastle-admin update command, then release. (COMPLETED - v0.8.31)
+   - **Fix CI build error**: `mise exec` failing with exit 127 during sandbox image build. Add retry logic. (COMPLETED - v0.8.32)
+   - **Split sandbox image into base + thin layer**: Create a base image with heavy dependencies so entrypoint changes build fast. (COMPLETED - v0.8.33)
+   - **Split app image into base + thin layer**: Same optimization for the Rails app image. (COMPLETED - v0.8.33)
+   - **Add CLI short aliases**: 1-2 letter abbreviations for common commands. (COMPLETED - v0.8.34, corrected in v0.8.35)
+   - **Add sandbox rename** (UI and CLI): Inline rename on show page + `sandcastle rename`/`mv` CLI command. (COMPLETED - v0.8.34)
+   - **Add `sandcastle cp`**: SCP-based file copy to/from sandbox using `sandbox:path` syntax. (COMPLETED - v0.8.34)
+   - **Swap aliases**: Make `connect` = `c` and `create` = `cr` (user correction). (COMPLETED - v0.8.35)
+   - **Install tools to /usr/local/bin**: All sandbox image tools should be in `/usr/local` so they're available even when home dir is overlayed. (COMPLETED - v0.8.36)
+   - **How to set "mount home" and "mount data" as default in config?**: User's last question before summary request. (PENDING)
+
+2. Key Technical Concepts:
+   - **Docker image layer caching**: Split Dockerfiles into `Dockerfile.base` (heavy, rarely changes) + thin `Dockerfile` (entrypoint, config — builds in seconds)
+   - **GitHub Actions workflows**: Separate workflows for base images vs thin images, triggered by different path patterns
+   - **Sysbox UID remapping**: Kernel 6.17+ prevents mkdir in bind-mounted dirs owned by unmapped UIDs; fix by chowning to root (UID 0)
+   - **mise runtime manager**: Installs Node.js LTS; can fail transiently in Docker builds (exit 127); needs explicit `mise install` + retry loop
+   - **Cobra CLI aliases**: `Aliases: []string{"c"}` on cobra.Command for short command names
+   - **Stimulus controllers**: Used for inline edit (rename) on sandbox show page
+   - **SCP file copy**: CLI `cp` command using `sandbox:path` syntax parsed by `parseCpArg()`
+   - **sandcastle-admin**: Bash script installed to `$SANDCASTLE_HOME/bin/`, template in `installer/templates/sandcastle-admin.sh`, embedded in `installer.sh` via `@@TEMPLATE:...@@` markers
+   - **Installer regeneration**: Changes to templates require running `bash installer/build.sh` to regenerate `installer.sh`
+   - **CLI environment variable defaults**: `SANDCASTLE_HOME=1`, `SANDCASTLE_DATA=.`, `SANDCASTLE_RM=1` set defaults for create flags
+
+3. Files and Code Sections:
+
+   - **`/Users/thies/Projects/GitHub/Dockyard/cmd/dockyardtest/main.go`**
+     - Dockyard test suite. Renumbered tests 17→18 through 29→30 after inserting new test 17 (sysbox bind-mount mkdir). Updated `total := 30`.
+     - Also updated comment reference from "test 28" to "test 30" on line 249.
+
+   - **`images/sandbox/Dockerfile.base`** (NEW)
+     - Base image with all heavy sandbox dependencies. Published as `ghcr.io/thieso2/sandcastle-sandbox-base:latest`.
+     - Contains: Ubuntu 25.10, system tools, gh, VNC, Chrome/Chromium, Docker 29.0.3, runc 1.1.15, mise, claude, codex, ttyd, entire, websockify-go.
+     - Tools installed to `/usr/local/bin` so they're available with overlayed home dirs.
+     ```dockerfile
+     RUN curl https://mise.run | REDACTED sh \
+         && /usr/local/bin/mise use --global node@lts \
+         && /usr/local/bin/mise install \
+         && for attempt in 1 2 3; do \
+              /usr/local/bin/mise exec -- npm install -g @anthropic-ai/claude-code \
+              && /usr/local/bin/mise exec -- npm install -g @openai/codex \
+              && break; \
+              echo "Retry $attempt: mise exec failed, retrying in 5s..."; sleep 5; \
+            done \
+         && NODE_VER=$(/usr/local/bin/mise current node) \
+         && cp -L "/root/.local/share/mise/installs/node/${NODE_VER}/bin/claude" \
+            /usr/local/bin/claude
+     ```
+
+   - **`images/sandbox/Dockerfile`** (REWRITTEN)
+     - Thin layer on top of base image. Just copies entrypoint, config files, version label.
+     ```dockerfile
+     FROM ghcr.io/thieso2/sandcastle-sandbox-base:latest
+     ARG SANDCASTLE_VERSION=dev
+     RUN echo "${SANDCASTLE_VERSION}" > /etc/sandcastle-version
+     COPY entrypoint.sh /entrypoint.sh
+     COPY docker-restart.sh /usr/local/bin/docker-restart
+     RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart
+     COPY startchrome.sh /usr/local/bin/google-chrome
+     RUN chmod +x /usr/local/bin/google-chrome \
+         && ln -sf /usr/local/bin/google-chrome /usr/local/bin/startchrome
+     COPY tmux.conf /etc/tmux.conf
+     COPY gitconfig /etc/gitconfig
+     ```
+
+   - **`images/sandbox/entrypoint.sh`**
+     - Removed the `~/.local/bin` seeding logic (lines 31-44 of old version) since tools are now in `/usr/local/bin`.
+     - Previously hardened mkdir with `2>/dev/null || true` guards for bind-mount permission issues.
+
+   - **`Dockerfile.base`** (NEW - app base)
+     - App production runtime base. Published as `ghcr.io/thieso2/sandcastle-base:latest`.
+     - Ruby 4.0 slim + system packages + Docker CLI + user/sudo/mkcert setup.
+     ```dockerfile
+     ARG RUBY_VERSION=4.0.0
+     FROM docker.io/library/ruby:$RUBY_VERSION-slim
+     # Installs: curl, libjemalloc2, libvips, libpq5, postgresql-client, openssh-client,
+     # ca-certificates, gnupg, sudo, btrfs-progs, docker-ce-cli, mkcert
+     # Creates: sandcastle user (UID 220568), docker group, sudoers for btrfs/chown/chmod
+     ```
+
+   - **`Dockerfile`** (REWRITTEN)
+     - Build stage still uses `ruby-slim` directly (needs build tools).
+     - Production stage now: `FROM ghcr.io/thieso2/sandcastle-base:latest` + copies gems and app.
+
+   - **`.github/workflows/sandbox-base-image.yml`** (NEW)
+     - Triggers on: `images/sandbox/Dockerfile.base` or `images/sandbox/websockify/**` changes, plus manual dispatch.
+
+   - **`.github/workflows/sandbox-image.yml`** (UPDATED)
+     - Triggers on specific thin-layer files only (Dockerfile, entrypoint.sh, scripts, configs).
+     - Removed GHA cache (build is fast enough without it).
+
+   - **`.github/workflows/app-base-image.yml`** (NEW)
+     - Triggers on `Dockerfile.base` changes.
+
+   - **`.github/workflows/release.yml`** (UPDATED)
+     - Changed app cache scope to `app-build-*`, removed sandbox cache lines.
+
+   - **`installer/templates/sandcastle-admin.sh`** (UPDATED)
+     - Added `cmd_update()` function:
+     ```bash
+     cmd_update() {
+       local app_image="${APP_IMAGE:-ghcr.io/thieso2/sandcastle:latest}"
+       local sandbox_image="${SANDBOX_IMAGE:-ghcr.io/thieso2/sandcastle-sandbox:latest}"
+       echo -e "${BLUE}═══ Sandcastle Update ═══${NC}"
+       info "Pulling images..."
+       $DOCKER pull "$app_image" &
+       $DOCKER pull "$sandbox_image" &
+       wait
+       ok "Images pulled"
+       info "Restarting services..."
+       cd "$SANDCASTLE_HOME"
+       $DOCKER compose -f "$COMPOSE_FILE" up -d
+       ok "Services restarted"
+     }
+     ```
+     - Added `update)` to dispatch case, updated help text.
+     - No `sudo` needed — sandcastle user is in the docker group.
+
+   - **`installer.sh`** (REGENERATED)
+     - Regenerated via `bash installer/build.sh` after template changes.
+
+   - **`app/services/sandbox_manager.rb`**
+     - Replaced `FileUtils.chmod(0o777, dir)` with `prepare_bind_mount(dir)` in `ensure_mount_dirs`.
+     - Added `prepare_bind_mount` private method using sudo chown/chmod for Sysbox UID remapping.
+
+   - **`app/controllers/api/sandboxes_controller.rb`**
+     - `update` action now permits both `:temporary` and `:name`:
+     ```ruby
+     def update
+       @sandbox.update!(params.permit(:temporary, :name))
+       render json: sandbox_json(@sandbox)
+     end
+     ```
+
+   - **`app/controllers/sandboxes_controller.rb`**
+     - Added `update` to `before_action :set_sandbox`.
+     - Added `update` action for web UI rename:
+     ```ruby
+     def update
+       if @sandbox.update(params.require(:sandbox).permit(:name))
+         redirect_to @sandbox, notice: "Sandbox renamed to #{@sandbox.name}."
+       else
+         # ... re-render show with errors
+       end
+     end
+     ```
+
+   - **`config/routes.rb`**
+     - Added `:update` to sandboxes resource: `resources :sandboxes, only: [ :new, :create, :show, :destroy, :update ]`
+
+   - **`app/policies/sandbox_policy.rb`**
+     - Changed `def update?` from `true` to `owner_only?` (security fix).
+
+   - **`app/views/sandboxes/show.html.erb`**
+     - Added inline rename form with Stimulus `inline-edit` controller, pencil icon button, text field, save/cancel.
+
+   - **`app/javascript/controllers/inline_edit_controller.js`** (NEW)
+     ```javascript
+     import { Controller } from "@hotwired/stimulus"
+     export default class extends Controller {
+       static targets = ["display", "form"]
+       edit() {
+         this.displayTarget.classList.add("hidden")
+         this.formTarget.classList.remove("hidden")
+         this.formTarget.classList.add("flex")
+         const input = this.formTarget.querySelector("input[type=text]")
+         if (input) { input.focus(); input.select() }
+       }
+       cancel() {
+         this.formTarget.classList.add("hidden")
+         this.formTarget.classList.remove("flex")
+         this.displayTarget.classList.remove("hidden")
+       }
+     }
+     ```
+
+   - **`vendor/sandcastle-cli/cmd/sandbox.go`**
+     - Added aliases: `create` → `cr`, `delete` → `rm`/`d`, `start` → `up`, `stop` → `dn`
+     - Added `renameCmd` with alias `mv`:
+     ```go
+     var renameCmd = &cobra.Command{
+         Use:     "rename <name> <new-name>",
+         Aliases: []string{"mv"},
+         Short:   "Rename a sandbox",
+         Args:    cobra.ExactArgs(2),
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // ... finds sandbox by name, calls UpdateSandbox with new name
+         },
+     }
+     ```
+
+   - **`vendor/sandcastle-cli/cmd/connect.go`**
+     - Added aliases: `connect` → `c`, `ssh` → `s`
+
+   - **`vendor/sandcastle-cli/cmd/exec.go`**
+     - Added alias: `exec` → `x`
+
+   - **`vendor/sandcastle-cli/cmd/info.go`**
+     - Added alias: `info` → `i`
+
+   - **`vendor/sandcastle-cli/cmd/status.go`**
+     - Added alias: `status` → `st`
+
+   - **`vendor/sandcastle-cli/cmd/cp.go`** (NEW)
+     - SCP-based file copy using `sandbox:path` syntax.
+     - `parseCpArg()` splits "sandbox:path" validating sandbox name chars.
+     - Supports `-r` flag for recursive copy.
+     - Uses `os.StartProcess` to exec scp directly (like ssh/mosh commands).
+
+   - **`vendor/sandcastle-cli/api/types.go`**
+     - Added `Name *string` to `UpdateSandboxRequest`.
+
+   - **`app/views/pages/guide.html.erb`**
+     - Added section 15 "Short aliases" with all alias examples.
+     - Added rename and cp examples to section 8 "Manage sandboxes".
+
+4. Errors and fixes:
+   - **git push rejected**: Remote had new commits. Fixed with `git pull --rebase`.
+   - **CI build exit 127**: `mise exec` failed transiently in Docker builds. Fixed by adding explicit `mise install` and 3-attempt retry loop with 5s backoff.
+   - **Sandbox image build failed**: After splitting into base+thin, the thin image build triggered before the base was published. Fixed by waiting for base build, then re-running: `gh run rerun 22767975924`.
+   - **Initial alias assignment**: User corrected — `connect` should be `c` (most used) and `create` should be `cr`. Swapped aliases in v0.8.35.
+   - **Policy security issue**: `update?` was `true` (anyone could update any sandbox). Fixed to `owner_only?`.
+   - **sandcastle-admin sudo**: Initially added `sudo` to help text, but user pointed out sandcastle user is in docker group — removed sudo from examples.
+
+5. Problem Solving:
+   - **Fast image rebuilds**: Solved by splitting both sandbox and app Dockerfiles into base (heavy, rarely changes) + thin layer (config/entrypoint, builds in seconds). Separate CI workflows trigger on appropriate file paths.
+   - **Tools unavailable with overlayed home**: Solved by moving mise/claude/codex from `/opt/sandcastle/bin` (seeded to `~/.local/bin` at boot) to `/usr/local/bin` directly. Removed entrypoint seeding logic entirely.
+   - **sandcastle-admin update**: Added new command that pulls both app and sandbox images in parallel, then restarts via docker compose. No sudo needed.
+   - **Inline rename UX**: Used Stimulus controller for toggling between display (h1 with pencil icon) and edit form (text field + save/cancel), avoiding a separate edit page.
+
+6. All user messages:
+   - "2 things. for the sandcastle user add ~/bin to the PATH add sudo bin/sandcastle-admin update to update the images (abb and sandbox) and restart the sandcastle"
+   - "actually sandcastle is in the docker group"
+   - "commit and release a new version"
+   - "Error: buildx failed with: ERROR: failed to build... exit code: 127 ... we have repeated errors in CI - fix or add sleep and retry add a retry for this command"
+   - "for the sandbox build - can we not publish a base image that contains all teh base stuff so that when we add or change entrypoint the build is fast? how to optimize tezh image so that we can leverage a cache..."
+   - "lets also build a base image for the app itself."
+   - "in sandcastle cli - create working 1-2 letter abbrev for teh common commands."
+   - "add renaming a sandcastle (ui and CLI)"
+   - "also add sandcastle cp (scp) for from <> to box copy"
+   - "make connect c and create cr"
+   - "update the docs and push"
+   - "all things installed in sandbox image should be installed /usr/local so they are available even when the home is overlayed!"
+   - "what tools are included in the base image now?"
+   - "commit and push - create new release if not yet released"
+   - "how to set 'mount home' and 'mount data' as default in config?"
+
+7. Pending Tasks:
+   - Answer the user's question: "how to set 'mount home' and 'mount data' as default in config?" — This refers to CLI config preferences or environment variables for `--home` and `--data` flags on `sandcastle create`.
+
+8. Current Work:
+   The user just asked "how to set 'mount home' and 'mount data' as default in config?" — this was their last message before the summary request. The working tree is clean (everything committed and released as v0.8.36). The question likely refers to the existing CLI environment variable defaults documented in `sandbox.go`:
+   - `SANDCASTLE_HOME=1` → equivalent to `--home`
+   - `SANDCASTLE_DATA=.` → equivalent to `--data`
+   
+   Or potentially adding these as persistent CLI config preferences (like `connect_protocol` and `use_tmux` in `config.go`).
+
+9. Optional Next Step:
+   Answer the user's question about setting mount home and mount data as defaults. The CLI already supports environment variables (`SANDCASTLE_HOME=1`, `SANDCASTLE_DATA=.`) as documented in `sandbox.go` lines 69-72. The user may want these as persistent `sandcastle config set` preferences. Looking at `cmd/config.go`, current config preferences are: `connect_protocol`, `use_tmux`, `ssh_extra_args`. Adding `mount_home` and `data_path` as new config preferences would involve:
+   1. Adding fields to `config.Config.Preferences` 
+   2. Adding cases in `config set` command
+   3. Reading them in `createCmd.PreRun`
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.
+
+---
+
+Tool loaded.
+
+---
+
+yes - ush and release
+
+---
+
+Tool loaded.
+
+---
+
+Tool loaded.

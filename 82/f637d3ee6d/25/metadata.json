@@ -3,31 +3,33 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "f2f0caeb-54ff-4f82-8daf-f1311df5cdda",
   "strategy": "manual-commit",
-  "created_at": "2026-03-06T15:16:11.059154Z",
+  "created_at": "2026-03-06T15:29:48.815911Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "images/sandbox/Dockerfile.base",
-    "images/sandbox/entrypoint.sh"
+    "app/views/pages/guide.html.erb",
+    "vendor/sandcastle-cli/cmd/config.go",
+    "vendor/sandcastle-cli/cmd/sandbox.go",
+    "vendor/sandcastle-cli/internal/config/config.go"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "6aaf784a-65fa-439e-bc08-5dea64084186",
-  "checkpoint_transcript_start": 1939,
-  "transcript_lines_at_start": 1939,
+  "transcript_identifier_at_start": "126788de-8eed-4e3b-ae31-510383f0b088",
+  "checkpoint_transcript_start": 1974,
+  "transcript_lines_at_start": 1974,
   "token_usage": {
-    "input_tokens": 10,
-    "cache_creation_tokens": 7095,
-    "cache_read_tokens": 1269942,
-    "output_tokens": 2315,
-    "api_call_count": 8
+    "input_tokens": 41,
+    "cache_creation_tokens": 95368,
+    "cache_read_tokens": 1661136,
+    "output_tokens": 6560,
+    "api_call_count": 27
   },
   "initial_attribution": {
-    "calculated_at": "2026-03-06T15:16:10.676113Z",
+    "calculated_at": "2026-03-06T15:29:48.467044Z",
     "agent_lines": 0,
-    "human_added": 0,
-    "human_modified": 14,
-    "human_removed": 17,
-    "total_committed": 0,
+    "human_added": 129,
+    "human_modified": 21,
+    "human_removed": 0,
+    "total_committed": 138,
     "agent_percentage": 0
   }
 }
