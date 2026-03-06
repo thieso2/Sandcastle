@@ -103,11 +103,18 @@ RUN RUNC_VERSION="v1.1.15" \
 # Stage mise + Claude Code in /opt/sandcastle/bin (seeded to ~/.local/bin on first boot)
 # Claude Code is installed via npm (the claude.ai/install.sh convenience script is unreliable).
 # mise provides Node.js; npm installs @anthropic-ai/claude-code (native pre-built binary).
+# Retry: mise install/exec can fail transiently in Docker builds (exit 127) when the
+# Node binary isn't immediately visible after `mise use --global`.
 RUN mkdir -p /opt/sandcastle/bin \
     && curl https://mise.run | MISE_INSTALL_PATH=/opt/sandcastle/bin/mise sh \
     && /opt/sandcastle/bin/mise use --global node@lts \
-    && /opt/sandcastle/bin/mise exec -- npm install -g @anthropic-ai/claude-code \
-    && /opt/sandcastle/bin/mise exec -- npm install -g @openai/codex \
+    && /opt/sandcastle/bin/mise install \
+    && for attempt in 1 2 3; do \
+         /opt/sandcastle/bin/mise exec -- npm install -g @anthropic-ai/claude-code \
+         && /opt/sandcastle/bin/mise exec -- npm install -g @openai/codex \
+         && break; \
+         echo "Retry $attempt: mise exec failed, retrying in 5s..."; sleep 5; \
+       done \
     && NODE_VER=$(/opt/sandcastle/bin/mise current node) \
     && cp -L "/root/.local/share/mise/installs/node/${NODE_VER}/bin/claude" \
        /opt/sandcastle/bin/claude
