@@ -22,3 +22,69 @@ Tool loaded.
 
 commit
 
+### Prompt 6
+
+when we star a scandcasle and mount the home dir neither vns nor tailscale nor ssh work: 
+docker logs sais
+sandcastle@sandman:~$ docker logs thies-happy-falcon
+useradd: warning: the home directory /home/thies already exists.
+useradd: Not copying any file from skel directory into it.
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permission denied
+mkdir: Permissio...
+
+### Prompt 7
+
+we have updated dockyard and sysbox (and not yet integrated it into sandcastle) - check ../dockyard for sysbox changes - would that help us?
+
+### Prompt 8
+
+Tool loaded.
+
+### Prompt 9
+
+can we add a test for that issue in the dockyard testsuite?
+
+### Prompt 10
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+   - **Request 1**: Add a "Logs" button to the sandbox UI that runs `docker logs <sandcastle>` for sandboxes the user owns or is an admin of. (COMPLETED, committed as `ffaf5eb`)
+   - **Request 2**: Fix broken SSH, VNC, and Tailscale when starting a sandbox with bind-mounted home directory. Docker logs show...
+
+### Prompt 11
+
+Tool loaded.
+
+### Prompt 12
+
+2 things.
+for the sandcastle user 
+add ~/bin to the PATH
+add sudo  bin/sandcastle-admin  update
+to update the images (abb and sandbox) and restart the sandcastle
+
+### Prompt 13
+
+Tool loaded.
+
+### Prompt 14
+
+Tool loaded.
+
+### Prompt 15
+
+actually sandcastle is in the docker group
+
+### Prompt 16
+
+commit and release a new version
+

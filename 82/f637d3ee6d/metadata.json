@@ -3,9 +3,10 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 32,
+  "checkpoints_count": 34,
   "files_touched": [
     "CLAUDE.md",
+    "Dockerfile",
     "VNC_AND_TTYD_AUTH.md",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/admin/settings_controller.rb",
@@ -56,6 +57,7 @@
     "installer/templates/.dockyard..swp",
     "installer/templates/docker-compose.yml.template",
     "installer/templates/dockyard.sh",
+    "installer/templates/sandcastle-admin.sh",
     "mise.toml",
     "test/controllers/terminal_controller_test.rb",
     "test/services/tailscale_manager_test.rb",
@@ -253,10 +255,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 1275,
-    "cache_creation_tokens": 1733077,
-    "cache_read_tokens": 82910159,
-    "output_tokens": 270077,
-    "api_call_count": 963
+    "input_tokens": 1293,
+    "cache_creation_tokens": 1860671,
+    "cache_read_tokens": 96371682,
+    "output_tokens": 325153,
+    "api_call_count": 1116
   }
 }
