@@ -2930,7 +2930,7 @@ cmd_destroy() {
   if [ -n "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
     info "Destroying Dockyard..."
     if [ -n "$DOCKYARD_ENV_FILE" ] && write_dockyard_sh 2>/dev/null; then
-      DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy --yes 2>&1 || true
+      DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy --yes --keep-data 2>&1 || true
       rm -f /tmp/dockyard.sh
     else
       systemctl stop "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
@@ -3002,7 +3002,16 @@ cmd_destroy() {
   rmdir "$SANDCASTLE_HOME/data" 2>/dev/null || true
   rmdir "$SANDCASTLE_HOME" 2>/dev/null || true
   rm -rf "/run/${DOCKYARD_DOCKER_PREFIX}docker"
-  rm -rf "$DOCKYARD_ROOT"
+  # Clean up dockyard files. If DOCKYARD_ROOT == SANDCASTLE_HOME (new layout),
+  # only remove dockyard-specific subdirs to preserve user data.
+  if [ "$DOCKYARD_ROOT" = "$SANDCASTLE_HOME" ]; then
+    rm -rf "$DOCKYARD_ROOT"/bin
+    rm -rf "$DOCKYARD_ROOT"/lib
+    rm -rf "$DOCKYARD_ROOT"/run
+    rm -rf "$DOCKYARD_ROOT"/log
+  else
+    rm -rf "$DOCKYARD_ROOT"
+  fi
 
   if [ -d "$SANDCASTLE_HOME/data/users" ] || [ -d "$SANDCASTLE_HOME/data/sandboxes" ] || [ -d "$SANDCASTLE_HOME/data/postgres" ]; then
     warn "User data preserved in $SANDCASTLE_HOME/data/ — remove manually if no longer needed"
@@ -3557,6 +3566,7 @@ TEOF
   $DOCKER pull "$APP_IMAGE" &
   $DOCKER pull "$SANDBOX_IMAGE" &
   $DOCKER pull traefik:v3.6 &
+  $DOCKER pull busybox:latest &
   wait
   ok "Images pulled"
 
