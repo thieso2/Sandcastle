@@ -55,3 +55,13 @@ sthies@thies-sysbox:~$ ssh-add -l
 error fetching identities: communication with agent failed
 thies@thies-sysbox:~$
 
+### Prompt 9
+
+still not fixed - debug really this time  make it it work before you commit - live oatch!
+~/Projects/GitHub/Sandcastle [main] % sc c sysbox
+Server: 100.106.185.92 (https://100.106.185.92)
+
+thies@thies-sysbox:~$ ssh-add -l
+error fetching identities: communication with agent failed
+thies@thies-sysbox:~$
+
