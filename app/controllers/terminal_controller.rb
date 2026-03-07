@@ -16,14 +16,22 @@ class TerminalController < ApplicationController
 
   def show
     @sandbox = find_sandbox
+    @emulator = Current.user.terminal_emulator || "xterm"
     type = params[:type].presence_in(%w[tmux shell]) || "tmux"
 
-    proto = request.ssl? ? "wss:" : "ws:"
-    host  = request.host_with_port
-    base  = ENV["SANDCASTLE_TERMINAL_URL"] || ""
-
-    @ws_url    = "#{proto}//#{host}#{base}/terminal/#{@sandbox.id}/#{type}/ws"
-    @token_url = "#{request.protocol}#{host}#{base}/terminal/#{@sandbox.id}/#{type}/token"
+    terminal_base = ENV["SANDCASTLE_TERMINAL_URL"].presence
+    if terminal_base
+      # SANDCASTLE_TERMINAL_URL is a full URL (e.g. https://dev.sand:8443)
+      uri = URI.parse(terminal_base)
+      ws_proto = uri.scheme == "https" ? "wss" : "ws"
+      @ws_url    = "#{ws_proto}://#{uri.host}:#{uri.port}/terminal/#{@sandbox.id}/#{type}/ws"
+      @token_url = "#{uri.scheme}://#{uri.host}:#{uri.port}/terminal/#{@sandbox.id}/#{type}/token"
+    else
+      proto = request.ssl? ? "wss:" : "ws:"
+      host  = request.host_with_port
+      @ws_url    = "#{proto}//#{host}/terminal/#{@sandbox.id}/#{type}/ws"
+      @token_url = "#{request.protocol}#{host}/terminal/#{@sandbox.id}/#{type}/token"
+    end
   end
 
   def close
