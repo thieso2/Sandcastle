@@ -1,4 +1,6 @@
 class TerminalController < ApplicationController
+  layout "terminal", only: :show
+
   allow_unauthenticated_access only: :auth
   skip_before_action :require_password_change, only: :auth
   skip_forgery_protection only: :open
@@ -6,10 +8,30 @@ class TerminalController < ApplicationController
   def open
     sandbox = find_sandbox
     type    = params[:type].presence_in(%w[tmux shell]) || "tmux"
-    url     = TerminalManager.new.open(sandbox: sandbox, type: type)
-    redirect_to terminal_redirect_url(url), allow_other_host: true, status: :see_other
+    TerminalManager.new.open(sandbox: sandbox, type: type)
+    redirect_to terminal_show_path(sandbox, type), status: :see_other
   rescue TerminalManager::Error => e
     redirect_to root_path, alert: e.message
+  end
+
+  def show
+    @sandbox = find_sandbox
+    @emulator = Current.user.terminal_emulator || "xterm"
+    type = params[:type].presence_in(%w[tmux shell]) || "tmux"
+
+    terminal_base = ENV["SANDCASTLE_TERMINAL_URL"].presence
+    if terminal_base
+      # SANDCASTLE_TERMINAL_URL is a full URL (e.g. https://dev.sand:8443)
+      uri = URI.parse(terminal_base)
+      ws_proto = uri.scheme == "https" ? "wss" : "ws"
+      @ws_url    = "#{ws_proto}://#{uri.host}:#{uri.port}/terminal/#{@sandbox.id}/#{type}/ws"
+      @token_url = "#{uri.scheme}://#{uri.host}:#{uri.port}/terminal/#{@sandbox.id}/#{type}/token"
+    else
+      proto = request.ssl? ? "wss:" : "ws:"
+      host  = request.host_with_port
+      @ws_url    = "#{proto}//#{host}/terminal/#{@sandbox.id}/#{type}/ws"
+      @token_url = "#{request.protocol}#{host}/terminal/#{@sandbox.id}/#{type}/token"
+    end
   end
 
   def close
@@ -26,14 +48,6 @@ class TerminalController < ApplicationController
   def find_sandbox
     scope = Current.user.admin? ? Sandbox.active : Current.user.sandboxes.active
     scope.find(params[:id])
-  end
-
-  # Build the full terminal URL. In production, Traefik is the entry point
-  # so a relative path works. In local dev (selfsigned TLS), Rails may be
-  # accessed directly on a different port, so we need an absolute URL.
-  def terminal_redirect_url(path)
-    base = ENV["SANDCASTLE_TERMINAL_URL"]
-    base ? "#{base}#{path}" : path
   end
 
   public

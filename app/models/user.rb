@@ -13,6 +13,7 @@ class User < ApplicationRecord
   validates :email_address, presence: true, uniqueness: true
   validates :status, inclusion: { in: %w[active suspended pending_approval] }
   validates :sandbox_archive_retention_days, numericality: { only_integer: true, greater_than_or_equal_to: 0, allow_nil: true }
+  validates :terminal_emulator, inclusion: { in: %w[ghostty xterm], allow_nil: true }
 
   scope :active, -> { where(status: "active") }
 

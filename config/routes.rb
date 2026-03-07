@@ -53,6 +53,7 @@ Rails.application.routes.draw do
     end
   end
 
+  get "terminals/:id/:type", to: "terminal#show", as: :terminal_show, constraints: { type: /tmux|shell/ }
   get "terminal/auth", to: "terminal#auth"
   get "vnc/auth", to: "vnc#auth"
 
