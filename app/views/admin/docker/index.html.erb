@@ -1,55 +1,8 @@
 <div class="max-w-6xl mx-auto px-4 py-8">
-  <h2 class="text-xl font-semibold text-gray-900 mb-6">Infrastructure Containers</h2>
-
-  <div class="grid gap-4 mb-8">
-    <% @containers.each do |c| %>
-      <div class="bg-white border border-gray-200 rounded-lg p-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="inline-block w-2.5 h-2.5 rounded-full <%= c[:exists] && c[:state] == 'running' ? 'bg-green-500' : 'bg-red-500' %>"></span>
-            <span class="font-mono font-medium text-gray-900"><%= c[:name] %></span>
-            <% if c[:exists] %>
-              <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded"><%= c[:state] %></span>
-              <span class="text-xs text-gray-400"><%= c[:status] %></span>
-            <% else %>
-              <span class="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded">not found</span>
-            <% end %>
-          </div>
-          <% if c[:exists] %>
-            <button type="button"
-                    data-container="<%= c[:name] %>"
-                    onclick="toggleLogs(this)"
-                    class="log-toggle text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">
-              Show Logs
-            </button>
-          <% end %>
-        </div>
-        <div class="log-panel hidden mt-4" id="logs-<%= c[:name] %>">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs text-gray-500">Last <span class="line-count">200</span> lines</span>
-            <div class="flex items-center gap-2">
-              <select onchange="reloadLogs('<%= c[:name] %>', this.value)"
-                      class="text-xs border border-gray-300 rounded px-2 py-1 bg-white">
-                <option value="100">100 lines</option>
-                <option value="200" selected>200 lines</option>
-                <option value="500">500 lines</option>
-                <option value="1000">1000 lines</option>
-              </select>
-              <button type="button" onclick="reloadLogs('<%= c[:name] %>')"
-                      class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
-                Refresh
-              </button>
-            </div>
-          </div>
-          <pre class="log-output bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto max-h-96 overflow-y-auto font-mono whitespace-pre-wrap"></pre>
-        </div>
-      </div>
-    <% end %>
-  </div>
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">Docker</h1>
 
   <%# ── Docker daemon info ── %>
-  <h2 class="text-xl font-semibold text-gray-900 mb-4">Docker Daemon</h2>
-  <div class="bg-white border border-gray-200 rounded-lg p-4">
+  <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
     <% begin %>
       <% info = Docker.info %>
       <% version = Docker.version %>
@@ -91,35 +44,81 @@
       <p class="text-red-600 text-sm">Failed to connect to Docker: <%= e.message %></p>
     <% end %>
   </div>
+
+  <%# ── Service tabs ── %>
+  <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div class="border-b border-gray-200 flex" id="service-tabs">
+      <% @containers.each_with_index do |c, i| %>
+        <button type="button"
+                data-container="<%= c[:name] %>"
+                onclick="selectTab(this)"
+                class="service-tab relative px-5 py-3 text-sm font-medium transition-colors
+                       <%= i == 0 ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700' %>">
+          <span class="inline-block w-2 h-2 rounded-full mr-1.5 <%= c[:exists] && c[:state] == 'running' ? 'bg-green-500' : 'bg-red-500' %>"></span>
+          <%= c[:name].delete_prefix("sandcastle-").delete_suffix("-1") %>
+          <% if c[:exists] %>
+            <span class="ml-1 text-xs text-gray-400 font-normal"><%= c[:status] %></span>
+          <% end %>
+        </button>
+      <% end %>
+    </div>
+
+    <%# ── Log panel (shared, full width) ── %>
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-gray-500">Showing last <span id="log-line-count">200</span> lines</span>
+          <label class="inline-flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+            <input type="checkbox" id="auto-tail" checked
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                   onchange="toggleAutoTail()">
+            Auto-tail
+          </label>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="tail-select" onchange="reloadCurrentLogs()"
+                  class="text-xs border border-gray-300 rounded px-2 py-1 bg-white">
+            <option value="100">100 lines</option>
+            <option value="200" selected>200 lines</option>
+            <option value="500">500 lines</option>
+            <option value="1000">1000 lines</option>
+          </select>
+          <button type="button" onclick="reloadCurrentLogs()"
+                  class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
+            Refresh
+          </button>
+        </div>
+      </div>
+      <pre id="log-output" class="bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto overflow-y-auto font-mono whitespace-pre-wrap" style="height: 28rem;"></pre>
+    </div>
+  </div>
 </div>
 
 <script>
-  function toggleLogs(button) {
-    var name = button.dataset.container;
-    var panel = document.getElementById("logs-" + name);
-    if (panel.classList.contains("hidden")) {
-      panel.classList.remove("hidden");
-      button.textContent = "Hide Logs";
-      loadLogs(name, 200);
-    } else {
-      panel.classList.add("hidden");
-      button.textContent = "Show Logs";
-    }
+  var currentContainer = "<%= @containers.first&.dig(:name) %>";
+  var tailInterval = null;
+
+  function selectTab(button) {
+    // Update tab styles
+    document.querySelectorAll(".service-tab").forEach(function(tab) {
+      tab.classList.remove("text-blue-600", "border-b-2", "border-blue-600");
+      tab.classList.add("text-gray-500");
+    });
+    button.classList.remove("text-gray-500");
+    button.classList.add("text-blue-600", "border-b-2", "border-blue-600");
+
+    currentContainer = button.dataset.container;
+    loadLogs(currentContainer);
   }
 
-  function reloadLogs(name, tail) {
-    if (!tail) {
-      var select = document.querySelector("#logs-" + name + " select");
-      tail = select ? select.value : 200;
-    }
-    loadLogs(name, tail);
+  function reloadCurrentLogs() {
+    loadLogs(currentContainer);
   }
 
-  function loadLogs(name, tail) {
-    var panel = document.getElementById("logs-" + name);
-    var output = panel.querySelector(".log-output");
-    var countSpan = panel.querySelector(".line-count");
-    output.textContent = "Loading...";
+  function loadLogs(name) {
+    var tail = document.getElementById("tail-select").value;
+    var output = document.getElementById("log-output");
+    var countSpan = document.getElementById("log-line-count");
     countSpan.textContent = tail;
 
     fetch("/admin/docker/" + encodeURIComponent(name) + "/logs?tail=" + tail, {
@@ -138,4 +137,36 @@
         output.textContent = "Failed to fetch logs: " + e.message;
       });
   }
+
+  function toggleAutoTail() {
+    if (document.getElementById("auto-tail").checked) {
+      startAutoTail();
+    } else {
+      stopAutoTail();
+    }
+  }
+
+  function startAutoTail() {
+    stopAutoTail();
+    tailInterval = setInterval(function() {
+      loadLogs(currentContainer);
+    }, 3000);
+  }
+
+  function stopAutoTail() {
+    if (tailInterval) {
+      clearInterval(tailInterval);
+      tailInterval = null;
+    }
+  }
+
+  // Load first tab on page load and start auto-tail
+  if (currentContainer) {
+    loadLogs(currentContainer);
+    startAutoTail();
+  }
+
+  // Stop polling when leaving the page
+  document.addEventListener("turbo:before-cache", stopAutoTail);
+  document.addEventListener("turbo:before-visit", stopAutoTail);
 </script>
