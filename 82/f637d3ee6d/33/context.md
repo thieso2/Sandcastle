@@ -1,0 +1,20 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+add the latest https://github.com/thieso2/ssh-agent-switcher/releases to the image in /usr/local/bin and add 
+/usr/local/bin/ssh-agent-switcher --daemon 2>/dev/null || true
+export SSH_AUTH_SOCK="/tmp/ssh-agent.${USER}"
+to 
+~/.bash_login
+
+### Prompt 2
+
+maybe add to global bash_login instead?
+
+### Prompt 3
+
+commit and push
+
