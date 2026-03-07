@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "87da4a76-638b-4206-98ca-5667490ff57b",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-07T17:42:36.170386Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "README.md",
+    "app/views/pages/guide.html.erb",
+    "vendor/sandcastle-cli/cmd/config.go",
+    "vendor/sandcastle-cli/cmd/sandbox.go",
+    "vendor/sandcastle-cli/internal/config/config.go"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "3add3f1a-5258-4756-93d0-b31349e0b764",
+  "token_usage": {
+    "input_tokens": 1077,
+    "cache_creation_tokens": 42780,
+    "cache_read_tokens": 1363362,
+    "output_tokens": 11846,
+    "api_call_count": 44
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-07T17:42:36.117253Z",
+    "agent_lines": 68,
+    "human_added": 0,
+    "human_modified": 51,
+    "human_removed": 0,
+    "total_committed": 102,
+    "agent_percentage": 66.66666666666666
+  }
+}

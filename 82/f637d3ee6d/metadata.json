@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 38,
+  "checkpoints_count": 41,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -13,6 +13,7 @@
     "CLAUDE.md",
     "Dockerfile",
     "Dockerfile.base",
+    "README.md",
     "VNC_AND_TTYD_AUTH.md",
     "app/assets/stylesheets/bulma_scoped.css",
     "app/assets/stylesheets/xterm.css",
@@ -345,13 +346,20 @@
       "context": "/82/f637d3ee6d/30/context.md",
       "content_hash": "/82/f637d3ee6d/30/content_hash.txt",
       "prompt": "/82/f637d3ee6d/30/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/31/metadata.json",
+      "transcript": "/82/f637d3ee6d/31/full.jsonl",
+      "context": "/82/f637d3ee6d/31/context.md",
+      "content_hash": "/82/f637d3ee6d/31/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/31/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3577,
-    "cache_creation_tokens": 1866277,
-    "cache_read_tokens": 108637724,
-    "output_tokens": 317306,
-    "api_call_count": 1163
+    "input_tokens": 4654,
+    "cache_creation_tokens": 1909057,
+    "cache_read_tokens": 110001086,
+    "output_tokens": 329152,
+    "api_call_count": 1207
   }
 }

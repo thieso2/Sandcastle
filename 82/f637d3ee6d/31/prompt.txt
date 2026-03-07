@@ -1,0 +1,22 @@
+document the ~/.sandcastle/config.yaml  in README.md 
+i want to set my deauts to 
+- mount homse
+- mount data
+- no vnc
+- docker
+
+---
+
+all teh flags shoudl be positive! no no_ vars
+
+---
+
+[Request interrupted by user]
+
+---
+
+continue
+
+---
+
+update docs, commit & release new version
