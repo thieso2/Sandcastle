@@ -107,6 +107,8 @@ Rails.application.routes.draw do
         delete :purge
         post :tailscale_connect
         delete :tailscale_disconnect
+        post "services/:service/start", action: :service_start, as: :service_start
+        post "services/:service/stop", action: :service_stop, as: :service_stop
       end
       resources :routes, only: [ :index, :create, :destroy ]
     end

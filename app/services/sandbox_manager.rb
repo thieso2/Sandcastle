@@ -255,6 +255,47 @@ class SandboxManager
     sandbox
   end
 
+  SERVICES = %w[docker vnc].freeze
+
+  def service_start(sandbox:, service:)
+    raise Error, "Unknown service: #{service}" unless SERVICES.include?(service)
+    raise Error, "Sandbox has no container" if sandbox.container_id.blank?
+
+    container = Docker::Container.get(sandbox.container_id)
+    user = sandbox.user.name
+
+    case service
+    when "docker"
+      container.exec([ "bash", "-c", "pgrep -x dockerd > /dev/null && echo already_running && exit 0; dockerd --storage-driver=overlay2 --mtu=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \\K[0-9]+' || echo 1500) &>/var/log/dockerd.log & echo started" ])
+    when "vnc"
+      geometry = sandbox.vnc_geometry || "1280x900"
+      depth = sandbox.vnc_depth || 24
+      container.exec([ "bash", "-c", "pgrep -x Xvnc > /dev/null && echo already_running && exit 0; su -s /bin/bash #{user} -c 'Xvnc :99 -rfbport 5900 -SecurityTypes None -AlwaysShared -geometry #{geometry} -depth #{depth} &>/var/log/xvnc.log &' && su -s /bin/bash #{user} -c 'DISPLAY=:99 openbox &>/var/log/openbox.log &' && websockify -addr :6080 -target localhost:5900 -url /websockify &>/var/log/websockify.log & echo started" ])
+    end
+  rescue Docker::Error::NotFoundError
+    raise Error, "Container not found"
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to start #{service}: #{e.message}"
+  end
+
+  def service_stop(sandbox:, service:)
+    raise Error, "Unknown service: #{service}" unless SERVICES.include?(service)
+    raise Error, "Sandbox has no container" if sandbox.container_id.blank?
+
+    container = Docker::Container.get(sandbox.container_id)
+
+    case service
+    when "docker"
+      container.exec([ "bash", "-c", "pkill -x dockerd 2>/dev/null; pkill -x containerd 2>/dev/null; echo stopped" ])
+    when "vnc"
+      container.exec([ "bash", "-c", "pkill -x websockify 2>/dev/null; pkill -x openbox 2>/dev/null; pkill -x Xvnc 2>/dev/null; echo stopped" ])
+    end
+  rescue Docker::Error::NotFoundError
+    raise Error, "Container not found"
+  rescue Docker::Error::DockerError => e
+    raise Error, "Failed to stop #{service}: #{e.message}"
+  end
+
   def logs(sandbox:, tail: 200, timestamps: false)
     raise Error, "Sandbox has no container" if sandbox.container_id.blank?
 

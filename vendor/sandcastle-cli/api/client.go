@@ -298,6 +298,26 @@ func (c *Client) StopSandbox(id int) (*Sandbox, error) {
 	return &s, err
 }
 
+func (c *Client) ServiceStart(sandboxID int, service string, save bool) (*Sandbox, error) {
+	path := fmt.Sprintf("/api/sandboxes/%d/services/%s/start", sandboxID, service)
+	if save {
+		path += "?save=1"
+	}
+	var s Sandbox
+	err := c.do("POST", path, nil, &s)
+	return &s, err
+}
+
+func (c *Client) ServiceStop(sandboxID int, service string, save bool) (*Sandbox, error) {
+	path := fmt.Sprintf("/api/sandboxes/%d/services/%s/stop", sandboxID, service)
+	if save {
+		path += "?save=1"
+	}
+	var s Sandbox
+	err := c.do("POST", path, nil, &s)
+	return &s, err
+}
+
 func (c *Client) ConnectInfo(id int) (*ConnectInfo, error) {
 	var info ConnectInfo
 	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/connect", id), nil, &info)

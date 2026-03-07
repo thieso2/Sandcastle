@@ -1,6 +1,6 @@
 module Api
   class SandboxesController < BaseController
-    before_action :set_sandbox, only: %i[show update destroy start stop logs connect snapshot restore tailscale_connect tailscale_disconnect]
+    before_action :set_sandbox, only: %i[show update destroy start stop logs connect snapshot restore tailscale_connect tailscale_disconnect service_start service_stop]
     before_action :set_archived_sandbox, only: %i[archive_restore purge]
 
     def index
@@ -183,6 +183,30 @@ module Api
       @sandbox.start_job("destroying")
       SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: false)
       render json: { status: "accepted" }, status: :accepted
+    end
+
+    def service_start
+      service = params[:service]
+      SandboxManager.new.service_start(sandbox: @sandbox, service: service)
+      if params[:save].present?
+        case service
+        when "docker" then @sandbox.update!(docker_enabled: true)
+        when "vnc" then @sandbox.update!(vnc_enabled: true)
+        end
+      end
+      render json: sandbox_json(@sandbox.reload)
+    end
+
+    def service_stop
+      service = params[:service]
+      SandboxManager.new.service_stop(sandbox: @sandbox, service: service)
+      if params[:save].present?
+        case service
+        when "docker" then @sandbox.update!(docker_enabled: false)
+        when "vnc" then @sandbox.update!(vnc_enabled: false)
+        end
+      end
+      render json: sandbox_json(@sandbox.reload)
     end
 
     def tailscale_connect
