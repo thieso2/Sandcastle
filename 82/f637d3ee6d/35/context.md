@@ -27,3 +27,21 @@ sc c  sysbox -- -v -A
 debug 
 sc c  sysbox
 
+### Prompt 6
+
+commit and push
+
+### Prompt 7
+
+Last login: Sat Mar  7 21:02:43 on ttys024
+~/Projects/GitHub/Sandcastle [main] %
+~/Projects/GitHub/Sandcastle [main] %
+~/Projects/GitHub/Sandcastle [main] %
+~/Projects/GitHub/Sandcastle [main] % cd vendor/sandcastle-cli
+~/Projects/GitHub/Sandcastle/vendor/sandcastle-cli [main] % mise build
+mise ERROR no task build found
+mise ERROR Run with --verbose or MISE_VERBOSE=1 for more information
+~/Projects/GitHub/Sandcastle/vendor/sandcastle-cli [main] % make
+
+mosh-server: execvp: if: No such file or di...
+

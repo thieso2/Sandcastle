@@ -3,31 +3,30 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "59cad604-fcd1-422c-9fed-f053242bfb14",
   "strategy": "manual-commit",
-  "created_at": "2026-03-07T20:44:06.090584Z",
+  "created_at": "2026-03-07T20:47:18.520777Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "vendor/sandcastle-cli/cmd/connect.go",
-    "vendor/sandcastle-cli/cmd/sandbox.go"
+    "vendor/sandcastle-cli/cmd/connect.go"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "e9895b03-4896-459b-94a7-83d429e6f1f2",
-  "checkpoint_transcript_start": 272,
-  "transcript_lines_at_start": 272,
+  "transcript_identifier_at_start": "c0ac8b53-72e4-4310-a939-7e250a89b989",
+  "checkpoint_transcript_start": 571,
+  "transcript_lines_at_start": 571,
   "token_usage": {
-    "input_tokens": 27,
-    "cache_creation_tokens": 13380,
-    "cache_read_tokens": 1803064,
-    "output_tokens": 11232,
-    "api_call_count": 23
+    "input_tokens": 11,
+    "cache_creation_tokens": 2859,
+    "cache_read_tokens": 588520,
+    "output_tokens": 1815,
+    "api_call_count": 7
   },
   "initial_attribution": {
-    "calculated_at": "2026-03-07T20:44:05.991841Z",
+    "calculated_at": "2026-03-07T20:47:18.442881Z",
     "agent_lines": 0,
-    "human_added": 13,
-    "human_modified": 15,
+    "human_added": 12,
+    "human_modified": 14,
     "human_removed": 0,
-    "total_committed": 26,
+    "total_committed": 24,
     "agent_percentage": 0
   }
 }
