@@ -62,3 +62,11 @@ thies@thies-sysbox:~$
 ---
 
 still broken - create a sandboc and connect .- fix it!
+
+---
+
+why nt mosh? whats th eproblem?
+
+---
+
+updtae docs and also echo a warning that this is the case when using mosg!
