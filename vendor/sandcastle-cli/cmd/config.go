@@ -109,6 +109,26 @@ var showConfigCmd = &cobra.Command{
 		)
 		fmt.Printf("  data_path:        %s  [%s]\n", dataPathVal, dataPathSrc)
 
+		vncVal := "true"
+		if prefs.VNC != nil && !*prefs.VNC {
+			vncVal = "false"
+		}
+		vncSrc := sourceLabel(
+			os.Getenv("SANDCASTLE_VNC") != "",
+			cfg.Preferences.VNC != nil,
+		)
+		fmt.Printf("  vnc:              %-6s  [%s]\n", vncVal, vncSrc)
+
+		dockerVal := "true"
+		if prefs.Docker != nil && !*prefs.Docker {
+			dockerVal = "false"
+		}
+		dockerSrc := sourceLabel(
+			os.Getenv("SANDCASTLE_DOCKER") != "",
+			cfg.Preferences.Docker != nil,
+		)
+		fmt.Printf("  docker:           %-6s  [%s]\n", dockerVal, dockerSrc)
+
 		return nil
 	},
 }
@@ -135,10 +155,12 @@ Valid keys:
   ssh_extra_args     Extra flags appended to the ssh/mosh invocation
   mount_home         Mount persistent home on create: "true" or "false" (default)
   data_path          Mount user data dir on create: "." (root), subpath, or "off"
+  vnc                Enable VNC on create: "true" (default) or "false"
+  docker             Enable Docker (DinD) on create: "true" (default) or "false"
 
 ENV vars override config file values at runtime:
   SANDCASTLE_CONNECT_PROTOCOL, SANDCASTLE_USE_TMUX, SANDCASTLE_SSH_EXTRA_ARGS,
-  SANDCASTLE_HOME, SANDCASTLE_DATA`,
+  SANDCASTLE_HOME, SANDCASTLE_DATA, SANDCASTLE_VNC, SANDCASTLE_DOCKER`,
 	Args: cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		key, value := args[0], args[1]

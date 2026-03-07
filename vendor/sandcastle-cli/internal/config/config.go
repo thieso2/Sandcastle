@@ -23,6 +23,8 @@ type Preferences struct {
 	SSHExtraArgs    string `yaml:"ssh_extra_args,omitempty"`   // extra flags for ssh/mosh
 	MountHome       *bool  `yaml:"mount_home,omitempty"`       // default false; --home on create
 	DataPath        string `yaml:"data_path,omitempty"`        // default ""; --data on create
+	VNC             *bool  `yaml:"vnc,omitempty"`              // default true; false → --no-vnc on create
+	Docker          *bool  `yaml:"docker,omitempty"`           // default true; false → --no-docker on create
 }
 
 type Config struct {
@@ -141,6 +143,14 @@ func (c *Config) LoadPreferences() Preferences {
 		}
 		p.DataPath = v
 	}
+	if v := os.Getenv("SANDCASTLE_VNC"); v != "" {
+		b := strings.ToLower(v) == "true" || v == "1"
+		p.VNC = &b
+	}
+	if v := os.Getenv("SANDCASTLE_DOCKER"); v != "" {
+		b := strings.ToLower(v) == "true" || v == "1"
+		p.Docker = &b
+	}
 
 	// Apply built-in defaults
 	if p.ConnectProtocol == "" {
@@ -199,8 +209,30 @@ func (c *Config) SetPreference(key, value string) error {
 			}
 			c.Preferences.DataPath = value
 		}
+	case "vnc":
+		switch strings.ToLower(value) {
+		case "true", "1", "yes":
+			t := true
+			c.Preferences.VNC = &t
+		case "false", "0", "no":
+			f := false
+			c.Preferences.VNC = &f
+		default:
+			return fmt.Errorf("vnc must be 'true' or 'false', got %q", value)
+		}
+	case "docker":
+		switch strings.ToLower(value) {
+		case "true", "1", "yes":
+			t := true
+			c.Preferences.Docker = &t
+		case "false", "0", "no":
+			f := false
+			c.Preferences.Docker = &f
+		default:
+			return fmt.Errorf("docker must be 'true' or 'false', got %q", value)
+		}
 	default:
-		return fmt.Errorf("unknown preference %q; valid keys: connect_protocol, use_tmux, ssh_extra_args, mount_home, data_path", key)
+		return fmt.Errorf("unknown preference %q; valid keys: connect_protocol, use_tmux, ssh_extra_args, mount_home, data_path, vnc, docker", key)
 	}
 	return nil
 }

@@ -56,6 +56,64 @@ sandcastle ssh my-dev
 sandcastle destroy my-dev
 ```
 
+## CLI Configuration
+
+The CLI stores its configuration in `~/.sandcastle/config.yaml`. You can set default preferences so you don't have to pass flags on every `sandcastle create`.
+
+### Setting defaults
+
+```bash
+sandcastle config set mount_home true      # always mount persistent home (--home)
+sandcastle config set data_path .          # always mount data dir (--data)
+sandcastle config set vnc false            # disable VNC by default (--no-vnc)
+sandcastle config set docker true          # enable Docker (default)
+sandcastle config set connect_protocol ssh # "ssh" (default) or "mosh"
+sandcastle config set use_tmux true        # wrap sessions in tmux (default: true)
+sandcastle config set ssh_extra_args "-o StrictHostKeyChecking=no"
+```
+
+### Viewing current config
+
+```bash
+sandcastle config show
+```
+
+### Example config file
+
+```yaml
+# ~/.sandcastle/config.yaml
+current_server: default
+servers:
+  default:
+    url: https://sandcastle.example.com
+    token: sc_abcd1234_...
+preferences:
+  mount_home: true
+  data_path: "."
+  vnc: false
+  docker: true
+  connect_protocol: ssh
+  use_tmux: true
+```
+
+### Preference reference
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `connect_protocol` | `ssh` | Connection protocol: `ssh` or `mosh` |
+| `use_tmux` | `true` | Wrap connection in tmux session |
+| `ssh_extra_args` | _(empty)_ | Extra flags appended to ssh/mosh |
+| `mount_home` | `false` | Mount persistent home directory on create |
+| `data_path` | _(empty)_ | Mount user data dir on create (`.` for root, or a subpath) |
+| `vnc` | `true` | Enable VNC display server on create |
+| `docker` | `true` | Enable Docker daemon (DinD) on create |
+
+### Override priority
+
+Explicit flags > environment variables > config file > built-in defaults.
+
+Environment variables: `SANDCASTLE_CONNECT_PROTOCOL`, `SANDCASTLE_USE_TMUX`, `SANDCASTLE_SSH_EXTRA_ARGS`, `SANDCASTLE_HOME`, `SANDCASTLE_DATA`, `SANDCASTLE_VNC`, `SANDCASTLE_DOCKER`.
+
 ## Deployment
 
 See [DEPLOY.md](DEPLOY.md) for registry setup, CI/CD pipeline, and deploy workflows.

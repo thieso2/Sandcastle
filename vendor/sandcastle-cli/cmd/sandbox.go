@@ -95,6 +95,16 @@ Flags explicitly passed on the command line take precedence over environment var
 				sandboxData = prefs.DataPath
 			}
 		}
+		if !cmd.Flags().Changed("no-vnc") {
+			if prefs.VNC != nil && !*prefs.VNC {
+				sandboxNoVNC = true
+			}
+		}
+		if !cmd.Flags().Changed("no-docker") {
+			if prefs.Docker != nil && !*prefs.Docker {
+				sandboxNoDocker = true
+			}
+		}
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
