@@ -119,3 +119,7 @@ ActionDispatch::MissingController
 Source
 applicat...
 
+### Prompt 16
+
+sometime when i click dashbiard on the ui this happens:
+

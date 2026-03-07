@@ -200,3 +200,7 @@ v0.8.46 (8b0d2d81294405761a5292e9898ab07f35e70e0d) · Download CLI
 
 
 sc status
+
+---
+
+sometime when i click dashbiard on the ui this happens:

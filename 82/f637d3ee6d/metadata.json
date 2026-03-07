@@ -29,6 +29,7 @@
     "app/controllers/tailscale_controller.rb",
     "app/controllers/terminal_controller.rb",
     "app/controllers/vnc_controller.rb",
+    "app/javascript/application.js",
     "app/javascript/controllers/inline_edit_controller.js",
     "app/javascript/controllers/sparkline_controller.js",
     "app/javascript/controllers/xterm_terminal_controller.js",
@@ -340,10 +341,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3570,
-    "cache_creation_tokens": 1837373,
-    "cache_read_tokens": 108747314,
-    "output_tokens": 315273,
-    "api_call_count": 1160
+    "input_tokens": 3575,
+    "cache_creation_tokens": 1839882,
+    "cache_read_tokens": 109390420,
+    "output_tokens": 316166,
+    "api_call_count": 1165
   }
 }
