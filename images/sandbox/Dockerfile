@@ -12,15 +12,10 @@ RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 # Bake version into the image
 RUN echo "${SANDCASTLE_VERSION}" > /etc/sandcastle-version
 
-# ssh-agent-switcher — multiplexes SSH agent sockets per-identity
-ARG TARGETARCH
-RUN SAS_VERSION="v1.0.1.1-tc" \
-    && SAS_ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "aarch64" || echo "x86_64") \
-    && curl -fsSL "https://github.com/thieso2/ssh-agent-switcher/releases/download/${SAS_VERSION}/ssh-agent-switcher-${SAS_ARCH}-unknown-linux-gnu.tar.gz" \
-       | tar -xz -C /usr/local/bin ssh-agent-switcher \
-    && chmod +x /usr/local/bin/ssh-agent-switcher \
-    && printf '/usr/local/bin/ssh-agent-switcher --daemon 2>/dev/null || true\nexport SSH_AUTH_SOCK="/tmp/ssh-agent.${USER}"\n' \
-       > /etc/profile.d/ssh-agent-switcher.sh
+# SSH agent forwarding: profile.d sets SSH_AUTH_SOCK to the stable
+# symlink maintained by sc-tmux, so tmux shells always find the agent.
+RUN printf '[ -S "$HOME/.ssh/agent_sock" ] && export SSH_AUTH_SOCK="$HOME/.ssh/agent_sock"\n' \
+       > /etc/profile.d/ssh-agent.sh
 
 COPY entrypoint.sh /entrypoint.sh
 COPY docker-restart.sh /usr/local/bin/docker-restart

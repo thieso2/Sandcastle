@@ -297,28 +297,14 @@ func moshAvailableRemotely(host string, port int, user, extraArgs string) bool {
 	return exec.CommandContext(ctx, "ssh", sshArgs...).Run() == nil
 }
 
-// pickProtocol returns "mosh" or "ssh". When no protocol is explicitly configured
-// it auto-detects mosh availability on both sides, saves "mosh" to config if found,
-// and falls back to "ssh" otherwise.
+// pickProtocol returns "mosh" or "ssh". Defaults to SSH (which supports
+// agent forwarding). Mosh can be selected with --mosh flag,
+// SANDCASTLE_CONNECT_PROTOCOL env var, or `sc config set connect-protocol mosh`.
 func pickProtocol(cfg *config.Config, host string, port int, user, extraArgs string) string {
-	// Explicit env var or saved config preference → honour it.
 	if os.Getenv("SANDCASTLE_CONNECT_PROTOCOL") != "" || cfg.Preferences.ConnectProtocol != "" {
 		return cfg.LoadPreferences().ConnectProtocol
 	}
-
-	// Auto-detect: need mosh on both sides.
-	if !moshAvailableLocally() {
-		return "ssh"
-	}
-	fmt.Print("Checking for mosh on remote...")
-	if !moshAvailableRemotely(host, port, user, extraArgs) {
-		fmt.Println(" not found, using SSH")
-		return "ssh"
-	}
-	fmt.Println(" found! Using mosh (saved to config)")
-	cfg.Preferences.ConnectProtocol = "mosh"
-	_ = config.Save(cfg)
-	return "mosh"
+	return "ssh"
 }
 
 func shellJoin(args []string) string {
