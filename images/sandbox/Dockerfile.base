@@ -102,25 +102,29 @@ RUN RUNC_VERSION="v1.1.15" \
        -o /usr/bin/runc \
     && chmod +x /usr/bin/runc
 
-# Install mise + Claude Code + Codex.
+# Install mise + Node.js + Codex.
 # mise data/config live in /usr/local/share/mise and /usr/local/etc/mise so
 # all users share the same tool installs — no per-user setup needed.
-# claude is copied (not symlinked) because it's a standalone native binary.
 # Retry: mise install/exec can fail transiently in Docker builds (exit 127).
 ENV MISE_DATA_DIR=/usr/local/share/mise
 ENV MISE_CONFIG_DIR=/usr/local/etc/mise
 RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh \
+    && mkdir -p /usr/local/etc/mise \
     && /usr/local/bin/mise use --global node@lts \
     && /usr/local/bin/mise install \
     && for attempt in 1 2 3; do \
-         /usr/local/bin/mise exec -- npm install -g @anthropic-ai/claude-code \
-         && /usr/local/bin/mise exec -- npm install -g @openai/codex \
+         /usr/local/bin/mise exec -- npm install -g @openai/codex \
          && break; \
          echo "Retry $attempt: mise exec failed, retrying in 5s..."; sleep 5; \
-       done \
-    && NODE_VER=$(/usr/local/bin/mise current node) \
-    && cp -L "/usr/local/share/mise/installs/node/${NODE_VER}/bin/claude" \
-       /usr/local/bin/claude
+       done
+
+# Claude Code — standalone native binary (no Node.js dependency)
+RUN VERSION=$(curl -fsSL https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/latest) \
+    && ARCH=$(uname -m) \
+    && if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then PLATFORM="linux-arm64"; else PLATFORM="linux-x64"; fi \
+    && curl -fsSL "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$VERSION/$PLATFORM/claude" \
+       -o /usr/local/bin/claude \
+    && chmod +x /usr/local/bin/claude
 
 # ttyd — web terminal (two ports: 7681=tmux, 7682=shell)
 RUN ARCH=$(dpkg --print-architecture) \
