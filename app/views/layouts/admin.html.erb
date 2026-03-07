@@ -11,12 +11,6 @@
 
     <%= yield :head %>
 
-    <% if request.path.start_with?("/admin/jobs") %>
-      <%= stylesheet_link_tag "mission_control/jobs/bulma.min" %>
-      <%= stylesheet_link_tag "mission_control/jobs/application", "data-turbo-track": "reload" %>
-      <%= javascript_importmap_tags "application", importmap: MissionControl::Jobs.importmap %>
-    <% end %>
-
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
@@ -93,7 +87,7 @@
           </div>
         </div>
       <% end %>
-      <%= yield %>
+      <%= content_for?(:content) ? yield(:content) : yield %>
     </main>
 
     <footer class="container mx-auto px-5 py-8 text-center text-xs text-zinc-500">

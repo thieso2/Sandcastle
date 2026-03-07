@@ -13,4 +13,7 @@ export PORT="${PORT:-4000}"
 export RUBY_DEBUG_OPEN="true"
 export RUBY_DEBUG_LAZY="true"
 
+# Remove stale PID file from previous crash
+rm -f tmp/pids/server.pid
+
 exec foreman start -f Procfile.dev "$@"

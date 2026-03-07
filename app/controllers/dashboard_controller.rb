@@ -51,9 +51,15 @@ class DashboardController < ApplicationController
       format.json { render json: @stats ? { cpu: @stats[:cpu_percent], mem: @stats[:memory_mb].round(1) } : { cpu: nil, mem: nil } }
     end
   rescue ActiveRecord::RecordNotFound
-    render partial: "sandbox_stats", locals: { stats: nil, sandbox: nil }
+    respond_to do |format|
+      format.html { render partial: "sandbox_stats", locals: { stats: nil, sandbox: nil } }
+      format.json { render json: { cpu: nil, mem: nil } }
+    end
   rescue Docker::Error::DockerError
-    render partial: "sandbox_stats", locals: { stats: nil, sandbox: sandbox }
+    respond_to do |format|
+      format.html { render partial: "sandbox_stats", locals: { stats: nil, sandbox: sandbox } }
+      format.json { render json: { cpu: nil, mem: nil } }
+    end
   end
 
   private
