@@ -8,7 +8,14 @@ module DockerMock
 
     def reset!
       @containers = {}
-      @images = {}
+      @images = {
+        "busybox:latest" => {
+          "Id" => "sha256:busybox_default",
+          "RepoTags" => [ "busybox:latest" ],
+          "Size" => 1_000_000,
+          "Created" => 0
+        }
+      }
       @networks = {}
       @failure_mode = nil
     end
@@ -160,6 +167,10 @@ module DockerMock
           "current" => rand(10..50)
         }
       }
+    end
+
+    def wait(timeout = nil)
+      { "StatusCode" => 0 }
     end
 
     def refresh!

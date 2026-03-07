@@ -696,16 +696,32 @@ class SandboxManager
   end
 
   def docker_run_fix(host_path, *cmd)
-    image = "busybox:latest"
-    Docker::Image.get(image) rescue Docker::Image.create("fromImage" => image)
+    image = fix_image
     c = Docker::Container.create(
       "Image" => image, "Cmd" => cmd,
       "HostConfig" => { "Binds" => [ "#{host_path}:/mnt" ] }
     )
     c.start
-    c.wait(10)
+    result = c.wait(30)
+    exit_code = result&.dig("StatusCode") || -1
+    unless exit_code == 0
+      raise Error, "docker_run_fix failed (exit #{exit_code}) for #{host_path}: #{cmd.join(' ')}"
+    end
   ensure
     c&.delete(force: true) rescue nil
+  end
+
+  # Pick an image guaranteed to be on this Docker daemon.
+  # Prefer busybox (tiny), fall back to alpine, then any local image.
+  def fix_image
+    %w[busybox:latest alpine:latest].each do |img|
+      return img if Docker::Image.get(img) rescue nil
+    end
+    # Last resort: use any image already present
+    all = Docker::Image.all
+    raise Error, "No local images available for docker_run_fix" if all.empty?
+    tags = all.first.info["RepoTags"]
+    tags&.first || all.first.id
   end
 
   def volume_binds(user, sandbox)
