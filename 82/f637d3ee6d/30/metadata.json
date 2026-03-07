@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "d01b090f-765b-41ff-ba65-041461dd0668",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-07T17:11:27.368959Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".ruby-version",
+    "Dockerfile",
+    "Dockerfile.base"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "a4edcfb5-276f-4ed6-b4bf-b399f94f145e",
+  "token_usage": {
+    "input_tokens": 10,
+    "cache_creation_tokens": 23013,
+    "cache_read_tokens": 82559,
+    "output_tokens": 1542,
+    "api_call_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-07T17:11:27.3363Z",
+    "agent_lines": 3,
+    "human_added": 13,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 16,
+    "agent_percentage": 18.75
+  }
+}
