@@ -1,0 +1,7 @@
+<% content_for(:title) { "#{@sandbox.name} — Terminal" } %>
+
+<div id="terminal-container"
+     data-controller="ghostty-terminal"
+     data-ghostty-terminal-ws-url-value="<%= @ws_url %>"
+     data-ghostty-terminal-token-url-value="<%= @token_url %>">
+</div>

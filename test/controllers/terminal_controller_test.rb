@@ -105,7 +105,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
-    assert_redirected_to "/terminal/#{@alice_sandbox.id}/tmux"
+    assert_redirected_to terminal_show_path(@alice_sandbox, "tmux")
   end
 
   test "open returns 404 for another user's sandbox" do
@@ -122,7 +122,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
-    assert_redirected_to "/terminal/#{@bob_sandbox.id}/tmux"
+    assert_redirected_to terminal_show_path(@bob_sandbox, "tmux")
   end
 
   test "open redirects to root with alert on TerminalManager error" do
@@ -144,7 +144,7 @@ class TerminalControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :see_other
-    assert_redirected_to "/terminal/#{@alice_sandbox.id}/shell"
+    assert_redirected_to terminal_show_path(@alice_sandbox, "shell")
   end
 
   # ── close ──────────────────────────────────────────────────────
