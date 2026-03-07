@@ -209,3 +209,7 @@ Read the output file to retrieve the result: REDACTED.output
 
 yes
 
+### Prompt 19
+
+worker is called sandcastle-dev-worker in dev ? rename it to sandcastle-worker
+
