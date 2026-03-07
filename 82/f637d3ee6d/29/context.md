@@ -127,3 +127,9 @@ sometime when i click dashbiard on the ui this happens:
 
 when rebuilding the sandbox - always to a full "apt update && apt upgtade" cycle so we always havt teh newest software
 
+### Prompt 18
+
+on the /admin/docker
+change the layout - use tabs for the 4 services (the log in full width below - automatially "tail -f" he log) 
+move the docker deamon stats above the service and logs.
+
