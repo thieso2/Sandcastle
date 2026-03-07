@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 39,
+  "checkpoints_count": 38,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -53,6 +53,7 @@
     "app/services/vnc_manager.rb",
     "app/views/admin/_subnav.html.erb",
     "app/views/admin/docker/index.html.erb",
+    "app/views/admin/settings/edit.html.erb",
     "app/views/admin/users/_form.html.erb",
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/dashboard/index.html.erb",
@@ -62,6 +63,7 @@
     "app/views/layouts/terminal.html.erb",
     "app/views/pages/guide.html.erb",
     "app/views/sandboxes/logs.html.erb",
+    "app/views/sandboxes/new.html.erb",
     "app/views/sandboxes/show.html.erb",
     "app/views/settings/show.html.erb",
     "app/views/shared/_navbar.html.erb",
@@ -83,6 +85,7 @@
     "db/migrate/20260302000003_add_archive_retention_to_users.rb",
     "db/migrate/20260306153839_create_container_metrics.rb",
     "db/migrate/20260307151841_add_terminal_emulator_to_users.rb",
+    "db/migrate/20260307200000_add_sandbox_defaults_to_settings_and_docker_enabled_to_sandboxes.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "docker-compose.yml",
@@ -340,10 +343,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3593,
-    "cache_creation_tokens": 1864235,
-    "cache_read_tokens": 108286908,
-    "output_tokens": 319408,
-    "api_call_count": 1171
+    "input_tokens": 3625,
+    "cache_creation_tokens": 1901675,
+    "cache_read_tokens": 111822107,
+    "output_tokens": 328173,
+    "api_call_count": 1205
   }
 }

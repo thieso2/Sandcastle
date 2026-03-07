@@ -11,3 +11,23 @@ make sure they are know to the env for each user on a sandbox!
 ---
 
 commit and push
+
+---
+
+trigger the "Rebuild Sandbox Base Image"
+
+---
+
+remove DinD ready message
+
+---
+
+also add setting to the UI and to cli to choose which options are avalable in a sandbox (and also add defaults to the settings) and have entrypoint honor them:
+VNC
+HOME mounted
+DATA mountd (with subpath)
+Docker Daemin started.
+
+---
+
+commit and push and release!
