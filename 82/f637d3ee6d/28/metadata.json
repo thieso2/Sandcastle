@@ -3,40 +3,30 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "6766e8c3-0e2f-4abb-a5cf-ed15086b5d54",
   "strategy": "manual-commit",
-  "created_at": "2026-03-07T12:43:16.473437Z",
+  "created_at": "2026-03-07T12:57:31.673165Z",
   "branch": "main",
-  "checkpoints_count": 6,
+  "checkpoints_count": 1,
   "files_touched": [
-    "app/controllers/admin/docker_controller.rb",
-    "app/controllers/tailscale_controller.rb",
-    "app/jobs/tailscale_login_job.rb",
-    "app/services/btrfs_helper.rb",
-    "app/services/sandbox_manager.rb",
-    "app/services/tailscale_manager.rb",
-    "app/views/admin/_subnav.html.erb",
-    "app/views/admin/docker/index.html.erb",
-    "app/views/shared/_navbar.html.erb",
-    "app/views/tailscale/_pending.html.erb",
-    "config/routes.rb",
-    "installer/installer.sh.in",
-    "installer/templates/dockyard.sh"
+    "app/views/tailscale/_pending.html.erb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "2cb64293-2324-4d7f-a350-28d9eafec703",
+  "transcript_identifier_at_start": "ec88eea9-9e8c-448f-a469-2343a7c1c0ef",
+  "checkpoint_transcript_start": 468,
+  "transcript_lines_at_start": 468,
   "token_usage": {
-    "input_tokens": 133,
-    "cache_creation_tokens": 137287,
-    "cache_read_tokens": 8383879,
-    "output_tokens": 39055,
-    "api_call_count": 110
+    "input_tokens": 9,
+    "cache_creation_tokens": 2223,
+    "cache_read_tokens": 966784,
+    "output_tokens": 1809,
+    "api_call_count": 7
   },
   "initial_attribution": {
-    "calculated_at": "2026-03-07T12:43:16.374514Z",
-    "agent_lines": 283,
-    "human_added": 7,
-    "human_modified": 6,
-    "human_removed": 0,
-    "total_committed": 296,
-    "agent_percentage": 95.6081081081081
+    "calculated_at": "2026-03-07T12:57:31.55013Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 3,
+    "human_removed": 10,
+    "total_committed": 0,
+    "agent_percentage": 0
   }
 }

@@ -87,3 +87,7 @@ simplify!
 
 commit and push
 
+### Prompt 9
+
+we cannot open the tailscale in a popup (blocked by browser) - can we open in a new tab?
+
