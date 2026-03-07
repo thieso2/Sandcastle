@@ -8,3 +8,15 @@ commit push and release!
 
 also add  -- [options to pass to ssh] 
 to connet and ssh
+
+---
+
+commit and push
+
+---
+
+still does not work - 
+see 
+sc c  sysbox -- -v -A
+debug 
+sc c  sysbox

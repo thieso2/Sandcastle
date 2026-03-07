@@ -56,7 +56,6 @@
     "app/views/admin/_subnav.html.erb",
     "app/views/admin/docker/index.html.erb",
     "app/views/admin/users/_form.html.erb",
-    "app/views/dashboard/_archived_sandbox.html.erb",
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/dashboard/index.html.erb",
     "app/views/layouts/admin.html.erb",
@@ -385,10 +384,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5368,
-    "cache_creation_tokens": 2078758,
-    "cache_read_tokens": 116376379,
-    "output_tokens": 362228,
-    "api_call_count": 1352
+    "input_tokens": 5344,
+    "cache_creation_tokens": 2053671,
+    "cache_read_tokens": 115671189,
+    "output_tokens": 363126,
+    "api_call_count": 1326
   }
 }

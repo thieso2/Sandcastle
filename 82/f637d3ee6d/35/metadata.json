@@ -3,38 +3,31 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "59cad604-fcd1-422c-9fed-f053242bfb14",
   "strategy": "manual-commit",
-  "created_at": "2026-03-07T20:19:39.063217Z",
+  "created_at": "2026-03-07T20:44:06.090584Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
-    "app/controllers/sandboxes_controller.rb",
-    "app/models/sandbox.rb",
-    "app/policies/sandbox_policy.rb",
-    "app/services/sandbox_manager.rb",
-    "app/views/dashboard/_archived_sandbox.html.erb",
-    "config/routes.rb",
     "vendor/sandcastle-cli/cmd/connect.go",
-    "vendor/sandcastle-cli/cmd/exec.go",
     "vendor/sandcastle-cli/cmd/sandbox.go"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "2c0029bb-481d-48f8-b140-a9e7947aa80a",
-  "checkpoint_transcript_start": 71,
-  "transcript_lines_at_start": 71,
+  "transcript_identifier_at_start": "e9895b03-4896-459b-94a7-83d429e6f1f2",
+  "checkpoint_transcript_start": 272,
+  "transcript_lines_at_start": 272,
   "token_usage": {
-    "input_tokens": 51,
-    "cache_creation_tokens": 38467,
-    "cache_read_tokens": 2508254,
-    "output_tokens": 10334,
-    "api_call_count": 49
+    "input_tokens": 27,
+    "cache_creation_tokens": 13380,
+    "cache_read_tokens": 1803064,
+    "output_tokens": 11232,
+    "api_call_count": 23
   },
   "initial_attribution": {
-    "calculated_at": "2026-03-07T20:19:38.99589Z",
+    "calculated_at": "2026-03-07T20:44:05.991841Z",
     "agent_lines": 0,
-    "human_added": 75,
-    "human_modified": 22,
+    "human_added": 13,
+    "human_modified": 15,
     "human_removed": 0,
-    "total_committed": 76,
+    "total_committed": 26,
     "agent_percentage": 0
   }
 }

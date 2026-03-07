@@ -15,3 +15,15 @@ commit push and release!
 also add  -- [options to pass to ssh] 
 to connet and ssh
 
+### Prompt 4
+
+commit and push
+
+### Prompt 5
+
+still does not work - 
+see 
+sc c  sysbox -- -v -A
+debug 
+sc c  sysbox
+
