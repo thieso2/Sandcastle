@@ -347,3 +347,7 @@ Read the output file to retrieve the result: REDACTED.output
 
 createing a new sandcaste thru the UI the dashboard does not get the update  that teh sandbox is running...
 why?
+
+---
+
+xon the dashboard  do not show the VNC when VNC is not runnning in teh sandbox.
