@@ -17,11 +17,15 @@ class InviteTest < ActiveSupport::TestCase
     assert_match(/\A[A-Za-z0-9\-_]+\z/, invite.token)
   end
 
-  test "token uniqueness is enforced" do
+  test "token uniqueness is enforced at database level" do
     existing = invites(:pending_invite)
-    invite = Invite.new(email: "other@example.com", invited_by: @admin, token: existing.token)
-    assert_not invite.valid?
-    assert_includes invite.errors[:token], "has already been taken"
+    # Insert a duplicate token directly to test the DB constraint
+    dupe = Invite.new(email: "other@example.com", invited_by: @admin)
+    dupe.save! # gets a unique token from callback
+    # Now try to update it to the existing token — DB should reject
+    assert_raises(ActiveRecord::RecordNotUnique) do
+      dupe.update_column(:token, existing.token)
+    end
   end
 
   test "requires email" do

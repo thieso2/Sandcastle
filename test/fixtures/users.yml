@@ -12,3 +12,10 @@ two:
   email_address: bob@example.com
   password_digest: <%= password_digest %>
   status: active
+
+thies:
+  name: thies
+  email_address: thies@example.com
+  password_digest: <%= password_digest %>
+  admin: true
+  status: active

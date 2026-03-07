@@ -29,8 +29,25 @@ development:
     migrations_paths: db/errors_migrate
 
 test:
-  <<: *default
-  database: sandcastle_test
+  primary:
+    <<: *default
+    database: sandcastle_test
+  cache:
+    <<: *default
+    database: sandcastle_test_cache
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *default
+    database: sandcastle_test_queue
+    schema_directory: db
+  cable:
+    <<: *default
+    database: sandcastle_test_cable
+    migrations_paths: db/cable_migrate
+  errors:
+    <<: *default
+    database: sandcastle_test_errors
+    migrations_paths: db/errors_migrate
 
 production:
   primary:

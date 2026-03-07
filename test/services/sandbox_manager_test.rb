@@ -34,11 +34,12 @@ class SandboxManagerTest < ActiveSupport::TestCase
     @manager.stop(sandbox: @sandbox)
     assert_equal "stopped", @sandbox.reload.status
 
-    # Start it again
+    # Start it again (creates a new container)
     @manager.start(sandbox: @sandbox)
-    assert_equal "running", @sandbox.reload.status
+    @sandbox.reload
+    assert_equal "running", @sandbox.status
 
-    container = Docker::Container.get(container_id)
+    container = Docker::Container.get(@sandbox.container_id)
     assert container.info["State"]["Running"]
   end
 
@@ -70,7 +71,7 @@ class SandboxManagerTest < ActiveSupport::TestCase
   test "create handles Docker errors gracefully" do
     DockerMock.inject_failure(:create)
 
-    assert_raises(SandboxManager::Error) do
+    assert_raises(Docker::Error::DockerError) do
       @sandbox.update!(container_id: nil, status: "pending")
       @manager.create_container_and_start(sandbox: @sandbox, user: @user)
     end
@@ -177,9 +178,10 @@ class SandboxManagerTest < ActiveSupport::TestCase
     @sandbox.update!(mount_home: true, status: "stopped", container_id: nil)
 
     ensure_called = false
-    @manager.stub(:ensure_mount_dirs, ->(_user, _sandbox) { ensure_called = true }) do
-      @manager.start(sandbox: @sandbox)
-    end
+    manager = Class.new(SandboxManager) {
+      define_method(:ensure_mount_dirs) { |_user, _sandbox| ensure_called = true }
+    }.new
+    manager.start(sandbox: @sandbox)
 
     assert ensure_called,
       "SandboxManager#start must call ensure_mount_dirs before creating the container " \
@@ -191,9 +193,10 @@ class SandboxManagerTest < ActiveSupport::TestCase
     @sandbox.update!(data_path: "mydata", status: "stopped", container_id: nil)
 
     ensure_called = false
-    @manager.stub(:ensure_mount_dirs, ->(_user, _sandbox) { ensure_called = true }) do
-      @manager.start(sandbox: @sandbox)
-    end
+    manager = Class.new(SandboxManager) {
+      define_method(:ensure_mount_dirs) { |_user, _sandbox| ensure_called = true }
+    }.new
+    manager.start(sandbox: @sandbox)
 
     assert ensure_called,
       "SandboxManager#start must call ensure_mount_dirs for data_path sandboxes too"

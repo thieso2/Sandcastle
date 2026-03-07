@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_06_153839) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_06_165315) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -114,9 +114,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_06_153839) do
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
     t.index ["job_status"], name: "index_sandboxes_on_job_status"
-    t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "(((status)::text <> ALL ((ARRAY['destroyed'::character varying, 'archived'::character varying])::text[])) AND (ssh_port IS NOT NULL))"
+    t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "(((status)::text <> ALL (ARRAY[('destroyed'::character varying)::text, ('archived'::character varying)::text])) AND (ssh_port IS NOT NULL))"
     t.index ["user_id", "job_status"], name: "index_sandboxes_on_user_id_and_job_status"
-    t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "((status)::text <> ALL ((ARRAY['destroyed'::character varying, 'archived'::character varying])::text[]))"
+    t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "((status)::text <> ALL (ARRAY[('destroyed'::character varying)::text, ('archived'::character varying)::text]))"
     t.index ["user_id"], name: "index_sandboxes_on_user_id"
   end
 
@@ -170,6 +170,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_06_153839) do
     t.datetime "created_at", null: false
     t.string "email_address", null: false
     t.string "full_name"
+    t.string "github_username"
     t.boolean "must_change_password", default: false, null: false
     t.string "name", null: false
     t.string "password_digest", null: false

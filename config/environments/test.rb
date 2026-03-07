@@ -50,4 +50,13 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # Active Record Encryption keys for test (deterministic values so parallel
+  # workers and CI all share the same config without relying on ENV vars).
+  config.active_record.encryption.primary_key = "test_primary_key_0123456789abcdef"
+  config.active_record.encryption.deterministic_key = "test_deterministic_key_0123456789"
+  config.active_record.encryption.key_derivation_salt = "test_derivation_salt_0123456789ab"
+
+  # Use the errors database for solid_errors (matches production config)
+  config.solid_errors.connects_to = { database: { writing: :errors, reading: :errors } }
 end

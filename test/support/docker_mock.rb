@@ -22,6 +22,15 @@ module DockerMock
       @failure_mode = type
     end
 
+    # Build a mock Docker object. Docker::Base.new is private and requires
+    # a connection + hash with 'id'. We use send(:new) to bypass visibility.
+    def build(klass, id, info = {})
+      conn = Docker.connection
+      obj = klass.send(:new, conn, { "id" => id }.merge(info))
+      obj.instance_variable_set(:@info, info)
+      obj
+    end
+
     private
 
     def setup_mocks
@@ -31,6 +40,7 @@ module DockerMock
 
       # Mock Docker::Image
       Docker::Image.singleton_class.prepend(ImageMethods)
+      Docker::Image.prepend(ImageInstanceMethods)
 
       # Mock Docker::Network
       Docker::Network.singleton_class.prepend(NetworkMethods)
@@ -61,28 +71,19 @@ module DockerMock
       DockerMock.containers[container_id] = container_data
       sleep 0.1 # Simulate creation delay
 
-      mock_container = Docker::Container.new(nil, {})
-      mock_container.instance_variable_set(:@id, container_id)
-      mock_container.instance_variable_set(:@info, container_data)
-      mock_container
+      DockerMock.build(Docker::Container, container_id, container_data)
     end
 
     def get(id)
       raise Docker::Error::NotFoundError, "Container not found" unless DockerMock.containers.key?(id)
 
       container_data = DockerMock.containers[id]
-      mock_container = Docker::Container.new(nil, {})
-      mock_container.instance_variable_set(:@id, id)
-      mock_container.instance_variable_set(:@info, container_data)
-      mock_container
+      DockerMock.build(Docker::Container, id, container_data)
     end
 
-    def all(opts = {})
+    def all(opts = {}, _conn = nil)
       DockerMock.containers.values.map do |data|
-        mock_container = Docker::Container.new(nil, {})
-        mock_container.instance_variable_set(:@id, data["Id"])
-        mock_container.instance_variable_set(:@info, data)
-        mock_container
+        DockerMock.build(Docker::Container, data["Id"], data)
       end
     end
   end
@@ -102,7 +103,7 @@ module DockerMock
       self
     end
 
-    def stop
+    def stop(opts = {})
       raise Docker::Error::DockerError, "Simulated stop failure" if DockerMock.failure_mode == :stop
 
       container_data = DockerMock.containers[@id]
@@ -161,6 +162,11 @@ module DockerMock
       }
     end
 
+    def refresh!
+      @info = DockerMock.containers[@id] if DockerMock.containers.key?(@id)
+      self
+    end
+
     def json
       @info || DockerMock.containers[@id] || {}
     end
@@ -175,8 +181,8 @@ module DockerMock
 
     def commit(opts = {})
       image_id = "sha256:#{SecureRandom.hex(32)}"
-      repo = opts["repo"] || "snapshot"
-      tag = opts["tag"] || "latest"
+      repo = opts[:repo] || opts["repo"] || "snapshot"
+      tag = opts[:tag] || opts["tag"] || "latest"
 
       image_data = {
         "Id" => image_id,
@@ -187,15 +193,12 @@ module DockerMock
 
       DockerMock.images[image_id] = image_data
 
-      mock_image = Docker::Image.new(nil, {})
-      mock_image.instance_variable_set(:@id, image_id)
-      mock_image.instance_variable_set(:@info, image_data)
-      mock_image
+      DockerMock.build(Docker::Image, image_id, image_data)
     end
   end
 
   module ImageMethods
-    def create(opts)
+    def create(opts = {}, _creds = nil, _conn = nil)
       raise Docker::Error::DockerError, "Simulated pull failure" if DockerMock.failure_mode == :pull
 
       from_image = opts["fromImage"] || "library/ubuntu:latest"
@@ -211,31 +214,34 @@ module DockerMock
       DockerMock.images[image_id] = image_data
       sleep 1 # Simulate pull delay
 
-      mock_image = Docker::Image.new(nil, {})
-      mock_image.instance_variable_set(:@id, image_id)
-      mock_image.instance_variable_set(:@info, image_data)
-      mock_image
+      DockerMock.build(Docker::Image, image_id, image_data)
     end
 
     def all(opts = {})
       DockerMock.images.values.map do |data|
-        mock_image = Docker::Image.new(nil, {})
-        mock_image.instance_variable_set(:@id, data["Id"])
-        mock_image.instance_variable_set(:@info, data)
-        mock_image
+        DockerMock.build(Docker::Image, data["Id"], data)
       end
     end
 
-    def get(id_or_name)
+    def get(id_or_name, _opts = {}, _conn = nil)
       image_data = DockerMock.images[id_or_name] ||
                    DockerMock.images.values.find { |img| img["RepoTags"]&.include?(id_or_name) }
 
       raise Docker::Error::NotFoundError, "Image not found" unless image_data
 
-      mock_image = Docker::Image.new(nil, {})
-      mock_image.instance_variable_set(:@id, image_data["Id"])
-      mock_image.instance_variable_set(:@info, image_data)
-      mock_image
+      DockerMock.build(Docker::Image, image_data["Id"], image_data)
+    end
+  end
+
+  module ImageInstanceMethods
+    def remove(opts = {})
+      DockerMock.images.delete(@id)
+      # Also remove by repo tag
+      DockerMock.images.reject! { |_k, v| v["Id"] == @id }
+    end
+
+    def info
+      @info || {}
     end
   end
 
@@ -253,10 +259,7 @@ module DockerMock
 
       DockerMock.networks[network_id] = network_data
 
-      mock_network = Docker::Network.new(nil, {})
-      mock_network.instance_variable_set(:@id, network_id)
-      mock_network.instance_variable_set(:@info, network_data)
-      mock_network
+      DockerMock.build(Docker::Network, network_id, network_data)
     end
 
     def get(id_or_name)
@@ -265,18 +268,12 @@ module DockerMock
 
       raise Docker::Error::NotFoundError, "Network not found" unless network_data
 
-      mock_network = Docker::Network.new(nil, {})
-      mock_network.instance_variable_set(:@id, network_data["Id"])
-      mock_network.instance_variable_set(:@info, network_data)
-      mock_network
+      DockerMock.build(Docker::Network, network_data["Id"], network_data)
     end
 
     def all(opts = {})
       DockerMock.networks.values.map do |data|
-        mock_network = Docker::Network.new(nil, {})
-        mock_network.instance_variable_set(:@id, data["Id"])
-        mock_network.instance_variable_set(:@info, data)
-        mock_network
+        DockerMock.build(Docker::Network, data["Id"], data)
       end
     end
   end
