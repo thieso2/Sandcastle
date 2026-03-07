@@ -454,3 +454,36 @@ make it less ugly and make the structure more obvious
 
 commit
 
+### Prompt 52
+
+push
+
+### Prompt 53
+
+lets work on https://github.com/thieso2/Sandcastle/pull/74 - 
+check the branch out
+
+### Prompt 54
+
+rebase on current main
+
+### Prompt 55
+
+shell:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+ghostty_terminal_controller-f451ed95.js:54 [ghostty] token fetch failed: TypeError: Failed to execute 'fetch' on 'Window': Failed to parse URL from https://dev.sand:8443https://dev.sand:8443/terminal/1/shell/token
+    at t.fetchToken (ghostty_terminal_controller-f451ed95.js:48:26)
+    at t.connect (ghostty_terminal_controller-f451ed95.js:33:29)
+fetchTo...
+
+### Prompt 56
+
+lets create a user option to toggle beween xterm.js and ghostty - i cant decide which one is better...
+
+### Prompt 57
+
+default shoudl be xterm.js
+
+### Prompt 58
+
+commit and push
+

@@ -2,8 +2,8 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "main",
-  "checkpoints_count": 47,
+  "branch": "ghostty-web-terminal",
+  "checkpoints_count": 36,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -14,6 +14,7 @@
     "Dockerfile.base",
     "VNC_AND_TTYD_AUTH.md",
     "app/assets/stylesheets/bulma_scoped.css",
+    "app/assets/stylesheets/xterm.css",
     "app/controllers/admin/docker_controller.rb",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/admin/settings_controller.rb",
@@ -30,6 +31,7 @@
     "app/controllers/vnc_controller.rb",
     "app/javascript/controllers/inline_edit_controller.js",
     "app/javascript/controllers/sparkline_controller.js",
+    "app/javascript/controllers/xterm_terminal_controller.js",
     "app/jobs/container_metrics_job.rb",
     "app/jobs/container_sync_job.rb",
     "app/jobs/sandbox_destroy_job.rb",
@@ -57,6 +59,7 @@
     "app/views/layouts/admin.html.erb",
     "app/views/layouts/mission_control/jobs/application.html.erb",
     "app/views/layouts/solid_errors/application.html.erb",
+    "app/views/layouts/terminal.html.erb",
     "app/views/pages/guide.html.erb",
     "app/views/sandboxes/logs.html.erb",
     "app/views/sandboxes/show.html.erb",
@@ -64,6 +67,7 @@
     "app/views/shared/_navbar.html.erb",
     "app/views/tailscale/_pending.html.erb",
     "app/views/tailscale/show.html.erb",
+    "app/views/terminal/show.html.erb",
     "bin/dev",
     "config/database.yml",
     "config/environments/development.rb",
@@ -78,6 +82,7 @@
     "db/migrate/20260302000002_add_archive_retention_to_settings.rb",
     "db/migrate/20260302000003_add_archive_retention_to_users.rb",
     "db/migrate/20260306153839_create_container_metrics.rb",
+    "db/migrate/20260307151841_add_terminal_emulator_to_users.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "docker-compose.yml",
@@ -106,6 +111,9 @@
     "test/services/tailscale_manager_test.rb",
     "test/support/docker_mock.rb",
     "test/test_helper.rb",
+    "vendor/javascript/@xterm--addon-fit.js",
+    "vendor/javascript/@xterm--addon-web-links.js",
+    "vendor/javascript/@xterm--xterm.js",
     "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/api/types.go",
     "vendor/sandcastle-cli/cmd/config.go",
@@ -325,10 +333,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3658,
-    "cache_creation_tokens": 1929065,
-    "cache_read_tokens": 110005306,
-    "output_tokens": 331587,
-    "api_call_count": 1218
+    "input_tokens": 3561,
+    "cache_creation_tokens": 1833803,
+    "cache_read_tokens": 107924478,
+    "output_tokens": 314432,
+    "api_call_count": 1153
   }
 }
