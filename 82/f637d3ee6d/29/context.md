@@ -123,3 +123,7 @@ applicat...
 
 sometime when i click dashbiard on the ui this happens:
 
+### Prompt 17
+
+when rebuilding the sandbox - always to a full "apt update && apt upgtade" cycle so we always havt teh newest software
+
