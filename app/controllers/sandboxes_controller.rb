@@ -6,6 +6,7 @@ class SandboxesController < ApplicationController
     authorize Sandbox
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     @btrfs_available = BtrfsHelper.btrfs?
+    @defaults = Setting.instance
   end
 
   def show
@@ -42,6 +43,7 @@ class SandboxesController < ApplicationController
 
     # Build sandbox record
     # Note: temporary sandboxes can only be created via CLI
+    defaults = Setting.instance
     sandbox = Current.user.sandboxes.build(
       name: params.require(:name),
       status: "pending",
@@ -53,6 +55,7 @@ class SandboxesController < ApplicationController
       vnc_enabled: params[:vnc_enabled] != "0",
       vnc_geometry: Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900",
       vnc_depth: Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24,
+      docker_enabled: params[:docker_enabled] != "0",
       temporary: false
     )
 

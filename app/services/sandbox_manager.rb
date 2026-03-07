@@ -648,6 +648,7 @@ class SandboxManager
     env << "SANDCASTLE_VNC_ENABLED=#{sandbox.vnc_enabled? ? '1' : '0'}"
     env << "SANDCASTLE_VNC_GEOMETRY=#{sandbox.vnc_geometry}"
     env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
+    env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
     env
   end
 

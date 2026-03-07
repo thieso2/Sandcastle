@@ -67,8 +67,9 @@ mount -t tmpfs -o size=2g,mode=1777 tmpfs /dev/shm 2>/dev/null || true
 # Handles known sysbox/kernel incompatibilities automatically:
 #   - Wrong /var/lib/docker ownership (sysbox on kernel 6.17+)
 #   - /dev/fuse absent (not needed — overlay2 works via sysbox kernel virtualisation)
-# Status is written to /run/docker-status and shown on every SSH login.
-if command -v dockerd &>/dev/null; then
+# Status is written to /run/docker-status.
+DOCKER_ENABLED="${SANDCASTLE_DOCKER_ENABLED:-1}"
+if command -v dockerd &>/dev/null && [ "$DOCKER_ENABLED" = "1" ]; then
     (
         MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
 

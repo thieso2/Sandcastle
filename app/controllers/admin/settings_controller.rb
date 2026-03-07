@@ -68,7 +68,9 @@ module Admin
         :google_client_id, :google_client_secret,
         :smtp_address, :smtp_port, :smtp_username, :smtp_password,
         :smtp_authentication, :smtp_starttls, :smtp_from_address,
-        :sandbox_archive_retention_days
+        :sandbox_archive_retention_days,
+        :default_vnc_enabled, :default_mount_home, :default_data_path,
+        :default_docker_enabled
       ])
     end
   end

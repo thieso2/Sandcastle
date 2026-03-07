@@ -40,18 +40,20 @@ module Api
         params[:image].presence || SandboxManager::DEFAULT_IMAGE
       end
 
-      # Build sandbox record
+      # Build sandbox record (use system defaults where not explicitly provided)
+      defaults = Setting.instance
       sandbox = current_user.sandboxes.build(
         name: params.require(:name),
         status: "pending",
         image: image,
         persistent_volume: params[:persistent] || false,
-        mount_home: params[:mount_home] || false,
-        data_path: params[:data_path],
+        mount_home: params.key?(:mount_home) ? params[:mount_home] : defaults.default_mount_home,
+        data_path: params.key?(:data_path) ? params[:data_path] : defaults.default_data_path,
         tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? },
-        vnc_enabled: params.key?(:vnc_enabled) ? params[:vnc_enabled] : true,
+        vnc_enabled: params.key?(:vnc_enabled) ? params[:vnc_enabled] : defaults.default_vnc_enabled,
         vnc_geometry: params[:vnc_geometry] || "1280x900",
         vnc_depth: params[:vnc_depth]&.to_i || 24,
+        docker_enabled: params.key?(:docker_enabled) ? params[:docker_enabled] : defaults.default_docker_enabled,
         temporary: params[:temporary] || false
       )
 
@@ -240,6 +242,7 @@ module Api
         vnc_enabled: sandbox.vnc_enabled,
         vnc_geometry: sandbox.vnc_geometry,
         vnc_depth: sandbox.vnc_depth,
+        docker_enabled: sandbox.docker_enabled,
         routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
         created_at: sandbox.created_at,
         archived_at: sandbox.archived_at,

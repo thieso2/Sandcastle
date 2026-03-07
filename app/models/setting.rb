@@ -2,6 +2,9 @@ class Setting < ApplicationRecord
   encrypts :github_client_secret, :google_client_secret, :smtp_password
 
   validates :sandbox_archive_retention_days, numericality: { only_integer: true, greater_than_or_equal_to: 0, allow_nil: true }
+  validates :default_vnc_enabled, inclusion: { in: [ true, false ] }
+  validates :default_mount_home, inclusion: { in: [ true, false ] }
+  validates :default_docker_enabled, inclusion: { in: [ true, false ] }
 
   def self.instance
     find_or_create_by(id: 1)
