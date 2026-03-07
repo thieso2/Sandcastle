@@ -124,6 +124,7 @@
     "vendor/sandcastle-cli/cmd/info.go",
     "vendor/sandcastle-cli/cmd/route.go",
     "vendor/sandcastle-cli/cmd/sandbox.go",
+    "vendor/sandcastle-cli/cmd/services.go",
     "vendor/sandcastle-cli/cmd/status.go",
     "vendor/sandcastle-cli/internal/config/config.go"
   ],
@@ -340,10 +341,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3569,
-    "cache_creation_tokens": 1838439,
-    "cache_read_tokens": 108527757,
-    "output_tokens": 316200,
-    "api_call_count": 1159
+    "input_tokens": 3591,
+    "cache_creation_tokens": 1845937,
+    "cache_read_tokens": 110332486,
+    "output_tokens": 320332,
+    "api_call_count": 1175
   }
 }

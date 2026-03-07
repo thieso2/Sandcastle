@@ -60,3 +60,29 @@ update the claude install to
       && chmod +x /usr/local/bin/claude
 
 also node does not seem to be installed. make sure that mise uses global share dirs - not ~/
+
+---
+
+commit and push and release a new version!
+
+---
+
+explore and examine  - how can we safe precious cpu cycles an MEMory.
+thies@thies-claude:~$ ps auxww
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.0  10872  7740 ?        Ss   16:17   0:00 sshd: /usr/sbin/sshd -D -e [listener] 0 of 10-100 startups
+root         114  0.0  0.2 1880460 77676 ?       Sl   16:17   0:00 dockerd --storage-driver=overlay2 --mtu=1500
+thies        125  0.0  0.0  36516 22656 ?        S    16:17   0:00 Xvnc :99 -rfbport 5900 -SecurityTypes None -AlwaysShared -geometry 1280x900 -depth 24
+thies        132  0.0  0.0 103820 17376 ?        Sl   16:17   0:00 openbox
+root         135  0.0  0.0 1264240 6052 ?        Sl   16:17   0:00 websockify -addr :6080 -target localhost:5900 -url /websockify
+thies        153  0.0  0.0   1568  1044 ?        S    16:17   0:00 ttyd -W -m 0 -p 7681 tmux new-session -A -s main
+root         158  0.0  0.1 1770172 47164 ?       Ssl  16:17   0:00 containerd --config /var/run/docker/containerd/containerd.toml
+thies        166  0.0  0.0   1568  1044 ?        S    16:17   0:00 ttyd -W -m 1 -p 7682 bash -l
+root        1251  0.0  0.0  18256 11684 ?        Ss   16:34   0:00 sshd-session: thies [priv]
+thies       1275  0.0  0.0  18480  7640 ?        S    16:34   0:00 sshd-session: thies@pts/0
+thies       1276  0.0  0.0   7052  5944 pts/0    Ss   16:34   0:00 -bash
+thies       1309  0.0  0.0   7264  4228 pts/0    R+   16:34   0:00 ps auxww
+
+---
+
+add sandcastle commands to start and stop docker and vnc in a sandbox and add a --save to oersist this mode doe the container on restart

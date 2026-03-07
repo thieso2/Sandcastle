@@ -60,3 +60,20 @@ update the claude install to
       && if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then PLATFORM="linux-arm64"; else PLATFORM="linux-x64"; fi \
       && curl -fsSL "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$VERSION/$PLATFORM/claude" \...
 
+### Prompt 12
+
+commit and push and release a new version!
+
+### Prompt 13
+
+explore and examine  - how can we safe precious cpu cycles an MEMory.
+thies@thies-claude:~$ ps auxww
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1  0.0  0.0  10872  7740 ?        Ss   16:17   0:00 sshd: /usr/sbin/sshd -D -e [listener] 0 of 10-100 startups
+root         114  0.0  0.2 1880460 77676 ?       Sl   16:17   0:00 dockerd --storage-driver=overlay2 --mtu=1500
+thies        125  0.0  0.0  36516 22656 ?        S    16:17   0:00 Xvnc :99 -rfbport 5...
+
+### Prompt 14
+
+add sandcastle commands to start and stop docker and vnc in a sandbox and add a --save to oersist this mode doe the container on restart
+
