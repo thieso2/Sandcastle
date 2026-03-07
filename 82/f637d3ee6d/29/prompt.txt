@@ -214,3 +214,97 @@ when rebuilding the sandbox - always to a full "apt update && apt upgtade" cycle
 on the /admin/docker
 change the layout - use tabs for the 4 services (the log in full width below - automatially "tail -f" he log) 
 move the docker deamon stats above the service and logs.
+
+---
+
+Development system — may vanish at any moment · Your data WILL get eaten ☠️
+Sandcastle
+Dashboard
+Guide
+Tailscale
+Admin
+thies
+Settings
+Log out
+My Sandcastles
+Manage your development environments
+
+Create Sandcastle
+slow-phoenix
+Destroying
+Tailscale
+Processing...
+292baad16bff · sandcastle-sandbox:latest · Created 1 minute ago · Running for less than a minute
+CPU
+—
+MEM
+—
+Archived (1)
+— will be purged after retention window expires
+dev (46ca39b-dirty / 2026-03-07) · Download CLI · GitHub
+Copy as text
+ActiveRecord::RecordNotFound in DashboardController#card
+Couldn't find Sandbox with 'id'="2" [WHERE "sandboxes"."user_id" = $1 AND "sandboxes"."status" NOT IN ($2, $3)]
+Extracted source (around line #10):
+8
+9
+10
+11
+12
+13
+              
+
+  def card
+    sandbox = policy_scope(Sandbox).includes(:user, :routes).find(params[:id])
+    authorize sandbox
+    vnc_active = VncManager.new.active?(sandbox: sandbox)
+    tailscale_ip = sandbox.tailscale? ? TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox) : nil
+
+Rails.root: /rails
+
+Application Trace | Framework Trace | Full Trace
+/rails/app/controllers/dashboard_controller.rb:10:in 'DashboardController#card'
+
+Request
+Parameters:
+
+{"id" => "2"}
+Toggle session dump
+Toggle env dump
+Response
+Headers:
+
+None
+Copy as text
+ActiveRecord::RecordNotFound in DashboardController#card
+Couldn't find Sandbox with 'id'="2" [WHERE "sandboxes"."user_id" = $1 AND "sandboxes"."status" NOT IN ($2, $3)]
+Extracted source (around line #10):
+8
+9
+10
+11
+12
+13
+              
+
+  def card
+    sandbox = policy_scope(Sandbox).includes(:user, :routes).find(params[:id])
+    authorize sandbox
+    vnc_active = VncManager.new.active?(sandbox: sandbox)
+    tailscale_ip = sandbox.tailscale? ? TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox) : nil
+
+Rails.root: /rails
+
+Application Trace | Framework Trace | Full Trace
+/rails/app/controllers/dashboard_controller.rb:10:in 'DashboardController#card'
+
+Request
+Parameters:
+
+{"id" => "2"}
+Toggle session dump
+Toggle env dump
+Response
+Headers:
+
+None

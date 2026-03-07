@@ -133,3 +133,31 @@ on the /admin/docker
 change the layout - use tabs for the 4 services (the log in full width below - automatially "tail -f" he log) 
 move the docker deamon stats above the service and logs.
 
+### Prompt 19
+
+Development system — may vanish at any moment · Your data WILL get eaten ☠️
+Sandcastle
+Dashboard
+Guide
+Tailscale
+Admin
+thies
+Settings
+Log out
+My Sandcastles
+Manage your development environments
+
+Create Sandcastle
+slow-phoenix
+Destroying
+Tailscale
+Processing...
+292baad16bff · sandcastle-sandbox:latest · Created 1 minute ago · Running for less than a minute
+CPU
+—
+MEM
+—
+Archived (1)
+— will be purged after retention window expires
+dev (46ca39b-dirty / 2026-03-07) · Download CLI · G...
+
