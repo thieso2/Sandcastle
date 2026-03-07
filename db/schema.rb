@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_07_151841) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_07_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -95,6 +95,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_07_151841) do
     t.string "container_id"
     t.datetime "created_at", null: false
     t.string "data_path"
+    t.boolean "docker_enabled", default: true, null: false
     t.string "image", default: "ghcr.io/thieso2/sandcastle-sandbox:latest", null: false
     t.text "job_error"
     t.datetime "job_started_at"
@@ -131,6 +132,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_07_151841) do
 
   create_table "settings", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "default_data_path"
+    t.boolean "default_docker_enabled", default: true, null: false
+    t.boolean "default_mount_home", default: false, null: false
+    t.boolean "default_vnc_enabled", default: true, null: false
     t.string "github_client_id"
     t.text "github_client_secret"
     t.string "google_client_id"

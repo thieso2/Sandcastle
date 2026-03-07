@@ -3,7 +3,7 @@
 # Published as ghcr.io/thieso2/sandcastle-base:latest
 # Rebuild only when Ruby version, system packages, or Docker CLI change.
 
-ARG RUBY_VERSION=4.0.0
+ARG RUBY_VERSION=4.0.1
 FROM docker.io/library/ruby:$RUBY_VERSION-slim
 
 WORKDIR /rails
