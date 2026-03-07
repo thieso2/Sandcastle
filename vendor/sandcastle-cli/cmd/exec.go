@@ -44,6 +44,6 @@ var execCmd = &cobra.Command{
 		}
 		prefs := cfg.LoadPreferences()
 
-		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
+		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, nil)
 	},
 }

@@ -26,12 +26,12 @@ func init() {
 }
 
 var connectCmd = &cobra.Command{
-	Use:     "connect [name]",
+	Use:     "connect [name] [-- ssh-options...]",
 	Aliases: []string{"c"},
 	Short:   "Connect to sandbox and attach tmux (auto-starts if stopped)",
-	Args:  cobra.MaximumNArgs(1),
+	Args:  cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := resolveSandboxName(args)
+		name, passthrough := splitArgs(args)
 		if name == "" {
 			return fmt.Errorf("specify a sandbox name or set one with: sandcastle use <name>")
 		}
@@ -88,19 +88,19 @@ var connectCmd = &cobra.Command{
 		}
 
 		if protocol == "mosh" {
-			return moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
+			return moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, passthrough)
 		}
-		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs)
+		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, passthrough)
 	},
 }
 
 var sshCmd = &cobra.Command{
-	Use:     "ssh [name]",
+	Use:     "ssh [name] [-- ssh-options...]",
 	Aliases: []string{"s"},
 	Short:   "SSH into sandbox shell (without tmux)",
-	Args:  cobra.MaximumNArgs(1),
+	Args:  cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := resolveSandboxName(args)
+		name, passthrough := splitArgs(args)
 		if name == "" {
 			return fmt.Errorf("specify a sandbox name or set one with: sandcastle use <name>")
 		}
@@ -131,7 +131,7 @@ var sshCmd = &cobra.Command{
 		}
 		prefs := cfg.LoadPreferences()
 
-		return sshExec(info.Host, info.Port, info.User, "", prefs.SSHExtraArgs)
+		return sshExec(info.Host, info.Port, info.User, "", prefs.SSHExtraArgs, passthrough)
 	},
 }
 
@@ -140,6 +140,13 @@ func resolveSandboxName(args []string) string {
 		return args[0]
 	}
 	return ""
+}
+
+func splitArgs(args []string) (string, []string) {
+	if len(args) == 0 {
+		return "", nil
+	}
+	return args[0], args[1:]
 }
 
 func waitForSSH(host string, port int) error {
@@ -175,7 +182,7 @@ func waitForSSH(host string, port int) error {
 	return fmt.Errorf("timeout waiting for SSH at %s", addr)
 }
 
-func sshExec(host string, port int, user string, remoteCmd string, extraArgs string) error {
+func sshExec(host string, port int, user string, remoteCmd string, extraArgs string, passthrough []string) error {
 	sshArgs := []string{
 		"-A",
 		"-p", strconv.Itoa(port),
@@ -186,6 +193,7 @@ func sshExec(host string, port int, user string, remoteCmd string, extraArgs str
 	if extraArgs != "" {
 		sshArgs = append(sshArgs, strings.Fields(extraArgs)...)
 	}
+	sshArgs = append(sshArgs, passthrough...)
 	sshArgs = append(sshArgs, fmt.Sprintf("%s@%s", user, host))
 	if remoteCmd != "" {
 		sshArgs = append(sshArgs, "-t", remoteCmd)
@@ -218,10 +226,13 @@ func sshExec(host string, port int, user string, remoteCmd string, extraArgs str
 	return nil
 }
 
-func moshExec(host string, port int, user string, remoteCmd string, extraArgs string) error {
+func moshExec(host string, port int, user string, remoteCmd string, extraArgs string, passthrough []string) error {
 	sshOpts := fmt.Sprintf("ssh -A -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR", port)
 	if extraArgs != "" {
 		sshOpts += " " + extraArgs
+	}
+	if len(passthrough) > 0 {
+		sshOpts += " " + strings.Join(passthrough, " ")
 	}
 
 	moshArgs := []string{
