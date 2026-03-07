@@ -59,6 +59,17 @@ services:
                 servers:
                   - url: "http://sandcastle-web:80"
         EOFCONFIG
+          cat > /data/dynamic/tls.yml << 'EOFTLS'
+        tls:
+          stores:
+            default:
+              defaultCertificate:
+                certFile: /certs/cert.pem
+                keyFile: /certs/key.pem
+          certificates:
+            - certFile: /certs/cert.pem
+              keyFile: /certs/key.pem
+        EOFTLS
         fi
         chown -R 220568:220568 /data
 
