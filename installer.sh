@@ -1452,6 +1452,19 @@ cmd_create() {
 
     require_root
 
+    # Preflight: check for required system tools
+    local missing=()
+    for tool in curl iptables rsync; do
+        if ! command -v "$tool" &>/dev/null; then
+            missing+=("$tool")
+        fi
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "Error: missing required tools: ${missing[*]}" >&2
+        echo "Install them first, e.g.: apt-get install -y ${missing[*]}" >&2
+        exit 1
+    fi
+
     echo "Installing dockyard docker..."
     echo "  DOCKYARD_ROOT:          ${DOCKYARD_ROOT}"
     echo "  DOCKYARD_DOCKER_PREFIX: ${DOCKYARD_DOCKER_PREFIX}"
@@ -1497,6 +1510,8 @@ cmd_create() {
     #   Fixed: https://github.com/thieso2/sysbox/issues/5
     #   Distributed as a static tarball (no .deb, no dpkg dependency).
     #   0.6.7.10-tc is the first release with an aarch64 static tarball.
+    #   NOTE: 0.7.0.1-tc has a netns regression — do not upgrade until fixed
+    #   (see https://github.com/thieso2/sysbox/issues/9)
 
     # --- Detect CPU architecture ---
     local ARCH
@@ -1512,26 +1527,30 @@ cmd_create() {
     local DOCKER_ROOTLESS_VERSION="29.2.1"
     local SYSBOX_VERSION="0.6.7.10-tc"
     local SYSBOX_TARBALL="sysbox-static-${ARCH}.tar.gz"
+    local COMPOSE_VERSION="2.32.4"
 
     # SHA256 checksums — must match exactly; cache hits are also verified
     # (protects against cache poisoning and mirror tampering)
-    local DOCKER_SHA256 DOCKER_ROOTLESS_SHA256 SYSBOX_SHA256
+    local DOCKER_SHA256 DOCKER_ROOTLESS_SHA256 SYSBOX_SHA256 COMPOSE_SHA256
     case "$ARCH" in
         x86_64)
             DOCKER_SHA256="995b1d0b51e96d551a3b49c552c0170bc6ce9f8b9e0866b8c15bbc67d1cf93a3"
             DOCKER_ROOTLESS_SHA256="8c7b7783d8b391ca3183d9b5c7dea1794f6de69cfaa13c45f61fcd17d2b9c3ef"
             SYSBOX_SHA256="9107dca08cc69c5871a0be7981dec3a3e8e5aa6e0924b7a6ca36df324357274b"
+            COMPOSE_SHA256="ed1917fb54db184192ea9d0717bcd59e3662ea79db48bff36d3475516c480a6b"
             ;;
         aarch64)
             DOCKER_SHA256="236c5064473295320d4bf732fbbfc5b11b6b2dc446e8bc7ebb9222015fb36857"
             DOCKER_ROOTLESS_SHA256="15895df8b46ff33179d357e61b600b5b51242f9b9587c0f66695689e62f57894"
             SYSBOX_SHA256="6a543f863cf77cbec285f9eebbbe5d5e5c0f3fd3836347909b4ef1e4b3fc03ef"
+            COMPOSE_SHA256="0c4591cf3b1ed039adcd803dbbeddf757375fc08c11245b0154135f838495a2f"
             ;;
     esac
 
     local DOCKER_URL="https://download.docker.com/linux/static/stable/${ARCH}/docker-${DOCKER_VERSION}.tgz"
     local DOCKER_ROOTLESS_URL="https://download.docker.com/linux/static/stable/${ARCH}/docker-rootless-extras-${DOCKER_ROOTLESS_VERSION}.tgz"
     local SYSBOX_URL="https://github.com/thieso2/sysbox/releases/download/v${SYSBOX_VERSION}/${SYSBOX_TARBALL}"
+    local COMPOSE_URL="https://github.com/docker/compose/releases/download/v${COMPOSE_VERSION}/docker-compose-linux-${ARCH}"
 
     mkdir -p "$LOG_DIR" "$RUN_DIR" "$ETC_DIR" "$BIN_DIR"
     mkdir -p "$DOCKER_DATA" "$DOCKER_CONFIG_DIR"
@@ -1609,7 +1628,7 @@ cmd_create() {
             echo "  cached: $(basename "$dest")"
         else
             echo "  downloading: $(basename "$url")"
-            curl -fsSL -o "${dest}.tmp" "$url" && mv "${dest}.tmp" "$dest"
+            curl -fsSL -o "${dest}.tmp.$$" "$url" && mv "${dest}.tmp.$$" "$dest"
         fi
         verify_checksum "$dest" "$expected_sha256" "$(basename "$url")"
     }
@@ -1618,6 +1637,7 @@ cmd_create() {
     download "$DOCKER_URL"          "$DOCKER_SHA256"
     download "$DOCKER_ROOTLESS_URL" "$DOCKER_ROOTLESS_SHA256"
     download "$SYSBOX_URL"          "$SYSBOX_SHA256"
+    download "$COMPOSE_URL"         "$COMPOSE_SHA256"
 
     # Use per-PID staging dirs for extraction so concurrent creates don't race
     # on a shared extraction directory (all instances share the same CACHE_DIR).
@@ -1651,6 +1671,12 @@ cmd_create() {
         cp -f "$src" "$BIN_DIR/$bin"
         chmod +x "$BIN_DIR/$bin"
     done
+
+    # Install Docker Compose v2 plugin
+    echo "Installing Docker Compose plugin..."
+    mkdir -p "${DOCKER_CONFIG_DIR}/cli-plugins"
+    cp -f "${CACHE_DIR}/docker-compose-linux-${ARCH}" "${DOCKER_CONFIG_DIR}/cli-plugins/docker-compose"
+    chmod +x "${DOCKER_CONFIG_DIR}/cli-plugins/docker-compose"
 
     chmod +x "$BIN_DIR"/*
 
@@ -1766,8 +1792,8 @@ wait_for_socket() {
             echo "dockyard-stack: \$name exited unexpectedly" >&2
             return 1
         fi
-        if [ "\$i" -ge 30 ]; then
-            echo "dockyard-stack: \$name did not start within 30s" >&2
+        if [ "\$i" -ge 60 ]; then
+            echo "dockyard-stack: \$name did not start within 60s" >&2
             return 1
         fi
     done
@@ -1995,7 +2021,7 @@ cmd_start() {
     SYSBOX_MGR_PID=$!
     echo "$SYSBOX_MGR_PID" > "${SYSBOX_RUN_DIR}/sysbox-mgr.pid"
     STARTED_PIDS+=("$SYSBOX_MGR_PID")
-    wait_for_file "${SYSBOX_RUN_DIR}/sysmgr.sock" "sysbox-mgr" 30 || cleanup
+    wait_for_file "${SYSBOX_RUN_DIR}/sysmgr.sock" "sysbox-mgr" 60 || cleanup
     kill -0 "$SYSBOX_MGR_PID" 2>/dev/null || { echo "sysbox-mgr exited unexpectedly" >&2; cleanup; }
     echo "  sysbox-mgr ready (pid ${SYSBOX_MGR_PID})"
 
@@ -2005,7 +2031,7 @@ cmd_start() {
     SYSBOX_FS_PID=$!
     echo "$SYSBOX_FS_PID" > "${SYSBOX_RUN_DIR}/sysbox-fs.pid"
     STARTED_PIDS+=("$SYSBOX_FS_PID")
-    wait_for_file "${SYSBOX_RUN_DIR}/sysfs.sock" "sysbox-fs" 30 || cleanup
+    wait_for_file "${SYSBOX_RUN_DIR}/sysfs.sock" "sysbox-fs" 60 || cleanup
     kill -0 "$SYSBOX_FS_PID" 2>/dev/null || { echo "sysbox-fs exited unexpectedly" >&2; cleanup; }
     echo "  sysbox-fs ready (pid ${SYSBOX_FS_PID})"
 
