@@ -30,8 +30,13 @@ if [ -f "$ENV_FILE" ]; then
   set +a
 fi
 
-DOCKYARD_ROOT="${DOCKYARD_ROOT:-$SANDCASTLE_HOME}"
-DOCKER="${DOCKYARD_ROOT}/docker-runtime/bin/docker"
+DOCKYARD_ROOT="${DOCKYARD_ROOT:-$SANDCASTLE_HOME/dockyard}"
+DOCKER="${DOCKYARD_ROOT}/bin/docker"
+
+# Fallback: check legacy docker-runtime layout for older installs
+if [ ! -x "$DOCKER" ] && [ -x "$SANDCASTLE_HOME/docker-runtime/bin/docker" ]; then
+  DOCKER="$SANDCASTLE_HOME/docker-runtime/bin/docker"
+fi
 COMPOSE_FILE="$SANDCASTLE_HOME/docker-compose.yml"
 
 [ -x "$DOCKER" ] || die "Docker not found at $DOCKER — is Sandcastle installed?"
@@ -95,7 +100,7 @@ cmd_backup() {
 
   local work_dir
   work_dir=$(mktemp -d)
-  trap 'rm -rf "$work_dir"' EXIT
+  trap "rm -rf '$work_dir'" EXIT
 
   local backup_dir="$work_dir/sandcastle-backup"
   mkdir -p "$backup_dir"/{db,secrets,data}
@@ -278,7 +283,7 @@ cmd_restore() {
 
   local work_dir
   work_dir=$(mktemp -d)
-  trap 'rm -rf "$work_dir"' EXIT
+  trap "rm -rf '$work_dir'" EXIT
 
   info "Reading backup manifest..."
   tar --use-compress-program=zstd -xf "$backup_file" -C "$work_dir" \

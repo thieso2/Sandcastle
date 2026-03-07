@@ -132,7 +132,7 @@ derive_vars() {
   SANDCASTLE_TLS_MODE="${SANDCASTLE_TLS_MODE:-selfsigned}"
   SANDCASTLE_ADMIN_USER="${SANDCASTLE_ADMIN_USER:-admin}"
 
-  DOCKYARD_ROOT="${DOCKYARD_ROOT:-$SANDCASTLE_HOME}"
+  DOCKYARD_ROOT="${DOCKYARD_ROOT:-$SANDCASTLE_HOME/dockyard}"
   DOCKYARD_DOCKER_PREFIX="${DOCKYARD_DOCKER_PREFIX:-sc_}"
 
   # Single RFC 1918 /16 from which all Sandcastle Docker networks are carved.
@@ -145,8 +145,8 @@ derive_vars() {
   DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-${SANDCASTLE_PRIVATE_NET}}"
   DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
 
-  DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
-  DOCKER="${DOCKYARD_ROOT}/docker-runtime/bin/docker"
+  DOCKER_SOCK="${DOCKYARD_ROOT}/run/docker.sock"
+  DOCKER="${DOCKYARD_ROOT}/bin/docker"
 
   ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
 
@@ -215,12 +215,12 @@ setup_passwordless_sudo() {
 }
 
 # ═══ setup_bashrc_path ════════════════════════════════════════════════════
-# Add docker-runtime/bin to PATH in .profile and .bashrc (idempotent)
+# Add dockyard/bin to PATH in .profile and .bashrc (idempotent)
 
 setup_bashrc_path() {
   local profile="${SANDCASTLE_HOME}/.profile"
   local bashrc="${SANDCASTLE_HOME}/.bashrc"
-  local path_export="export PATH=${SANDCASTLE_HOME}/docker-runtime/bin:${SANDCASTLE_HOME}/bin:\$PATH"
+  local path_export="export PATH=${DOCKYARD_ROOT}/bin:${SANDCASTLE_HOME}/bin:\$PATH"
 
   info "Configuring PATH in .profile and .bashrc..."
 
@@ -452,12 +452,12 @@ __DOCKYARD_BUNDLED_EOF__
 }
 
 write_helper_scripts() {
-  cat > "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs" <<LOGS
+  cat > "${DOCKYARD_ROOT}/bin/docker-logs" <<LOGS
 #!/bin/bash
 exec sudo ${DOCKER} compose -f ${SANDCASTLE_HOME}/docker-compose.yml logs -f "\$@"
 LOGS
-  chmod +x "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
-  wrote "${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  chmod +x "${DOCKYARD_ROOT}/bin/docker-logs"
+  wrote "${DOCKYARD_ROOT}/bin/docker-logs"
 }
 
 write_compose() {
@@ -498,7 +498,7 @@ cmd_gen_env() {
   local admin_email="${SANDCASTLE_ADMIN_EMAIL:-admin@example.com}"
   local admin_user="${SANDCASTLE_ADMIN_USER:-admin}"
 
-  local dy_root="${DOCKYARD_ROOT:-$home}"
+  local dy_root="${DOCKYARD_ROOT:-$home/dockyard}"
   local dy_prefix="${DOCKYARD_DOCKER_PREFIX:-sc_}"
   local priv_net="${SANDCASTLE_PRIVATE_NET:-$(pick_private_net)}"
   local _pb="${priv_net%%/*}"; local _pp="${_pb%.*.*}"
@@ -618,12 +618,19 @@ cmd_destroy() {
     fi
   fi
 
-  # Destroy Dockyard
-  DOCKYARD_ENV_FILE="$SANDCASTLE_HOME/etc/dockyard.env"
-  if [ -f "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
+  # Destroy Dockyard — handle both new layout ($DOCKYARD_ROOT/etc/dockyard.env)
+  # and legacy layout ($SANDCASTLE_HOME/etc/dockyard.env with docker-runtime/)
+  DOCKYARD_ENV_FILE=""
+  if [ -f "$DOCKYARD_ROOT/etc/dockyard.env" ]; then
+    DOCKYARD_ENV_FILE="$DOCKYARD_ROOT/etc/dockyard.env"
+  elif [ -f "$SANDCASTLE_HOME/etc/dockyard.env" ]; then
+    DOCKYARD_ENV_FILE="$SANDCASTLE_HOME/etc/dockyard.env"
+  fi
+
+  if [ -n "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
     info "Destroying Dockyard..."
-    if [ -f "$DOCKYARD_ENV_FILE" ] && write_dockyard_sh 2>/dev/null; then
-      echo "y" | DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy >/dev/null 2>&1 || true
+    if [ -n "$DOCKYARD_ENV_FILE" ] && write_dockyard_sh 2>/dev/null; then
+      DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy --yes 2>&1 || true
       rm -f /tmp/dockyard.sh
     else
       systemctl stop "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
@@ -632,6 +639,19 @@ cmd_destroy() {
       systemctl daemon-reload 2>/dev/null || true
       ip link delete "${DOCKYARD_DOCKER_PREFIX}docker0" 2>/dev/null || true
     fi
+    # Clean up legacy sc_sysbox.service (old two-service layout)
+    if systemctl cat "${DOCKYARD_DOCKER_PREFIX}sysbox.service" &>/dev/null 2>&1; then
+      systemctl stop "${DOCKYARD_DOCKER_PREFIX}sysbox" 2>/dev/null || true
+      systemctl disable "${DOCKYARD_DOCKER_PREFIX}sysbox" 2>/dev/null || true
+      rm -f "/etc/systemd/system/${DOCKYARD_DOCKER_PREFIX}sysbox.service"
+      systemctl daemon-reload 2>/dev/null || true
+    fi
+    # Clean up legacy docker-runtime directory (pre-dockyard layout)
+    rm -rf "$SANDCASTLE_HOME/docker-runtime"
+    # Clean up legacy socket and docker data at old paths
+    rm -f "$SANDCASTLE_HOME/docker.sock"
+    rm -rf "$SANDCASTLE_HOME/docker"
+    rm -rf "$SANDCASTLE_HOME/sysbox"
     ok "Dockyard destroyed"
   fi
 
@@ -682,6 +702,7 @@ cmd_destroy() {
   rmdir "$SANDCASTLE_HOME/data" 2>/dev/null || true
   rmdir "$SANDCASTLE_HOME" 2>/dev/null || true
   rm -rf "/run/${DOCKYARD_DOCKER_PREFIX}docker"
+  rm -rf "$DOCKYARD_ROOT"
 
   if [ -d "$SANDCASTLE_HOME/data/users" ] || [ -d "$SANDCASTLE_HOME/data/sandboxes" ] || [ -d "$SANDCASTLE_HOME/data/postgres" ]; then
     warn "User data preserved in $SANDCASTLE_HOME/data/ — remove manually if no longer needed"
@@ -734,21 +755,14 @@ cmd_install() {
 
   if [ -S "$DOCKER_SOCK" ]; then
     ok "Dockyard already installed"
-    # The docker CLI binary ships with compose built-in. A leftover standalone
-    # compose plugin in cli-plugins/ shadows the built-in and may segfault.
-    # Remove it so the built-in is used instead.
-    local _stale_plugin="${DOCKYARD_ROOT}/docker-runtime/lib/docker/cli-plugins/docker-compose"
-    if [ -f "$_stale_plugin" ]; then
-      rm -f "$_stale_plugin"
-      ok "Removed stale compose plugin (compose is now built into docker CLI)"
-    fi
     "$DOCKER" compose version &>/dev/null || die "Docker Compose not available — reinstall Dockyard"
   else
     info "Installing Dockyard (Docker + Sysbox)..."
     write_dockyard_sh
 
     mkdir -p "$SANDCASTLE_HOME/etc"
-    cat > "$SANDCASTLE_HOME/etc/dockyard.env" <<DYEOF
+    local _dy_env="$SANDCASTLE_HOME/etc/dockyard.env"
+    cat > "$_dy_env" <<DYEOF
 DOCKYARD_ROOT=${DOCKYARD_ROOT}
 DOCKYARD_DOCKER_PREFIX=${DOCKYARD_DOCKER_PREFIX}
 DOCKYARD_BRIDGE_CIDR=${DOCKYARD_BRIDGE_CIDR}
@@ -756,9 +770,9 @@ DOCKYARD_FIXED_CIDR=${DOCKYARD_FIXED_CIDR}
 DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}
 DOCKYARD_POOL_SIZE=${DOCKYARD_POOL_SIZE}
 DYEOF
-    wrote "$SANDCASTLE_HOME/etc/dockyard.env"
+    wrote "$_dy_env"
 
-    DOCKYARD_ENV="$SANDCASTLE_HOME/etc/dockyard.env" bash /tmp/dockyard.sh create
+    DOCKYARD_ENV="$_dy_env" bash /tmp/dockyard.sh create
     rm -f /tmp/dockyard.sh
 
     for i in $(seq 1 30); do
@@ -809,11 +823,18 @@ DYEOF
     ok "Created user '${SANDCASTLE_USER}' (UID ${SANDCASTLE_UID})"
   fi
 
-  # Add sandcastle user to docker group for socket access
-  DOCKER_GROUP=$(stat -c '%G' "$DOCKER_SOCK" 2>/dev/null || echo "docker")
+  # Add sandcastle user to dockyard docker group for socket access
+  DOCKER_GROUP="${DOCKYARD_DOCKER_PREFIX}docker"
   if getent group "$DOCKER_GROUP" &>/dev/null; then
     usermod -aG "$DOCKER_GROUP" "$SANDCASTLE_USER"
     ok "Added '${SANDCASTLE_USER}' to group '${DOCKER_GROUP}'"
+  else
+    # Fallback: detect from socket
+    DOCKER_GROUP=$(stat -c '%G' "$DOCKER_SOCK" 2>/dev/null || echo "docker")
+    if getent group "$DOCKER_GROUP" &>/dev/null; then
+      usermod -aG "$DOCKER_GROUP" "$SANDCASTLE_USER"
+      ok "Added '${SANDCASTLE_USER}' to group '${DOCKER_GROUP}'"
+    fi
   fi
 
   # ── Create directories ────────────────────────────────────────────────────
@@ -848,7 +869,7 @@ DYEOF
     # SANDCASTLE_SUBNET no longer needed - networks allocated from dockyard pool
 
     SECRET_KEY_BASE=$(openssl rand -hex 64)
-    DOCKER_GID=$(stat -c '%g' "$DOCKER_SOCK" 2>/dev/null || echo "988")
+    DOCKER_GID=$(getent group "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null | cut -d: -f3 || stat -c '%g' "$DOCKER_SOCK" 2>/dev/null || echo "988")
 
     if [ -n "$BACKUP_FILE" ]; then
       # ── Extract secrets from the backup file ──────────────────────────────
@@ -963,7 +984,7 @@ EOF
 
   # Backfill vars that may be missing in older .env files
   if [ -z "${DOCKER_SOCK:-}" ]; then
-    DOCKER_SOCK="${DOCKYARD_ROOT}/docker.sock"
+    DOCKER_SOCK="${DOCKYARD_ROOT}/run/docker.sock"
     echo "DOCKER_SOCK=$DOCKER_SOCK" >> "$SANDCASTLE_HOME/.env"
   fi
   # Backfill DOCKYARD_POOL_BASE — required so docker-compose passes the correct subnet to Rails
@@ -1365,7 +1386,7 @@ INITDB
   echo -e "  Home:       $SANDCASTLE_HOME"
   echo -e "  Config:     $SANDCASTLE_HOME/etc/sandcastle.env"
   echo -e "  Docker:     $DOCKER"
-  echo -e "  Logs:       ${DOCKYARD_ROOT}/docker-runtime/bin/docker-logs"
+  echo -e "  Logs:       ${DOCKYARD_ROOT}/bin/docker-logs"
 
   print_written_files
   echo ""
