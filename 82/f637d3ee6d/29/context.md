@@ -77,3 +77,45 @@ thies        125  0.0  0.0  36516 22656 ?        S    16:17   0:00 Xvnc :99 -rfb
 
 add sandcastle commands to start and stop docker and vnc in a sandbox and add a --save to oersist this mode doe the container on restart
 
+### Prompt 15
+
+also fix:
+Development system — may vanish at any moment · Your data WILL get eaten ☠️
+Sandcastle
+Dashboard
+Guide
+Tailscale
+Admin
+1
+thies
+Settings
+Log out
+Overview
+Users
+Invites
+Settings
+Docker
+Jobs
+Errors
+1
+🔥
+ActionDispatch::MissingController
+from
+application.action_dispatch
+#5
+uninitialized constant Api::StatusesController
+Severity
+🔥
+error
+Status
+⏳
+unresolved
+First seen
+1 minute ago
+Last seen
+less than a minute ago
+Exception class
+ActionDispatch::MissingController
+Source
+applicat...
+

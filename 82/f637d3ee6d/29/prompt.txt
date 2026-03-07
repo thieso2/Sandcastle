@@ -86,3 +86,117 @@ thies       1309  0.0  0.0   7264  4228 pts/0    R+   16:34   0:00 ps auxww
 ---
 
 add sandcastle commands to start and stop docker and vnc in a sandbox and add a --save to oersist this mode doe the container on restart
+
+---
+
+also fix:
+Development system — may vanish at any moment · Your data WILL get eaten ☠️
+Sandcastle
+Dashboard
+Guide
+Tailscale
+Admin
+1
+thies
+Settings
+Log out
+Overview
+Users
+Invites
+Settings
+Docker
+Jobs
+Errors
+1
+🔥
+ActionDispatch::MissingController
+from
+application.action_dispatch
+#5
+uninitialized constant Api::StatusesController
+Severity
+🔥
+error
+Status
+⏳
+unresolved
+First seen
+1 minute ago
+Last seen
+less than a minute ago
+Exception class
+ActionDispatch::MissingController
+Source
+application.action_dispatch
+Project root
+/rails
+Gem root
+/usr/local/bundle/ruby/4.0.0
+Back to errors
+
+Resolve, Error #5
+
+
+Occurrences
+2 total
+
+« ‹ › »
+2026-03-07 16:40:35 UTC (less than a minute ago)
+Backtrace
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/http/request.rb:101 in ActionDispatch::Request#controller_class_for
+        rescue NameError => error
+          if error.missing_name == const_name || const_name.start_with?("#{error.missing_name}::")
+            raise MissingController.new(error.message, error.name)
+          else
+            raise
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/http/request.rb:90 in ActionDispatch::Request#controller_class
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/routing/route_set.rb:61 in ActionDispatch::Routing::RouteSet::Dispatcher#controller
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/routing/route_set.rb:48 in ActionDispatch::Routing::RouteSet::Dispatcher#serve
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/journey/router.rb:35 in block in ActionDispatch::Journey::Router#serve
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/journey/router.rb:86 in block in ActionDispatch::Journey::Router#recognize
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/journey/router.rb:66 in Array#each
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/journey/router.rb:66 in ActionDispatch::Journey::Router#recognize
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/journey/router.rb:31 in ActionDispatch::Journey::Router#serve
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/routing/route_set.rb:906 in ActionDispatch::Routing::RouteSet#call
+[GEM_ROOT]/gems/omniauth-2.1.4/lib/omniauth/strategy.rb:202 in OmniAuth::Strategy#call!
+[GEM_ROOT]/gems/omniauth-2.1.4/lib/omniauth/strategy.rb:169 in OmniAuth::Strategy#call
+[GEM_ROOT]/gems/omniauth-2.1.4/lib/omniauth/strategy.rb:202 in OmniAuth::Strategy#call!
+[GEM_ROOT]/gems/omniauth-2.1.4/lib/omniauth/strategy.rb:169 in OmniAuth::Strategy#call
+[GEM_ROOT]/gems/omniauth-2.1.4/lib/omniauth/builder.rb:48 in OmniAuth::Builder#call
+[GEM_ROOT]/gems/rack-3.2.5/lib/rack/tempfile_reaper.rb:20 in Rack::TempfileReaper#call
+[GEM_ROOT]/gems/rack-3.2.5/lib/rack/etag.rb:29 in Rack::ETag#call
+[GEM_ROOT]/gems/rack-3.2.5/lib/rack/conditional_get.rb:31 in Rack::ConditionalGet#call
+[GEM_ROOT]/gems/rack-3.2.5/lib/rack/head.rb:15 in Rack::Head#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/http/content_security_policy.rb:38 in ActionDispatch::ContentSecurityPolicy::Middleware#call
+[GEM_ROOT]/gems/rack-session-2.1.1/lib/rack/session/abstract/id.rb:274 in Rack::Session::Abstract::Persisted#context
+[GEM_ROOT]/gems/rack-session-2.1.1/lib/rack/session/abstract/id.rb:268 in Rack::Session::Abstract::Persisted#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/cookies.rb:708 in ActionDispatch::Cookies#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/callbacks.rb:31 in block in ActionDispatch::Callbacks#call
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:101 in ActiveSupport::Callbacks#run_callbacks
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/callbacks.rb:30 in ActionDispatch::Callbacks#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/debug_exceptions.rb:31 in ActionDispatch::DebugExceptions#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/show_exceptions.rb:32 in ActionDispatch::ShowExceptions#call
+[GEM_ROOT]/gems/railties-8.1.2/lib/rails/rack/logger.rb:41 in Rails::Rack::Logger#call_app
+[GEM_ROOT]/gems/railties-8.1.2/lib/rails/rack/logger.rb:29 in Rails::Rack::Logger#call
+[GEM_ROOT]/gems/railties-8.1.2/lib/rails/rack/silence_request.rb:31 in Rails::Rack::SilenceRequest#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/remote_ip.rb:98 in ActionDispatch::RemoteIp#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/request_id.rb:34 in ActionDispatch::RequestId#call
+[GEM_ROOT]/gems/rack-3.2.5/lib/rack/method_override.rb:28 in Rack::MethodOverride#call
+[GEM_ROOT]/gems/rack-3.2.5/lib/rack/runtime.rb:24 in Rack::Runtime#call
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/cache/strategy/local_cache_middleware.rb:30 in ActiveSupport::Cache::Strategy::LocalCache::Middleware#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/executor.rb:20 in ActionDispatch::Executor#call
+[GEM_ROOT]/gems/actionpack-8.1.2/lib/action_dispatch/middleware/static.rb:27 in ActionDispatch::Static#call
+[GEM_ROOT]/gems/rack-3.2.5/lib/rack/sendfile.rb:131 in Rack::Sendfile#call
+[GEM_ROOT]/gems/railties-8.1.2/lib/rails/engine.rb:534 in Rails::Engine#call
+[GEM_ROOT]/gems/puma-7.2.0/lib/puma/configuration.rb:296 in Puma::Configuration::ConfigMiddleware#call
+[GEM_ROOT]/gems/puma-7.2.0/lib/puma/request.rb:103 in block in Puma::Request#handle_request
+[GEM_ROOT]/gems/puma-7.2.0/lib/puma/thread_pool.rb:355 in Puma::ThreadPool#with_force_shutdown
+[GEM_ROOT]/gems/puma-7.2.0/lib/puma/request.rb:102 in Puma::Request#handle_request
+[GEM_ROOT]/gems/puma-7.2.0/lib/puma/server.rb:503 in Puma::Server#process_client
+[GEM_ROOT]/gems/puma-7.2.0/lib/puma/server.rb:262 in block in Puma::Server#run
+[GEM_ROOT]/gems/puma-7.2.0/lib/puma/thread_pool.rb:182 in block in Puma::ThreadPool#spawn_thread
+2026-03-07 16:40:23 UTC (1 minute ago)
+v0.8.46 (8b0d2d81294405761a5292e9898ab07f35e70e0d) · Download CLI
+
+
+sc status
