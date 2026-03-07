@@ -312,3 +312,22 @@ None
 ---
 
 also make the sandcastle-worker more verbose - i see no actions being hadled... docker logs -f sandcastle-worker
+
+---
+
+watch docker logs -f sandcastle-worker - nothing in there. debug and fix!
+
+---
+
+[Request interrupted by user]
+
+---
+
+<task-notification>
+<task-id>bs9psgxsv</task-id>
+<tool-use-id>toolu_011w5roqq89VAFvm1tXaCHex</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Check worker logs" failed with exit code 255</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
