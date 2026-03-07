@@ -101,9 +101,12 @@ class SandboxManager
     # Create BTRFS subvolume for user directory if on BTRFS
     BtrfsHelper.create_user_subvolume(user.name)
 
+    # Ensure user base directory is writable (may be root-owned from previous install)
+    ensure_dir("#{DATA_DIR}/users/#{user.name}")
+
     if sandbox.mount_home
       dir = "#{DATA_DIR}/users/#{user.name}/home"
-      FileUtils.mkdir_p(dir)
+      ensure_dir(dir)
       prepare_bind_mount(dir)
     end
     if sandbox.data_path.present?
@@ -111,17 +114,17 @@ class SandboxManager
       BtrfsHelper.create_user_data_subvolume(user.name, sandbox.data_path)
 
       dir = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
-      FileUtils.mkdir_p(dir)
+      ensure_dir(dir)
       prepare_bind_mount(dir)
     end
     if sandbox.persistent_volume && sandbox.volume_path
-      FileUtils.mkdir_p(sandbox.volume_path)
+      ensure_dir(sandbox.volume_path)
       prepare_bind_mount(sandbox.volume_path)
     end
     # Chrome profile persistence: mount .config/google-chrome separately if not mounting full home
     if user.chrome_persist_profile? && !sandbox.mount_home
       dir = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
-      FileUtils.mkdir_p(dir)
+      ensure_dir(dir)
       prepare_bind_mount(dir)
     end
   rescue Errno::EACCES, Errno::ENOENT => e
@@ -660,15 +663,49 @@ class SandboxManager
     end
   end
 
+  # mkdir_p with self-healing: if EACCES, fix the parent dir's ownership
+  # via a short-lived Docker container (only way when running as non-root
+  # inside a container with Docker socket access).
+  def ensure_dir(path)
+    FileUtils.mkdir_p(path)
+  rescue Errno::EACCES
+    docker_chown(File.dirname(path))
+    FileUtils.mkdir_p(path)
+  end
+
   # Ensure a bind-mounted directory is world-writable so the sandbox user
-  # (non-root inside the Sysbox container) can write to it. Uses sudo because
-  # after a previous container run the dir may be owned by a Sysbox-remapped
-  # UID that the Rails process cannot chmod.
+  # (non-root inside the Sysbox container) can write to it.
   def prepare_bind_mount(path)
     stat = File.stat(path)
-    system("/usr/bin/sudo", "-n", "/usr/bin/chmod", "777", path) unless stat.mode & 0o777 == 0o777
+    return if stat.mode & 0o777 == 0o777
+    return if system("/usr/bin/sudo", "-n", "/usr/bin/chmod", "777", path)
+    docker_chmod(path, "777")
   rescue Errno::ENOENT
     # directory disappeared — race condition, ignore
+  end
+
+  # Fix ownership of a host path via a busybox container.
+  def docker_chown(path)
+    docker_run_fix(path, "chown", "#{Process.uid}:#{Process.gid}", "/mnt")
+  end
+
+  def docker_chmod(path, mode)
+    docker_run_fix(path, "chmod", mode, "/mnt")
+  rescue Docker::Error::DockerError => e
+    Rails.logger.warn("docker_chmod(#{path}) failed: #{e.message}")
+  end
+
+  def docker_run_fix(host_path, *cmd)
+    image = "busybox:latest"
+    Docker::Image.get(image) rescue Docker::Image.create("fromImage" => image)
+    c = Docker::Container.create(
+      "Image" => image, "Cmd" => cmd,
+      "HostConfig" => { "Binds" => [ "#{host_path}:/mnt" ] }
+    )
+    c.start
+    c.wait(10)
+  ensure
+    c&.delete(force: true) rescue nil
   end
 
   def volume_binds(user, sandbox)
