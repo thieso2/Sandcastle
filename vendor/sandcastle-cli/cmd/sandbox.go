@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"sort"
@@ -36,6 +37,7 @@ func init() {
 	rootCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(deleteCmd)
+	deleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Skip confirmation prompt")
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(useCmd)
@@ -379,6 +381,8 @@ The sandbox is restored in running state. Use 'sandcastle list --archived' to se
 	},
 }
 
+var deleteForce bool
+
 var deleteCmd = &cobra.Command{
 	Use:     "delete <name>",
 	Aliases: []string{"rm", "d"},
@@ -396,11 +400,22 @@ var deleteCmd = &cobra.Command{
 			return err
 		}
 
+		if !deleteForce {
+			fmt.Printf("Are you sure you want to delete sandbox %q? [y/N] ", sandbox.Name)
+			scanner := bufio.NewScanner(os.Stdin)
+			scanner.Scan()
+			answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+			if answer != "y" && answer != "yes" {
+				fmt.Println("Aborted.")
+				return nil
+			}
+		}
+
 		if err := client.DestroySandbox(sandbox.ID); err != nil {
 			return err
 		}
 
-		fmt.Printf("Sandbox %q deleted.\n", args[0])
+		fmt.Printf("Sandbox %q deleted.\n", sandbox.Name)
 		return nil
 	},
 }
