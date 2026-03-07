@@ -308,3 +308,7 @@ Response
 Headers:
 
 None
+
+---
+
+also make the sandcastle-worker more verbose - i see no actions being hadled... docker logs -f sandcastle-worker

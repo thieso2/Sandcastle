@@ -161,3 +161,7 @@ Archived (1)
 — will be purged after retention window expires
 dev (46ca39b-dirty / 2026-03-07) · Download CLI · G...
 
+### Prompt 20
+
+also make the sandcastle-worker more verbose - i see no actions being hadled... docker logs -f sandcastle-worker
+

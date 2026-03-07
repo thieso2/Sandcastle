@@ -32,6 +32,7 @@
     "app/javascript/controllers/inline_edit_controller.js",
     "app/javascript/controllers/sparkline_controller.js",
     "app/javascript/controllers/xterm_terminal_controller.js",
+    "app/jobs/application_job.rb",
     "app/jobs/container_metrics_job.rb",
     "app/jobs/container_sync_job.rb",
     "app/jobs/sandbox_destroy_job.rb",
@@ -340,10 +341,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3568,
-    "cache_creation_tokens": 1837185,
-    "cache_read_tokens": 108594791,
-    "output_tokens": 315433,
-    "api_call_count": 1158
+    "input_tokens": 3579,
+    "cache_creation_tokens": 1838371,
+    "cache_read_tokens": 110120450,
+    "output_tokens": 316628,
+    "api_call_count": 1169
   }
 }
