@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 32,
+  "checkpoints_count": 33,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -282,13 +282,20 @@
       "context": "/82/f637d3ee6d/26/context.md",
       "content_hash": "/82/f637d3ee6d/26/content_hash.txt",
       "prompt": "/82/f637d3ee6d/26/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/27/metadata.json",
+      "transcript": "/82/f637d3ee6d/27/full.jsonl",
+      "context": "/82/f637d3ee6d/27/context.md",
+      "content_hash": "/82/f637d3ee6d/27/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/27/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3367,
-    "cache_creation_tokens": 1732097,
-    "cache_read_tokens": 85924106,
-    "output_tokens": 274476,
-    "api_call_count": 975
+    "input_tokens": 3484,
+    "cache_creation_tokens": 1908886,
+    "cache_read_tokens": 95676994,
+    "output_tokens": 302462,
+    "api_call_count": 1072
   }
 }
