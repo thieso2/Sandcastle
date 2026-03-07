@@ -177,6 +177,7 @@ func waitForSSH(host string, port int) error {
 
 func sshExec(host string, port int, user string, remoteCmd string, extraArgs string) error {
 	sshArgs := []string{
+		"-A",
 		"-p", strconv.Itoa(port),
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
@@ -218,7 +219,7 @@ func sshExec(host string, port int, user string, remoteCmd string, extraArgs str
 }
 
 func moshExec(host string, port int, user string, remoteCmd string, extraArgs string) error {
-	sshOpts := fmt.Sprintf("ssh -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR", port)
+	sshOpts := fmt.Sprintf("ssh -A -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR", port)
 	if extraArgs != "" {
 		sshOpts += " " + extraArgs
 	}
