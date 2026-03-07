@@ -77,3 +77,7 @@ why nt mosh? whats th eproblem?
 
 updtae docs and also echo a warning that this is the case when using mosg!
 
+### Prompt 13
+
+add --mosh=yes|no to sandcastle connect and ssh
+
