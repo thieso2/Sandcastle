@@ -1,6 +1,6 @@
 class SandboxesController < ApplicationController
   before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :retry, :logs, :metrics ]
-  before_action :set_archived_sandbox, only: [ :archive_restore ]
+  before_action :set_archived_sandbox, only: [ :archive_restore, :purge ]
 
   def new
     authorize Sandbox
@@ -141,6 +141,18 @@ class SandboxesController < ApplicationController
     @sandbox.start_job("restoring")
     SandboxRestoreJob.perform_later(sandbox_id: @sandbox.id)
     redirect_to root_path, notice: "Restoring sandcastle #{@sandbox.name}..."
+  end
+
+  def purge
+    authorize @sandbox, :purge?
+    if @sandbox.job_in_progress?
+      redirect_to root_path, alert: "Operation already in progress"
+      return
+    end
+
+    @sandbox.start_job("destroying")
+    SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: false)
+    redirect_to root_path, notice: "Permanently deleting sandcastle..."
   end
 
   def start

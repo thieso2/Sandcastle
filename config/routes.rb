@@ -34,6 +34,7 @@ Rails.application.routes.draw do
       post :stop
       post :retry
       post :archive_restore
+      delete :purge
       get :logs
       get :stats, controller: "dashboard", action: "stats"
       get :metrics

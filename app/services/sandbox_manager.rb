@@ -161,8 +161,10 @@ class SandboxManager
     end
 
     if archive
-      # Soft-delete: keep volume on disk, mark as archived
-      sandbox.update!(status: "archived", container_id: nil, archived_at: Time.current)
+      # Soft-delete: keep volume on disk, mark as archived.
+      # Rename to free the original name for reuse.
+      archived_name = "#{Time.current.strftime('%Y%m%d%H%M%S')}-#{sandbox.name}"
+      sandbox.update!(status: "archived", container_id: nil, archived_at: Time.current, name: archived_name)
     else
       unless keep_volume
         FileUtils.rm_rf(sandbox.volume_path) if sandbox.volume_path.present?
@@ -182,7 +184,9 @@ class SandboxManager
     ensure_mount_dirs(user, sandbox)
 
     create_container_and_start(sandbox: sandbox, user: user)
-    sandbox.update!(archived_at: nil)
+    # Strip the timestamp prefix added during archival (e.g. "20260307123456-mybox" → "mybox")
+    original_name = sandbox.name.sub(/\A\d{14}-/, "")
+    sandbox.update!(archived_at: nil, name: original_name)
 
     if sandbox.tailscale? && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
