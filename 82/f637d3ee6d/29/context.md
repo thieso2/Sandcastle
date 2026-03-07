@@ -38,3 +38,25 @@ Docker Daemin started.
 
 commit and push and release!
 
+### Prompt 9
+
+update the claude install to
+  RUN VERSION=$(curl -fsSL https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/latest) \
+      && ARCH=$(uname -m) \
+      && if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then PLATFORM="linux-arm64"; else PLATFORM="linux-x64"; fi \
+      && curl -fsSL "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$VERSION/$PLATFORM/claude" \
+         -o /usr/loca...
+
+### Prompt 10
+
+[Request interrupted by user]
+
+### Prompt 11
+
+in the sandbox image:
+update the claude install to
+  RUN VERSION=$(curl -fsSL https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/latest) \
+      && ARCH=$(uname -m) \
+      && if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then PLATFORM="linux-arm64"; else PLATFORM="linux-x64"; fi \
+      && curl -fsSL "https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases/$VERSION/$PLATFORM/claude" \...
+
