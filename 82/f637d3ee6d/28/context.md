@@ -137,3 +137,56 @@ Occurrences
 
 verify teh fix in with local docker install!
 
+### Prompt 13
+
+push and create new releas
+
+### Prompt 14
+
+still -
+🔥
+SandboxManager::Error
+from
+application.solid_queue
+#2
+Failed to create mount directories: Permission denied @ dir_s_mkdir - /sandcastle/data/users/thies/chrome-profile
+Severity
+🔥
+error
+Status
+⏳
+unresolved
+First seen
+less than a minute ago
+Last seen
+less than a minute ago
+Exception class
+SandboxManager::Error
+Source
+application.solid_queue
+Project root
+/rails
+Gem root
+/usr/local/bundle/ruby/4.0.0
+Back to errors
+
+Resolve, Error #2
+
+
+Occurrences
+1 total
+
+« ‹ › »
+2026-03-07 1...
+
+### Prompt 15
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+   The user made several requests across the session:
+   - Fix dockyard.sh `cp` error when source and destination are the same file
+   - Update Tailscale connect workflow: immediate redirect to waiting page, background sidecar creation, auto-open login URL
+   - Add Docker admin tab showing infra container ...
+
