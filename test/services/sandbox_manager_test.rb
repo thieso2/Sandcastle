@@ -170,15 +170,9 @@ class SandboxManagerTest < ActiveSupport::TestCase
     assert result[:image].present?
   end
 
-  # Regression test for: SSH and VNC broken when user home is mounted (issue #68)
-  #
-  # Root cause: Sysbox user-namespace UID remapping means the bind-mounted home
-  # dir (created by host root) appears owned by nobody (UID 65534) inside the
-  # container. The entrypoint's `chown -R` fails silently, leaving the dir with
-  # wrong ownership. Without ensure_mount_dirs being called on restart, the dir
-  # can be left at chmod 755 from the previous container run, making it
-  # unwritable by the sandbox user → SSH StrictModes rejects keys, VNC can't
-  # create ~/.Xauthority.
+  # Regression test: bind-mounted dirs must be reset to 777 on restart.
+  # After a Sysbox container run, dirs are re-owned by the Sysbox-remapped UID
+  # (e.g. 166537) so the Rails process can't chmod them without sudo.
   test "start calls ensure_mount_dirs for sandboxes with mount_home to reset bind-mount permissions" do
     @sandbox.update!(mount_home: true, status: "stopped", container_id: nil)
 

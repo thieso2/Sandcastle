@@ -30,14 +30,9 @@ fi
 
 # Set correct ownership and permissions on the home directory.
 # chown -R covers .ssh, .local, and anything else created above.
-#
-# NOTE: when the home dir is bind-mounted, it may be owned by a host UID that
-# falls outside this Sysbox container's user-namespace mapping (e.g. host
-# root, UID 0).  That host UID appears as nobody (65534) inside the container,
-# so chown fails silently for the directory itself.  We keep the dir world-
-# writable (777) so the sandbox user can still write ~/.Xauthority (VNC) and
-# other home-dir files even when they don't own the directory.  sshd is
-# configured with StrictModes no to accept this arrangement.
+# The host ensures 777 on the mount point before container start (via sudo
+# chmod in SandboxManager#prepare_bind_mount), so the sandbox user can always
+# write ~/.Xauthority, .ssh, etc.
 chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/dev/null || true
 chmod 777 "/home/$USERNAME"
 

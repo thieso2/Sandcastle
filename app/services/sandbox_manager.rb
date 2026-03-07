@@ -207,10 +207,8 @@ class SandboxManager
     end
 
     # Reset bind-mount directory permissions before starting the new container.
-    # Sysbox user-namespace UID remapping means the home/data dirs (created by
-    # host root) appear owned by nobody (UID 65534) inside the container, so
-    # chown in the entrypoint fails silently.  Resetting to 777 here ensures
-    # the new container's entrypoint can write .ssh, .Xauthority, etc.
+    # After a previous Sysbox run, dirs may be owned by a remapped UID that
+    # Rails can't chmod — ensure_mount_dirs uses sudo to reset to 777.
     ensure_mount_dirs(user, sandbox)
 
     create_container_and_start(sandbox: sandbox, user: user)
@@ -662,16 +660,13 @@ class SandboxManager
     end
   end
 
-  # Prepare a directory for bind-mounting into Sysbox containers.
-  # Sets 777 mode and root ownership. On kernel 6.17+, Sysbox cannot create
-  # entries inside bind-mounted dirs owned by UIDs outside the container's
-  # user-namespace mapping (even with 777 mode). Host root (UID 0) is always
-  # mapped inside Sysbox. Uses sudo because the directory may already be owned
-  # by a Sysbox-remapped UID from a previous container run.
+  # Ensure a bind-mounted directory is world-writable so the sandbox user
+  # (non-root inside the Sysbox container) can write to it. Uses sudo because
+  # after a previous container run the dir may be owned by a Sysbox-remapped
+  # UID that the Rails process cannot chmod.
   def prepare_bind_mount(path)
     stat = File.stat(path)
     system("/usr/bin/sudo", "-n", "/usr/bin/chmod", "777", path) unless stat.mode & 0o777 == 0o777
-    system("/usr/bin/sudo", "-n", "/usr/bin/chown", "0:0", path) unless stat.uid == 0
   rescue Errno::ENOENT
     # directory disappeared — race condition, ignore
   end
