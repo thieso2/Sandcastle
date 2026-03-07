@@ -184,3 +184,19 @@ watch docker logs -f sandcastle-worker - nothing in there. debug and fix!
 </task-notification>
 Read the output file to retrieve the result: REDACTED.output
 
+### Prompt 24
+
+<task-notification>
+<task-id>b88zeuefz</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Check worker logs via system docker" failed with exit code 255</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+### Prompt 25
+
+createing a new sandcaste thru the UI the dashboard does not get the update  that teh sandbox is running...
+why?
+

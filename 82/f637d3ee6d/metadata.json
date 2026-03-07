@@ -69,9 +69,9 @@
     "app/views/tailscale/show.html.erb",
     "app/views/terminal/show.html.erb",
     "bin/dev",
+    "config/cable.yml",
     "config/database.yml",
     "config/environments/development.rb",
-    "config/environments/production.rb",
     "config/environments/test.rb",
     "config/initializers/active_record_encryption.rb",
     "config/initializers/container_sync.rb",
@@ -341,10 +341,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3590,
-    "cache_creation_tokens": 1842160,
-    "cache_read_tokens": 111259196,
-    "output_tokens": 317635,
-    "api_call_count": 1176
+    "input_tokens": 3571,
+    "cache_creation_tokens": 1836621,
+    "cache_read_tokens": 108835534,
+    "output_tokens": 315599,
+    "api_call_count": 1159
   }
 }
