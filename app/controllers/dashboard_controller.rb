@@ -12,6 +12,9 @@ class DashboardController < ApplicationController
     vnc_active = VncManager.new.active?(sandbox: sandbox)
     tailscale_ip = sandbox.tailscale? ? TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox) : nil
     render turbo_stream: turbo_stream.replace(helpers.dom_id(sandbox), partial: "dashboard/sandbox", locals: { sandbox: sandbox, vnc_active: vnc_active, tailscale_ip: tailscale_ip })
+  rescue ActiveRecord::RecordNotFound
+    # Sandbox was destroyed/archived while the dashboard was open — remove the card
+    render turbo_stream: turbo_stream.remove("sandbox_#{params[:id]}")
   end
 
   def stats
