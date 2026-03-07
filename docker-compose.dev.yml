@@ -163,7 +163,7 @@ services:
         BUILD_GIT_SHA: ""
         BUILD_GIT_DIRTY: ""
         BUILD_DATE: ""
-    container_name: sandcastle-dev-worker
+    container_name: sandcastle-worker
     group_add:
       - "${DOCKER_GID:-0}"
     volumes:
