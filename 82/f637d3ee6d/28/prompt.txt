@@ -806,3 +806,56 @@ yes
 ---
 
 worker is called sandcastle-dev-worker in dev ? rename it to sandcastle-worker
+
+---
+
+hos to start docker in a sancastle?
+
+---
+
+thies@thies-wise-panther:/workspace$ cat /run/docker-status
+cat: /run/docker-status: No such file or directory (os error 2)
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+ahh - never mind - thsi is sandcastle running on orbstack - o DiD support!
+
+---
+
+debug whe vnc and ssh paged do not work on 100.106.185.92
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+debug why vnc and ssh paged do not work on 100.106.185.92 (https://100.106.185.92 and ssh 100.106.185.92 -l sandcastle)
+
+---
+
+[Request interrupted by user]
+
+---
+
+ssh 100.106.185.92 -l sandcastle!
+
+---
+
+the host in question is 100.106.185.92
+
+---
+
+[Request interrupted by user]
+
+---
+
+the host in question is 100.106.185.92 - docker is /sandcastle/bin/docker
+
+---
+
+now theres a sandbox - and vnc and ssh do not woer in teh ui!
