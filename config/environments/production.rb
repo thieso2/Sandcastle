@@ -57,6 +57,7 @@ Rails.application.configure do
   # Replace the default in-process and non-durable queuing backend for Active Job.
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
+  config.solid_queue.silence_polling = true
 
   # Use the errors database for solid_errors error tracking
   config.solid_errors.connects_to = { database: { writing: :errors, reading: :errors } }
