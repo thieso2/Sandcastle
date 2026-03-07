@@ -2,8 +2,8 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "ghostty-web-terminal",
-  "checkpoints_count": 36,
+  "branch": "main",
+  "checkpoints_count": 39,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -330,13 +330,20 @@
       "context": "/82/f637d3ee6d/28/context.md",
       "content_hash": "/82/f637d3ee6d/28/content_hash.txt",
       "prompt": "/82/f637d3ee6d/28/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/29/metadata.json",
+      "transcript": "/82/f637d3ee6d/29/full.jsonl",
+      "context": "/82/f637d3ee6d/29/context.md",
+      "content_hash": "/82/f637d3ee6d/29/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/29/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3561,
-    "cache_creation_tokens": 1833803,
-    "cache_read_tokens": 107924478,
-    "output_tokens": 314432,
-    "api_call_count": 1153
+    "input_tokens": 3593,
+    "cache_creation_tokens": 1864235,
+    "cache_read_tokens": 108286908,
+    "output_tokens": 319408,
+    "api_call_count": 1171
   }
 }
