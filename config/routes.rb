@@ -114,7 +114,7 @@ Rails.application.routes.draw do
     end
     resources :snapshots, only: [ :index, :create, :show, :destroy ], param: :name
     resources :users
-    resource :status, only: :show
+    resource :status, only: :show, controller: "status"
     resource :info, only: :show
     resources :tokens, only: [ :index, :create, :destroy ]
     namespace :auth do
