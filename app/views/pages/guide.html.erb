@@ -84,8 +84,19 @@ sandcastle tailscale enable --auth-key tskey-auth-...</code></pre>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># tmux session (reconnectable, auto-starts stopped sandboxes)
 sandcastle connect my-dev
 
-# Plain SSH
-sandcastle ssh my-dev</code></pre>
+# Plain SSH (no tmux)
+sandcastle ssh my-dev
+
+# Pass extra SSH options after --
+sandcastle connect my-dev -- -L 8080:localhost:8080
+sandcastle ssh my-dev -- -D 1080</code></pre>
+
+    <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">SSH agent forwarding</h3>
+    <p class="text-gray-700 mb-3">
+      The CLI automatically forwards your local SSH agent (<code class="bg-gray-100 px-1 rounded">-A</code>)
+      so you can use your SSH keys (e.g. for Git) inside the sandbox without copying them.
+      This works with the default SSH protocol.
+    </p>
 
     <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Mosh (persistent, roaming sessions)</h3>
     <p class="text-gray-700 mb-3">
@@ -93,6 +104,12 @@ sandcastle ssh my-dev</code></pre>
       for a connection that survives network changes and high-latency links. Mosh is pre-installed in every sandbox.
     </p>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle connect --mosh my-dev</code></pre>
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-3 text-sm text-yellow-800">
+      <strong>Warning:</strong> Mosh does <strong>not</strong> support SSH agent forwarding.
+      Mosh drops the SSH connection after bootstrap and switches to UDP, which has no agent forwarding support.
+      Your <code class="bg-yellow-100 px-1 rounded">ssh-add -l</code> keys will not be available inside the sandbox.
+      If you need agent forwarding (e.g. for Git over SSH), use the default SSH protocol instead.
+    </div>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-3 text-sm text-blue-800">
       <strong>Requirements:</strong> <code class="bg-blue-100 px-1 rounded">mosh</code> must be installed on your local machine
       (<code class="bg-blue-100 px-1 rounded">brew install mosh</code> on macOS,

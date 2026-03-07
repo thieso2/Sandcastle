@@ -90,6 +90,7 @@ var connectCmd = &cobra.Command{
 		}
 
 		if protocol == "mosh" {
+			fmt.Fprintf(os.Stderr, "\033[33mWarning:\033[0m mosh does not support SSH agent forwarding. Use --ssh if you need ssh-add keys inside the sandbox.\n")
 			return moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, passthrough)
 		}
 		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, passthrough)
