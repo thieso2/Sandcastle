@@ -17,14 +17,15 @@ import (
 
 const tmuxCmd = "sc-tmux"
 
-var connectMosh bool
-var connectSSH bool
+var connectMoshFlag string
 
 func init() {
 	rootCmd.AddCommand(connectCmd)
 	rootCmd.AddCommand(sshCmd)
-	connectCmd.Flags().BoolVar(&connectMosh, "mosh", false, "Connect using mosh (overrides config preference)")
-	connectCmd.Flags().BoolVar(&connectSSH, "ssh", false, "Connect using SSH (overrides config preference)")
+	connectCmd.Flags().StringVar(&connectMoshFlag, "mosh", "", "Use mosh (yes|no). Bare --mosh equals --mosh=yes")
+	connectCmd.Flags().Lookup("mosh").NoOptDefVal = "yes"
+	sshCmd.Flags().StringVar(&connectMoshFlag, "mosh", "", "Use mosh (yes|no). Bare --mosh equals --mosh=yes")
+	sshCmd.Flags().Lookup("mosh").NoOptDefVal = "yes"
 }
 
 var connectCmd = &cobra.Command{
@@ -78,19 +79,10 @@ var connectCmd = &cobra.Command{
 			remoteCmd = tmuxCmd
 		}
 
-		// Explicit flags take precedence; otherwise auto-detect or use saved preference
-		var protocol string
-		switch {
-		case connectMosh:
-			protocol = "mosh"
-		case connectSSH:
-			protocol = "ssh"
-		default:
-			protocol = pickProtocol(cfg, info.Host, info.Port, info.User, prefs.SSHExtraArgs)
-		}
+		protocol := resolveProtocol(cmd, cfg, info.Host, info.Port, info.User, prefs.SSHExtraArgs)
 
 		if protocol == "mosh" {
-			fmt.Fprintf(os.Stderr, "\033[33mWarning:\033[0m mosh does not support SSH agent forwarding. Use --ssh if you need ssh-add keys inside the sandbox.\n")
+			fmt.Fprintf(os.Stderr, "\033[33mWarning:\033[0m mosh does not support SSH agent forwarding. Use --mosh=no if you need ssh-add keys inside the sandbox.\n")
 			return moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, passthrough)
 		}
 		return sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, passthrough)
@@ -134,6 +126,11 @@ var sshCmd = &cobra.Command{
 		}
 		prefs := cfg.LoadPreferences()
 
+		protocol := resolveProtocol(cmd, cfg, info.Host, info.Port, info.User, prefs.SSHExtraArgs)
+		if protocol == "mosh" {
+			fmt.Fprintf(os.Stderr, "\033[33mWarning:\033[0m mosh does not support SSH agent forwarding.\n")
+			return moshExec(info.Host, info.Port, info.User, "", prefs.SSHExtraArgs, passthrough)
+		}
 		return sshExec(info.Host, info.Port, info.User, "", prefs.SSHExtraArgs, passthrough)
 	},
 }
@@ -150,6 +147,20 @@ func splitArgs(args []string) (string, []string) {
 		return "", nil
 	}
 	return args[0], args[1:]
+}
+
+func resolveProtocol(cmd *cobra.Command, cfg *config.Config, host string, port int, user, extraArgs string) string {
+	if cmd.Flags().Changed("mosh") {
+		switch strings.ToLower(connectMoshFlag) {
+		case "yes", "true", "1":
+			return "mosh"
+		case "no", "false", "0":
+			return "ssh"
+		default:
+			return "ssh"
+		}
+	}
+	return pickProtocol(cfg, host, port, user, extraArgs)
 }
 
 func waitForSSH(host string, port int) error {

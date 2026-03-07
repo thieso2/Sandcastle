@@ -242,7 +242,7 @@ Flags explicitly passed on the command line take precedence over environment var
 
 		var sshErr error
 		if pickProtocol(cfg, info.Host, info.Port, info.User, prefs.SSHExtraArgs) == "mosh" {
-			fmt.Fprintf(os.Stderr, "\033[33mWarning:\033[0m mosh does not support SSH agent forwarding. Use --ssh if you need ssh-add keys inside the sandbox.\n")
+			fmt.Fprintf(os.Stderr, "\033[33mWarning:\033[0m mosh does not support SSH agent forwarding. Use --mosh=no if you need ssh-add keys inside the sandbox.\n")
 			sshErr = moshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, nil)
 		} else {
 			sshErr = sshExec(info.Host, info.Port, info.User, remoteCmd, prefs.SSHExtraArgs, nil)
