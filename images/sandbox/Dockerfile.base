@@ -102,10 +102,13 @@ RUN RUNC_VERSION="v1.1.15" \
        -o /usr/bin/runc \
     && chmod +x /usr/bin/runc
 
-# Install mise + Claude Code + Codex to /usr/local/bin so they are available
-# even when the user's home directory is bind-mounted from the host.
-# mise provides Node.js; npm installs @anthropic-ai/claude-code (native binary).
+# Install mise + Claude Code + Codex.
+# mise data/config live in /usr/local/share/mise and /usr/local/etc/mise so
+# all users share the same tool installs — no per-user setup needed.
+# claude is copied (not symlinked) because it's a standalone native binary.
 # Retry: mise install/exec can fail transiently in Docker builds (exit 127).
+ENV MISE_DATA_DIR=/usr/local/share/mise
+ENV MISE_CONFIG_DIR=/usr/local/etc/mise
 RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh \
     && /usr/local/bin/mise use --global node@lts \
     && /usr/local/bin/mise install \
@@ -116,7 +119,7 @@ RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh \
          echo "Retry $attempt: mise exec failed, retrying in 5s..."; sleep 5; \
        done \
     && NODE_VER=$(/usr/local/bin/mise current node) \
-    && cp -L "/root/.local/share/mise/installs/node/${NODE_VER}/bin/claude" \
+    && cp -L "/usr/local/share/mise/installs/node/${NODE_VER}/bin/claude" \
        /usr/local/bin/claude
 
 # ttyd — web terminal (two ports: 7681=tmux, 7682=shell)
@@ -134,7 +137,11 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # Shell config: mise activation, aliases
 # Tools are in /usr/local/bin (already on PATH), no need for ~/.local/bin
-RUN echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
+# MISE_DATA_DIR and MISE_CONFIG_DIR go in /etc/environment so SSH sessions
+# (which don't inherit Docker ENV) pick up the shared mise install paths.
+RUN echo "MISE_DATA_DIR=/usr/local/share/mise" >> /etc/environment \
+    && echo "MISE_CONFIG_DIR=/usr/local/etc/mise" >> /etc/environment \
+    && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
     && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc \
     && echo "alias ycodex='codex --dangerously-bypass-approvals-and-sandbox'" >> /etc/bash.bashrc \
     && echo '[ -r /run/docker-status ] && echo "DinD: $(cat /run/docker-status)"' >> /etc/bash.bashrc
