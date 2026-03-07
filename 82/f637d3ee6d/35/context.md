@@ -65,3 +65,7 @@ thies@thies-sysbox:~$ ssh-add -l
 error fetching identities: communication with agent failed
 thies@thies-sysbox:~$
 
+### Prompt 10
+
+still broken - create a sandboc and connect .- fix it!
+

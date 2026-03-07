@@ -58,3 +58,7 @@ Server: 100.106.185.92 (https://100.106.185.92)
 thies@thies-sysbox:~$ ssh-add -l
 error fetching identities: communication with agent failed
 thies@thies-sysbox:~$
+
+---
+
+still broken - create a sandboc and connect .- fix it!
