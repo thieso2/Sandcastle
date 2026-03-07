@@ -10,3 +10,8 @@ plain whe /usr/local/bin/ssh-agent-switcher does not work when doing "sc c sysbo
 
 commit push and release!
 
+### Prompt 3
+
+also add  -- [options to pass to ssh] 
+to connet and ssh
+
