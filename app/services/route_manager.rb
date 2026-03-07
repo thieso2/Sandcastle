@@ -158,7 +158,20 @@ class RouteManager
         certs << { "certFile" => "/data/certs/custom-cert.pem", "keyFile" => "/data/certs/custom-key.pem" }
       end
 
-      File.write(tls_path, { "tls" => { "certificates" => certs } }.to_yaml)
+      tls_config = {
+        "tls" => {
+          "certificates" => certs,
+          "stores" => {
+            "default" => {
+              "defaultCertificate" => {
+                "certFile" => "#{cert_dir}/cert.pem",
+                "keyFile" => "#{cert_dir}/key.pem"
+              }
+            }
+          }
+        }
+      }
+      File.write(tls_path, tls_config.to_yaml)
     else
       File.delete(tls_path) if File.exist?(tls_path)
     end

@@ -715,7 +715,11 @@ class SandboxManager
   # Prefer busybox (tiny), fall back to alpine, then any local image.
   def fix_image
     %w[busybox:latest alpine:latest].each do |img|
-      return img if Docker::Image.get(img) rescue nil
+      begin
+        return img if Docker::Image.get(img)
+      rescue Docker::Error::DockerError
+        next
+      end
     end
     # Last resort: use any image already present
     all = Docker::Image.all
