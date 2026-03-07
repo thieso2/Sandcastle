@@ -242,8 +242,7 @@ func moshExec(host string, port int, user string, remoteCmd string, extraArgs st
 		fmt.Sprintf("%s@%s", user, host),
 	}
 	if remoteCmd != "" {
-		moshArgs = append(moshArgs, "--")
-		moshArgs = append(moshArgs, strings.Fields(remoteCmd)...)
+		moshArgs = append(moshArgs, "--", "bash", "-c", remoteCmd)
 	}
 
 	moshPath, err := exec.LookPath("mosh")
