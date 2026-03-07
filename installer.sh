@@ -910,13 +910,20 @@ ensure_dirs() {
     "$SANDCASTLE_HOME"/data/wetty
   chown -R "${SANDCASTLE_UID}:${SANDCASTLE_GID}" \
     "$SANDCASTLE_HOME"/data/traefik/dynamic
-  # Per-user dirs: own the user-level parent, then chmod 777 the bind-mount
-  # targets so Sysbox-mapped root can write to them.
+  # Per-user dirs: own the user-level parent and all direct children so the
+  # Rails container (UID $SANDCASTLE_UID) can create subdirectories.
+  # Then chmod 777 the bind-mount targets so Sysbox-mapped root can write.
   for d in "$SANDCASTLE_HOME"/data/users/*; do
-    [ -d "$d" ] && chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$d"
+    if [ -d "$d" ]; then
+      chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$d"
+      # Also fix any direct children (home, data, chrome-profile, tailscale, etc.)
+      find "$d" -maxdepth 1 -mindepth 1 -type d \
+        -exec chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" {} +
+    fi
   done
   for d in "$SANDCASTLE_HOME"/data/users/*/home \
            "$SANDCASTLE_HOME"/data/users/*/data \
+           "$SANDCASTLE_HOME"/data/users/*/chrome-profile \
            "$SANDCASTLE_HOME"/data/sandboxes/*/vol; do
     [ -d "$d" ] && chmod 777 "$d"
   done
@@ -1717,7 +1724,9 @@ DAEMONJSONEOF
     # Installing as dockyard.sh means the script's own ../etc/dockyard.env
     # auto-discovery works: ${BIN_DIR}/dockyard.sh finds ${ETC_DIR}/dockyard.env
     # without needing DOCKYARD_ENV to be set.
-    cp "$LOADED_ENV_FILE" "${ETC_DIR}/dockyard.env"
+    local _dest="${ETC_DIR}/dockyard.env"
+    [ "$(realpath "$LOADED_ENV_FILE")" = "$(realpath "$_dest" 2>/dev/null)" ] \
+        || cp "$LOADED_ENV_FILE" "$_dest"
     cp "${SCRIPT_DIR}/dockyard.sh" "${BIN_DIR}/dockyard.sh"
     chmod +x "${BIN_DIR}/dockyard.sh"
     ln -sf dockyard.sh "${BIN_DIR}/dockyardctl"

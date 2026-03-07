@@ -26,12 +26,18 @@
       <% end %>
 
       <% if policy(:user).index? %>
-        <%= link_to "Admin", main_app.admin_dashboard_path,
-              class: "px-3 py-1.5 rounded-md text-sm font-medium transition-colors #{
+        <% unresolved_errors = SolidErrors::Error.unresolved.count rescue 0 %>
+        <%= link_to main_app.admin_dashboard_path,
+              class: "px-3 py-1.5 rounded-md text-sm font-medium transition-colors inline-flex items-center gap-1.5 #{
                 controller_path.start_with?("admin") ?
                   'bg-gray-900 text-white' :
                   'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }" %>
+              }" do %>
+          Admin
+          <% if unresolved_errors > 0 %>
+            <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold bg-red-500 text-white"><%= unresolved_errors %></span>
+          <% end %>
+        <% end %>
       <% end %>
 
       <span class="mx-2 h-5 w-px bg-gray-200"></span>

@@ -14,10 +14,9 @@ class TailscaleController < ApplicationController
     Rails.cache.write("ts_tag:#{Current.user.id}", tag, expires_in: 10.minutes) if tag
     hostname = params[:tailscale_hostname].presence
     Rails.cache.write("ts_hostname:#{Current.user.id}", hostname, expires_in: 10.minutes) if hostname
-    TailscaleManager.new.start_login(user: Current.user)
-    redirect_to tailscale_path, status: :see_other
-  rescue TailscaleManager::Error, Docker::Error::DockerError => e
-    flash[:alert] = e.message
+
+    Current.user.update!(tailscale_state: "pending")
+    TailscaleLoginJob.perform_later(user_id: Current.user.id)
     redirect_to tailscale_path, status: :see_other
   end
 
@@ -27,7 +26,20 @@ class TailscaleController < ApplicationController
   end
 
   def login_status
-    result = TailscaleManager.new.check_login(user: Current.user)
+    user = Current.user
+
+    # Job hasn't created the container yet
+    if user.tailscale_pending? && user.tailscale_container_id.blank?
+      error = Rails.cache.read("ts_login_error:#{user.id}")
+      if error
+        Rails.cache.delete("ts_login_error:#{user.id}")
+        user.update!(tailscale_state: "disabled")
+        return render json: { status: "error", error: error }, status: :unprocessable_entity
+      end
+      return render json: { status: "starting", message: "Starting sidecar container..." }
+    end
+
+    result = TailscaleManager.new.check_login(user: user)
     render json: result
   rescue TailscaleManager::Error => e
     render json: { status: "error", error: e.message }, status: :unprocessable_entity

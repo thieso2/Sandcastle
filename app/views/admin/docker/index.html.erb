@@ -1,0 +1,141 @@
+<div class="max-w-6xl mx-auto px-4 py-8">
+  <h2 class="text-xl font-semibold text-gray-900 mb-6">Infrastructure Containers</h2>
+
+  <div class="grid gap-4 mb-8">
+    <% @containers.each do |c| %>
+      <div class="bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="inline-block w-2.5 h-2.5 rounded-full <%= c[:exists] && c[:state] == 'running' ? 'bg-green-500' : 'bg-red-500' %>"></span>
+            <span class="font-mono font-medium text-gray-900"><%= c[:name] %></span>
+            <% if c[:exists] %>
+              <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded"><%= c[:state] %></span>
+              <span class="text-xs text-gray-400"><%= c[:status] %></span>
+            <% else %>
+              <span class="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded">not found</span>
+            <% end %>
+          </div>
+          <% if c[:exists] %>
+            <button type="button"
+                    data-container="<%= c[:name] %>"
+                    onclick="toggleLogs(this)"
+                    class="log-toggle text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">
+              Show Logs
+            </button>
+          <% end %>
+        </div>
+        <div class="log-panel hidden mt-4" id="logs-<%= c[:name] %>">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-gray-500">Last <span class="line-count">200</span> lines</span>
+            <div class="flex items-center gap-2">
+              <select onchange="reloadLogs('<%= c[:name] %>', this.value)"
+                      class="text-xs border border-gray-300 rounded px-2 py-1 bg-white">
+                <option value="100">100 lines</option>
+                <option value="200" selected>200 lines</option>
+                <option value="500">500 lines</option>
+                <option value="1000">1000 lines</option>
+              </select>
+              <button type="button" onclick="reloadLogs('<%= c[:name] %>')"
+                      class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
+                Refresh
+              </button>
+            </div>
+          </div>
+          <pre class="log-output bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto max-h-96 overflow-y-auto font-mono whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# ── Docker daemon info ── %>
+  <h2 class="text-xl font-semibold text-gray-900 mb-4">Docker Daemon</h2>
+  <div class="bg-white border border-gray-200 rounded-lg p-4">
+    <% begin %>
+      <% info = Docker.info %>
+      <% version = Docker.version %>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div>
+          <span class="text-gray-500 block">Version</span>
+          <span class="font-mono font-medium"><%= version["Version"] %></span>
+        </div>
+        <div>
+          <span class="text-gray-500 block">API Version</span>
+          <span class="font-mono font-medium"><%= version["ApiVersion"] %></span>
+        </div>
+        <div>
+          <span class="text-gray-500 block">Containers</span>
+          <span class="font-mono font-medium"><%= info["ContainersRunning"] %> running / <%= info["Containers"] %> total</span>
+        </div>
+        <div>
+          <span class="text-gray-500 block">Images</span>
+          <span class="font-mono font-medium"><%= info["Images"] %></span>
+        </div>
+        <div>
+          <span class="text-gray-500 block">Storage Driver</span>
+          <span class="font-mono font-medium"><%= info["Driver"] %></span>
+        </div>
+        <div>
+          <span class="text-gray-500 block">Runtimes</span>
+          <span class="font-mono font-medium"><%= info["Runtimes"]&.keys&.join(", ") %></span>
+        </div>
+        <div>
+          <span class="text-gray-500 block">OS / Arch</span>
+          <span class="font-mono font-medium"><%= info["OperatingSystem"] %> (<%= info["Architecture"] %>)</span>
+        </div>
+        <div>
+          <span class="text-gray-500 block">Docker Root</span>
+          <span class="font-mono font-medium"><%= info["DockerRootDir"] %></span>
+        </div>
+      </div>
+    <% rescue Docker::Error::DockerError => e %>
+      <p class="text-red-600 text-sm">Failed to connect to Docker: <%= e.message %></p>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  function toggleLogs(button) {
+    var name = button.dataset.container;
+    var panel = document.getElementById("logs-" + name);
+    if (panel.classList.contains("hidden")) {
+      panel.classList.remove("hidden");
+      button.textContent = "Hide Logs";
+      loadLogs(name, 200);
+    } else {
+      panel.classList.add("hidden");
+      button.textContent = "Show Logs";
+    }
+  }
+
+  function reloadLogs(name, tail) {
+    if (!tail) {
+      var select = document.querySelector("#logs-" + name + " select");
+      tail = select ? select.value : 200;
+    }
+    loadLogs(name, tail);
+  }
+
+  function loadLogs(name, tail) {
+    var panel = document.getElementById("logs-" + name);
+    var output = panel.querySelector(".log-output");
+    var countSpan = panel.querySelector(".line-count");
+    output.textContent = "Loading...";
+    countSpan.textContent = tail;
+
+    fetch("/admin/docker/" + encodeURIComponent(name) + "/logs?tail=" + tail, {
+      headers: { "Accept": "application/json" }
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          output.textContent = "Error: " + data.error;
+        } else {
+          output.textContent = data.lines.join("\n");
+          output.scrollTop = output.scrollHeight;
+        }
+      })
+      .catch(function(e) {
+        output.textContent = "Failed to fetch logs: " + e.message;
+      });
+  }
+</script>

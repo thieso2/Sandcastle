@@ -81,6 +81,10 @@ Rails.application.routes.draw do
       end
     end
 
+    resources :docker, only: :index, controller: "docker" do
+      get :logs, on: :member
+    end
+
     # Job monitoring dashboard
     mount MissionControl::Jobs::Engine, at: "/jobs"
 

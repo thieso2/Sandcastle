@@ -671,7 +671,9 @@ DAEMONJSONEOF
     # Installing as dockyard.sh means the script's own ../etc/dockyard.env
     # auto-discovery works: ${BIN_DIR}/dockyard.sh finds ${ETC_DIR}/dockyard.env
     # without needing DOCKYARD_ENV to be set.
-    cp "$LOADED_ENV_FILE" "${ETC_DIR}/dockyard.env"
+    local _dest="${ETC_DIR}/dockyard.env"
+    [ "$(realpath "$LOADED_ENV_FILE")" = "$(realpath "$_dest" 2>/dev/null)" ] \
+        || cp "$LOADED_ENV_FILE" "$_dest"
     cp "${SCRIPT_DIR}/dockyard.sh" "${BIN_DIR}/dockyard.sh"
     chmod +x "${BIN_DIR}/dockyard.sh"
     ln -sf dockyard.sh "${BIN_DIR}/dockyardctl"

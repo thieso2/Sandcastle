@@ -87,18 +87,18 @@ class TailscaleManager
     raise Error, "Failed to enable Tailscale: #{e.message}"
   end
 
-  # Phase 1: create and start sidecar, return immediately
+  # Phase 1: create and start sidecar, return immediately.
+  # Called from TailscaleLoginJob — user is already in "pending" state.
   def start_login(user:)
     raise Error, "Tailscale already active" if user.tailscale_enabled?
 
-    # If pending, clean up the old attempt first
-    cleanup_sidecar(user) if user.tailscale_pending?
+    # If there's an old container, clean up first
+    cleanup_sidecar(user) if user.tailscale_container_id.present?
 
     hostname = Rails.cache.read("ts_hostname:#{user.id}")
     network_name, container = create_and_start_sidecar(user: user, auth_key: nil, hostname: hostname)
 
     user.update!(
-      tailscale_state: "pending",
       tailscale_container_id: container.id,
       tailscale_network: network_name
     )

@@ -102,12 +102,15 @@ class BtrfsHelper
       raise Error, "Snapshot restore failed: #{e.message}"
     end
 
-    # Check if a path is on a BTRFS filesystem
+    # Check if a path is on a BTRFS filesystem AND we can run sudo btrfs commands.
+    # Inside containers, the bind mount preserves the BTRFS filesystem type but
+    # sudo is not available, so BTRFS operations would silently fail.
     def btrfs?(path = DATA_DIR)
       return @is_btrfs if defined?(@is_btrfs)
 
-      result = system("stat -f -c %T #{path} 2>/dev/null | grep -q '^btrfs$'")
-      @is_btrfs = result == true
+      is_btrfs_fs = system("stat -f -c %T #{path} 2>/dev/null | grep -q '^btrfs$'")
+      has_sudo = is_btrfs_fs && system("/usr/bin/sudo -n /usr/bin/btrfs --version >/dev/null 2>&1")
+      @is_btrfs = has_sudo == true
     rescue StandardError => e
       Rails.logger.warn("BTRFS detection failed: #{e.message}")
       @is_btrfs = false

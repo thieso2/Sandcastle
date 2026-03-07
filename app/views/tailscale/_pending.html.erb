@@ -34,6 +34,7 @@
 
   <%# ── Login link (hidden until ready) ── %>
   <div id="login-link" class="hidden mb-4">
+    <p id="popup-notice" class="text-sm text-gray-600 mb-2 hidden">A login window was opened. If it was blocked, click the button below.</p>
     <a id="login-url" href="#" target="_blank" rel="noopener"
        class="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
       Open Tailscale Login
@@ -89,7 +90,11 @@
           linkDiv.classList.remove("hidden");
           if (!urlOpened) {
             urlOpened = true;
-            window.open(data.login_url, "_blank", "noopener,noreferrer");
+            var w = 600, h = 700;
+            var left = (screen.width - w) / 2, top = (screen.height - h) / 2;
+            var popup = window.open(data.login_url, "tailscale_login", "width=" + w + ",height=" + h + ",left=" + left + ",top=" + top + ",noopener,noreferrer");
+            var notice = document.getElementById("popup-notice");
+            if (notice) { notice.classList.remove("hidden"); }
           }
         }
       } else if (data.status === "authenticated") {
@@ -111,11 +116,14 @@
 
     var urlOpened = false;
 
-    var poll = setInterval(function() {
+    function pollOnce() {
       fetch("<%= login_status_tailscale_path %>", { headers: { "Accept": "application/json" } })
         .then(function(r) { return r.json(); })
         .then(updateUI)
         .catch(function() {});
-    }, 2000);
+    }
+
+    pollOnce();
+    var poll = setInterval(pollOnce, 2000);
   })();
 </script>
