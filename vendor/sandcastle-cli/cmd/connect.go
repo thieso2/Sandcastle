@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const tmuxCmd = "if command -v ssh-agent-switcher >/dev/null 2>&1; then ssh-agent-switcher --daemon 2>/dev/null; export SSH_AUTH_SOCK=/tmp/ssh-agent.$USER; fi; tmux new-session -A -s main"
+const tmuxCmd = "sc-tmux"
 
 var connectMosh bool
 var connectSSH bool
@@ -242,7 +242,7 @@ func moshExec(host string, port int, user string, remoteCmd string, extraArgs st
 		fmt.Sprintf("%s@%s", user, host),
 	}
 	if remoteCmd != "" {
-		moshArgs = append(moshArgs, "--", "bash", "-c", remoteCmd)
+		moshArgs = append(moshArgs, "--", remoteCmd)
 	}
 
 	moshPath, err := exec.LookPath("mosh")
