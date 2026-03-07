@@ -45,3 +45,13 @@ mise ERROR Run with --verbose or MISE_VERBOSE=1 for more information
 
 mosh-server: execvp: if: No such file or di...
 
+### Prompt 8
+
+still teh problem!
+dO ~/Projects/GitHub/Sandcastle/vendor/sandcastle-cli [main] % ./sandcastle c sysbox
+[mosh is exiting.]
+~/Projects/GitHub/Sandcastle/vendor/sandcastle-cli [main] % ./sandcastle c sysbox
+sthies@thies-sysbox:~$ ssh-add -l
+error fetching identities: communication with agent failed
+thies@thies-sysbox:~$
+

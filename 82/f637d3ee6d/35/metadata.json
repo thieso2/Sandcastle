@@ -3,30 +3,32 @@
   "checkpoint_id": "82f637d3ee6d",
   "session_id": "59cad604-fcd1-422c-9fed-f053242bfb14",
   "strategy": "manual-commit",
-  "created_at": "2026-03-07T20:47:18.520777Z",
+  "created_at": "2026-03-07T20:51:30.824011Z",
   "branch": "main",
   "checkpoints_count": 1,
   "files_touched": [
+    "images/sandbox/Dockerfile",
+    "images/sandbox/sc-tmux.sh",
     "vendor/sandcastle-cli/cmd/connect.go"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "c0ac8b53-72e4-4310-a939-7e250a89b989",
-  "checkpoint_transcript_start": 571,
-  "transcript_lines_at_start": 571,
+  "transcript_identifier_at_start": "4617f6ca-fd1a-40a7-be88-a2bc5b4f1b71",
+  "checkpoint_transcript_start": 601,
+  "transcript_lines_at_start": 601,
   "token_usage": {
-    "input_tokens": 11,
-    "cache_creation_tokens": 2859,
-    "cache_read_tokens": 588520,
-    "output_tokens": 1815,
-    "api_call_count": 7
+    "input_tokens": 14,
+    "cache_creation_tokens": 10146,
+    "cache_read_tokens": 924798,
+    "output_tokens": 8338,
+    "api_call_count": 10
   },
   "initial_attribution": {
-    "calculated_at": "2026-03-07T20:47:18.442881Z",
+    "calculated_at": "2026-03-07T20:51:30.752433Z",
     "agent_lines": 0,
-    "human_added": 12,
-    "human_modified": 14,
+    "human_added": 27,
+    "human_modified": 15,
     "human_removed": 0,
-    "total_committed": 24,
+    "total_committed": 41,
     "agent_percentage": 0
   }
 }

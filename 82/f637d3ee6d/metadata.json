@@ -94,6 +94,7 @@
     "images/sandbox/Dockerfile.base",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
+    "images/sandbox/sc-tmux.sh",
     "install-defaults",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
@@ -384,10 +385,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5328,
-    "cache_creation_tokens": 2043150,
-    "cache_read_tokens": 114456645,
-    "output_tokens": 353709,
-    "api_call_count": 1310
+    "input_tokens": 5331,
+    "cache_creation_tokens": 2050437,
+    "cache_read_tokens": 114792923,
+    "output_tokens": 360232,
+    "api_call_count": 1313
   }
 }
