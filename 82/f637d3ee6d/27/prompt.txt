@@ -131,3 +131,7 @@ now lets look at the fix in this commit  https://github.com/thieso2/Sandcastle/c
 ---
 
 commit
+
+---
+
+explain Ruby 4.0 incompatibilities - arenÄt we eunnint ruby 4.0 everywhere and from the start? Make sure we use the same ruby version everywhere and that all tests are green!

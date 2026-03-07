@@ -52,6 +52,8 @@
     "app/views/sandboxes/show.html.erb",
     "app/views/settings/show.html.erb",
     "app/views/tailscale/show.html.erb",
+    "config/database.yml",
+    "config/environments/test.rb",
     "config/initializers/active_record_encryption.rb",
     "config/initializers/container_sync.rb",
     "config/initializers/mission_control_jobs.rb",
@@ -77,11 +79,17 @@
     "installer/templates/dockyard.sh",
     "installer/templates/sandcastle-admin.sh",
     "mise.toml",
+    "test/controllers/registrations_controller_test.rb",
     "test/controllers/terminal_controller_test.rb",
+    "test/fixtures/sandboxes.yml",
+    "test/fixtures/users.yml",
+    "test/jobs/sandbox_destroy_job_test.rb",
+    "test/jobs/sandbox_provision_job_test.rb",
+    "test/models/invite_test.rb",
     "test/services/sandbox_manager_test.rb",
     "test/services/tailscale_manager_test.rb",
     "test/support/docker_mock.rb",
-    "tmp/pids/server.pid",
+    "test/test_helper.rb",
     "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/api/types.go",
     "vendor/sandcastle-cli/cmd/config.go",
@@ -294,10 +302,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3438,
-    "cache_creation_tokens": 1786437,
-    "cache_read_tokens": 88849229,
-    "output_tokens": 290504,
-    "api_call_count": 1032
+    "input_tokens": 3497,
+    "cache_creation_tokens": 1810808,
+    "cache_read_tokens": 101192639,
+    "output_tokens": 305546,
+    "api_call_count": 1103
   }
 }
