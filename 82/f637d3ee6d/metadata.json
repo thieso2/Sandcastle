@@ -47,9 +47,6 @@
     "app/views/admin/users/_form.html.erb",
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/dashboard/index.html.erb",
-    "app/views/layouts/admin.html.erb",
-    "app/views/layouts/mission_control/jobs/application.html.erb",
-    "app/views/layouts/solid_errors/application.html.erb",
     "app/views/pages/guide.html.erb",
     "app/views/sandboxes/logs.html.erb",
     "app/views/sandboxes/show.html.erb",
@@ -60,7 +57,6 @@
     "config/initializers/active_record_encryption.rb",
     "config/initializers/container_sync.rb",
     "config/initializers/mission_control_jobs.rb",
-    "config/initializers/solid_errors.rb",
     "config/recurring.yml",
     "config/routes.rb",
     "db/migrate/20260222074421_add_mode_and_public_port_to_routes.rb",
@@ -90,7 +86,6 @@
     "test/jobs/sandbox_destroy_job_test.rb",
     "test/jobs/sandbox_provision_job_test.rb",
     "test/models/invite_test.rb",
-    "test/services/ensure_dir_test.rb",
     "test/services/sandbox_manager_test.rb",
     "test/services/tailscale_manager_test.rb",
     "test/support/docker_mock.rb",
@@ -314,10 +309,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3614,
-    "cache_creation_tokens": 1921789,
-    "cache_read_tokens": 109042979,
-    "output_tokens": 329954,
-    "api_call_count": 1204
+    "input_tokens": 3521,
+    "cache_creation_tokens": 1819161,
+    "cache_read_tokens": 103157761,
+    "output_tokens": 308079,
+    "api_call_count": 1121
   }
 }

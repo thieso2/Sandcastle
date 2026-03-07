@@ -190,3 +190,22 @@ Summary:
    - Update Tailscale connect workflow: immediate redirect to waiting page, background sidecar creation, auto-open login URL
    - Add Docker admin tab showing infra container ...
 
+### Prompt 16
+
+cert for https://dev.sand:8443/ is broken - use dev.sand as hostname for local dev - fix it!
+
+### Prompt 17
+
+<task-notification>
+<task-id>bgdoz264t</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Start dev stack with fresh volumes" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+### Prompt 18
+
+yes
+
