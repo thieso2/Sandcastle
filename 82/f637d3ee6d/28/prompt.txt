@@ -393,3 +393,7 @@ Backtrace
 [GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:358 in Kernel#catch
 [GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:358 in block in Concurrent::RubyThreadPoolExecutor::Worker#create_worker
 Solid Errors  |  Made by @fractaledmind and friends! Want to help? It's open source!
+
+---
+
+verify teh fix in with local docker install!
