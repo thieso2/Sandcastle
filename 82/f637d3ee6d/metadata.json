@@ -78,8 +78,10 @@
     "installer/templates/sandcastle-admin.sh",
     "mise.toml",
     "test/controllers/terminal_controller_test.rb",
+    "test/services/sandbox_manager_test.rb",
     "test/services/tailscale_manager_test.rb",
     "test/support/docker_mock.rb",
+    "tmp/pids/server.pid",
     "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/api/types.go",
     "vendor/sandcastle-cli/cmd/config.go",
@@ -292,10 +294,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3484,
-    "cache_creation_tokens": 1908886,
-    "cache_read_tokens": 95676994,
-    "output_tokens": 302462,
-    "api_call_count": 1072
+    "input_tokens": 3438,
+    "cache_creation_tokens": 1786437,
+    "cache_read_tokens": 88849229,
+    "output_tokens": 290504,
+    "api_call_count": 1032
   }
 }

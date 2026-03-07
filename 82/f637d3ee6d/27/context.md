@@ -58,3 +58,11 @@ Summary:
    - **VNC Debugging**: User wanted to debug opening VNC on Sandcastle at 100.106.185.92. Root cause was Traefik Host header mismatch — Rails router matched `Host('192.168.2.50')` but access was via Tailscale IP.
    - **Dockyard Upgrade**: User requested upgrading Dockyard to the latest version from `htt...
 
+### Prompt 13
+
+now lets look at the fix in this commit  https://github.com/thieso2/Sandcastle/commit/4aa1967ca52ae5be4f89e704418197b6fe4f585a - is it still nneded with the new sysbox. if now - remove or simplify it. make sure you donÄt break anything. run all meeded tests!
+
+### Prompt 14
+
+commit
+

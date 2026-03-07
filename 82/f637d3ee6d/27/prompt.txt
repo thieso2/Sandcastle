@@ -123,3 +123,11 @@ Summary:
 
 If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
 Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.
+
+---
+
+now lets look at the fix in this commit  https://github.com/thieso2/Sandcastle/commit/4aa1967ca52ae5be4f89e704418197b6fe4f585a - is it still nneded with the new sysbox. if now - remove or simplify it. make sure you donÄt break anything. run all meeded tests!
+
+---
+
+commit
