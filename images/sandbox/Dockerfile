@@ -6,6 +6,9 @@ FROM ghcr.io/thieso2/sandcastle-sandbox-base:latest
 
 ARG SANDCASTLE_VERSION=dev
 
+# Always pull latest security patches and package updates
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 # Bake version into the image
 RUN echo "${SANDCASTLE_VERSION}" > /etc/sandcastle-version
 
