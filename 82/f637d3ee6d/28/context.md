@@ -91,3 +91,45 @@ commit and push
 
 we cannot open the tailscale in a popup (blocked by browser) - can we open in a new tab?
 
+### Prompt 10
+
+commit
+
+### Prompt 11
+
+i still get 
+🔥
+SandboxManager::Error
+from
+application.solid_queue
+#1
+Failed to create mount directories: Permission denied @ dir_s_mkdir - /sandcastle/data/users/thies/chrome-profile
+Severity
+🔥
+error
+Status
+⏳
+unresolved
+First seen
+1 minute ago
+Last seen
+1 minute ago
+Exception class
+SandboxManager::Error
+Source
+application.solid_queue
+Project root
+/rails
+Gem root
+/usr/local/bundle/ruby/4.0.0
+Back to errors
+
+Resolve, Error #1
+
+
+Occurrences
+1 total
+
+« ‹ › »
+2026-03-07 12:57:07 UTC (1 ...
+

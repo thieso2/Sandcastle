@@ -51,7 +51,6 @@
     "app/views/sandboxes/logs.html.erb",
     "app/views/sandboxes/show.html.erb",
     "app/views/settings/show.html.erb",
-    "app/views/tailscale/_pending.html.erb",
     "app/views/tailscale/show.html.erb",
     "config/database.yml",
     "config/environments/test.rb",
@@ -310,10 +309,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 3506,
-    "cache_creation_tokens": 1813031,
-    "cache_read_tokens": 102159423,
-    "output_tokens": 307355,
-    "api_call_count": 1110
+    "input_tokens": 3511,
+    "cache_creation_tokens": 1819666,
+    "cache_read_tokens": 102638612,
+    "output_tokens": 309881,
+    "api_call_count": 1113
   }
 }
