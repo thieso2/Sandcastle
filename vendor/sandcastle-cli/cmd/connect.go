@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const tmuxCmd = "if command -v ssh-agent-switcher >/dev/null 2>&1; then ssh-agent-switcher --daemon 2>/dev/null; export SSH_AUTH_SOCK=/tmp/ssh-agent.$USER; fi; tmux new-session -A -s main"
+
 var connectMosh bool
 var connectSSH bool
 
@@ -73,7 +75,7 @@ var connectCmd = &cobra.Command{
 
 		var remoteCmd string
 		if *prefs.UseTmux {
-			remoteCmd = "tmux new-session -A -s main"
+			remoteCmd = tmuxCmd
 		}
 
 		// Explicit flags take precedence; otherwise auto-detect or use saved preference

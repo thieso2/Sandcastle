@@ -237,7 +237,7 @@ Flags explicitly passed on the command line take precedence over environment var
 
 		var remoteCmd string
 		if *prefs.UseTmux {
-			remoteCmd = "tmux new-session -A -s main"
+			remoteCmd = tmuxCmd
 		}
 
 		var sshErr error
