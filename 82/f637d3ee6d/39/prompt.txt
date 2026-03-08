@@ -1,0 +1,1 @@
+resolve conflict in https://github.com/thieso2/Sandcastle/pull/81

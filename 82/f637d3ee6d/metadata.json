@@ -2,8 +2,8 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "claude/issue-76-20260308-0858",
-  "checkpoints_count": 49,
+  "branch": "claude/issue-77-20260308-0724",
+  "checkpoints_count": 50,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -87,6 +87,7 @@
     "db/migrate/20260302000003_add_archive_retention_to_users.rb",
     "db/migrate/20260306153839_create_container_metrics.rb",
     "db/migrate/20260307151841_add_terminal_emulator_to_users.rb",
+    "db/schema.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
     "docker-compose.yml",
@@ -404,13 +405,20 @@
       "context": "/82/f637d3ee6d/38/context.md",
       "content_hash": "/82/f637d3ee6d/38/content_hash.txt",
       "prompt": "/82/f637d3ee6d/38/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/39/metadata.json",
+      "transcript": "/82/f637d3ee6d/39/full.jsonl",
+      "context": "/82/f637d3ee6d/39/context.md",
+      "content_hash": "/82/f637d3ee6d/39/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/39/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 5435,
-    "cache_creation_tokens": 2114104,
-    "cache_read_tokens": 123173596,
-    "output_tokens": 372152,
-    "api_call_count": 1399
+    "input_tokens": 5454,
+    "cache_creation_tokens": 2129224,
+    "cache_read_tokens": 123524902,
+    "output_tokens": 374372,
+    "api_call_count": 1416
   }
 }
