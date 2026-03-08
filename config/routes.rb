@@ -74,7 +74,10 @@ Rails.application.routes.draw do
     get "update_status", to: "dashboard#update_status"
     resource :update, only: [], controller: "update" do
       get  :check
-      post :perform
+      post :pull
+      get  :status
+      post :restart
+      get  :progress
     end
     resource :settings, only: [ :edit, :update ]
     resources :users

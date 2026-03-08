@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Updating Sandcastle…</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      text-align: center;
+      max-width: 28rem;
+      padding: 2rem;
+    }
+    .spinner {
+      width: 3rem; height: 3rem;
+      border: 3px solid #334155;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .status { color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    .dots::after {
+      content: '';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0%  { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+    }
+    .done { color: #22c55e; }
+    .log {
+      margin-top: 1.5rem;
+      text-align: left;
+      font-size: 0.75rem;
+      color: #64748b;
+      max-height: 8rem;
+      overflow-y: auto;
+    }
+    .log div { padding: 0.125rem 0; }
+    .log .time { color: #475569; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Updating Sandcastle<span class="dots"></span></h1>
+    <p class="status" id="status">Waiting for the new version to come online</p>
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const pollUrl = "<%= api_info_path %>";
+    const dashUrl = "<%= admin_dashboard_path %>";
+    const log     = document.getElementById("log");
+    const title   = document.getElementById("title");
+    const status  = document.getElementById("status");
+    const spinner = document.getElementById("spinner");
+    let attempt = 0;
+
+    function addLog(msg) {
+      const now = new Date().toLocaleTimeString();
+      const div = document.createElement("div");
+      div.innerHTML = `<span class="time">${now}</span> ${msg}`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function poll() {
+      attempt++;
+      try {
+        const resp = await fetch(pollUrl, {
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        });
+        if (resp.ok) {
+          addLog("New version is live!");
+          spinner.style.borderTopColor = "#22c55e";
+          spinner.style.animation = "none";
+          title.innerHTML = "Update Complete";
+          title.classList.add("done");
+          status.textContent = "Redirecting to dashboard…";
+          setTimeout(() => { window.location.href = dashUrl; }, 1500);
+          return;
+        }
+        addLog(`Attempt ${attempt}: server returned ${resp.status}`);
+      } catch (e) {
+        addLog(`Attempt ${attempt}: waiting for server…`);
+      }
+      setTimeout(poll, 3000);
+    }
+
+    addLog("App is restarting…");
+    // Give the updater container time to start docker compose
+    setTimeout(poll, 5000);
+  </script>
+</body>
+</html>
