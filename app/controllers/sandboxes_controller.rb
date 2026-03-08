@@ -49,7 +49,7 @@ class SandboxesController < ApplicationController
       status: "pending",
       image: image,
       mount_home: params[:mount_home] == "1",
-      data_path: params[:data_path].presence,
+      data_path: params[:mount_data] == "1" ? (params[:data_path].presence || ".") : nil,
       tailscale: params[:tailscale] == "1",
       vnc_enabled: params[:vnc_enabled] != "0",
       vnc_geometry: Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900",

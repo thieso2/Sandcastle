@@ -122,7 +122,7 @@ All service errors inherit from `ServiceName::Error` and are rescued in `Api::Ba
 Each sandbox = one Sysbox container (`sysbox-runc` runtime) with:
 - SSH on a unique host port (range 2201–2299)
 - User home bind-mounted from `/data/users/{name}/home`
-- Optional persistent volume at `/data/sandboxes/{name}/vol:/workspace`
+- Optional persistent data volume at `/data/users/{name}/data/{path}:/persisted`
 - Optional Tailscale connectivity via per-user bridge network + sidecar
 
 The sandbox image (`images/sandbox/`) is Ubuntu 24.04 with Docker-in-Docker, SSH server, and dev tools. Key details:

@@ -116,7 +116,7 @@ Sources: [firecracker-containerd networking](https://github.com/firecracker-micr
 
 **Impact on Sandcastle:**
 - Cannot bind-mount `/data/users/{name}/home` into microVMs
-- Cannot bind-mount `/data/sandboxes/{name}/vol:/workspace`
+- Cannot bind-mount `/data/sandboxes/{name}/vol:/persisted`
 - Would need to use virtio-block devices, sacrificing flexibility
 - Sharing a home directory across multiple sandboxes for the same user becomes very difficult
 

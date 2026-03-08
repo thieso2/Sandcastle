@@ -186,7 +186,7 @@ if command -v ttyd &>/dev/null; then
 fi
 
 # Set up and start Samba for SMB file sharing (SMB3-only, no NetBIOS).
-# Accessible via the sandbox's Tailscale IP on port 445: smb://<ip>/home or smb://<ip>/workspace
+# Accessible via the sandbox's Tailscale IP on port 445: smb://<ip>/home or smb://<ip>/persisted
 SMB_ENABLED="${SANDCASTLE_SMB_ENABLED:-0}"
 if command -v smbd &>/dev/null && [ "$SMB_ENABLED" = "1" ]; then
     cat > /etc/samba/smb.conf << SMBCONF
@@ -216,12 +216,12 @@ if command -v smbd &>/dev/null && [ "$SMB_ENABLED" = "1" ]; then
     directory mask = 0755
 SMBCONF
 
-    # Add workspace share if the persistent volume is mounted
-    if [ -d /workspace ]; then
+    # Add persisted data share if the volume is mounted
+    if [ -d /persisted ]; then
         cat >> /etc/samba/smb.conf << SMBCONF2
 
-[workspace]
-    path = /workspace
+[persisted]
+    path = /persisted
     browseable = yes
     read only = no
     valid users = $USERNAME

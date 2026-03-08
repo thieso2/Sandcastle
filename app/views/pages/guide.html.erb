@@ -156,7 +156,7 @@ sandcastle ssh my-dev -- -D 1080</code></pre>
   <section class="mb-10">
     <h2 class="text-xl font-semibold text-gray-900 mb-3">8. SMB file sharing</h2>
     <p class="text-gray-700 mb-3">
-      Mount your sandbox home directory or <code class="bg-gray-100 px-1 rounded">/workspace</code>
+      Mount your sandbox home directory or <code class="bg-gray-100 px-1 rounded">/persisted</code>
       as a network drive from macOS, Windows, or Linux using SMB3.
       This is useful for editing files with your local IDE or dragging and dropping in Finder/Explorer.
     </p>
@@ -175,7 +175,7 @@ sandcastle create my-dev --smb --tailscale</code></pre>
     <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Connect</h3>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># macOS (Finder → Go → Connect to Server, or in Terminal):
 open smb://&lt;tailscale-ip&gt;/home
-open smb://&lt;tailscale-ip&gt;/workspace   # if --persistent was used
+open smb://&lt;tailscale-ip&gt;/persisted   # if --data was used
 
 # Windows (File Explorer → Map Network Drive):
 \\&lt;tailscale-ip&gt;\home
@@ -270,7 +270,7 @@ sandcastle route delete myapp --id 42</code></pre>
     <p class="text-gray-700 mb-3">
       Save and restore the full state of a sandbox. Snapshots are composite — they capture
       the container filesystem (via <code class="bg-gray-100 px-1 rounded">docker commit</code>)
-      and, when on a BTRFS filesystem, also the home directory, data directory, and workspace volume.
+      and, when on a BTRFS filesystem, also the home directory and data directory.
     </p>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Create a snapshot (all available layers)
 sandcastle snapshot create my-dev before-migration

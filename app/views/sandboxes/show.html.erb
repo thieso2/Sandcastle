@@ -145,8 +145,8 @@
         <div class="space-y-1 text-xs font-mono bg-gray-50 border border-gray-200 rounded p-3">
           <div><span class="text-gray-500">macOS:</span> smb://&lt;tailscale-ip&gt;/home</div>
           <div><span class="text-gray-500">Windows:</span> \\&lt;tailscale-ip&gt;\home</div>
-          <% if @sandbox.persistent_volume? %>
-            <div><span class="text-gray-500">workspace:</span> smb://&lt;tailscale-ip&gt;/workspace</div>
+          <% if @sandbox.data_path.present? %>
+            <div><span class="text-gray-500">persisted:</span> smb://&lt;tailscale-ip&gt;/persisted</div>
           <% end %>
         </div>
         <p class="text-xs text-gray-500 mt-2">Username: <%= @sandbox.user.name %> · Password: the SMB password set in <%= link_to "Settings", settings_path, class: "text-blue-600 hover:underline" %>.</p>

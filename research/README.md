@@ -117,7 +117,7 @@ All evaluated alternatives have critical blockers that make them unsuitable for 
 ### Why Docker + Sysbox Wins
 
 1. **Only solution optimized for Docker-in-Docker**
-   - Persistent workspaces (`/workspace` volumes)
+   - Persistent workspaces (`/persisted` volumes)
    - Near-native performance
    - Full Docker API support
 

@@ -19,7 +19,7 @@
 ## Critical Blockers
 
 ### Firecracker
-**❌ No filesystem sharing** — Cannot bind-mount `/data/users/{name}/home` or `/workspace`
+**❌ No filesystem sharing** — Cannot bind-mount `/data/users/{name}/home` or `/persisted`
 
 ### Flintlock
 **❌ No nested virtualization** — Firecracker can't run inside Docker containers where Rails lives
@@ -155,7 +155,7 @@ Does it need persistent workspaces?
 **A:** True, but Sysbox's isolation is sufficient for Sandcastle's threat model (developer sandboxes). The trade-offs (performance, complexity, features) aren't worth it.
 
 ### Q: "What about Firecracker? AWS uses it!"
-**A:** AWS Lambda is ephemeral code execution with no persistent storage. Sandcastle needs persistent workspaces (`/workspace`), which Firecracker doesn't support.
+**A:** AWS Lambda is ephemeral code execution with no persistent storage. Sandcastle needs persistent workspaces (`/persisted`), which Firecracker doesn't support.
 
 ### Q: "Can't we just use Kata for stronger security?"
 **A:** Kata makes Docker builds 2-4x slower. This is Sandcastle's core feature. Users would have a terrible experience.

@@ -24,8 +24,7 @@ A **snapshot** is a named, user-scoped record that captures one or more *layers*
 |---|---|---|---|
 | `container` | Everything installed inside the sandbox (OS, packages, files in `/`) | `docker commit` | Always available |
 | `home` | The user's home directory (`/home/<user>`) | BTRFS subvolume snapshot | BTRFS filesystem + `mount_home` sandbox option |
-| `data` | The shared data mount (`/workspace/data`) | BTRFS subvolume snapshot | BTRFS filesystem + `data_path` sandbox option |
-| `workspace` | The persistent volume (`/workspace`) | BTRFS subvolume snapshot | BTRFS filesystem + `persistent` sandbox option |
+| `data` | The persistent data mount (`/persisted`) | BTRFS subvolume snapshot | BTRFS filesystem + `data_path` sandbox option |
 
 Every snapshot has at least a `container` layer. BTRFS layers are added automatically when the filesystem supports it and the sandbox has those mounts configured.
 
@@ -83,16 +82,6 @@ When the sandbox has a `data_path` configured, the data directory at `/data/user
 
 The `--data-subdir` flag allows snapshotting only a subdirectory of the data mount, which is useful for large data volumes where only part needs to be captured.
 
-### Workspace layer (BTRFS only)
-
-When the sandbox has a persistent volume (`persistent: true`), the workspace at `/data/sandboxes/<sandbox>/vol` is snapshotted to:
-
-```
-/data/snapshots/<username>/<snapshot-name>/workspace
-```
-
-This is stored in the `data_snapshot` database column (shared with the data layer — only one data-side path is stored per snapshot).
-
 ---
 
 ## Storage Layout
@@ -103,7 +92,7 @@ This is stored in the `data_snapshot` database column (shared with the data laye
 │   └── <username>/
 │       └── <snapshot-name>/
 │           ├── home/          ← BTRFS snapshot of home subvolume
-│           └── data/          ← BTRFS snapshot of data/workspace subvolume
+│           └── data/          ← BTRFS snapshot of data subvolume
 │
 └── (Docker daemon stores container layer images internally)
      sc-snap-<username>:<snapshot-name>
@@ -120,7 +109,7 @@ The `snapshots` database table holds metadata for all layers:
 | `docker_size` | Size of the Docker image in bytes |
 | `home_snapshot` | Absolute path to BTRFS home snapshot (if present) |
 | `home_size` | Size of home snapshot in bytes |
-| `data_snapshot` | Absolute path to BTRFS data/workspace snapshot (if present) |
+| `data_snapshot` | Absolute path to BTRFS data snapshot (if present) |
 | `data_size` | Size of data snapshot in bytes |
 | `data_subdir` | Subdir of data mount that was snapshotted (optional) |
 
@@ -347,7 +336,7 @@ Legacy snapshots have only a `container` layer; they have no `home_snapshot` or 
 
 ### `SandboxManager#create_snapshot`
 
-The primary API. Accepts `layers:` to selectively capture a subset. When `layers:` is `nil`, defaults to all four (`container`, `home`, `data`, `workspace`) and skips silently for any that are not applicable.
+The primary API. Accepts `layers:` to selectively capture a subset. When `layers:` is `nil`, defaults to all three (`container`, `home`, `data`) and skips silently for any that are not applicable.
 
 ### `SandboxManager#snapshot` (legacy alias)
 

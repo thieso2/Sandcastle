@@ -27,7 +27,7 @@ func init() {
 	snapshotCmd.AddCommand(snapshotRestoreCmd)
 
 	snapshotCreateCmd.Flags().StringVarP(&snapshotLabel, "label", "l", "", "Human-readable description")
-	snapshotCreateCmd.Flags().StringVar(&snapshotLayers, "layers", "", "Comma-separated layers: container,home,data,workspace (default: all available)")
+	snapshotCreateCmd.Flags().StringVar(&snapshotLayers, "layers", "", "Comma-separated layers: container,home,data (default: all available)")
 	snapshotCreateCmd.Flags().StringVar(&snapshotDataSubdir, "data-subdir", "", "Snapshot only this subdir of the data mount")
 
 	snapshotRestoreCmd.Flags().StringVar(&restoreLayers, "layers", "", "Comma-separated layers to restore (default: all stored layers)")

@@ -11,4 +11,5 @@ if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
     export SSH_AUTH_SOCK=~/.ssh/agent_sock
 fi
 
+cd ~ 2>/dev/null
 exec tmux new-session -A -s main

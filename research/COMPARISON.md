@@ -183,8 +183,7 @@ After comprehensive research of five container/VM isolation technologies, **Dock
    - Cannot bind-mount host directories
    - **Breaks Sandcastle's architecture:**
      - User homes: `/data/users/{name}/home` → `/home/{user}`
-     - Workspaces: `/data/sandboxes/{name}/vol` → `/workspace`
-     - Data dirs: `/data/users/{name}/data/{path}` → `/data`
+     - Data: `/data/users/{name}/data/{path}` → `/persisted`
    - Workarounds (block devices, network filesystems) add massive complexity
 
 2. **Complex Networking**
@@ -346,7 +345,7 @@ After comprehensive research of five container/VM isolation technologies, **Dock
 1. **❌ CRITICAL BLOCKER: Docker-in-Docker Limitation**
    - Requires tmpfs-only upper layers for overlay filesystems
    - **All Docker container changes are ephemeral** (lost on restart)
-   - **Breaks persistent workspace model:** `/data/sandboxes/{name}/vol:/workspace`
+   - **Breaks persistent workspace model:** `/data/users/{name}/data/{path}:/persisted`
    - Cannot persist Docker builds, volumes, or state
 
 2. **Performance Overhead**
@@ -379,7 +378,7 @@ This means all container changes are in-memory and ephemeral.
 **Impact on Sandcastle:**
 - Users lose Docker container state on sandbox restart
 - No persistent workspaces
-- Defeats the purpose of `/workspace` volumes
+- Defeats the purpose of `/persisted` volumes
 - Would require complete architectural rework
 
 #### Implementation Complexity
@@ -482,7 +481,7 @@ From performance benchmarks ([source](https://northflank.com/blog/kata-container
 **Impact on Sandcastle:**
 - Users experience slow Docker builds in sandboxes
 - Image pulls are frustratingly slow
-- File I/O in `/workspace` is degraded
+- File I/O in `/persisted` is degraded
 - Poor user experience for core feature
 
 #### Implementation Complexity

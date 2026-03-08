@@ -208,7 +208,7 @@ RUN npm install -g @anthropic-ai/claude-code
 COPY tmux.conf /etc/tmux.conf
 
 # Working directory
-WORKDIR /workspace
+WORKDIR /persisted
 
 # Default: start tmux session
 CMD ["tmux", "new-session", "-s", "main"]
@@ -274,7 +274,7 @@ class SandboxManager
     if persistent
       vol_path = "/data/sandboxes/#{SecureRandom.uuid}/vol"
       FileUtils.mkdir_p(vol_path)
-      vol_flag = "-v #{vol_path}:/workspace/persistent"
+      vol_flag = "-v #{vol_path}:/persisted/persistent"
     end
 
     cmd = <<~CMD
@@ -427,7 +427,7 @@ Go CLI → POST /api/sandboxes { name: "ml-experiment", persistent_volume: true 
 
 Rails app:
   1. docker exec sandcastle-user-bob docker run -d --name ml-experiment \
-       -v /data/sandboxes/<uuid>/vol:/workspace/persistent \
+       -v /data/sandboxes/<uuid>/vol:/persisted/persistent \
        sandcastle-sandbox:latest
   2. Returns { name: "ml-experiment", status: "running" }
 
@@ -435,7 +435,7 @@ Bob:
   $ sandcastle connect ml-experiment
   # Drops into tmux session inside the sandbox container
   # Can run: claude, docker, git, pip install, etc.
-  # Persistent data goes in /workspace/persistent
+  # Persistent data goes in /persisted/persistent
   # Everything else is ephemeral (destroyed with sandbox)
 ```
 

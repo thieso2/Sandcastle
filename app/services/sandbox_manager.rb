@@ -349,7 +349,7 @@ class SandboxManager
   # Create a composite snapshot (Docker image + optional BTRFS layers).
   # Returns a Snapshot ActiveRecord object.
   #
-  # layers: array of "container", "home", "data", "workspace"
+  # layers: array of "container", "home", "data"
   #   nil means "all available" based on sandbox config
   def create_snapshot(sandbox:, name:, label: nil, layers: nil, data_subdir: nil)
     raise Error, "Sandbox has no running container" if sandbox.container_id.blank?

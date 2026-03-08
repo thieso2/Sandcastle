@@ -129,7 +129,7 @@ From the Sandcastle codebase and CLAUDE.md:
 - **Runtime:** All sandbox containers use `runtime: sysbox-runc` in Docker API calls
 - **Container creation:** Standard Docker API via `docker-api` gem (Ruby)
 - **Networking:** Standard Docker bridge networks and port bindings
-- **Volumes:** Host directories bind-mounted at `/data/users/{name}/home` and `/data/sandboxes/{name}/vol:/workspace`
+- **Volumes:** Host directories bind-mounted at `/data/users/{name}/home` and `/data/sandboxes/{name}/vol:/persisted`
 - **SSH access:** Exposed via unique host ports (2201-2299 range)
 - **Entrypoint:** Custom `entrypoint.sh` that creates user, injects SSH keys, starts dockerd, then sshd
 
@@ -194,7 +194,7 @@ From the [distro compatibility doc](https://github.com/nestybox/sysbox/blob/mast
 
 Sandcastle uses bind mounts for:
 - **User home:** `/data/users/{name}/home:/home/{user}` — shared across all sandboxes for same user
-- **Workspace:** `/data/sandboxes/{name}/vol:/workspace` — per-sandbox persistent storage
+- **Data:** `/data/users/{name}/data/{path}:/persisted` — persistent data volume
 
 With Sysbox's UID mapping, files created inside the container as root or user show up on host with mapped UIDs (e.g., 100000-165535 range), preventing permission conflicts.
 
@@ -304,7 +304,7 @@ Docker::Container.create(
     'PortBindings' => { '22/tcp' => [{ 'HostPort' => ssh_port.to_s }] },
     'Binds' => [
       "#{home_dir}:/home/#{full_name}",
-      "#{workspace_dir}:/workspace"
+      "#{workspace_dir}:/persisted"
     ]
   }
 )

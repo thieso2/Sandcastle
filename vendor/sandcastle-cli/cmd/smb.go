@@ -19,11 +19,11 @@ var smbCmd = &cobra.Command{
 	Short: "Manage SMB file sharing",
 	Long: `Manage SMB (Samba) file sharing for your sandboxes.
 
-SMB lets you mount your sandbox home directory or /workspace as a network drive
+SMB lets you mount your sandbox home directory or /persisted as a network drive
 from macOS, Windows, or Linux. Requires Tailscale for access.
 
 Enable SMB when creating a sandbox with --smb, then connect via:
-  macOS:   smb://<tailscale-ip>/home
+  macOS:   smb://<tailscale-ip>/home  or  smb://<tailscale-ip>/persisted
   Windows: \\<tailscale-ip>\home
   Linux:   mount -t cifs //<tailscale-ip>/home /mnt -o username=<you>`,
 }

@@ -102,7 +102,7 @@ docker run --runtime=runsc -v /var/lib/docker:tmpfs my-sandbox
 ```
 
 **Why This Matters for Sandcastle:**
-Sandcastle relies on persistent workspaces at `/data/sandboxes/{name}/vol:/workspace` where users store code, data, and Docker images/containers. With gVisor's tmpfs requirement, **all Docker state would be ephemeral**.
+Sandcastle relies on persistent data volumes at `/data/users/{name}/data/{path}:/persisted` where users store code, data, and Docker images/containers. With gVisor's tmpfs requirement, **all Docker state would be ephemeral**.
 
 ### Nested gVisor Limitation
 
