@@ -3406,8 +3406,25 @@ EOF
     info "Existing install — loading $SANDCASTLE_HOME/.env"
   fi
 
+  # Save user-configurable values from sandcastle.env before runtime .env overrides them
+  local _user_host="${SANDCASTLE_HOST:-}"
+  local _user_tls_mode="${SANDCASTLE_TLS_MODE:-}"
+
   # shellcheck source=/dev/null
   source "$SANDCASTLE_HOME/.env"
+
+  # Sync user-configurable values: sandcastle.env → runtime .env
+  # This allows users to change SANDCASTLE_HOST or TLS mode and re-run install.
+  if [ -n "$_user_host" ] && [ "$_user_host" != "$SANDCASTLE_HOST" ]; then
+    sed -i "s|^SANDCASTLE_HOST=.*|SANDCASTLE_HOST=${_user_host}|" "$SANDCASTLE_HOME/.env"
+    SANDCASTLE_HOST="$_user_host"
+    info "Updated SANDCASTLE_HOST to $SANDCASTLE_HOST"
+  fi
+  if [ -n "$_user_tls_mode" ] && [ "$_user_tls_mode" != "$SANDCASTLE_TLS_MODE" ]; then
+    sed -i "s|^SANDCASTLE_TLS_MODE=.*|SANDCASTLE_TLS_MODE=${_user_tls_mode}|" "$SANDCASTLE_HOME/.env"
+    SANDCASTLE_TLS_MODE="$_user_tls_mode"
+    info "Updated SANDCASTLE_TLS_MODE to $SANDCASTLE_TLS_MODE"
+  fi
 
   # Backfill vars that may be missing in older .env files
   if [ -z "${DOCKER_SOCK:-}" ]; then
@@ -3503,10 +3520,13 @@ EOF
   if [ "$SANDCASTLE_TLS_MODE" = "selfsigned" ]; then
     if [ ! -f "$TRAEFIK_DIR/certs/cert.pem" ]; then
       info "Generating self-signed certificate..."
+      # Detect IP vs hostname for the SAN extension
+      local san_type="DNS"
+      echo "$SANDCASTLE_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' && san_type="IP"
       openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
         -keyout "$TRAEFIK_DIR/certs/key.pem" -out "$TRAEFIK_DIR/certs/cert.pem" \
         -subj "/CN=$SANDCASTLE_HOST" \
-        -addext "subjectAltName=IP:$SANDCASTLE_HOST" 2>/dev/null
+        -addext "subjectAltName=${san_type}:${SANDCASTLE_HOST},IP:127.0.0.1,DNS:localhost" 2>/dev/null
       ok "Self-signed certificate generated"
     fi
 
