@@ -1,5 +1,6 @@
 class NetworkManager
   SHARED_NETWORK = "sandcastle-web"
+  SUBNET_LOCK_KEY = 738_263_541 # arbitrary fixed key for pg_advisory_xact_lock
 
   class Error < StandardError; end
 
@@ -10,17 +11,19 @@ class NetworkManager
   def ensure_user_network(user)
     network_name = user.network_name.presence || "sc-net-#{user.name}"
 
-    # If the stored network exists in Docker, nothing to do
-    if user.network_name.present? && network_exists?(user.network_name)
+    # If the stored network exists in Docker and belongs to this user, nothing to do
+    if user.network_name.present? && network_owned_by?(user.network_name, user.name)
       return user
     end
 
-    # Serialize subnet allocation to avoid races between concurrent calls
+    # Global advisory lock serializes subnet allocation across all users/processes
+    # to prevent two concurrent calls from picking the same /24.
     User.transaction do
+      ActiveRecord::Base.connection.execute("SELECT pg_advisory_xact_lock(#{SUBNET_LOCK_KEY})")
       user.lock!
       # Re-check after acquiring lock (another process may have created it)
       user.reload
-      if user.network_name.present? && network_exists?(user.network_name)
+      if user.network_name.present? && network_owned_by?(user.network_name, user.name)
         return user
       end
 
@@ -45,13 +48,13 @@ class NetworkManager
 
     return unless sandbox.container_id.present? && user.network_name.present?
 
-    begin
-      network = Docker::Network.get(user.network_name)
-      network.connect(sandbox.container_id)
-    rescue Docker::Error::DockerError => e
-      # Log but don't fail — container may already be connected
-      Rails.logger.warn("NetworkManager: connect #{sandbox.full_name} → #{user.network_name}: #{e.message}")
-    end
+    # Check if already connected before attempting (avoids swallowing real errors)
+    container = Docker::Container.get(sandbox.container_id)
+    connected_networks = container.info.dig("NetworkSettings", "Networks") || {}
+    return if connected_networks.key?(user.network_name)
+
+    network = Docker::Network.get(user.network_name)
+    network.connect(sandbox.container_id)
   rescue Error
     raise
   rescue Docker::Error::DockerError => e
@@ -78,7 +81,13 @@ class NetworkManager
     return if user.network_name.blank?
 
     begin
-      Docker::Network.get(user.network_name).delete
+      network = Docker::Network.get(user.network_name)
+      owner = network.info.dig("Labels", "sandcastle.owner")
+      unless owner == user.name
+        Rails.logger.warn("NetworkManager: refusing to delete network #{user.network_name} — owner label mismatch (#{owner.inspect})")
+        return
+      end
+      network.delete
     rescue Docker::Error::NotFoundError
       # Already gone
     end
@@ -123,6 +132,13 @@ class NetworkManager
   def network_exists?(name)
     Docker::Network.get(name)
     true
+  rescue Docker::Error::NotFoundError
+    false
+  end
+
+  def network_owned_by?(name, expected_owner)
+    network = Docker::Network.get(name)
+    network.info.dig("Labels", "sandcastle.owner") == expected_owner
   rescue Docker::Error::NotFoundError
     false
   end
@@ -174,10 +190,10 @@ class NetworkManager
 
   def create_network(name, subnet, user)
     existing = Docker::Network.get(name)
-    # Verify the existing network belongs to this user
+    # Verify the existing network belongs to this user (missing label = unsafe)
     owner = existing.info.dig("Labels", "sandcastle.owner")
-    if owner && owner != user.name
-      raise Error, "Network #{name} belongs to another user (#{owner}), cannot reuse"
+    unless owner == user.name
+      raise Error, "Network #{name} has no owner label or belongs to another user (#{owner.inspect}), cannot reuse"
     end
     existing
   rescue Docker::Error::NotFoundError

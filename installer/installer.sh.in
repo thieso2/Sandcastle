@@ -309,8 +309,8 @@ setup_network_isolation() {
   : > "$rules_file"
   for name in sandcastle-web sandcastle-traefik sandcastle-worker; do
     local ip
-    ip=$($DOCKER inspect "$name" \
-      --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null) || true
+    ip=$($DOCKER inspect --type=container "$name" \
+      --format '{{with index .NetworkSettings.Networks "sandcastle-web"}}{{.IPAddress}}{{end}}' 2>/dev/null) || true
     if [ -n "$ip" ]; then
       echo "$ip" >> "$rules_file"
     fi

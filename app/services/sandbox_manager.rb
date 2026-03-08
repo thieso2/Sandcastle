@@ -553,7 +553,9 @@ class SandboxManager
 
     # ── Recreate container ────────────────────────────────────────────────────
     final_image = restore_container ? image_ref : sandbox.image
-    sandbox.update!(image: final_image)
+    # Clear stale container reference before recreating — prevents the record
+    # from pointing at a dead container if create_container_and_start fails.
+    sandbox.update!(image: final_image, container_id: nil, status: "pending")
 
     create_container_and_start(sandbox: sandbox, user: user)
 
