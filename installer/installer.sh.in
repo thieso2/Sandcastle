@@ -295,26 +295,14 @@ BANNER_SCRIPT
 }
 
 # ═══ setup_network_isolation ══════════════════════════════════════════════
-# Apply cross-tenant isolation rules on the sandcastle-web bridge network.
-# Blocks sandbox-to-sandbox traffic while allowing infra↔sandbox connections.
+# Write infra container IPs to isolation.d/infra.rules and restart the
+# dockyard service so its ExecStartPost picks up the rules.
 # Must be called AFTER docker-compose is up (so infra container IPs are known).
+# Chain creation and iptables management is handled by dockyard (v0.1.1+).
 
 setup_network_isolation() {
   local isolation_dir="${DOCKYARD_ROOT}/etc/isolation.d"
   local rules_file="${isolation_dir}/infra.rules"
-
-  # Get the bridge interface for sandcastle-web
-  local net_id
-  net_id=$($DOCKER network inspect sandcastle-web --format '{{.Id}}' 2>/dev/null | head -c 12) || true
-  if [ -z "$net_id" ]; then
-    warn "sandcastle-web network not found — skipping network isolation setup"
-    return
-  fi
-  local br="br-${net_id}"
-  if ! ip link show "$br" &>/dev/null; then
-    warn "sandcastle-web bridge ${br} not found — skipping network isolation setup"
-    return
-  fi
 
   # Collect IPs of infrastructure containers (non-sandbox)
   mkdir -p "$isolation_dir"
@@ -329,22 +317,14 @@ setup_network_isolation() {
   done
   wrote "$rules_file"
 
-  # (Re-)build DOCKYARD-ISOLATION chain with infra allow-list
-  iptables -L DOCKYARD-ISOLATION >/dev/null 2>&1 || iptables -N DOCKYARD-ISOLATION
-  iptables -F DOCKYARD-ISOLATION
-  iptables -A DOCKYARD-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-  while IFS= read -r ip; do
-    [ -n "$ip" ] || continue
-    iptables -A DOCKYARD-ISOLATION -s "$ip" -j ACCEPT
-    iptables -A DOCKYARD-ISOLATION -d "$ip" -j ACCEPT
-  done < "$rules_file"
-  iptables -A DOCKYARD-ISOLATION -j DROP
-
-  # Ensure the jump rule is in FORWARD (idempotent)
-  iptables -C FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION 2>/dev/null ||
-    iptables -I FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION
-
-  ok "Cross-tenant network isolation configured on ${br}"
+  # Restart dockyard service to apply isolation rules via ExecStartPost
+  local service_name="${DOCKYARD_DOCKER_PREFIX}docker"
+  if systemctl is-active "$service_name" &>/dev/null; then
+    systemctl restart "$service_name"
+    ok "Cross-tenant network isolation configured (via dockyard service restart)"
+  else
+    warn "Dockyard service ${service_name} not running — isolation rules will apply on next start"
+  fi
 }
 
 # ═══ ensure_dirs ═════════════════════════════════════════════════════════
