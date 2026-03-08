@@ -19,6 +19,7 @@ type Sandbox struct {
 	VNCGeometry      string         `json:"vnc_geometry,omitempty"`
 	VNCDepth         int            `json:"vnc_depth,omitempty"`
 	DockerEnabled    bool           `json:"docker_enabled"`
+	SMBEnabled       bool           `json:"smb_enabled"`
 	Routes           []SandboxRoute `json:"routes"`
 	ConnectCommand   string         `json:"connect_command"`
 	CreatedAt        time.Time      `json:"created_at"`
@@ -192,6 +193,7 @@ type CreateSandboxRequest struct {
 	VNCGeometry   string   `json:"vnc_geometry,omitempty"`
 	VNCDepth      int      `json:"vnc_depth,omitempty"`
 	DockerEnabled bool     `json:"docker_enabled"`
+	SMBEnabled    bool     `json:"smb_enabled,omitempty"`
 }
 
 type UpdateSandboxRequest struct {

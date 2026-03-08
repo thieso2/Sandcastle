@@ -695,6 +695,10 @@ class SandboxManager
     env << "SANDCASTLE_VNC_GEOMETRY=#{sandbox.vnc_geometry}"
     env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
     env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
+    env << "SANDCASTLE_SMB_ENABLED=#{sandbox.smb_enabled? ? '1' : '0'}"
+    if sandbox.smb_enabled? && user.smb_password.present?
+      env << "SANDCASTLE_SMB_PASS=#{user.smb_password}"
+    end
     env
   end
 

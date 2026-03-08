@@ -42,6 +42,10 @@ class Sandbox < ApplicationRecord
     temporary?
   end
 
+  def smb_enabled?
+    smb_enabled
+  end
+
   # Job lifecycle management
   def job_in_progress?
     job_status.present?

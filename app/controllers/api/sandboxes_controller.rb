@@ -54,7 +54,8 @@ module Api
         vnc_geometry: params[:vnc_geometry] || "1280x900",
         vnc_depth: params[:vnc_depth]&.to_i || 24,
         docker_enabled: params.key?(:docker_enabled) ? params[:docker_enabled] : defaults.default_docker_enabled,
-        temporary: params[:temporary] || false
+        temporary: params[:temporary] || false,
+        smb_enabled: params[:smb_enabled] || false
       )
 
       if sandbox.persistent_volume
@@ -267,6 +268,7 @@ module Api
         vnc_geometry: sandbox.vnc_geometry,
         vnc_depth: sandbox.vnc_depth,
         docker_enabled: sandbox.docker_enabled,
+        smb_enabled: sandbox.smb_enabled,
         routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
         created_at: sandbox.created_at,
         archived_at: sandbox.archived_at,

@@ -56,6 +56,7 @@ class SandboxesController < ApplicationController
       vnc_geometry: Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900",
       vnc_depth: Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24,
       docker_enabled: params[:docker_enabled] != "0",
+      smb_enabled: params[:smb_enabled] == "1",
       temporary: false
     )
 

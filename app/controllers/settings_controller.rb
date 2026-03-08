@@ -29,6 +29,16 @@ class SettingsController < ApplicationController
     end
   end
 
+  def update_smb_password
+    @user = Current.user
+
+    if @user.update(smb_password_params)
+      redirect_to settings_path, notice: "SMB password updated."
+    else
+      redirect_to settings_path, alert: "Failed to update SMB password."
+    end
+  end
+
   def toggle_tailscale
     @user = Current.user
 
@@ -67,5 +77,9 @@ class SettingsController < ApplicationController
 
   def password_params
     params.require(:user).permit(:password, :password_confirmation)
+  end
+
+  def smb_password_params
+    params.require(:user).permit(:smb_password)
   end
 end

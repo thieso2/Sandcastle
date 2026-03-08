@@ -482,3 +482,9 @@ func (c *Client) TailscaleDisconnect(sandboxID int) (*Sandbox, error) {
 	err := c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/tailscale_disconnect", sandboxID), nil, &s)
 	return &s, err
 }
+
+// SMB
+
+func (c *Client) SmbSetPassword(password string) error {
+	return c.do("PATCH", "/api/smb/set_password", map[string]string{"password": password}, nil)
+}

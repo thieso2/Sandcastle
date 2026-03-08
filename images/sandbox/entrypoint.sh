@@ -148,5 +148,58 @@ if command -v ttyd &>/dev/null; then
         "ttyd -W -m 1 -p 7682 bash -l &>/var/log/ttyd-shell.log &"
 fi
 
+# Set up and start Samba for SMB file sharing (SMB3-only, no NetBIOS).
+# Accessible via the sandbox's Tailscale IP on port 445: smb://<ip>/home or smb://<ip>/workspace
+SMB_ENABLED="${SANDCASTLE_SMB_ENABLED:-0}"
+if command -v smbd &>/dev/null && [ "$SMB_ENABLED" = "1" ] && [ -n "$SANDCASTLE_SMB_PASS" ]; then
+    cat > /etc/samba/smb.conf << SMBCONF
+[global]
+    disable netbios = yes
+    smb ports = 445
+    server min protocol = SMB3
+    server max protocol = SMB3_11
+    smb encrypt = if_required
+    server signing = required
+    map to guest = never
+    restrict anonymous = 2
+    load printers = no
+    printing = bsd
+    printcap name = /dev/null
+    disable spoolss = yes
+    log level = 1
+    log file = /var/log/samba/smbd.log
+
+[home]
+    path = /home/$USERNAME
+    browseable = yes
+    read only = no
+    valid users = $USERNAME
+    guest ok = no
+    create mask = 0644
+    directory mask = 0755
+SMBCONF
+
+    # Add workspace share if the persistent volume is mounted
+    if [ -d /workspace ]; then
+        cat >> /etc/samba/smb.conf << SMBCONF2
+
+[workspace]
+    path = /workspace
+    browseable = yes
+    read only = no
+    valid users = $USERNAME
+    guest ok = no
+    create mask = 0644
+    directory mask = 0755
+SMBCONF2
+    fi
+
+    mkdir -p /var/log/samba /run/samba
+    # Set the Samba password for the sandbox user
+    (printf "%s\n%s\n" "$SANDCASTLE_SMB_PASS" "$SANDCASTLE_SMB_PASS") | smbpasswd -a -s "$USERNAME" 2>/dev/null || true
+    touch /var/log/samba/smbd.log
+    smbd --foreground --no-process-group &>/var/log/samba/smbd.log &
+fi
+
 # Start SSH daemon in foreground
 exec /usr/sbin/sshd -D -e
