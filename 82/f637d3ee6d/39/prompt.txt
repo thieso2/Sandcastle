@@ -1,1 +1,293 @@
 resolve conflict in https://github.com/thieso2/Sandcastle/pull/81
+
+---
+
+create worktree and check it out
+
+---
+
+pull main and merge or rebase.
+
+---
+
+run test locally in docker
+
+---
+
+fix mise run deploy:dev
+
+---
+
+Check and merge the latest dockyard. Create an incus vm and exercise and verify all (new) functions
+
+---
+
+Wait.
+
+---
+
+create a new incus vm on 100.106.185.92
+
+---
+
+<task-notification>
+<task-id>bhkrzlhfu</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Attach network and restart VM" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+Test all the features - especially samba and multi Tennent .
+Also update without loosing any user data.
+
+---
+
+<task-notification>
+<task-id>b38j16yih</task-id>
+<tool-use-id>toolu_01N2xC8L4iwTFfxoKVDo2NEq</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Install dhclient and try manual DHCP" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+Anything that needs fixing?
+
+---
+
+Commit and push and create release
+
+---
+
+have we updated to v0.1.2 of dockyard yet?
+
+---
+
+sandcaste c name 
+outputs weird stuff:
+
+Last login: Sun Mar  8 11:10:44 on ttys028
+mis%                                                                                                                                                                      ~/Projects/GitHub/Sandcastle [main] % mise release
+[release] $ #!/usr/bin/env bash
+Current version: v0.8.67
+New version:     v0.8.68
+Total 0 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+To github.com:thieso2/Sandcastle.git
+ * [new tag]         v0.8.68 -> v0.8.68
+
+Tag v0.8.68 pushed. GitHub Actions will build the release.
+https://github.com/thieso2/Sandcastle/actions
+~/Projects/GitHub/Sandcastle [main] %
+~/Projects/GitHub/Sandcastle [main] % mise run dev
+[dev] $ #!/usr/bin/env bash
+DEPRECATION WARNING: ActiveSupport::Configurable is deprecated without replacement, and will be removed in Rails 8.2.
+
+You can emulate the previous behavior with `class_attribute`.
+ (called from <main> at /Users/thies/Projects/GitHub/Sandcastle/config/application.rb:7)
+bin/rails aborted!
+ActiveRecord::ConnectionNotEstablished: connection to server at "::1", port 5432 failed: Connection refused (ActiveRecord::ConnectionNotEstablished)
+    Is the server running on that host and accepting TCP/IP connections?
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+    Is the server running on that host and accepting TCP/IP connections?
+
+
+Caused by:
+PG::ConnectionBad: connection to server at "::1", port 5432 failed: Connection refused (PG::ConnectionBad)
+    Is the server running on that host and accepting TCP/IP connections?
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+    Is the server running on that host and accepting TCP/IP connections?
+
+Tasks: TOP => db:prepare
+(See full trace by running task with --trace)
+[dev] ERROR task failed
+~/Projects/GitHub/Sandcastle [main] % mise run dev
+~/Projects/GitHub/Sandcastle [main] % dps
+CONTAINER ID   NAMES                        IMAGE         STATE     STATUS
+2107cc4a55e6   sandcastle-pr81-postgres-1   postgres:18   running   Up 8 seconds (health: starting)
+~/Projects/GitHub/Sandcastle [main] % mise run dev
+[dev] $ #!/usr/bin/env bash
+DEPRECATION WARNING: ActiveSupport::Configurable is deprecated without replacement, and will be removed in Rails 8.2.
+
+You can emulate the previous behavior with `class_attribute`.
+ (called from <main> at /Users/thies/Projects/GitHub/Sandcastle/config/application.rb:7)
+bin/rails aborted!
+ActiveRecord::ConnectionNotEstablished: connection to server at "::1", port 5432 failed: Connection refused (ActiveRecord::ConnectionNotEstablished)
+    Is the server running on that host and accepting TCP/IP connections?
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+    Is the server running on that host and accepting TCP/IP connections?
+
+
+Caused by:
+PG::ConnectionBad: connection to server at "::1", port 5432 failed: Connection refused (PG::ConnectionBad)
+    Is the server running on that host and accepting TCP/IP connections?
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+    Is the server running on that host and accepting TCP/IP connections?
+
+Tasks: TOP => db:prepare
+(See full trace by running task with --trace)
+[dev] ERROR task failed
+~/Projects/GitHub/Sandcastle [main] % mise run dev
+[dev] $ #!/usr/bin/env bash
+DEPRECATION WARNING: ActiveSupport::Configurable is deprecated without replacement, and will be removed in Rails 8.2.
+
+You can emulate the previous behavior with `class_attribute`.
+ (called from <main> at /Users/thies/Projects/GitHub/Sandcastle/config/application.rb:7)
+bin/rails aborted!
+ActiveRecord::ConnectionNotEstablished: connection to server at "::1", port 5432 failed: Connection refused (ActiveRecord::ConnectionNotEstablished)
+    Is the server running on that host and accepting TCP/IP connections?
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+    Is the server running on that host and accepting TCP/IP connections?
+
+
+Caused by:
+PG::ConnectionBad: connection to server at "::1", port 5432 failed: Connection refused (PG::ConnectionBad)
+    Is the server running on that host and accepting TCP/IP connections?
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+    Is the server running on that host and accepting TCP/IP connections?
+
+Tasks: TOP => db:prepare
+(See full trace by running task with --trace)
+[dev] ERROR task failed
+~/Projects/GitHub/Sandcastle [main] % mise run dev
+[dev] $ #!/usr/bin/env bash
+DEPRECATION WARNING: ActiveSupport::Configurable is deprecated without replacement, and will be removed in Rails 8.2.
+
+You can emulate the previous behavior with `class_attribute`.
+ (called from <main> at /Users/thies/Projects/GitHub/Sandcastle/config/application.rb:7)
+bin/rails aborted!
+ActiveRecord::ConnectionNotEstablished: connection to server at "::1", port 5432 failed: Connection refused (ActiveRecord::ConnectionNotEstablished)
+    Is the server running on that host and accepting TCP/IP connections?
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+    Is the server running on that host and accepting TCP/IP connections?
+
+
+Caused by:
+PG::ConnectionBad: connection to server at "::1", port 5432 failed: Connection refused (PG::ConnectionBad)
+    Is the server running on that host and accepting TCP/IP connections?
+connection to server at "127.0.0.1", port 5432 failed: Connection refused
+    Is the server running on that host and accepting TCP/IP connections?
+
+Tasks: TOP => db:prepare
+(See full trace by running task with --trace)
+[dev] ERROR task failed
+~/Projects/GitHub/Sandcastle [main] %
+~/Projects/GitHub/Sandcastle [main] % mise run deploy:dev
+[deploy:dev] $ #!/usr/bin/env bash
+Starting development environment with live reload...
+
+[+] Building 3.1s (22/22) FINISHED
+ => [internal] load local bake definitions                                                                                                                           0.0s
+ => => reading from stdin 1.80kB                                                                                                                                     0.0s
+ => [worker internal] load build definition from Dockerfile                                                                                                          0.0s
+ => => transferring dockerfile: 5.76kB                                                                                                                               0.0s
+ => [worker] resolve image config for docker-image://docker.io/docker/dockerfile:1                                                                                   1.0s
+ => CACHED [migrate] docker-image://docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6                            0.0s
+ => [worker internal] load metadata for docker.io/library/ruby:4.0.1-slim                                                                                            1.0s
+ => [web internal] load .dockerignore                                                                                                                                0.0s
+ => => transferring context: 897B                                                                                                                                    0.0s
+ => [worker development 1/9] FROM docker.io/library/ruby:4.0.1-slim@sha256:f3207b8383a8ed08a043e960984b756a957f05217f1724f9001712696bfaea88                          0.0s
+ => [worker internal] load build context                                                                                                                             0.0s
+ => => transferring context: 62B                                                                                                                                     0.0s
+ => CACHED [worker development 2/9] WORKDIR /rails                                                                                                                   0.0s
+ => CACHED [worker development 3/9] RUN apt-get update -qq &&     apt-get install --no-install-recommends -y     curl libjemalloc2 libvips libpq5 postgresql-client  0.0s
+ => CACHED [worker development 4/9] RUN install -m 0755 -d /etc/apt/keyrings &&     curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/do  0.0s
+ => CACHED [worker development 5/9] RUN groupadd --system --gid 220568 sandcastle &&     useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/ba  0.0s
+ => CACHED [worker development 6/9] COPY Gemfile Gemfile.lock ./                                                                                                     0.0s
+ => CACHED [worker development 7/9] RUN apt-get update -qq &&     apt-get install --no-install-recommends -y libyaml-dev &&     rm -rf /var/lib/apt/lists /var/cach  0.0s
+ => CACHED [worker development 8/9] RUN bundle install                                                                                                               0.0s
+ => CACHED [migrate development 9/9] WORKDIR /rails                                                                                                                  0.0s
+ => [worker] exporting to image                                                                                                                                      0.0s
+ => => exporting layers                                                                                                                                              0.0s
+ => => writing image sha256:2bb338dfb3f290ff9050c673beae26c148e0ffdc29e3b5fae96d5640e3ef3e84                                                                         0.0s
+ => => naming to docker.io/library/sandcastle:dev                                                                                                                    0.0s
+ => [web] exporting to image                                                                                                                                         0.1s
+ => => exporting layers                                                                                                                                              0.0s
+ => => writing image sha256:0dea8dc2324dd56f8d14550eaff864e4fa7d9f93ff9d2224ecafd9399aa03087                                                                         0.1s
+ => => naming to docker.io/library/sandcastle:dev                                                                                                                    0.0s
+ => [migrate] exporting to image                                                                                                                                     0.1s
+ => => exporting layers                                                                                                                                              0.0s
+ => => writing image sha256:bf45a357ef8272caee3dc279593ee8cd1a4a91e3f6e5b8e9c029057fe28a50a0                                                                         0.1s
+ => => naming to docker.io/library/sandcastle:dev                                                                                                                    0.0s
+ => [worker] resolving provenance for metadata file                                                                                                                  0.0s
+ => [migrate] resolving provenance for metadata file                                                                                                                 0.0s
+ => [web] resolving provenance for metadata file                                                                                                                     0.0s
+[+] up 1/1
+ ✔ Image sandcastle:dev Built                                                                                                                                         3.2s
+Attaching to init-data-1, init-traefik-1, migrate-1, postgres-1, sandcastle-traefik, sandcastle-web, sandcastle-worker
+Container sandcastle-init-traefik-1 Waiting
+init-data-1 exited with code 0
+init-traefik-1 exited with code 0
+Container sandcastle-init-traefik-1 Exited
+Error response from daemon: failed to set up container networking: driver failed programming external connectivity on endpoint sandcastle-postgres-1 (2a88caf0455be4b54406f3ba940289305eb628e04cf9b6c5bc7c65a75f0d17ce): Bind for 0.0.0.0:7633 failed: port is already allocated
+[deploy:dev] ERROR task failed
+~/Projects/GitHub/Sandcastle [main] % docker ps
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS                   PORTS                                                                                                                                                 NAMES
+2107cc4a55e6   postgres:18    "docker-entrypoint.s…"   4 minutes ago   Up 4 minutes (healthy)   0.0.0.0:7633->5432/tcp, [::]:7633->5432/tcp                                                                                                           sandcastle-pr81-postgres-1
+d0326d582a9a   traefik:v3.6   "/entrypoint.sh trae…"   19 hours ago    Up 7 seconds             0.0.0.0:3000-3099->3000-3099/tcp, [::]:3000-3099->3000-3099/tcp, 0.0.0.0:8080->80/tcp, [::]:8080->80/tcp, 0.0.0.0:8443->443/tcp, [::]:8443->443/tcp   sandcastle-traefik
+~/Projects/GitHub/Sandcastle [main] % docker ps
+~/Projects/GitHub/Sandcastle [main] % docer
+~/Projects/GitHub/Sandcastle [main] % docker ps
+~/Projects/GitHub/Sandcastle [main] % docker compose -f docker-compose.dev.yml down
+[+] down 8/8
+ ✔ Container sandcastle-traefik        Removed                                                                                                                        0.4s
+ ✔ Container sandcastle-worker         Removed                                                                                                                        0.0s
+ ✔ Container sandcastle-web            Removed                                                                                                                        0.0s
+ ✔ Container sandcastle-init-data-1    Removed                                                                                                                        0.0s
+ ✔ Container sandcastle-migrate-1      Removed                                                                                                                        0.0s
+ ✔ Container sandcastle-postgres-1     Removed                                                                                                                        0.0s
+ ✔ Container sandcastle-init-traefik-1 Removed                                                                                                                        0.0s
+ ✔ Network sandcastle_default          Removed                                                                                                                        0.1s
+~/Projects/GitHub/Sandcastle [main] % docker compose -f docker-compose.dev.yml down
+~/Projects/GitHub/Sandcastle [main] % mise run deploy:dev
+[deploy:dev] $ #!/usr/bin/env bash
+Starting development environment with live reload...
+[+] Building 1.8s (22/22) FINISHED
+ => [internal] load local bake definitions                                                                                                                           0.0s
+ => => reading from stdin 1.80kB                                                                                                                                     0.0s
+ => [worker internal] load build definition from Dockerfile                                                                                                          0.0s
+ => => transferring dockerfile: 5.76kB                                                                                                                               0.0s
+ => [web] resolve image config for docker-image://docker.io/docker/dockerfile:1                                                                                      0.6s
+ => CACHED [web] docker-image://docker.io/docker/dockerfile:1@sha256:b6afd42430b15f2d2a4c5a02b919e98a525b785b1aaff16747d2f623364e39b6                                0.0s
+ => [migrate internal] load metadata for docker.io/library/ruby:4.0.1-slim                                                                                           0.5s
+ => [web internal] load .dockerignore                                                                                                                                0.0s
+ => => transferring context: 897B                                                                                                                                    0.0s
+ => [migrate development 1/9] FROM docker.io/library/ruby:4.0.1-slim@sha256:f3207b8383a8ed08a043e960984b756a957f05217f1724f9001712696bfaea88                         0.0s
+ => [migrate internal] load build context                                                                                                                            0.0s
+ => => transferring context: 62B                                                                                                                                     0.0s
+ => CACHED [migrate development 2/9] WORKDIR /rails                                                                                                                  0.0s
+ => CACHED [migrate development 3/9] RUN apt-get update -qq &&     apt-get install --no-install-recommends -y     curl libjemalloc2 libvips libpq5 postgresql-clien  0.0s
+ => CACHED [migrate development 4/9] RUN install -m 0755 -d /etc/apt/keyrings &&     curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/d  0.0s
+ => CACHED [migrate development 5/9] RUN groupadd --system --gid 220568 sandcastle &&     useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/b  0.0s
+ => CACHED [migrate development 6/9] COPY Gemfile Gemfile.lock ./                                                                                                    0.0s
+ => CACHED [migrate development 7/9] RUN apt-get update -qq &&     apt-get install --no-install-recommends -y libyaml-dev &&     rm -rf /var/lib/apt/lists /var/cac  0.0s
+ => CACHED [migrate development 8/9] RUN bundle install                                                                                                              0.0s
+ => CACHED [migrate development 9/9] WORKDIR /rails                                                                                                                  0.0s
+ => [web] exporting to image                                                                                                                                         0.0s
+ => => exporting layers                                                                                                                                              0.0s
+ => => writing image sha256:0dea8dc2324dd56f8d14550eaff864e4fa7d9f93ff9d2224ecafd9399aa03087                                                                         0.0s
+ => => naming to docker.io/library/sandcastle:dev                                                                                                                    0.0s
+ => [worker] exporting to image                                                                                                                                      0.0s
+ => => exporting layers                                                                                                                                              0.0s
+ => => writing image sha256:2bb338dfb3f290ff9050c673beae26c148e0ffdc29e3b5fae96d5640e3ef3e84                                                                         0.0s
+ => => naming to docker.io/library/sandcastle:dev                                                                                                                    0.0s
+
+---
+
+[Request interrupted by user]
+
+---
+
+<task-notification>
+<task-id>bdrzqxovx</task-id>
+<tool-use-id>toolu_01YZc1b1XdnbY3M6pNaSbRCy</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>killed</status>
+<summary>Background command "Run deploy:dev again" was stopped</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output

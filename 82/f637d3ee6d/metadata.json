@@ -2,8 +2,8 @@
   "cli_version": "0.4.2",
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
-  "branch": "claude/issue-77-20260308-0724",
-  "checkpoints_count": 50,
+  "branch": "main",
+  "checkpoints_count": 49,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -415,10 +415,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5454,
-    "cache_creation_tokens": 2129224,
-    "cache_read_tokens": 123524902,
-    "output_tokens": 374372,
-    "api_call_count": 1416
+    "input_tokens": 5662,
+    "cache_creation_tokens": 2241861,
+    "cache_read_tokens": 137627929,
+    "output_tokens": 409809,
+    "api_call_count": 1565
   }
 }
