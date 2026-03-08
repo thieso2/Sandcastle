@@ -27,7 +27,6 @@ development:
     <<: *default
     database: sandcastle_development_errors
     migrations_paths: db/errors_migrate
-    schema_dump: errors_schema
 
 test:
   primary:
@@ -49,7 +48,6 @@ test:
     <<: *default
     database: sandcastle_test_errors
     migrations_paths: db/errors_migrate
-    schema_dump: errors_schema
 
 production:
   primary:
@@ -71,4 +69,3 @@ production:
     <<: *default
     database: sandcastle_production_errors
     migrations_paths: db/errors_migrate
-    schema_dump: errors_schema
