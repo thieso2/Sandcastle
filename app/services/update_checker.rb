@@ -29,9 +29,10 @@ class UpdateChecker
 
   def perform_check
     {
-      app:        image_status(APP_REPO, "ghcr.io/#{OWNER}/#{APP_REPO}:latest"),
-      sandbox:    image_status(BOX_REPO, "ghcr.io/#{OWNER}/#{BOX_REPO}:latest"),
-      checked_at: Time.current
+      app:              image_status(APP_REPO, "ghcr.io/#{OWNER}/#{APP_REPO}:latest"),
+      sandbox:          image_status(BOX_REPO, "ghcr.io/#{OWNER}/#{BOX_REPO}:latest"),
+      restart_pending:  restart_pending?,
+      checked_at:       Time.current
     }
   rescue => e
     Rails.logger.error("UpdateChecker#perform_check failed: #{e.message}")
@@ -52,6 +53,19 @@ class UpdateChecker
   rescue => e
     Rails.logger.warn("UpdateChecker#image_status(#{repo}) failed: #{e.message}")
     { error: e.message }
+  end
+
+  # Checks if the pulled app image is newer than the running container's image.
+  def restart_pending?
+    container = Docker::Container.get("sandcastle-web")
+    running_image_id = container.info["Image"] || container.json["Image"]
+
+    latest_image = Docker::Image.get("ghcr.io/#{OWNER}/#{APP_REPO}:latest")
+    latest_image_id = latest_image.id
+
+    running_image_id.present? && latest_image_id.present? && running_image_id != latest_image_id
+  rescue Docker::Error::DockerError
+    false
   end
 
   # Returns the manifest digest stored in the image's RepoDigests (e.g.

@@ -35,6 +35,7 @@ class UpdateManager
           pull_image(SANDBOX_IMAGE)
         end
 
+        Rails.cache.delete(UpdateChecker::CACHE_KEY)
         write_status(state: "ready", target: target, step: "Images pulled. Ready to apply.")
       rescue => e
         write_status(state: "error", target: target, step: e.message)

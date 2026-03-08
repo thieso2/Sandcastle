@@ -3,9 +3,10 @@ import { Controller } from "@hotwired/stimulus"
 // Manages the update flow on the admin dashboard:
 //   1. Check for updates (refresh turbo frame)
 //   2. Start pull (POST /pull, then poll /status for progress)
-//   3. When pull is ready: sandbox-only → refresh frame; app → restart + fullscreen progress
+//   3. When pull is ready: sandbox-only → refresh frame; app → show "Restart Now" button
+//   4. Restart → spawn updater container → fullscreen progress page
 export default class extends Controller {
-  static targets = ["checkBtn", "pullProgress", "pullStatus"]
+  static targets = ["checkBtn", "pullProgress", "pullSpinner", "pullStatus", "restartBtn"]
   static values  = {
     checkUrl:    String,
     pullUrl:     String,
@@ -48,6 +49,8 @@ export default class extends Controller {
     // Show pull progress
     this.pullProgressTarget.classList.remove("hidden")
     this.pullStatusTarget.textContent = "Starting pull…"
+    if (this.hasPullSpinnerTarget) this.pullSpinnerTarget.classList.remove("hidden")
+    if (this.hasRestartBtnTarget) this.restartBtnTarget.classList.add("hidden")
 
     try {
       const resp = await fetch(`${this.pullUrlValue}?target=${target}`, {
@@ -72,6 +75,25 @@ export default class extends Controller {
     }
   }
 
+  async restartNow() {
+    if (this.hasRestartBtnTarget) {
+      this.restartBtnTarget.disabled = true
+      this.restartBtnTarget.textContent = "Restarting…"
+    }
+    this.pullStatusTarget.textContent = "Restarting app…"
+    if (this.hasPullSpinnerTarget) this.pullSpinnerTarget.classList.remove("hidden")
+
+    try {
+      await this.#triggerRestart()
+    } catch (e) {
+      alert("Restart failed: " + e.message)
+      if (this.hasRestartBtnTarget) {
+        this.restartBtnTarget.disabled = false
+        this.restartBtnTarget.textContent = "Restart Now"
+      }
+    }
+  }
+
   async #pollPullStatus(target) {
     const needsRestart = target !== "sandbox"
 
@@ -90,8 +112,10 @@ export default class extends Controller {
 
         if (data.state === "ready") {
           if (needsRestart) {
-            this.pullStatusTarget.textContent = "Images pulled. Restarting app…"
-            await this.#triggerRestart()
+            // Show "Restart Now" button, hide spinner
+            this.pullStatusTarget.textContent = "Images pulled."
+            if (this.hasPullSpinnerTarget) this.pullSpinnerTarget.classList.add("hidden")
+            if (this.hasRestartBtnTarget) this.restartBtnTarget.classList.remove("hidden")
           } else {
             // Sandbox-only — just refresh the frame
             this.pullStatusTarget.textContent = "Sandbox image updated!"
