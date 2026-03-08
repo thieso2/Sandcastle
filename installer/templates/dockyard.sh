@@ -862,6 +862,13 @@ ExecStartPre=/bin/bash -c 'iptables -C FORWARD -i ${BRIDGE} -o ${BRIDGE} -j ACCE
 # Add iptables rules for user-defined networks (from default-address-pool) — idempotent
 ExecStartPre=/bin/bash -c 'iptables -C FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null || iptables -I FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT; iptables -C FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null || iptables -I FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT; iptables -t nat -C POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE'
 
+# Cross-tenant isolation on sandcastle-web: block sandbox-to-sandbox traffic on the shared
+# bridge while allowing established/related connections (so infra→sandbox replies flow freely).
+# The bridge name is derived from the sandcastle-web network ID after dockerd is ready.
+# ACCEPT rules for infra container IPs (traefik, rails, worker) are written by the
+# Sandcastle installer and refreshed on docker-compose up — see installer.sh.in.
+ExecStartPost=-/bin/bash -c 'DOCKER=${BIN_DIR}/docker-cli; SOCK=unix://${DOCKER_SOCKET}; net_id=$($DOCKER -H $SOCK network inspect sandcastle-web --format "{{.Id}}" 2>/dev/null | head -c 12); [ -z "$net_id" ] && exit 0; br="br-${net_id}"; ip link show "$br" &>/dev/null || exit 0; iptables -N SANDCASTLE-ISOLATION 2>/dev/null; iptables -F SANDCASTLE-ISOLATION; iptables -A SANDCASTLE-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; for f in ${ETC_DIR}/isolation.d/*.rules 2>/dev/null; do [ -f "$f" ] && while IFS= read -r ip; do [ -n "$ip" ] && { iptables -A SANDCASTLE-ISOLATION -s "$ip" -j ACCEPT; iptables -A SANDCASTLE-ISOLATION -d "$ip" -j ACCEPT; }; done < "$f"; done; iptables -A SANDCASTLE-ISOLATION -j DROP; iptables -C FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION 2>/dev/null || iptables -I FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION'
+
 # Stack script starts sysbox-mgr, sysbox-fs, containerd, dockerd; sends READY once sockets
 # are up; then monitors. ExecStartPost gates systemctl-start on full API readiness so callers
 # of "systemctl start" don't proceed until docker accepts connections.
@@ -878,6 +885,9 @@ ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -i ${BRIDGE} -o ${BRIDGE} -j ACC
 
 # Remove iptables rules (user-defined networks)
 ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -D FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -t nat -D POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE 2>/dev/null'
+
+# Remove cross-tenant isolation chain
+ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -j SANDCASTLE-ISOLATION 2>/dev/null; iptables -F SANDCASTLE-ISOLATION 2>/dev/null; iptables -X SANDCASTLE-ISOLATION 2>/dev/null'
 
 # Remove bridge
 ExecStopPost=-/bin/bash -c 'if ip link show ${BRIDGE} &>/dev/null; then ip link set ${BRIDGE} down 2>/dev/null; ip link delete ${BRIDGE} 2>/dev/null; fi'
@@ -1057,6 +1067,35 @@ cmd_start() {
     wait_for_file "$DOCKER_SOCKET" "dockerd" 30 || cleanup
     echo "  dockerd ready (pid ${DOCKERD_PID})"
 
+    # Cross-tenant isolation for sandcastle-web bridge (if network already exists).
+    # Sets up SANDCASTLE-ISOLATION chain in FORWARD so sandbox-to-sandbox traffic
+    # on the shared bridge is blocked while infra↔sandbox connections are allowed.
+    # Infra IP allow-list is read from ${ETC_DIR}/isolation.d/*.rules (written by installer).
+    local net_id
+    net_id=$("${BIN_DIR}/docker-cli" -H "unix://${DOCKER_SOCKET}" network inspect sandcastle-web \
+        --format '{{.Id}}' 2>/dev/null | head -c 12) || true
+    if [ -n "$net_id" ]; then
+        local br="br-${net_id}"
+        if ip link show "$br" &>/dev/null; then
+            iptables -N SANDCASTLE-ISOLATION 2>/dev/null; iptables -F SANDCASTLE-ISOLATION
+            iptables -A SANDCASTLE-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+            if [ -d "${ETC_DIR}/isolation.d" ]; then
+                for f in "${ETC_DIR}/isolation.d"/*.rules; do
+                    [ -f "$f" ] || continue
+                    while IFS= read -r ip; do
+                        [ -n "$ip" ] || continue
+                        iptables -A SANDCASTLE-ISOLATION -s "$ip" -j ACCEPT
+                        iptables -A SANDCASTLE-ISOLATION -d "$ip" -j ACCEPT
+                    done < "$f"
+                done
+            fi
+            iptables -A SANDCASTLE-ISOLATION -j DROP
+            iptables -C FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION 2>/dev/null ||
+                iptables -I FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION
+            echo "  cross-tenant isolation applied on ${br}"
+        fi
+    fi
+
     echo "=== All daemons started ==="
     echo "Run: DOCKER_HOST=unix://${DOCKER_SOCKET} docker ps"
 }
@@ -1083,6 +1122,11 @@ cmd_stop() {
     iptables -D FORWARD -s "$DOCKYARD_POOL_BASE" -j ACCEPT 2>/dev/null || true
     iptables -D FORWARD -d "$DOCKYARD_POOL_BASE" -j ACCEPT 2>/dev/null || true
     iptables -t nat -D POSTROUTING -s "$DOCKYARD_POOL_BASE" -j MASQUERADE 2>/dev/null || true
+
+    # Remove cross-tenant isolation chain
+    iptables -D FORWARD -j SANDCASTLE-ISOLATION 2>/dev/null || true
+    iptables -F SANDCASTLE-ISOLATION 2>/dev/null || true
+    iptables -X SANDCASTLE-ISOLATION 2>/dev/null || true
 
     # Remove bridge
     if ip link show "$BRIDGE" &>/dev/null; then

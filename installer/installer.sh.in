@@ -294,6 +294,58 @@ BANNER_SCRIPT
   ok "Login banner configured"
 }
 
+# ═══ setup_network_isolation ══════════════════════════════════════════════
+# Apply cross-tenant isolation rules on the sandcastle-web bridge network.
+# Blocks sandbox-to-sandbox traffic while allowing infra↔sandbox connections.
+# Must be called AFTER docker-compose is up (so infra container IPs are known).
+
+setup_network_isolation() {
+  local isolation_dir="${DOCKYARD_ROOT}/etc/isolation.d"
+  local rules_file="${isolation_dir}/infra.rules"
+
+  # Get the bridge interface for sandcastle-web
+  local net_id
+  net_id=$($DOCKER network inspect sandcastle-web --format '{{.Id}}' 2>/dev/null | head -c 12) || true
+  if [ -z "$net_id" ]; then
+    warn "sandcastle-web network not found — skipping network isolation setup"
+    return
+  fi
+  local br="br-${net_id}"
+  if ! ip link show "$br" &>/dev/null; then
+    warn "sandcastle-web bridge ${br} not found — skipping network isolation setup"
+    return
+  fi
+
+  # Collect IPs of infrastructure containers (non-sandbox)
+  mkdir -p "$isolation_dir"
+  : > "$rules_file"
+  for name in sandcastle-web sandcastle-traefik sandcastle-worker; do
+    local ip
+    ip=$($DOCKER inspect "$name" \
+      --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null) || true
+    if [ -n "$ip" ]; then
+      echo "$ip" >> "$rules_file"
+    fi
+  done
+  wrote "$rules_file"
+
+  # (Re-)build SANDCASTLE-ISOLATION chain with infra allow-list
+  iptables -N SANDCASTLE-ISOLATION 2>/dev/null; iptables -F SANDCASTLE-ISOLATION
+  iptables -A SANDCASTLE-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  while IFS= read -r ip; do
+    [ -n "$ip" ] || continue
+    iptables -A SANDCASTLE-ISOLATION -s "$ip" -j ACCEPT
+    iptables -A SANDCASTLE-ISOLATION -d "$ip" -j ACCEPT
+  done < "$rules_file"
+  iptables -A SANDCASTLE-ISOLATION -j DROP
+
+  # Ensure the jump rule is in FORWARD (idempotent)
+  iptables -C FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION 2>/dev/null ||
+    iptables -I FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION
+
+  ok "Cross-tenant network isolation configured on ${br}"
+}
+
 # ═══ ensure_dirs ═════════════════════════════════════════════════════════
 # Create/fix data directories and ownership. Safe to run repeatedly.
 
@@ -1341,9 +1393,11 @@ INITDB
       done
     fi
     rm -rf "$_tmp_bk"
+    setup_network_isolation
   else
     info "Starting Sandcastle..."
     $DOCKER compose up -d
+    setup_network_isolation
 
     # ── Seed database (fresh install without backup) ──────────────────────
 

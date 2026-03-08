@@ -76,6 +76,9 @@ class SandboxManager
     end
     sandbox.update!(container_id: container.id, status: "running")
 
+    # Connect to per-user network for tenant isolation
+    NetworkManager.new.connect_sandbox(sandbox: sandbox)
+
     # Pre-write Traefik routes so they're active immediately (no wait on first open).
     TerminalManager.new.prepare_traefik_config(sandbox)
     VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
@@ -161,6 +164,13 @@ class SandboxManager
       sandbox.update!(status: "archived", container_id: nil, archived_at: Time.current, name: archived_name)
     else
       sandbox.update!(status: "destroyed", container_id: nil)
+    end
+
+    # Remove per-user network if this was the last active sandbox
+    begin
+      NetworkManager.new.cleanup_user_network(sandbox.user)
+    rescue NetworkManager::Error => e
+      Rails.logger.warn("SandboxManager#destroy: network cleanup failed for #{sandbox.user.name}: #{e.message}")
     end
   end
 
@@ -556,6 +566,9 @@ class SandboxManager
 
     container.start
     sandbox.update!(container_id: container.id, image: final_image, status: "running")
+
+    # Connect to per-user network for tenant isolation
+    NetworkManager.new.connect_sandbox(sandbox: sandbox)
 
     # Pre-write Traefik routes so they're active immediately after restore.
     TerminalManager.new.prepare_traefik_config(sandbox)
