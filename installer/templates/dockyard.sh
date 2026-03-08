@@ -144,6 +144,48 @@ cleanup_pool_bridges() {
     [ "$removed" -gt 0 ] || true
 }
 
+# Detect the backing filesystem type for the given data directory.
+# Returns the fstype string (e.g., "ext4", "zfs", "xfs").
+detect_backing_fs() {
+    local data_dir="$1"
+
+    # Walk up to the nearest existing directory
+    local check_dir="$data_dir"
+    while [ ! -d "$check_dir" ]; do
+        check_dir="$(dirname "$check_dir")"
+    done
+
+    df --output=fstype "$check_dir" 2>/dev/null | tail -1 | tr -d '[:space:]'
+}
+
+# Detect the optimal Docker storage driver for the given data directory.
+# Always returns "overlay2" — sysbox-runc does not support ZFS as a container
+# rootfs filesystem (fails with "unknown fs"). overlay2 works on ZFS 2.2+ and
+# on all other common Linux filesystems.
+# Can be overridden with DOCKYARD_STORAGE_DRIVER for future use.
+detect_storage_driver() {
+    local data_dir="$1"
+
+    # Manual override
+    if [ -n "${DOCKYARD_STORAGE_DRIVER:-}" ]; then
+        case "$DOCKYARD_STORAGE_DRIVER" in
+            auto)   ;; # fall through to detection
+            overlay2|zfs)
+                echo "$DOCKYARD_STORAGE_DRIVER"
+                return
+                ;;
+            *)
+                echo "Error: unsupported DOCKYARD_STORAGE_DRIVER=${DOCKYARD_STORAGE_DRIVER} (use auto, overlay2, or zfs)" >&2
+                exit 1
+                ;;
+        esac
+    fi
+
+    # sysbox requires overlay2 — it does not recognize ZFS rootfs.
+    # overlay2 works on ZFS 2.2+ with overlayfs kernel support.
+    echo "overlay2"
+}
+
 wait_for_file() {
     local file="$1"
     local label="$2"
@@ -646,6 +688,15 @@ DOCKEREOF
 
     echo "Installed binaries to ${BIN_DIR}/"
 
+    # Detect storage driver and backing filesystem.
+    # sysbox requires overlay2 — ZFS native driver causes "unknown fs" errors.
+    # overlay2 works on ZFS 2.2+ with overlayfs kernel support.
+    local STORAGE_DRIVER BACKING_FS
+    STORAGE_DRIVER=$(detect_storage_driver "$DOCKER_DATA")
+    BACKING_FS=$(detect_backing_fs "$DOCKER_DATA")
+    echo "  storage:     ${STORAGE_DRIVER} (on ${BACKING_FS})"
+    echo ""
+
     # Write daemon.json (embedded — no external file dependency)
     # sysbox-runc 0.6.7.9-tc parses --run-dir from os.Args in init(), so
     # runtimeArgs works correctly. No wrapper script needed.
@@ -658,7 +709,7 @@ DOCKEREOF
       "runtimeArgs": ["--run-dir", "${SYSBOX_RUN_DIR}"]
     }
   },
-  "storage-driver": "overlay2",
+  "storage-driver": "${STORAGE_DRIVER}",
   "userland-proxy-path": "${BIN_DIR}/docker-proxy",
   "features": {
     "buildkit": true
@@ -835,6 +886,7 @@ Description=Dockyard Docker (${SERVICE_NAME})
 After=network-online.target nss-lookup.target firewalld.service time-set.target
 Before=docker.service
 Wants=network-online.target
+RequiresMountsFor=${DOCKYARD_ROOT}
 StartLimitBurst=3
 StartLimitIntervalSec=60
 
@@ -1338,8 +1390,35 @@ cmd_destroy() {
             echo "Removed instance files from ${DOCKYARD_ROOT}/"
             echo "Data preserved at ${DOCKER_DATA}"
         else
-            rm -rf "$DOCKYARD_ROOT"
-            echo "Removed ${DOCKYARD_ROOT}/"
+            # When the data-root sits on a ZFS dataset, Docker (with overlay2)
+            # may have created overlay dirs that need normal removal, and
+            # rm -rf on a ZFS mountpoint removes contents but can't remove
+            # the mountpoint directory itself.
+            local on_zfs=false
+            if command -v zfs &>/dev/null; then
+                local root_dataset
+                root_dataset="$(df --output=source "$DOCKYARD_ROOT" 2>/dev/null | tail -1 | tr -d '[:space:]')" || true
+                if [ -n "$root_dataset" ] && zfs list "$root_dataset" &>/dev/null; then
+                    on_zfs=true
+                    # Destroy all child ZFS datasets (Docker layers, etc.)
+                    local children
+                    children="$(zfs list -r -H -o name "$root_dataset" 2>/dev/null | tail -n +2 | sort -r)" || true
+                    if [ -n "$children" ]; then
+                        echo "Cleaning up ZFS datasets under ${root_dataset}..."
+                        while IFS= read -r ds; do
+                            zfs destroy -f "$ds" 2>/dev/null || true
+                        done <<< "$children"
+                    fi
+                fi
+            fi
+            if [ "$on_zfs" = true ]; then
+                # Can't remove ZFS mountpoint itself; remove contents only
+                rm -rf "${DOCKYARD_ROOT:?}"/* "${DOCKYARD_ROOT}"/.[!.]* 2>/dev/null || true
+                echo "Removed contents of ${DOCKYARD_ROOT}/ (ZFS mountpoint preserved)"
+            else
+                rm -rf "$DOCKYARD_ROOT"
+                echo "Removed ${DOCKYARD_ROOT}/"
+            fi
         fi
     fi
 
@@ -1414,7 +1493,9 @@ cmd_verify() {
     # 6. Docker-in-Docker via sysbox
     local cname="dockyard-verify-$$"
     DOCKER_HOST="$_s" "$_d" rm -f "$cname" >/dev/null 2>&1 || true
-    if DOCKER_HOST="$_s" "$_d" run -d --name "$cname" docker:26.1-dind >/dev/null 2>&1; then
+    # Mask /usr/sbin/zfs inside DinD to prevent the containerd ZFS snapshotter
+    # probe from hanging for 10s when the outer filesystem is ZFS.
+    if DOCKER_HOST="$_s" "$_d" run -d --name "$cname" -v /dev/null:/usr/sbin/zfs docker:26.1-dind >/dev/null 2>&1; then
         local ready=false i
         for i in $(seq 1 30); do
             if DOCKER_HOST="$_s" "$_d" exec "$cname" docker info >/dev/null 2>&1; then
@@ -1439,7 +1520,7 @@ cmd_verify() {
         fi
         DOCKER_HOST="$_s" "$_d" rm -f "$cname" >/dev/null 2>&1 || true
     else
-        out=$(DOCKER_HOST="$_s" "$_d" run --name "$cname" docker:26.1-dind 2>&1 | head -3)
+        out=$(DOCKER_HOST="$_s" "$_d" run --name "$cname" -v /dev/null:/usr/sbin/zfs docker:26.1-dind 2>&1 | head -3)
         DOCKER_HOST="$_s" "$_d" rm -f "$cname" >/dev/null 2>&1 || true
         _fail "DinD" "could not start docker:26.1-dind — $out"
     fi
