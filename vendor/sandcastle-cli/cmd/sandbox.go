@@ -158,7 +158,7 @@ Flags explicitly passed on the command line take precedence over environment var
 			VNCGeometry:   sandboxVNCGeometry,
 			VNCDepth:      sandboxVNCDepth,
 			DockerEnabled: !sandboxNoDocker,
-		SMBEnabled:    sandboxSMB,
+			SMBEnabled:    sandboxSMB,
 		})
 		if err != nil {
 			return err
@@ -171,7 +171,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		// Print active options (use local flags — they reflect what was actually requested)
-		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker {
+		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB {
 			if sandboxHome {
 				fmt.Println("  Home:      mounted (~/ persisted)")
 			}
@@ -209,6 +209,9 @@ Flags explicitly passed on the command line take precedence over environment var
 					depth = 24
 				}
 				fmt.Printf("  VNC:       %s @ %d-bit\n", geom, depth)
+			}
+			if sandboxSMB {
+				fmt.Println("  SMB:       enabled")
 			}
 		}
 

@@ -151,7 +151,7 @@ fi
 # Set up and start Samba for SMB file sharing (SMB3-only, no NetBIOS).
 # Accessible via the sandbox's Tailscale IP on port 445: smb://<ip>/home or smb://<ip>/workspace
 SMB_ENABLED="${SANDCASTLE_SMB_ENABLED:-0}"
-if command -v smbd &>/dev/null && [ "$SMB_ENABLED" = "1" ] && [ -n "$SANDCASTLE_SMB_PASS" ]; then
+if command -v smbd &>/dev/null && [ "$SMB_ENABLED" = "1" ]; then
     cat > /etc/samba/smb.conf << SMBCONF
 [global]
     disable netbios = yes
@@ -195,8 +195,7 @@ SMBCONF2
     fi
 
     mkdir -p /var/log/samba /run/samba
-    # Set the Samba password for the sandbox user
-    (printf "%s\n%s\n" "$SANDCASTLE_SMB_PASS" "$SANDCASTLE_SMB_PASS") | smbpasswd -a -s "$USERNAME" 2>/dev/null || true
+    # SMB password is injected post-start via docker exec (not via env var)
     touch /var/log/samba/smbd.log
     smbd --foreground --no-process-group &>/var/log/samba/smbd.log &
 fi

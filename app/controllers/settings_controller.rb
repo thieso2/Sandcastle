@@ -33,9 +33,10 @@ class SettingsController < ApplicationController
     @user = Current.user
 
     if @user.update(smb_password_params)
+      SandboxManager.new.update_smb_password(user: @user)
       redirect_to settings_path, notice: "SMB password updated."
     else
-      redirect_to settings_path, alert: "Failed to update SMB password."
+      redirect_to settings_path, alert: @user.errors.full_messages.join(", ").presence || "Failed to update SMB password."
     end
   end
 

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"syscall"
 
 	"github.com/sandcastle/cli/api"
@@ -58,21 +57,18 @@ that have SMB enabled. All your SMB-enabled sandboxes share the same password.`,
 		}
 
 		if string(pass1) != string(pass2) {
-			fmt.Fprintln(os.Stderr, "Error: passwords do not match")
-			os.Exit(1)
+			return fmt.Errorf("passwords do not match")
 		}
 
 		if len(pass1) == 0 {
-			fmt.Fprintln(os.Stderr, "Error: password cannot be empty")
-			os.Exit(1)
+			return fmt.Errorf("password cannot be empty")
 		}
 
 		if err := client.SmbSetPassword(string(pass1)); err != nil {
 			return fmt.Errorf("setting SMB password: %w", err)
 		}
 
-		fmt.Println("SMB password updated. New sandboxes with --smb will use this password.")
-		fmt.Println("Restart existing SMB-enabled sandboxes (stop + start) to pick up the new password.")
+		fmt.Println("SMB password updated. Active SMB-enabled sandboxes have been updated.")
 		return nil
 	},
 }
