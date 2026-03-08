@@ -48,9 +48,6 @@
                 <span class="inline-block w-2.5 h-2.5 rounded-full bg-gray-400"></span>
                 <span class="font-mono font-medium text-gray-700"><%= sandbox.name %></span>
                 <span class="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded"><%= sandbox.user.name %></span>
-                <% if sandbox.persistent_volume? %>
-                  <span class="text-xs text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">volume</span>
-                <% end %>
                 <% if sandbox.archived_at %>
                   <span class="text-xs text-gray-500">Archived <%= time_ago_in_words(sandbox.archived_at) %> ago</span>
                   <% retention = sandbox.user.effective_archive_retention_days %>

@@ -48,9 +48,8 @@ sandcastle tailscale enable --auth-key tskey-auth-...</code></pre>
       <li><strong>Name</strong> — unique identifier for your sandbox</li>
       <li><strong>Container Image</strong> — custom image or default</li>
       <li><strong>Snapshot</strong> — restore from an existing snapshot</li>
-      <li><strong>Persistent Volume</strong> — keep /workspace across recreations</li>
       <li><strong>Mount Home</strong> — persistent home directory across all sandboxes</li>
-      <li><strong>Data Path</strong> — mount user data (or subpath) to /data</li>
+      <li><strong>Data Path</strong> — mount user data (or subpath) to /persisted</li>
       <li><strong>Tailscale</strong> — connect to your Tailscale network</li>
       <li><strong>Docker daemon</strong> — enable/disable Docker-in-Docker</li>
       <li><strong>Temporary</strong> — auto-remove when you disconnect</li>
@@ -308,7 +307,7 @@ sandcastle snapshot delete before-migration</code></pre>
     <% unless (BtrfsHelper.btrfs? rescue false) %>
       <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mt-3">
         <strong>Note:</strong> BTRFS not detected on this host. Only the container layer is snapshotted.
-        Home, data, and workspace layers require BTRFS.
+        Home and data layers require BTRFS.
       </div>
     <% end %>
   </section>

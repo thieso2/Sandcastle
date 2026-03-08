@@ -46,7 +46,6 @@ module Api
         name: params.require(:name),
         status: "pending",
         image: image,
-        persistent_volume: params[:persistent] || false,
         mount_home: params.key?(:mount_home) ? params[:mount_home] : defaults.default_mount_home,
         data_path: params.key?(:data_path) ? params[:data_path] : defaults.default_data_path,
         tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? },
@@ -57,10 +56,6 @@ module Api
         temporary: params[:temporary] || false,
         smb_enabled: params[:smb_enabled] || false
       )
-
-      if sandbox.persistent_volume
-        sandbox.volume_path = "#{SandboxManager::DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
-      end
 
       sandbox.save!
 
@@ -259,7 +254,6 @@ module Api
         full_name: sandbox.full_name,
         status: sandbox.status,
         image: sandbox.image,
-        persistent_volume: sandbox.persistent_volume,
         mount_home: sandbox.mount_home,
         data_path: sandbox.data_path,
         temporary: sandbox.temporary,

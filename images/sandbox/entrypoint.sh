@@ -36,9 +36,6 @@ fi
 chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/dev/null || true
 chmod 777 "/home/$USERNAME"
 
-# Ensure workspace is accessible
-chown "$USERNAME:$USERNAME" /workspace 2>/dev/null || true
-
 # Configure git identity in user's ~/.gitconfig (skip if it already exists,
 # e.g. from a bind-mounted home directory with prior customizations)
 GITCONFIG="/home/$USERNAME/.gitconfig"
@@ -54,6 +51,46 @@ fi
 
 # Generate SSH host keys if missing
 ssh-keygen -A
+
+# Generate login banner with sandbox configuration
+# Resolve values at container start, bake them into the profile script.
+_SC_VERSION="unknown"
+[ -f /etc/sandcastle-version ] && _SC_VERSION=$(cat /etc/sandcastle-version)
+_SC_HOME="ephemeral"
+[ "${SANDCASTLE_HOME_PERSISTED:-0}" = "1" ] && _SC_HOME="persisted"
+_SC_DATA="none"
+if [ "${SANDCASTLE_DATA_PERSISTED:-0}" = "1" ]; then
+    _SC_DP="${SANDCASTLE_DATA_PATH:-.}"
+    _SC_DATA="persisted (/persisted)"
+    [ "$_SC_DP" != "." ] && _SC_DATA="persisted (/persisted — $_SC_DP)"
+fi
+_SC_VNC="enabled";  [ "${SANDCASTLE_VNC_ENABLED:-1}" = "0" ]    && _SC_VNC="disabled"
+_SC_DKR="enabled";  [ "${SANDCASTLE_DOCKER_ENABLED:-1}" = "0" ] && _SC_DKR="disabled"
+
+cat > /etc/profile.d/sandcastle-banner.sh <<BANNER_EOF
+#!/bin/bash
+[[ \$- == *i* ]] || return 0
+[[ -n "\${SANDCASTLE_BANNER_SHOWN:-}" ]] && return 0
+export SANDCASTLE_BANNER_SHOWN=1
+
+cat << 'ART'
+
+  ███████╗ █████╗ ███╗   ██╗██████╗  ██████╗ █████╗ ███████╗████████╗██╗     ███████╗
+  ██╔════╝██╔══██╗████╗  ██║██╔══██╗██╔════╝██╔══██╗██╔════╝╚══██╔══╝██║     ██╔════╝
+  ███████╗███████║██╔██╗ ██║██║  ██║██║     ███████║███████╗   ██║   ██║     █████╗
+  ╚════██║██╔══██║██║╚██╗██║██║  ██║██║     ██╔══██║╚════██║   ██║   ██║     ██╔══╝
+  ███████║██║  ██║██║ ╚████║██████╔╝╚██████╗██║  ██║███████║   ██║   ███████╗███████╗
+  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚══════╝╚══════╝
+
+ART
+echo "  Version:  $_SC_VERSION"
+echo "  Home:     $_SC_HOME"
+echo "  Data:     $_SC_DATA"
+echo "  VNC:      $_SC_VNC"
+echo "  Docker:   $_SC_DKR"
+echo ""
+BANNER_EOF
+chmod +x /etc/profile.d/sandcastle-banner.sh
 
 # Resize /dev/shm to 2GB for Chrome. Docker's ShmSize HostConfig key is not
 # supported by sysbox-runc, so we do it here instead. The runtime bind-mounts

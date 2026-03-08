@@ -348,12 +348,6 @@
               Data directory (<%= @sandbox.data_path %>)
             </label>
           <% end %>
-          <% if @sandbox.persistent_volume && @btrfs %>
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="layers[]" value="workspace" checked class="h-4 w-4 text-blue-600 border-gray-300 rounded">
-              Workspace volume
-            </label>
-          <% end %>
           <% unless @btrfs %>
             <p class="text-xs text-gray-500 bg-yellow-50 border border-yellow-200 rounded p-2">
               BTRFS not detected — only the container layer is available.

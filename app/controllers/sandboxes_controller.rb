@@ -48,7 +48,6 @@ class SandboxesController < ApplicationController
       name: params.require(:name),
       status: "pending",
       image: image,
-      persistent_volume: params[:persistent] == "1",
       mount_home: params[:mount_home] == "1",
       data_path: params[:data_path].presence,
       tailscale: params[:tailscale] == "1",
@@ -59,10 +58,6 @@ class SandboxesController < ApplicationController
       smb_enabled: params[:smb_enabled] == "1",
       temporary: false
     )
-
-    if sandbox.persistent_volume
-      sandbox.volume_path = "#{SandboxManager::DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
-    end
 
     if sandbox.save
       # Enqueue async job
