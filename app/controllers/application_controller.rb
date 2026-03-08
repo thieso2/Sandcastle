@@ -9,7 +9,7 @@ class ApplicationController < ActionController::Base
   stale_when_importmap_changes
 
   rescue_from Pundit::NotAuthorizedError do
-    redirect_to root_path, alert: "Not authorized"
+    redirect_to main_app.root_path, alert: "Not authorized"
   end
 
   private

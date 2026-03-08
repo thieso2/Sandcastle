@@ -32,11 +32,11 @@ module Authentication
 
     def request_authentication
       session[:return_to_after_authenticating] = request.url
-      redirect_to new_session_path
+      redirect_to main_app.new_session_path
     end
 
     def after_authentication_url
-      session.delete(:return_to_after_authenticating) || root_url
+      session.delete(:return_to_after_authenticating) || main_app.root_url
     end
 
     def start_new_session_for(user)
@@ -48,7 +48,7 @@ module Authentication
 
     def require_password_change
       return unless Current.user&.must_change_password?
-      redirect_to change_password_path, alert: "You must change your password before continuing."
+      redirect_to main_app.change_password_path, alert: "You must change your password before continuing."
     end
 
     def terminate_session
