@@ -330,7 +330,8 @@ setup_network_isolation() {
   wrote "$rules_file"
 
   # (Re-)build SANDCASTLE-ISOLATION chain with infra allow-list
-  iptables -N SANDCASTLE-ISOLATION 2>/dev/null; iptables -F SANDCASTLE-ISOLATION
+  iptables -L SANDCASTLE-ISOLATION >/dev/null 2>&1 || iptables -N SANDCASTLE-ISOLATION
+  iptables -F SANDCASTLE-ISOLATION
   iptables -A SANDCASTLE-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   while IFS= read -r ip; do
     [ -n "$ip" ] || continue
@@ -1533,6 +1534,7 @@ ARKEYS
   info "Restarting services..."
   cd "$SANDCASTLE_HOME"
   $DOCKER compose up -d
+  setup_network_isolation
   ok "Services restarted"
 
   echo ""

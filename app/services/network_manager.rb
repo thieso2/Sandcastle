@@ -6,6 +6,7 @@ class NetworkManager
   # Ensure the per-user bridge network exists.
   # Creates it if missing and persists network_name + network_subnet on the user.
   # Idempotent — safe to call multiple times.
+  # Uses an advisory lock to serialize subnet allocation across processes.
   def ensure_user_network(user)
     network_name = user.network_name.presence || "sc-net-#{user.name}"
 
@@ -14,11 +15,24 @@ class NetworkManager
       return user
     end
 
-    subnet = network_subnet_for(user)
-    create_network(network_name, subnet)
-    user.update!(network_name: network_name, network_subnet: subnet)
+    # Serialize subnet allocation to avoid races between concurrent calls
+    User.transaction do
+      user.lock!
+      # Re-check after acquiring lock (another process may have created it)
+      user.reload
+      if user.network_name.present? && network_exists?(user.network_name)
+        return user
+      end
+
+      subnet = network_subnet_for(user)
+      network_name = user.network_name.presence || "sc-net-#{user.name}"
+      create_network(network_name, subnet, user)
+      user.update!(network_name: network_name, network_subnet: subnet)
+    end
     user
   rescue Docker::Error::DockerError => e
+    raise Error, "Failed to ensure user network for #{user.name}: #{e.message}"
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
     raise Error, "Failed to ensure user network for #{user.name}: #{e.message}"
   end
 
@@ -71,6 +85,8 @@ class NetworkManager
 
     user.update!(network_name: nil, network_subnet: nil)
   rescue Docker::Error::DockerError => e
+    raise Error, "Failed to cleanup user network for #{user.name}: #{e.message}"
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => e
     raise Error, "Failed to cleanup user network for #{user.name}: #{e.message}"
   end
 
@@ -156,12 +172,19 @@ class NetworkManager
     []
   end
 
-  def create_network(name, subnet)
-    Docker::Network.get(name)
+  def create_network(name, subnet, user)
+    existing = Docker::Network.get(name)
+    # Verify the existing network belongs to this user
+    owner = existing.info.dig("Labels", "sandcastle.owner")
+    if owner && owner != user.name
+      raise Error, "Network #{name} belongs to another user (#{owner}), cannot reuse"
+    end
+    existing
   rescue Docker::Error::NotFoundError
     Docker::Network.create(
       name,
       "Driver" => "bridge",
+      "Labels" => { "sandcastle.owner" => user.name },
       "IPAM" => {
         "Config" => [ { "Subnet" => subnet } ]
       }

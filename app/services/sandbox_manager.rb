@@ -77,7 +77,14 @@ class SandboxManager
     sandbox.update!(container_id: container.id, status: "running")
 
     # Connect to per-user network for tenant isolation
-    NetworkManager.new.connect_sandbox(sandbox: sandbox)
+    begin
+      NetworkManager.new.connect_sandbox(sandbox: sandbox)
+    rescue NetworkManager::Error => e
+      container.stop rescue nil
+      container.delete(force: true) rescue nil
+      sandbox.update!(container_id: nil, status: "pending")
+      raise Error, "Failed to attach tenant network: #{e.message}"
+    end
 
     # Pre-write Traefik routes so they're active immediately (no wait on first open).
     TerminalManager.new.prepare_traefik_config(sandbox)
@@ -546,33 +553,9 @@ class SandboxManager
 
     # ── Recreate container ────────────────────────────────────────────────────
     final_image = restore_container ? image_ref : sandbox.image
+    sandbox.update!(image: final_image)
 
-    container = Docker::Container.create(
-      "name" => sandbox.full_name,
-      "Image" => final_image,
-      "Hostname" => sandbox.full_name,
-      "Env" => container_env(user, sandbox),
-      "Labels" => { "sandcastle.sandbox" => "true" },
-      "HostConfig" => {
-        "Runtime" => container_runtime,
-        "NetworkMode" => NETWORK_NAME,
-        "Binds" => volume_binds(user, sandbox),
-        "RestartPolicy" => { "Name" => "unless-stopped" }
-      },
-      "NetworkingConfig" => {
-        "EndpointsConfig" => { NETWORK_NAME => {} }
-      }
-    )
-
-    container.start
-    sandbox.update!(container_id: container.id, image: final_image, status: "running")
-
-    # Connect to per-user network for tenant isolation
-    NetworkManager.new.connect_sandbox(sandbox: sandbox)
-
-    # Pre-write Traefik routes so they're active immediately after restore.
-    TerminalManager.new.prepare_traefik_config(sandbox)
-    VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+    create_container_and_start(sandbox: sandbox, user: user)
 
     if was_tailscale && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
