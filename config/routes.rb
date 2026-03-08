@@ -71,6 +71,11 @@ Rails.application.routes.draw do
   namespace :admin do
     get "/", to: "dashboard#index", as: :dashboard
     get "system_status", to: "dashboard#system_status"
+    get "update_status", to: "dashboard#update_status"
+    resource :update, only: [], controller: "update" do
+      get  :check
+      post :perform
+    end
     resource :settings, only: [ :edit, :update ]
     resources :users
     resources :invites, only: [ :index, :create, :destroy ]

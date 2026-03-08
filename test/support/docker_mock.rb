@@ -51,6 +51,7 @@ module DockerMock
 
       # Mock Docker::Network
       Docker::Network.singleton_class.prepend(NetworkMethods)
+      Docker::Network.prepend(NetworkInstanceMethods)
     end
   end
 
@@ -71,7 +72,8 @@ module DockerMock
         },
         "Config" => opts,
         "NetworkSettings" => {
-          "Ports" => {}
+          "Ports" => {},
+          "Networks" => {}
         }
       }
 
@@ -264,6 +266,7 @@ module DockerMock
         "Id" => network_id,
         "Name" => name,
         "Driver" => opts["Driver"] || "bridge",
+        "Labels" => opts["Labels"] || {},
         "IPAM" => opts["IPAM"] || {},
         "Containers" => {}
       }
@@ -286,6 +289,41 @@ module DockerMock
       DockerMock.networks.values.map do |data|
         DockerMock.build(Docker::Network, data["Id"], data)
       end
+    end
+  end
+
+  module NetworkInstanceMethods
+    def connect(container_id, _opts = {})
+      raise Docker::Error::NotFoundError, "Container not found" unless DockerMock.containers.key?(container_id)
+
+      network_data = DockerMock.networks.values.find { |n| n["Id"] == @id }
+      network_data["Containers"][container_id] = {} if network_data
+
+      container_data = DockerMock.containers[container_id]
+      if container_data
+        container_data["NetworkSettings"] ||= {}
+        container_data["NetworkSettings"]["Networks"] ||= {}
+        container_data["NetworkSettings"]["Networks"][network_data&.dig("Name") || @id] = {}
+      end
+    end
+
+    def disconnect(container_id, _opts = {})
+      network_data = DockerMock.networks.values.find { |n| n["Id"] == @id }
+      network_data&.dig("Containers")&.delete(container_id)
+
+      container_data = DockerMock.containers[container_id]
+      if container_data
+        name = network_data&.dig("Name") || @id
+        container_data.dig("NetworkSettings", "Networks")&.delete(name)
+      end
+    end
+
+    def delete
+      DockerMock.networks.delete(@id)
+    end
+
+    def info
+      @info || {}
     end
   end
 end

@@ -65,6 +65,12 @@ class ContainerSyncJob < ApplicationJob
       sandbox.update!(status: actual_status)
       Rails.logger.info("ContainerSyncJob: #{sandbox.full_name} status corrected to #{actual_status}")
     end
+
+    # Backfill image tracking for sandboxes created before the migration
+    if sandbox.image_id.nil? && sandbox.status == "running"
+      info = SandboxManager.new.send(:fetch_image_info, sandbox.image)
+      sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at]) if info[:image_id]
+    end
   rescue Docker::Error::NotFoundError
     begin
       TerminalManager.new.close(sandbox: sandbox)

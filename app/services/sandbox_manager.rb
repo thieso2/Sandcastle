@@ -28,6 +28,10 @@ class SandboxManager
     # Pull image
     ensure_image(image)
 
+    # Record image digest and build date
+    info = fetch_image_info(image)
+    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at])
+
     # Create and start container
     create_container_and_start(sandbox: sandbox, user: user)
 
@@ -191,6 +195,9 @@ class SandboxManager
     ensure_image(sandbox.image)
     ensure_mount_dirs(user, sandbox)
 
+    info = fetch_image_info(sandbox.image)
+    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at])
+
     create_container_and_start(sandbox: sandbox, user: user)
     # Strip the timestamp prefix added during archival (e.g. "20260307123456-mybox" → "mybox")
     original_name = sandbox.name.sub(/\A\d{14}-/, "")
@@ -225,6 +232,10 @@ class SandboxManager
     # After a previous Sysbox run, dirs may be owned by a remapped UID that
     # Rails can't chmod — ensure_mount_dirs uses sudo to reset to 777.
     ensure_mount_dirs(user, sandbox)
+
+    # Refresh image info in case the image was updated since sandbox creation
+    info = fetch_image_info(sandbox.image)
+    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at])
 
     create_container_and_start(sandbox: sandbox, user: user)
 
@@ -667,6 +678,27 @@ class SandboxManager
     end
     Rails.logger.warn("Tailscale IP not available for sandbox #{sandbox.id} after #{max_attempts} attempts (status: #{sandbox.status})")
     nil
+  end
+
+  # Extracts the image SHA and BUILD_DATE from a local Docker image.
+  # Returns a hash with :image_id and :image_built_at (or nils on error).
+  def fetch_image_info(image_ref)
+    img    = Docker::Image.get(image_ref)
+    config = img.json.dig("Config") || {}
+    labels = config["Labels"] || {}
+
+    date_str = labels["org.opencontainers.image.created"] || labels["BUILD_DATE"]
+    if date_str.nil?
+      env_entry = (config["Env"] || []).find { |e| e.start_with?("BUILD_DATE=") }
+      date_str  = env_entry&.split("=", 2)&.last
+    end
+
+    {
+      image_id:       img.id,
+      image_built_at: date_str ? Time.zone.parse(date_str) : nil
+    }
+  rescue Docker::Error::DockerError, ArgumentError, TypeError
+    { image_id: nil, image_built_at: nil }
   end
 
   def connect_to_network(container)

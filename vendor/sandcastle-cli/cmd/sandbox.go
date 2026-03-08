@@ -321,9 +321,9 @@ var listCmd = &cobra.Command{
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		if hasRoute {
-			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tROUTE\tTAILSCALE IP\tIMAGE")
+			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tROUTE\tTAILSCALE IP\tIMAGE AGE")
 		} else {
-			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tTAILSCALE IP\tIMAGE")
+			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tTAILSCALE IP\tIMAGE AGE")
 		}
 		for _, s := range sandboxes {
 			name := s.Name
@@ -334,7 +334,8 @@ var listCmd = &cobra.Command{
 			if s.TailscaleIP != "" {
 				tsIP = s.TailscaleIP
 			}
-			created := s.CreatedAt.Local().Format("2006-01-02 15:04")
+			created  := s.CreatedAt.Local().Format("2006-01-02 15:04")
+			imageAge := formatImageAge(s.ImageBuiltAt)
 			if hasRoute {
 				route := ""
 				if len(s.Routes) > 0 {
@@ -344,9 +345,9 @@ var listCmd = &cobra.Command{
 					}
 					route = strings.Join(parts, ", ")
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, route, tsIP, s.Image)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, route, tsIP, imageAge)
 			} else {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, tsIP, s.Image)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, tsIP, imageAge)
 			}
 		}
 		w.Flush()
@@ -616,6 +617,25 @@ var renameCmd = &cobra.Command{
 		fmt.Printf("Sandbox renamed to %q.\n", sandbox.Name)
 		return nil
 	},
+}
+
+// formatImageAge returns a human-readable image age string (e.g. "2h ago", "3d ago").
+// Returns "-" when the build timestamp is not available.
+func formatImageAge(builtAt *time.Time) string {
+	if builtAt == nil {
+		return "-"
+	}
+	d := time.Since(*builtAt)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	}
 }
 
 func envTruthy(key string) bool {

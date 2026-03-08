@@ -21,6 +21,7 @@ type Sandbox struct {
 	SMBEnabled       bool           `json:"smb_enabled"`
 	Routes           []SandboxRoute `json:"routes"`
 	ConnectCommand   string         `json:"connect_command"`
+	ImageBuiltAt     *time.Time     `json:"image_built_at,omitempty"`
 	CreatedAt        time.Time      `json:"created_at"`
 	ArchivedAt       *time.Time     `json:"archived_at,omitempty"`
 }

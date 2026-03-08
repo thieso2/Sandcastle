@@ -124,6 +124,9 @@
         <span class="font-mono"><%= sandbox.container_id.first(12) %></span> ·
       <% end %>
       <span class="font-mono"><%= sandbox.image.sub("ghcr.io/thieso2/", "") %></span>
+      <% if sandbox.image_built_at.present? %>
+        · image <%= time_ago_in_words(sandbox.image_built_at) %> old
+      <% end %>
       · Created <%= time_ago_in_words(sandbox.created_at) %> ago<% if sandbox.status == "running" %>
         · Running for <%= time_ago_in_words(sandbox.updated_at) %><% elsif sandbox.status == "stopped" %>
         · Stopped <%= time_ago_in_words(sandbox.updated_at) %> ago<% end %>

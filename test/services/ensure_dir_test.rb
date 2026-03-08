@@ -6,6 +6,7 @@ class EnsureDirTest < ActiveSupport::TestCase
   setup do
     @manager = SandboxManager.new
     @testdir = Dir.mktmpdir("sandcastle-ensure-dir-test-")
+    DockerMock.reset!
   end
 
   teardown do
