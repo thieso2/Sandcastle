@@ -91,7 +91,9 @@ class UpdateChecker
     uri = URI("https://#{GHCR_HOST}/v2/#{OWNER}/#{repo}/manifests/latest")
     req = Net::HTTP::Get.new(uri)
     req["Authorization"] = "Bearer #{token}"
-    req["Accept"]        = "application/vnd.docker.distribution.manifest.v2+json," \
+    req["Accept"]        = "application/vnd.docker.distribution.manifest.list.v2+json," \
+                           "application/vnd.oci.image.index.v1+json," \
+                           "application/vnd.docker.distribution.manifest.v2+json," \
                            "application/vnd.oci.image.manifest.v1+json"
 
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true,
