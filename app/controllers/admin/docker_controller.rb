@@ -1,10 +1,10 @@
 module Admin
   class DockerController < BaseController
     INFRA_CONTAINERS = %w[
-      sandcastle-traefik
-      sandcastle-postgres-1
       sandcastle-web
       sandcastle-worker
+      sandcastle-postgres-1
+      sandcastle-traefik
     ].freeze
 
     def index

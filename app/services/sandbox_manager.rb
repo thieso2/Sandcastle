@@ -305,6 +305,7 @@ class SandboxManager
 
     container = Docker::Container.get(sandbox.container_id)
     container.logs(stdout: true, stderr: true, follow: false, tail: tail, timestamps: timestamps)
+      .force_encoding("UTF-8").encode("UTF-8", invalid: :replace, undef: :replace, replace: "")
   rescue Docker::Error::NotFoundError
     raise Error, "Container not found"
   rescue Docker::Error::DockerError => e

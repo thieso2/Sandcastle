@@ -69,10 +69,10 @@
         <div class="flex items-center gap-3">
           <span class="text-sm text-gray-500">Showing last <span id="log-line-count">200</span> lines</span>
           <label class="inline-flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
-            <input type="checkbox" id="auto-tail" checked
+            <input type="checkbox" id="follow-log" checked
                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                   onchange="toggleAutoTail()">
-            Auto-tail
+                   onchange="toggleFollow()">
+            Follow
           </label>
         </div>
         <div class="flex items-center gap-2">
@@ -97,9 +97,31 @@
 <script>
   var currentContainer = "<%= @containers.first&.dig(:name) %>";
   var tailInterval = null;
+  var userScrolling = false;
+
+  var logOutput = document.getElementById("log-output");
+
+  // Detect manual scroll — disable follow when user scrolls up
+  logOutput.addEventListener("scroll", function() {
+    var atBottom = logOutput.scrollHeight - logOutput.scrollTop - logOutput.clientHeight < 20;
+    if (!atBottom && !userScrolling) {
+      userScrolling = true;
+      setFollow(false);
+    } else if (atBottom && userScrolling) {
+      userScrolling = false;
+    }
+  });
+
+  function isFollowing() {
+    return document.getElementById("follow-log").checked;
+  }
+
+  function setFollow(val) {
+    document.getElementById("follow-log").checked = val;
+    toggleFollow();
+  }
 
   function selectTab(button) {
-    // Update tab styles
     document.querySelectorAll(".service-tab").forEach(function(tab) {
       tab.classList.remove("text-blue-600", "border-b-2", "border-blue-600");
       tab.classList.add("text-gray-500");
@@ -108,6 +130,8 @@
     button.classList.add("text-blue-600", "border-b-2", "border-blue-600");
 
     currentContainer = button.dataset.container;
+    userScrolling = false;
+    setFollow(true);
     loadLogs(currentContainer);
   }
 
@@ -117,7 +141,7 @@
 
   function loadLogs(name) {
     var tail = document.getElementById("tail-select").value;
-    var output = document.getElementById("log-output");
+    var output = logOutput;
     var countSpan = document.getElementById("log-line-count");
     countSpan.textContent = tail;
 
@@ -130,7 +154,9 @@
           output.textContent = "Error: " + data.error;
         } else {
           output.textContent = data.lines.join("\n");
-          output.scrollTop = output.scrollHeight;
+          if (isFollowing()) {
+            output.scrollTop = output.scrollHeight;
+          }
         }
       })
       .catch(function(e) {
@@ -138,8 +164,10 @@
       });
   }
 
-  function toggleAutoTail() {
-    if (document.getElementById("auto-tail").checked) {
+  function toggleFollow() {
+    if (isFollowing()) {
+      userScrolling = false;
+      logOutput.scrollTop = logOutput.scrollHeight;
       startAutoTail();
     } else {
       stopAutoTail();

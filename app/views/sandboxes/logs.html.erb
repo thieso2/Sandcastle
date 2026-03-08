@@ -7,6 +7,13 @@
       <span class="text-sm text-gray-500">logs</span>
     </div>
     <div class="flex items-center gap-3">
+      <% unless @log_error || @logs.blank? %>
+        <label class="inline-flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+          <input type="checkbox" id="follow-log" checked
+                 class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+          Follow
+        </label>
+      <% end %>
       <% { 100 => "100", 200 => "200", 500 => "500", 2000 => "2k", 5000 => "5k" }.each do |n, label| %>
         <%= link_to label, logs_sandbox_path(@sandbox, tail: n),
               class: "px-2 py-1 text-xs rounded #{@tail == n ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}" %>
@@ -21,7 +28,39 @@
     <% elsif @logs.blank? %>
       <div class="px-6 py-8 text-center text-gray-400 text-sm">No logs available.</div>
     <% else %>
-      <pre class="px-4 py-3 text-xs text-gray-200 font-mono overflow-x-auto max-h-[75vh] overflow-y-auto whitespace-pre-wrap break-all"><%= @logs.gsub(/[\x00-\x08]/, "") %></pre>
+      <pre id="log-output" class="px-4 py-3 text-xs text-gray-200 font-mono overflow-x-auto max-h-[75vh] overflow-y-auto whitespace-pre-wrap break-all"><%= @logs.gsub(/[\x00-\x08]/, "") %></pre>
     <% end %>
   </div>
 </div>
+
+<% unless @log_error || @logs.blank? %>
+<script>
+  (function() {
+    var output = document.getElementById("log-output");
+    var checkbox = document.getElementById("follow-log");
+    var userScrolling = false;
+
+    // Start scrolled to bottom
+    output.scrollTop = output.scrollHeight;
+
+    // Detect manual scroll up — uncheck follow
+    output.addEventListener("scroll", function() {
+      var atBottom = output.scrollHeight - output.scrollTop - output.clientHeight < 20;
+      if (!atBottom && !userScrolling) {
+        userScrolling = true;
+        checkbox.checked = false;
+      } else if (atBottom && userScrolling) {
+        userScrolling = false;
+      }
+    });
+
+    // Re-enable follow — scroll to bottom
+    checkbox.addEventListener("change", function() {
+      if (checkbox.checked) {
+        userScrolling = false;
+        output.scrollTop = output.scrollHeight;
+      }
+    });
+  })();
+</script>
+<% end %>
