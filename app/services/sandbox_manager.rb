@@ -84,6 +84,9 @@ class SandboxManager
     # Pre-write Traefik routes so they're active immediately (no wait on first open).
     TerminalManager.new.prepare_traefik_config(sandbox)
     VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+
+    # Set SMB password via exec (avoids leaking password in container env/metadata)
+    set_smb_password(container, sandbox.user) if sandbox.smb_enabled?
   end
 
   # Public method for job usage
@@ -651,6 +654,24 @@ class SandboxManager
     }
   end
 
+  # Update the SMB password on all active SMB-enabled sandboxes for a user.
+  def update_smb_password(user:)
+    raise Error, "No SMB password set" unless user.smb_password.present?
+
+    user.sandboxes.active.where(smb_enabled: true).find_each do |sandbox|
+      next if sandbox.container_id.blank?
+
+      begin
+        container = Docker::Container.get(sandbox.container_id)
+        set_smb_password(container, user)
+      rescue Docker::Error::NotFoundError
+        # Container gone, skip
+      rescue Docker::Error::DockerError => e
+        Rails.logger.warn("Failed to update SMB password for #{sandbox.full_name}: #{e.message}")
+      end
+    end
+  end
+
   private
 
   def wait_for_tailscale_ip(sandbox:, max_attempts: 30, delay: 0.5)
@@ -695,6 +716,7 @@ class SandboxManager
     env << "SANDCASTLE_VNC_GEOMETRY=#{sandbox.vnc_geometry}"
     env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
     env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
+    env << "SANDCASTLE_SMB_ENABLED=#{sandbox.smb_enabled? ? '1' : '0'}"
     env
   end
 
@@ -773,6 +795,20 @@ class SandboxManager
     raise Error, "No local images available for docker_run_fix" if all.empty?
     tags = all.first.info["RepoTags"]
     tags&.first || all.first.id
+  end
+
+  # Inject SMB password into the container via exec, avoiding env var leakage.
+  def set_smb_password(container, user)
+    return unless user.smb_password.present?
+
+    username = user.name
+    password = user.smb_password
+    container.exec(
+      ["bash", "-c", "printf '%s\\n%s\\n' \"$0\" \"$0\" | smbpasswd -a -s \"$1\" 2>&1 || echo 'Warning: smbpasswd failed' >&2",
+       password, username]
+    )
+  rescue Docker::Error::DockerError => e
+    Rails.logger.warn("set_smb_password failed for #{user.name}: #{e.message}")
   end
 
   def volume_binds(user, sandbox)

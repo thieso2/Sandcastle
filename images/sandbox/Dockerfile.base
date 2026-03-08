@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     openssh-server sudo curl git tmux vim neovim \
     build-essential \
     jq ripgrep fd-find htop wget unzip ca-certificates net-tools iproute2 iputils-ping \
-    mosh \
+    mosh samba \
     && rm -rf /var/lib/apt/lists/*
 
 # GitHub CLI (gh)

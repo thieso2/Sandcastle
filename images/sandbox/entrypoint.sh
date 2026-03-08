@@ -148,5 +148,57 @@ if command -v ttyd &>/dev/null; then
         "ttyd -W -m 1 -p 7682 bash -l &>/var/log/ttyd-shell.log &"
 fi
 
+# Set up and start Samba for SMB file sharing (SMB3-only, no NetBIOS).
+# Accessible via the sandbox's Tailscale IP on port 445: smb://<ip>/home or smb://<ip>/workspace
+SMB_ENABLED="${SANDCASTLE_SMB_ENABLED:-0}"
+if command -v smbd &>/dev/null && [ "$SMB_ENABLED" = "1" ]; then
+    cat > /etc/samba/smb.conf << SMBCONF
+[global]
+    disable netbios = yes
+    smb ports = 445
+    server min protocol = SMB3
+    server max protocol = SMB3_11
+    smb encrypt = if_required
+    server signing = required
+    map to guest = never
+    restrict anonymous = 2
+    load printers = no
+    printing = bsd
+    printcap name = /dev/null
+    disable spoolss = yes
+    log level = 1
+    log file = /var/log/samba/smbd.log
+
+[home]
+    path = /home/$USERNAME
+    browseable = yes
+    read only = no
+    valid users = $USERNAME
+    guest ok = no
+    create mask = 0644
+    directory mask = 0755
+SMBCONF
+
+    # Add workspace share if the persistent volume is mounted
+    if [ -d /workspace ]; then
+        cat >> /etc/samba/smb.conf << SMBCONF2
+
+[workspace]
+    path = /workspace
+    browseable = yes
+    read only = no
+    valid users = $USERNAME
+    guest ok = no
+    create mask = 0644
+    directory mask = 0755
+SMBCONF2
+    fi
+
+    mkdir -p /var/log/samba /run/samba
+    # SMB password is injected post-start via docker exec (not via env var)
+    touch /var/log/samba/smbd.log
+    smbd --foreground --no-process-group &>/var/log/samba/smbd.log &
+fi
+
 # Start SSH daemon in foreground
 exec /usr/sbin/sshd -D -e

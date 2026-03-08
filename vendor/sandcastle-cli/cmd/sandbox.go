@@ -30,6 +30,7 @@ var (
 	sandboxVNCGeometry   string
 	sandboxVNCDepth      int
 	sandboxNoDocker      bool
+	sandboxSMB           bool
 	listArchived         bool
 )
 
@@ -62,6 +63,7 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxVNCGeometry, "vnc-geometry", "", "VNC screen resolution (e.g. 1920x1080)")
 	createCmd.Flags().IntVar(&sandboxVNCDepth, "vnc-depth", 0, "VNC color depth: 8, 16, 24, or 32")
 	createCmd.Flags().BoolVar(&sandboxNoDocker, "no-docker", false, "Disable Docker daemon (DinD) inside sandbox")
+	createCmd.Flags().BoolVar(&sandboxSMB, "smb", false, "Enable SMB file sharing (requires Tailscale and SMB password set via 'sandcastle smb set-password')")
 }
 
 var createCmd = &cobra.Command{
@@ -156,6 +158,7 @@ Flags explicitly passed on the command line take precedence over environment var
 			VNCGeometry:   sandboxVNCGeometry,
 			VNCDepth:      sandboxVNCDepth,
 			DockerEnabled: !sandboxNoDocker,
+			SMBEnabled:    sandboxSMB,
 		})
 		if err != nil {
 			return err
@@ -168,7 +171,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		// Print active options (use local flags — they reflect what was actually requested)
-		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker {
+		if sandboxHome || sandboxData != "" || sandboxPersistent || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB {
 			if sandboxHome {
 				fmt.Println("  Home:      mounted (~/ persisted)")
 			}
@@ -206,6 +209,9 @@ Flags explicitly passed on the command line take precedence over environment var
 					depth = 24
 				}
 				fmt.Printf("  VNC:       %s @ %d-bit\n", geom, depth)
+			}
+			if sandboxSMB {
+				fmt.Println("  SMB:       enabled")
 			}
 		}
 

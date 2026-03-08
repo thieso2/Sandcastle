@@ -16,6 +16,7 @@ class Sandbox < ApplicationRecord
   validates :image, presence: true
   validates :vnc_geometry, inclusion: { in: VNC_GEOMETRIES }
   validates :vnc_depth, inclusion: { in: VNC_DEPTHS }
+  validate :smb_prerequisites, if: -> { smb_enabled? }
 
   scope :active, -> { where.not(status: %w[destroyed archived]) }
   scope :archived, -> { where(status: "archived") }
@@ -42,6 +43,10 @@ class Sandbox < ApplicationRecord
     temporary?
   end
 
+  def smb_enabled?
+    smb_enabled
+  end
+
   # Job lifecycle management
   def job_in_progress?
     job_status.present?
@@ -64,6 +69,11 @@ class Sandbox < ApplicationRecord
   end
 
   private
+
+  def smb_prerequisites
+    errors.add(:smb_enabled, "requires Tailscale to be enabled") unless user&.tailscale_enabled?
+    errors.add(:smb_enabled, "requires an SMB password to be set in Settings") unless user&.smb_password.present?
+  end
 
   def broadcast_prepend_to_dashboard
     broadcast_prepend_to(
