@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 49,
+  "checkpoints_count": 47,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -392,10 +392,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5387,
-    "cache_creation_tokens": 2082588,
-    "cache_read_tokens": 118413256,
-    "output_tokens": 364494,
-    "api_call_count": 1361
+    "input_tokens": 5447,
+    "cache_creation_tokens": 2105360,
+    "cache_read_tokens": 124496651,
+    "output_tokens": 377775,
+    "api_call_count": 1417
   }
 }

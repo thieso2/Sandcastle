@@ -30,3 +30,57 @@ solid_errors were working before - dig deeper!
 
 commit push and release
 
+### Prompt 6
+
+add GH issue to add optinal samba to sysbox - research 2026 best proctiss for samba in docker (no need for nmbd) - we need setting to set the samba password?
+
+### Prompt 7
+
+create GH issue to create Separate Docker networks per tenant
+
+### Prompt 8
+
+creaet GH issue to add updater to the UI - how can the rails container update buth rails (restart web and worker) as well as sandbox image?
+rebermer for each sandbox the image hash (date) it was build from so we can see "outdated" sandboxes.
+
+### Prompt 9
+
+analyze and debug why soldid_erros arent working any longer on 100.106.185.92 - used to work - what happened?
+
+### Prompt 10
+
+<task-notification>
+<task-id>bo4up96mb</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Check solid_errors table on production" failed with exit code 255</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.outp...
+
+### Prompt 11
+
+<task-notification>
+<task-id>bttmbua1o</task-id>
+<tool-use-id>toolu_01DCDGQ5nRM2gP8DnsqNMCGN</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/tasks/bttmbua1o.output</output-file>
+<status>failed</status>
+<summary>Background command "Check solid_errors on prod via dockyard docker" failed with exit code 255</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/tasks/bttmbu...
+
+### Prompt 12
+
+<task-notification>
+<task-id>b6qces7yq</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Check solid_errors count on prod" failed with exit code 255</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+### Prompt 13
+
+cmmit and push and release!
+
