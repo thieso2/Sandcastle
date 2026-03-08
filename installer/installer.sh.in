@@ -304,17 +304,31 @@ setup_network_isolation() {
   local isolation_dir="${DOCKYARD_ROOT}/etc/isolation.d"
   local rules_file="${isolation_dir}/infra.rules"
 
-  # Collect IPs of infrastructure containers (non-sandbox)
+  # Derive fixed infra IPs from the sandcastle-web network subnet.
+  # These match the ipv4_address values in docker-compose.yml (.10-.13).
+  local net_subnet
+  net_subnet=$($DOCKER network inspect sandcastle-web \
+    --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null) || true
+
+  if [ -z "$net_subnet" ]; then
+    warn "sandcastle-web network not found — skipping isolation rules"
+    return
+  fi
+
+  local net_prefix="${net_subnet%.*}"
+
   mkdir -p "$isolation_dir"
-  : > "$rules_file"
-  for name in sandcastle-web sandcastle-traefik sandcastle-worker; do
-    local ip
-    ip=$($DOCKER inspect --type=container "$name" \
-      --format '{{with index .NetworkSettings.Networks "sandcastle-web"}}{{.IPAddress}}{{end}}' 2>/dev/null) || true
-    if [ -n "$ip" ]; then
-      echo "$ip" >> "$rules_file"
-    fi
-  done
+  cat > "$rules_file" <<RULES
+# Fixed IPs of infrastructure containers on sandcastle-web (${net_subnet})
+# traefik
+${net_prefix}.10
+# postgres
+${net_prefix}.11
+# web
+${net_prefix}.12
+# worker
+${net_prefix}.13
+RULES
   wrote "$rules_file"
 
   # Restart dockyard service to apply isolation rules via ExecStartPost
@@ -502,6 +516,23 @@ LOGS
 
 write_compose() {
   local DATA_MOUNT="$SANDCASTLE_HOME/data"
+
+  # Derive fixed IPs from the sandcastle-web network subnet.
+  # If the network doesn't exist yet (shouldn't happen — created before this),
+  # fall back to no fixed IPs and let Docker assign dynamically.
+  local NET_PREFIX=""
+  local TRAEFIK_IP="" POSTGRES_IP="" WEB_IP="" WORKER_IP=""
+  local net_subnet
+  net_subnet=$($DOCKER network inspect sandcastle-web \
+    --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null) || true
+  if [ -n "$net_subnet" ]; then
+    # e.g. "10.89.1.0/24" → "10.89.1"
+    NET_PREFIX="${net_subnet%.*}"
+    TRAEFIK_IP="${NET_PREFIX}.10"
+    POSTGRES_IP="${NET_PREFIX}.11"
+    WEB_IP="${NET_PREFIX}.12"
+    WORKER_IP="${NET_PREFIX}.13"
+  fi
 
   cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
 @@TEMPLATE:docker-compose.yml.template@@

@@ -902,17 +902,31 @@ setup_network_isolation() {
   local isolation_dir="${DOCKYARD_ROOT}/etc/isolation.d"
   local rules_file="${isolation_dir}/infra.rules"
 
-  # Collect IPs of infrastructure containers (non-sandbox)
+  # Derive fixed infra IPs from the sandcastle-web network subnet.
+  # These match the ipv4_address values in docker-compose.yml (.10-.13).
+  local net_subnet
+  net_subnet=$($DOCKER network inspect sandcastle-web \
+    --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null) || true
+
+  if [ -z "$net_subnet" ]; then
+    warn "sandcastle-web network not found — skipping isolation rules"
+    return
+  fi
+
+  local net_prefix="${net_subnet%.*}"
+
   mkdir -p "$isolation_dir"
-  : > "$rules_file"
-  for name in sandcastle-web sandcastle-traefik sandcastle-worker; do
-    local ip
-    ip=$($DOCKER inspect --type=container "$name" \
-      --format '{{with index .NetworkSettings.Networks "sandcastle-web"}}{{.IPAddress}}{{end}}' 2>/dev/null) || true
-    if [ -n "$ip" ]; then
-      echo "$ip" >> "$rules_file"
-    fi
-  done
+  cat > "$rules_file" <<RULES
+# Fixed IPs of infrastructure containers on sandcastle-web (${net_subnet})
+# traefik
+${net_prefix}.10
+# postgres
+${net_prefix}.11
+# web
+${net_prefix}.12
+# worker
+${net_prefix}.13
+RULES
   wrote "$rules_file"
 
   # Restart dockyard service to apply isolation rules via ExecStartPost
@@ -1757,7 +1771,9 @@ DAEMONJSONEOF
     # Installing as dockyard.sh means the script's own ../etc/dockyard.env
     # auto-discovery works: ${BIN_DIR}/dockyard.sh finds ${ETC_DIR}/dockyard.env
     # without needing DOCKYARD_ENV to be set.
-    cp "$LOADED_ENV_FILE" "${ETC_DIR}/dockyard.env"
+    local _dest="${ETC_DIR}/dockyard.env"
+    [ "$(realpath "$LOADED_ENV_FILE")" = "$(realpath "$_dest" 2>/dev/null)" ] \
+        || cp "$LOADED_ENV_FILE" "$_dest"
     cp "${SCRIPT_DIR}/dockyard.sh" "${BIN_DIR}/dockyard.sh"
     chmod +x "${BIN_DIR}/dockyard.sh"
     ln -sf dockyard.sh "${BIN_DIR}/dockyardctl"
@@ -1913,8 +1929,6 @@ STACKEOF
     chmod 755 "${BIN_DIR}/dockyard-stack"
     echo "  installed ${BIN_DIR}/dockyard-stack"
 
-    local ISO_CHAIN="DOCKYARD-ISO-${DOCKYARD_DOCKER_PREFIX%_}"
-
     cat > "$SERVICE_FILE" <<SERVICEEOF
 [Unit]
 Description=Dockyard Docker (${SERVICE_NAME})
@@ -1956,11 +1970,6 @@ ExecStart=${BIN_DIR}/dockyard-stack
 # Wait until dockerd accepts API connections before systemctl start returns.
 ExecStartPost=/bin/bash -c 'i=0; while ! ${BIN_DIR}/docker-cli -H unix://${DOCKER_SOCKET} info >/dev/null 2>&1; do i=\$((i+1)); [ \$i -ge 360 ] && exit 1; sleep 0.5; done'
 
-# Apply isolation rules from ${ETC_DIR}/isolation.d/ if any .rules files exist.
-# Each .rules file lists IPs to ACCEPT; all other intra-bridge traffic is DROPped.
-# Chain ${ISO_CHAIN} is per-instance; built once, then jump rules added per user-defined bridge.
-ExecStartPost=-/bin/bash -c 'dir=${ETC_DIR}/isolation.d; ls "\$dir"/*.rules >/dev/null 2>&1 || exit 0; iptables -L ${ISO_CHAIN} >/dev/null 2>&1 || iptables -N ${ISO_CHAIN}; iptables -F ${ISO_CHAIN}; iptables -A ${ISO_CHAIN} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; for f in "\$dir"/*.rules; do [ -f "\$f" ] || continue; while IFS= read -r line; do line="\${line%%#*}"; line="\${line// /}"; [ -n "\$line" ] || continue; iptables -A ${ISO_CHAIN} -s "\$line" -j ACCEPT; iptables -A ${ISO_CHAIN} -d "\$line" -j ACCEPT; done < "\$f"; done; iptables -A ${ISO_CHAIN} -j DROP; for net_id in \$(${BIN_DIR}/docker-cli -H unix://${DOCKER_SOCKET} network ls --filter driver=bridge --format "{{.ID}}" 2>/dev/null); do br="br-\${net_id:0:12}"; ip link show "\$br" &>/dev/null || continue; iptables -C FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN} 2>/dev/null || iptables -I FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN}; done'
-
 # Clean up docker/containerd sockets
 ExecStopPost=-/bin/rm -f ${DOCKER_SOCKET} ${CONTAINERD_SOCKET}
 
@@ -1969,9 +1978,6 @@ ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -i ${BRIDGE} -o ${BRIDGE} -j ACC
 
 # Remove iptables rules (user-defined networks)
 ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -D FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -t nat -D POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE 2>/dev/null'
-
-# Remove per-instance isolation chain and its jump rules
-ExecStopPost=-/bin/bash -c 'for br in \$(ip -o link show type bridge 2>/dev/null | grep -oP "br-[0-9a-f]+"); do iptables -D FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN} 2>/dev/null; done; iptables -F ${ISO_CHAIN} 2>/dev/null; iptables -X ${ISO_CHAIN} 2>/dev/null'
 
 # Remove bridge
 ExecStopPost=-/bin/bash -c 'if ip link show ${BRIDGE} &>/dev/null; then ip link set ${BRIDGE} down 2>/dev/null; ip link delete ${BRIDGE} 2>/dev/null; fi'
@@ -2151,38 +2157,6 @@ cmd_start() {
     wait_for_file "$DOCKER_SOCKET" "dockerd" 30 || cleanup
     echo "  dockerd ready (pid ${DOCKERD_PID})"
 
-    # Apply isolation rules from ${ETC_DIR}/isolation.d/ if any .rules files exist.
-    # Each .rules file lists IPs to ACCEPT; all other intra-bridge traffic is DROPped.
-    local isolation_dir="${ETC_DIR}/isolation.d"
-    local iso_chain="DOCKYARD-ISO-${DOCKYARD_DOCKER_PREFIX%_}"
-    if ls "${isolation_dir}"/*.rules >/dev/null 2>&1; then
-        # Build the chain once (not per-bridge)
-        iptables -L "$iso_chain" >/dev/null 2>&1 || iptables -N "$iso_chain"
-        iptables -F "$iso_chain"
-        iptables -A "$iso_chain" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-        for f in "${isolation_dir}"/*.rules; do
-            [ -f "$f" ] || continue
-            while IFS= read -r line; do
-                line="${line%%#*}"          # strip comments
-                line="${line// /}"          # strip spaces
-                [ -n "$line" ] || continue
-                iptables -A "$iso_chain" -s "$line" -j ACCEPT
-                iptables -A "$iso_chain" -d "$line" -j ACCEPT
-            done < "$f"
-        done
-        iptables -A "$iso_chain" -j DROP
-
-        # Add per-bridge jump rules for this instance's user-defined networks
-        for net_id in $("${BIN_DIR}/docker-cli" -H "unix://${DOCKER_SOCKET}" network ls \
-                --filter driver=bridge --format '{{.ID}}' 2>/dev/null); do
-            local br="br-${net_id:0:12}"
-            ip link show "$br" &>/dev/null || continue
-            iptables -C FORWARD -i "$br" -o "$br" -j "$iso_chain" 2>/dev/null ||
-                iptables -I FORWARD -i "$br" -o "$br" -j "$iso_chain"
-            echo "  isolation rules applied on ${br}"
-        done
-    fi
-
     echo "=== All daemons started ==="
     echo "Run: DOCKER_HOST=unix://${DOCKER_SOCKET} docker ps"
 }
@@ -2209,14 +2183,6 @@ cmd_stop() {
     iptables -D FORWARD -s "$DOCKYARD_POOL_BASE" -j ACCEPT 2>/dev/null || true
     iptables -D FORWARD -d "$DOCKYARD_POOL_BASE" -j ACCEPT 2>/dev/null || true
     iptables -t nat -D POSTROUTING -s "$DOCKYARD_POOL_BASE" -j MASQUERADE 2>/dev/null || true
-
-    # Remove per-instance isolation chain and its jump rules
-    local iso_chain="DOCKYARD-ISO-${DOCKYARD_DOCKER_PREFIX%_}"
-    for br in $(ip -o link show type bridge 2>/dev/null | grep -oP 'br-[0-9a-f]+'); do
-        iptables -D FORWARD -i "$br" -o "$br" -j "$iso_chain" 2>/dev/null || true
-    done
-    iptables -F "$iso_chain" 2>/dev/null || true
-    iptables -X "$iso_chain" 2>/dev/null || true
 
     # Remove bridge
     if ip link show "$BRIDGE" &>/dev/null; then
@@ -2707,6 +2673,23 @@ LOGS
 write_compose() {
   local DATA_MOUNT="$SANDCASTLE_HOME/data"
 
+  # Derive fixed IPs from the sandcastle-web network subnet.
+  # If the network doesn't exist yet (shouldn't happen — created before this),
+  # fall back to no fixed IPs and let Docker assign dynamically.
+  local NET_PREFIX=""
+  local TRAEFIK_IP="" POSTGRES_IP="" WEB_IP="" WORKER_IP=""
+  local net_subnet
+  net_subnet=$($DOCKER network inspect sandcastle-web \
+    --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null) || true
+  if [ -n "$net_subnet" ]; then
+    # e.g. "10.89.1.0/24" → "10.89.1"
+    NET_PREFIX="${net_subnet%.*}"
+    TRAEFIK_IP="${NET_PREFIX}.10"
+    POSTGRES_IP="${NET_PREFIX}.11"
+    WEB_IP="${NET_PREFIX}.12"
+    WORKER_IP="${NET_PREFIX}.13"
+  fi
+
   cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
 services:
   traefik:
@@ -2724,7 +2707,8 @@ services:
       - ${DATA_MOUNT}/traefik/acme.json:/data/acme.json
       - ${DATA_MOUNT}/traefik/certs:/data/certs:ro
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${TRAEFIK_IP}
 
   postgres:
     image: postgres:18
@@ -2743,7 +2727,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${POSTGRES_IP}
 
   web:
     image: ${APP_IMAGE}
@@ -2784,7 +2769,8 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${WEB_IP}
 
   worker:
     image: ${APP_IMAGE}
@@ -2818,7 +2804,8 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${WORKER_IP}
 
   migrate:
     image: ${APP_IMAGE}
@@ -2841,7 +2828,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - sandcastle-web
+      sandcastle-web:
 
 networks:
   sandcastle-web:
