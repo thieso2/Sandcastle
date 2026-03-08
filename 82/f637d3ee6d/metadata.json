@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "claude/issue-76-20260308-0858",
-  "checkpoints_count": 48,
+  "checkpoints_count": 49,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -49,6 +49,7 @@
     "app/models/user.rb",
     "app/policies/sandbox_policy.rb",
     "app/services/btrfs_helper.rb",
+    "app/services/network_manager.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
     "app/services/stats_calculator.rb",
@@ -397,13 +398,20 @@
       "context": "/82/f637d3ee6d/37/context.md",
       "content_hash": "/82/f637d3ee6d/37/content_hash.txt",
       "prompt": "/82/f637d3ee6d/37/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/38/metadata.json",
+      "transcript": "/82/f637d3ee6d/38/full.jsonl",
+      "context": "/82/f637d3ee6d/38/context.md",
+      "content_hash": "/82/f637d3ee6d/38/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/38/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 5406,
-    "cache_creation_tokens": 2093494,
-    "cache_read_tokens": 120994149,
-    "output_tokens": 364042,
-    "api_call_count": 1374
+    "input_tokens": 5448,
+    "cache_creation_tokens": 2158473,
+    "cache_read_tokens": 122951595,
+    "output_tokens": 374027,
+    "api_call_count": 1410
   }
 }

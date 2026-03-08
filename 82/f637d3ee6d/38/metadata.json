@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "e1f7aa81-31f5-4f2b-8475-31ca428e5664",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-08T10:39:56.326032Z",
+  "branch": "claude/issue-76-20260308-0858",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/services/network_manager.rb",
+    "app/services/sandbox_manager.rb",
+    "installer/installer.sh.in"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "90c05985-ace4-431b-a791-fa480da7bbb7",
+  "token_usage": {
+    "input_tokens": 42,
+    "cache_creation_tokens": 64979,
+    "cache_read_tokens": 1957446,
+    "output_tokens": 9985,
+    "api_call_count": 36
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-08T10:39:56.258979Z",
+    "agent_lines": 266,
+    "human_added": 171,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 437,
+    "agent_percentage": 60.86956521739131
+  }
+}
