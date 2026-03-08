@@ -49,7 +49,6 @@
     "app/models/user.rb",
     "app/policies/sandbox_policy.rb",
     "app/services/btrfs_helper.rb",
-    "app/services/network_manager.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
     "app/services/stats_calculator.rb",
@@ -408,10 +407,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5448,
-    "cache_creation_tokens": 2158473,
-    "cache_read_tokens": 122951595,
-    "output_tokens": 374027,
-    "api_call_count": 1410
+    "input_tokens": 5423,
+    "cache_creation_tokens": 2096737,
+    "cache_read_tokens": 121830899,
+    "output_tokens": 366162,
+    "api_call_count": 1385
   }
 }
