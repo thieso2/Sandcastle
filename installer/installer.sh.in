@@ -329,20 +329,20 @@ setup_network_isolation() {
   done
   wrote "$rules_file"
 
-  # (Re-)build SANDCASTLE-ISOLATION chain with infra allow-list
-  iptables -L SANDCASTLE-ISOLATION >/dev/null 2>&1 || iptables -N SANDCASTLE-ISOLATION
-  iptables -F SANDCASTLE-ISOLATION
-  iptables -A SANDCASTLE-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  # (Re-)build DOCKYARD-ISOLATION chain with infra allow-list
+  iptables -L DOCKYARD-ISOLATION >/dev/null 2>&1 || iptables -N DOCKYARD-ISOLATION
+  iptables -F DOCKYARD-ISOLATION
+  iptables -A DOCKYARD-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   while IFS= read -r ip; do
     [ -n "$ip" ] || continue
-    iptables -A SANDCASTLE-ISOLATION -s "$ip" -j ACCEPT
-    iptables -A SANDCASTLE-ISOLATION -d "$ip" -j ACCEPT
+    iptables -A DOCKYARD-ISOLATION -s "$ip" -j ACCEPT
+    iptables -A DOCKYARD-ISOLATION -d "$ip" -j ACCEPT
   done < "$rules_file"
-  iptables -A SANDCASTLE-ISOLATION -j DROP
+  iptables -A DOCKYARD-ISOLATION -j DROP
 
   # Ensure the jump rule is in FORWARD (idempotent)
-  iptables -C FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION 2>/dev/null ||
-    iptables -I FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION
+  iptables -C FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION 2>/dev/null ||
+    iptables -I FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION
 
   ok "Cross-tenant network isolation configured on ${br}"
 }

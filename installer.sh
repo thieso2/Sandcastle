@@ -927,20 +927,20 @@ setup_network_isolation() {
   done
   wrote "$rules_file"
 
-  # (Re-)build SANDCASTLE-ISOLATION chain with infra allow-list
-  iptables -L SANDCASTLE-ISOLATION >/dev/null 2>&1 || iptables -N SANDCASTLE-ISOLATION
-  iptables -F SANDCASTLE-ISOLATION
-  iptables -A SANDCASTLE-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  # (Re-)build DOCKYARD-ISOLATION chain with infra allow-list
+  iptables -L DOCKYARD-ISOLATION >/dev/null 2>&1 || iptables -N DOCKYARD-ISOLATION
+  iptables -F DOCKYARD-ISOLATION
+  iptables -A DOCKYARD-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   while IFS= read -r ip; do
     [ -n "$ip" ] || continue
-    iptables -A SANDCASTLE-ISOLATION -s "$ip" -j ACCEPT
-    iptables -A SANDCASTLE-ISOLATION -d "$ip" -j ACCEPT
+    iptables -A DOCKYARD-ISOLATION -s "$ip" -j ACCEPT
+    iptables -A DOCKYARD-ISOLATION -d "$ip" -j ACCEPT
   done < "$rules_file"
-  iptables -A SANDCASTLE-ISOLATION -j DROP
+  iptables -A DOCKYARD-ISOLATION -j DROP
 
   # Ensure the jump rule is in FORWARD (idempotent)
-  iptables -C FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION 2>/dev/null ||
-    iptables -I FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION
+  iptables -C FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION 2>/dev/null ||
+    iptables -I FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION
 
   ok "Cross-tenant network isolation configured on ${br}"
 }
@@ -1968,13 +1968,6 @@ ExecStartPre=/bin/bash -c 'iptables -C FORWARD -i ${BRIDGE} -o ${BRIDGE} -j ACCE
 # Add iptables rules for user-defined networks (from default-address-pool) — idempotent
 ExecStartPre=/bin/bash -c 'iptables -C FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null || iptables -I FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT; iptables -C FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null || iptables -I FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT; iptables -t nat -C POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE'
 
-# Cross-tenant isolation on sandcastle-web: block sandbox-to-sandbox traffic on the shared
-# bridge while allowing established/related connections (so infra→sandbox replies flow freely).
-# The bridge name is derived from the sandcastle-web network ID after dockerd is ready.
-# ACCEPT rules for infra container IPs (traefik, rails, worker) are written by the
-# Sandcastle installer and refreshed on docker-compose up — see installer.sh.in.
-ExecStartPost=-/bin/bash -c 'DOCKER=${BIN_DIR}/docker-cli; SOCK=unix://${DOCKER_SOCKET}; net_id=$($DOCKER -H $SOCK network inspect sandcastle-web --format "{{.Id}}" 2>/dev/null | head -c 12); [ -z "$net_id" ] && exit 0; br="br-${net_id}"; ip link show "$br" &>/dev/null || exit 0; iptables -N SANDCASTLE-ISOLATION 2>/dev/null; iptables -F SANDCASTLE-ISOLATION; iptables -A SANDCASTLE-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; for f in ${ETC_DIR}/isolation.d/*.rules 2>/dev/null; do [ -f "$f" ] && while IFS= read -r ip; do [ -n "$ip" ] && { iptables -A SANDCASTLE-ISOLATION -s "$ip" -j ACCEPT; iptables -A SANDCASTLE-ISOLATION -d "$ip" -j ACCEPT; }; done < "$f"; done; iptables -A SANDCASTLE-ISOLATION -j DROP; iptables -C FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION 2>/dev/null || iptables -I FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION'
-
 # Stack script starts sysbox-mgr, sysbox-fs, containerd, dockerd; sends READY once sockets
 # are up; then monitors. ExecStartPost gates systemctl-start on full API readiness so callers
 # of "systemctl start" don't proceed until docker accepts connections.
@@ -1982,6 +1975,11 @@ ExecStart=${BIN_DIR}/dockyard-stack
 
 # Wait until dockerd accepts API connections before systemctl start returns.
 ExecStartPost=/bin/bash -c 'i=0; while ! ${BIN_DIR}/docker-cli -H unix://${DOCKER_SOCKET} info >/dev/null 2>&1; do i=\$((i+1)); [ \$i -ge 360 ] && exit 1; sleep 0.5; done'
+
+# Apply isolation rules from ${ETC_DIR}/isolation.d/ if any .rules files exist.
+# Each .rules file lists IPs to ACCEPT; all other intra-bridge traffic is DROPped.
+# The chain name is DOCKYARD-ISOLATION and the jump rule is scoped to user-defined bridges.
+ExecStartPost=-/bin/bash -c 'DOCKER=${BIN_DIR}/docker-cli; SOCK=unix://${DOCKER_SOCKET}; dir=${ETC_DIR}/isolation.d; ls "\$dir"/*.rules >/dev/null 2>&1 || exit 0; for net in \$(\$DOCKER -H \$SOCK network ls --filter driver=bridge --format "{{.Name}}" 2>/dev/null); do [ "\$net" = "bridge" ] && continue; net_id=\$(\$DOCKER -H \$SOCK network inspect "\$net" --format "{{.Id}}" 2>/dev/null | head -c 12) || continue; br="br-\${net_id}"; ip link show "\$br" &>/dev/null || continue; iptables -L DOCKYARD-ISOLATION >/dev/null 2>&1 || iptables -N DOCKYARD-ISOLATION; iptables -F DOCKYARD-ISOLATION; iptables -A DOCKYARD-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; for f in "\$dir"/*.rules; do [ -f "\$f" ] || continue; while IFS= read -r ip; do [ -n "\$ip" ] || continue; iptables -A DOCKYARD-ISOLATION -s "\$ip" -j ACCEPT; iptables -A DOCKYARD-ISOLATION -d "\$ip" -j ACCEPT; done < "\$f"; done 2>/dev/null; iptables -A DOCKYARD-ISOLATION -j DROP; iptables -C FORWARD -i "\$br" -o "\$br" -j DOCKYARD-ISOLATION 2>/dev/null || iptables -I FORWARD -i "\$br" -o "\$br" -j DOCKYARD-ISOLATION; done'
 
 # Clean up docker/containerd sockets
 ExecStopPost=-/bin/rm -f ${DOCKER_SOCKET} ${CONTAINERD_SOCKET}
@@ -1992,8 +1990,8 @@ ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -i ${BRIDGE} -o ${BRIDGE} -j ACC
 # Remove iptables rules (user-defined networks)
 ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -D FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -t nat -D POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE 2>/dev/null'
 
-# Remove cross-tenant isolation chain
-ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -j SANDCASTLE-ISOLATION 2>/dev/null; iptables -F SANDCASTLE-ISOLATION 2>/dev/null; iptables -X SANDCASTLE-ISOLATION 2>/dev/null'
+# Remove isolation chain and its jump rules from all user-defined bridges
+ExecStopPost=-/bin/bash -c 'for br in \$(ip -o link show type bridge 2>/dev/null | grep -oP "br-[0-9a-f]+"); do iptables -D FORWARD -i "\$br" -o "\$br" -j DOCKYARD-ISOLATION 2>/dev/null; done; iptables -F DOCKYARD-ISOLATION 2>/dev/null; iptables -X DOCKYARD-ISOLATION 2>/dev/null'
 
 # Remove bridge
 ExecStopPost=-/bin/bash -c 'if ip link show ${BRIDGE} &>/dev/null; then ip link set ${BRIDGE} down 2>/dev/null; ip link delete ${BRIDGE} 2>/dev/null; fi'
@@ -2173,33 +2171,35 @@ cmd_start() {
     wait_for_file "$DOCKER_SOCKET" "dockerd" 30 || cleanup
     echo "  dockerd ready (pid ${DOCKERD_PID})"
 
-    # Cross-tenant isolation for sandcastle-web bridge (if network already exists).
-    # Sets up SANDCASTLE-ISOLATION chain in FORWARD so sandbox-to-sandbox traffic
-    # on the shared bridge is blocked while infra↔sandbox connections are allowed.
-    # Infra IP allow-list is read from ${ETC_DIR}/isolation.d/*.rules (written by installer).
-    local net_id
-    net_id=$("${BIN_DIR}/docker-cli" -H "unix://${DOCKER_SOCKET}" network inspect sandcastle-web \
-        --format '{{.Id}}' 2>/dev/null | head -c 12) || true
-    if [ -n "$net_id" ]; then
-        local br="br-${net_id}"
-        if ip link show "$br" &>/dev/null; then
-            iptables -N SANDCASTLE-ISOLATION 2>/dev/null; iptables -F SANDCASTLE-ISOLATION
-            iptables -A SANDCASTLE-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-            if [ -d "${ETC_DIR}/isolation.d" ]; then
-                for f in "${ETC_DIR}/isolation.d"/*.rules; do
+    # Apply isolation rules from ${ETC_DIR}/isolation.d/ if any .rules files exist.
+    local isolation_dir="${ETC_DIR}/isolation.d"
+    if ls "${isolation_dir}"/*.rules >/dev/null 2>&1; then
+        for net in $("${BIN_DIR}/docker-cli" -H "unix://${DOCKER_SOCKET}" network ls --filter driver=bridge --format '{{.Name}}' 2>/dev/null); do
+            [ "$net" = "bridge" ] && continue
+            local net_id
+            net_id=$("${BIN_DIR}/docker-cli" -H "unix://${DOCKER_SOCKET}" network inspect "$net" \
+                --format '{{.Id}}' 2>/dev/null | head -c 12) || continue
+            local br="br-${net_id}"
+            ip link show "$br" &>/dev/null || continue
+
+            iptables -L DOCKYARD-ISOLATION >/dev/null 2>&1 || iptables -N DOCKYARD-ISOLATION
+            iptables -F DOCKYARD-ISOLATION
+            iptables -A DOCKYARD-ISOLATION -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+            if [ -d "${isolation_dir}" ]; then
+                for f in "${isolation_dir}"/*.rules; do
                     [ -f "$f" ] || continue
                     while IFS= read -r ip; do
                         [ -n "$ip" ] || continue
-                        iptables -A SANDCASTLE-ISOLATION -s "$ip" -j ACCEPT
-                        iptables -A SANDCASTLE-ISOLATION -d "$ip" -j ACCEPT
+                        iptables -A DOCKYARD-ISOLATION -s "$ip" -j ACCEPT
+                        iptables -A DOCKYARD-ISOLATION -d "$ip" -j ACCEPT
                     done < "$f"
                 done
             fi
-            iptables -A SANDCASTLE-ISOLATION -j DROP
-            iptables -C FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION 2>/dev/null ||
-                iptables -I FORWARD -i "$br" -o "$br" -j SANDCASTLE-ISOLATION
-            echo "  cross-tenant isolation applied on ${br}"
-        fi
+            iptables -A DOCKYARD-ISOLATION -j DROP
+            iptables -C FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION 2>/dev/null ||
+                iptables -I FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION
+            echo "  isolation rules applied on ${br}"
+        done
     fi
 
     echo "=== All daemons started ==="
@@ -2229,10 +2229,12 @@ cmd_stop() {
     iptables -D FORWARD -d "$DOCKYARD_POOL_BASE" -j ACCEPT 2>/dev/null || true
     iptables -t nat -D POSTROUTING -s "$DOCKYARD_POOL_BASE" -j MASQUERADE 2>/dev/null || true
 
-    # Remove cross-tenant isolation chain
-    iptables -D FORWARD -j SANDCASTLE-ISOLATION 2>/dev/null || true
-    iptables -F SANDCASTLE-ISOLATION 2>/dev/null || true
-    iptables -X SANDCASTLE-ISOLATION 2>/dev/null || true
+    # Remove isolation chain and its jump rules from all user-defined bridges
+    for br in $(ip -o link show type bridge 2>/dev/null | grep -oP 'br-[0-9a-f]+'); do
+        iptables -D FORWARD -i "$br" -o "$br" -j DOCKYARD-ISOLATION 2>/dev/null || true
+    done
+    iptables -F DOCKYARD-ISOLATION 2>/dev/null || true
+    iptables -X DOCKYARD-ISOLATION 2>/dev/null || true
 
     # Remove bridge
     if ip link show "$BRIDGE" &>/dev/null; then
