@@ -101,3 +101,11 @@ Read the output file to retrieve the result: REDACTED.output
 ---
 
 cmmit and push and release!
+
+---
+
+solid_errors is still mission on "ssh 100.106.185.92 -l sandcastle" - debug and fix for real this time
+
+---
+
+https://100.106.185.92/admin/errors still errors - check the logs!

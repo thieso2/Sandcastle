@@ -24,6 +24,8 @@
     "app/controllers/api/routes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
     "app/controllers/api/users_controller.rb",
+    "app/controllers/application_controller.rb",
+    "app/controllers/concerns/authentication.rb",
     "app/controllers/dashboard_controller.rb",
     "app/controllers/routes_controller.rb",
     "app/controllers/sandboxes_controller.rb",
@@ -80,7 +82,6 @@
     "config/initializers/solid_errors.rb",
     "config/recurring.yml",
     "config/routes.rb",
-    "db/errors_migrate/20260308064400_create_solid_errors_tables.rb",
     "db/migrate/20260222074421_add_mode_and_public_port_to_routes.rb",
     "db/migrate/20260302000002_add_archive_retention_to_settings.rb",
     "db/migrate/20260302000003_add_archive_retention_to_users.rb",
@@ -392,10 +393,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5447,
-    "cache_creation_tokens": 2105360,
-    "cache_read_tokens": 124496651,
-    "output_tokens": 377775,
-    "api_call_count": 1417
+    "input_tokens": 5371,
+    "cache_creation_tokens": 2062875,
+    "cache_read_tokens": 120263328,
+    "output_tokens": 360543,
+    "api_call_count": 1351
   }
 }
