@@ -1,0 +1,9 @@
+sandcastle connect shows weir characters.
+
+---
+
+why do we need this at all?
+
+---
+
+commit

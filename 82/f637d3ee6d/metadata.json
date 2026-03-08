@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 49,
+  "checkpoints_count": 51,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -97,6 +97,7 @@
     "images/sandbox/Dockerfile.base",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
+    "images/sandbox/tmux.conf",
     "install-defaults",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
@@ -412,13 +413,20 @@
       "context": "/82/f637d3ee6d/39/context.md",
       "content_hash": "/82/f637d3ee6d/39/content_hash.txt",
       "prompt": "/82/f637d3ee6d/39/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/40/metadata.json",
+      "transcript": "/82/f637d3ee6d/40/full.jsonl",
+      "context": "/82/f637d3ee6d/40/context.md",
+      "content_hash": "/82/f637d3ee6d/40/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/40/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 5662,
-    "cache_creation_tokens": 2241861,
-    "cache_read_tokens": 137627929,
-    "output_tokens": 409809,
-    "api_call_count": 1565
+    "input_tokens": 5681,
+    "cache_creation_tokens": 2268795,
+    "cache_read_tokens": 138036443,
+    "output_tokens": 418427,
+    "api_call_count": 1578
   }
 }

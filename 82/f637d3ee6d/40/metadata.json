@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "82f637d3ee6d",
+  "session_id": "c63fa026-ab19-4cdd-8f45-0a9525452c51",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-08T14:59:20.204978Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "images/sandbox/tmux.conf"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "d4097a3b-d770-464c-a690-86755b12367a",
+  "token_usage": {
+    "input_tokens": 19,
+    "cache_creation_tokens": 26934,
+    "cache_read_tokens": 408514,
+    "output_tokens": 8618,
+    "api_call_count": 13
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-08T14:59:20.185832Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "agent_percentage": 0
+  }
+}
