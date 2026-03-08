@@ -1,5 +1,8 @@
 module Admin
   class UpdateController < BaseController
+    skip_before_action :require_authentication, only: :progress
+    skip_before_action :require_admin, only: :progress
+
     # GET /admin/update/check — force-refresh the update status cache and return JSON
     def check
       result = UpdateChecker.new.force_check

@@ -28,9 +28,12 @@ class UpdateChecker
   private
 
   def perform_check
+    app_token     = fetch_anonymous_token(APP_REPO)
+    sandbox_token = fetch_anonymous_token(BOX_REPO)
+
     {
-      app:              image_status(APP_REPO, "ghcr.io/#{OWNER}/#{APP_REPO}:latest"),
-      sandbox:          image_status(BOX_REPO, "ghcr.io/#{OWNER}/#{BOX_REPO}:latest"),
+      app:              image_status(APP_REPO, "ghcr.io/#{OWNER}/#{APP_REPO}:latest", app_token),
+      sandbox:          image_status(BOX_REPO, "ghcr.io/#{OWNER}/#{BOX_REPO}:latest", sandbox_token),
       restart_pending:  restart_pending?,
       checked_at:       Time.current
     }
@@ -39,15 +42,17 @@ class UpdateChecker
     { error: e.message, checked_at: Time.current }
   end
 
-  def image_status(repo, local_ref)
-    local_digest  = local_repo_digest(local_ref)
-    remote_digest = remote_manifest_digest(repo)
-    built_at      = local_image_built_at(local_ref)
+  def image_status(repo, local_ref, token)
+    local_digest   = local_repo_digest(local_ref)
+    remote_digest  = remote_manifest_digest(repo, token)
+    local_version  = local_image_version(local_ref)
+    remote_version = latest_remote_tag(repo, token)
 
     {
       local_digest:     local_digest,
       remote_digest:    remote_digest,
-      built_at:         built_at,
+      local_version:    local_version,
+      remote_version:   remote_version,
       update_available: local_digest.present? && remote_digest.present? && local_digest != remote_digest
     }
   rescue => e
@@ -78,28 +83,47 @@ class UpdateChecker
     nil
   end
 
-  # Reads BUILD_DATE from image labels/env so we can show "built X ago".
-  def local_image_built_at(image_ref)
+  # Extracts the version from a local image's labels or env vars.
+  def local_image_version(image_ref)
     img    = Docker::Image.get(image_ref)
     config = img.json.dig("Config") || {}
     labels = config["Labels"] || {}
+    envs   = config["Env"] || []
 
-    date_str = labels["org.opencontainers.image.created"] ||
-               labels["BUILD_DATE"]
+    # Check OCI label first (set by docker/metadata-action)
+    version = labels["org.opencontainers.image.version"]
+    return version if version.present?
 
-    if date_str.nil?
-      env_entry = (config["Env"] || []).find { |e| e.start_with?("BUILD_DATE=") }
-      date_str  = env_entry&.split("=", 2)&.last
-    end
-
-    date_str ? Time.zone.parse(date_str) : nil
-  rescue Docker::Error::DockerError, ArgumentError, TypeError
+    # Fall back to BUILD_VERSION env (app image)
+    version_entry = envs.find { |e| e.start_with?("BUILD_VERSION=") }
+    version_entry&.split("=", 2)&.last.presence
+  rescue Docker::Error::DockerError
     nil
   end
 
+  # Fetches the latest release tag from GitHub (e.g. "v0.8.72").
+  # Both the app and sandbox images share the same release tag.
+  def latest_remote_tag(_repo, _token)
+    @latest_release_tag ||= begin
+      uri = URI("https://api.github.com/repos/#{OWNER}/Sandcastle/releases/latest")
+      req = Net::HTTP::Get.new(uri)
+      req["Accept"] = "application/vnd.github+json"
+
+      response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true,
+                                 read_timeout: 10, open_timeout: 5) do |http|
+        http.request(req)
+      end
+
+      return nil unless response.is_a?(Net::HTTPSuccess)
+      JSON.parse(response.body)["tag_name"]
+    rescue => e
+      Rails.logger.warn("UpdateChecker: failed to fetch latest release: #{e.message}")
+      nil
+    end
+  end
+
   # Queries GHCR for the latest manifest digest without pulling the image.
-  def remote_manifest_digest(repo)
-    token = fetch_anonymous_token(repo)
+  def remote_manifest_digest(repo, token)
     return nil unless token
 
     uri = URI("https://#{GHCR_HOST}/v2/#{OWNER}/#{repo}/manifests/latest")

@@ -70,13 +70,17 @@ class UpdateManager
   end
 
   def spawn_updater_container
+    # DOCKER_SOCK contains the host path to the dockyard Docker socket.
+    # Bind mounts reference host paths, not paths inside this container.
+    host_sock = ENV.fetch("DOCKER_SOCK", "/var/run/docker.sock")
+
     container = Docker::Container.create(
       "Image" => APP_IMAGE,
       "Cmd"   => [ "sh", "-c",
                    "sleep 2 && docker compose -f #{COMPOSE_PATH} up -d" ],
       "HostConfig" => {
         "Binds" => [
-          "/var/run/docker.sock:/var/run/docker.sock",
+          "#{host_sock}:/var/run/docker.sock",
           "/sandcastle:/sandcastle"
         ],
         "AutoRemove" => true
