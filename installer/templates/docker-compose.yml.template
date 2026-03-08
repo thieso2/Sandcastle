@@ -14,7 +14,8 @@ services:
       - ${DATA_MOUNT}/traefik/acme.json:/data/acme.json
       - ${DATA_MOUNT}/traefik/certs:/data/certs:ro
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${TRAEFIK_IP}
 
   postgres:
     image: postgres:18
@@ -33,7 +34,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${POSTGRES_IP}
 
   web:
     image: ${APP_IMAGE}
@@ -74,7 +76,8 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${WEB_IP}
 
   worker:
     image: ${APP_IMAGE}
@@ -108,7 +111,8 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${WORKER_IP}
 
   migrate:
     image: ${APP_IMAGE}
@@ -131,7 +135,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - sandcastle-web
+      sandcastle-web:
 
 networks:
   sandcastle-web:

@@ -76,6 +76,16 @@ class SandboxManager
     end
     sandbox.update!(container_id: container.id, status: "running")
 
+    # Connect to per-user network for tenant isolation
+    begin
+      NetworkManager.new.connect_sandbox(sandbox: sandbox)
+    rescue NetworkManager::Error => e
+      container.stop rescue nil
+      container.delete(force: true) rescue nil
+      sandbox.update!(container_id: nil, status: "pending")
+      raise Error, "Failed to attach tenant network: #{e.message}"
+    end
+
     # Pre-write Traefik routes so they're active immediately (no wait on first open).
     TerminalManager.new.prepare_traefik_config(sandbox)
     VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
@@ -161,6 +171,13 @@ class SandboxManager
       sandbox.update!(status: "archived", container_id: nil, archived_at: Time.current, name: archived_name)
     else
       sandbox.update!(status: "destroyed", container_id: nil)
+    end
+
+    # Remove per-user network if this was the last active sandbox
+    begin
+      NetworkManager.new.cleanup_user_network(sandbox.user)
+    rescue NetworkManager::Error => e
+      Rails.logger.warn("SandboxManager#destroy: network cleanup failed for #{sandbox.user.name}: #{e.message}")
     end
   end
 
@@ -536,30 +553,11 @@ class SandboxManager
 
     # ── Recreate container ────────────────────────────────────────────────────
     final_image = restore_container ? image_ref : sandbox.image
+    # Clear stale container reference before recreating — prevents the record
+    # from pointing at a dead container if create_container_and_start fails.
+    sandbox.update!(image: final_image, container_id: nil, status: "pending")
 
-    container = Docker::Container.create(
-      "name" => sandbox.full_name,
-      "Image" => final_image,
-      "Hostname" => sandbox.full_name,
-      "Env" => container_env(user, sandbox),
-      "Labels" => { "sandcastle.sandbox" => "true" },
-      "HostConfig" => {
-        "Runtime" => container_runtime,
-        "NetworkMode" => NETWORK_NAME,
-        "Binds" => volume_binds(user, sandbox),
-        "RestartPolicy" => { "Name" => "unless-stopped" }
-      },
-      "NetworkingConfig" => {
-        "EndpointsConfig" => { NETWORK_NAME => {} }
-      }
-    )
-
-    container.start
-    sandbox.update!(container_id: container.id, image: final_image, status: "running")
-
-    # Pre-write Traefik routes so they're active immediately after restore.
-    TerminalManager.new.prepare_traefik_config(sandbox)
-    VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+    create_container_and_start(sandbox: sandbox, user: user)
 
     if was_tailscale && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
