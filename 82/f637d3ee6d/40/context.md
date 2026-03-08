@@ -135,3 +135,12 @@ detect when the pulled app image is newer that the running one and offer a resta
 
 commti and push
 
+### Prompt 26
+
+we get logged out on restart. hot to fix that!
+
+### Prompt 27
+
+also on relase tag the docker imnages with the release version and surface that in the update page. show the installed and the newly availanble version.
+  debug the flow and make sure all works!
+

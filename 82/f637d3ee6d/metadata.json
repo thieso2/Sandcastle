@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 52,
+  "checkpoints_count": 51,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -20,6 +20,7 @@
     "app/controllers/admin/docker_controller.rb",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/admin/settings_controller.rb",
+    "app/controllers/admin/update_controller.rb",
     "app/controllers/admin/users_controller.rb",
     "app/controllers/api/routes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
@@ -35,7 +36,6 @@
     "app/controllers/vnc_controller.rb",
     "app/javascript/controllers/inline_edit_controller.js",
     "app/javascript/controllers/sparkline_controller.js",
-    "app/javascript/controllers/update_check_controller.js",
     "app/javascript/controllers/xterm_terminal_controller.js",
     "app/jobs/container_metrics_job.rb",
     "app/jobs/container_sync_job.rb",
@@ -426,10 +426,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5707,
-    "cache_creation_tokens": 2261812,
-    "cache_read_tokens": 140581100,
-    "output_tokens": 419522,
-    "api_call_count": 1598
+    "input_tokens": 5745,
+    "cache_creation_tokens": 2286286,
+    "cache_read_tokens": 147161341,
+    "output_tokens": 433126,
+    "api_call_count": 1644
   }
 }
