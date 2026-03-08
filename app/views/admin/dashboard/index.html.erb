@@ -1,4 +1,11 @@
 <div class="max-w-6xl mx-auto px-4 py-8">
+  <%= turbo_frame_tag "update_status", src: admin_update_status_path, loading: :lazy do %>
+    <div class="bg-gray-50 rounded-lg p-4 mb-8 border border-gray-200 animate-pulse">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">System Update</h2>
+      <div class="h-4 w-48 bg-gray-200 rounded"></div>
+    </div>
+  <% end %>
+
   <%= turbo_frame_tag "system_status", src: admin_system_status_path, loading: :lazy do %>
     <div class="bg-gray-50 rounded-lg p-4 mb-8 border border-gray-200 animate-pulse">
       <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">System Status</h2>

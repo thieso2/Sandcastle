@@ -268,6 +268,7 @@ module Api
         vnc_depth: sandbox.vnc_depth,
         docker_enabled: sandbox.docker_enabled,
         routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
+        image_built_at: sandbox.image_built_at,
         created_at: sandbox.created_at,
         archived_at: sandbox.archived_at,
         connect_command: sandbox.connect_command,

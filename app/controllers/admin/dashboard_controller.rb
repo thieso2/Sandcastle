@@ -12,5 +12,11 @@ module Admin
       @system_status = SystemStatus.new.call
       render partial: "system_status"
     end
+
+    def update_status
+      authorize :user, :index?
+      @update_info = UpdateChecker.new.check
+      render partial: "update_status"
+    end
   end
 end

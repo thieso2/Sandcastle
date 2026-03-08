@@ -1,0 +1,95 @@
+<%= turbo_frame_tag "update_status" do %>
+  <div class="bg-gray-50 rounded-lg p-4 mb-8 border border-gray-200"
+       data-controller="update-check"
+       data-update-check-check-url-value="<%= check_admin_update_path %>"
+       data-update-check-perform-url-value="<%= perform_admin_update_path %>"
+       data-update-check-poll-url-value="<%= api_info_path %>">
+
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">System Update</h2>
+      <div class="flex items-center gap-2">
+        <button data-action="click->update-check#checkForUpdates"
+                data-update-check-target="checkBtn"
+                class="text-xs px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+          Check for Updates
+        </button>
+        <button data-action="click->update-check#performUpdate"
+                data-update-check-target="updateBtn"
+                class="hidden text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+          Update Now
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <%# App image row %>
+      <div>
+        <span class="text-gray-500">App Image</span>
+        <% app = @update_info[:app] || {} %>
+        <% if app[:error] %>
+          <p class="font-mono font-medium text-gray-400">Error: <%= app[:error] %></p>
+        <% else %>
+          <div class="flex items-center gap-2 mt-0.5">
+            <% if app[:built_at] %>
+              <p class="font-mono font-medium"><%= time_ago_in_words(app[:built_at]) %> ago</p>
+            <% else %>
+              <p class="font-mono font-medium text-gray-400">unknown age</p>
+            <% end %>
+            <% if app[:update_available] %>
+              <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
+                  <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+                </svg>
+                Update available
+              </span>
+            <% elsif app[:local_digest].present? && app[:remote_digest].present? %>
+              <span class="text-xs text-green-600 font-medium">✓ Up to date</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <%# Sandbox image row %>
+      <div>
+        <span class="text-gray-500">Sandbox Image</span>
+        <% sandbox_img = @update_info[:sandbox] || {} %>
+        <% if sandbox_img[:error] %>
+          <p class="font-mono font-medium text-gray-400">Error: <%= sandbox_img[:error] %></p>
+        <% else %>
+          <div class="flex items-center gap-2 mt-0.5">
+            <% if sandbox_img[:built_at] %>
+              <p class="font-mono font-medium"><%= time_ago_in_words(sandbox_img[:built_at]) %> ago</p>
+            <% else %>
+              <p class="font-mono font-medium text-gray-400">unknown age</p>
+            <% end %>
+            <% if sandbox_img[:update_available] %>
+              <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
+                  <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+                </svg>
+                Update available
+              </span>
+            <% elsif sandbox_img[:local_digest].present? && sandbox_img[:remote_digest].present? %>
+              <span class="text-xs text-green-600 font-medium">✓ Up to date</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <% if @update_info[:checked_at] %>
+      <p class="text-xs text-gray-400 mt-3">Last checked: <%= time_ago_in_words(@update_info[:checked_at]) %> ago</p>
+    <% end %>
+
+    <%# Update progress / reload message (shown after clicking Update Now) %>
+    <div data-update-check-target="progressMsg" class="hidden mt-3 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+      <div class="flex items-center gap-2">
+        <svg class="animate-spin h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Updating… page will reload automatically when the new version is live.</span>
+      </div>
+    </div>
+  </div>
+<% end %>
