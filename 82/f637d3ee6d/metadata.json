@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 50,
+  "checkpoints_count": 51,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -20,6 +20,7 @@
     "app/controllers/admin/docker_controller.rb",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/admin/settings_controller.rb",
+    "app/controllers/admin/update_controller.rb",
     "app/controllers/admin/users_controller.rb",
     "app/controllers/api/routes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
@@ -35,6 +36,7 @@
     "app/controllers/vnc_controller.rb",
     "app/javascript/controllers/inline_edit_controller.js",
     "app/javascript/controllers/sparkline_controller.js",
+    "app/javascript/controllers/update_check_controller.js",
     "app/javascript/controllers/xterm_terminal_controller.js",
     "app/jobs/container_metrics_job.rb",
     "app/jobs/container_sync_job.rb",
@@ -54,10 +56,12 @@
     "app/services/stats_calculator.rb",
     "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
-    "app/services/update_checker.rb",
+    "app/services/update_manager.rb",
     "app/services/vnc_manager.rb",
     "app/views/admin/_subnav.html.erb",
+    "app/views/admin/dashboard/_update_status.html.erb",
     "app/views/admin/docker/index.html.erb",
+    "app/views/admin/update/progress.html.erb",
     "app/views/admin/users/_form.html.erb",
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/dashboard/index.html.erb",
@@ -423,10 +427,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5716,
-    "cache_creation_tokens": 2265854,
-    "cache_read_tokens": 139414296,
-    "output_tokens": 416363,
-    "api_call_count": 1609
+    "input_tokens": 5711,
+    "cache_creation_tokens": 2270169,
+    "cache_read_tokens": 140390398,
+    "output_tokens": 427235,
+    "api_call_count": 1606
   }
 }

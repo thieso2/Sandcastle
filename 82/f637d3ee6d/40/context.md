@@ -77,3 +77,23 @@ commit and push
 
 "Check for update" is not working - see dev.sand !
 
+### Prompt 16
+
+how can i do the update from the UI?
+
+### Prompt 17
+
+no update now button.
+I also want to be able to just update teh sandbox image and not the app.
+
+### Prompt 18
+
+explaij how the upgrade process works?
+we should 1st pull the images and show some progress 
+one teh images are loaded we need to start the "restart" container 
+we should run a fullscreen page and a JS that checks if the app is "back" and if yes reload teh page...
+
+### Prompt 19
+
+commti and push and release
+
