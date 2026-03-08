@@ -1,0 +1,21 @@
+run the test suite
+
+---
+
+yes
+
+---
+
+commit
+
+---
+
+examitn whats new on main - rebase or merge?
+
+---
+
+yes
+
+---
+
+commit and push
