@@ -34,3 +34,192 @@ yes
 ---
 
 commit and push
+
+---
+
+Data path should be "mount /persisted" and a toggle. If on, you can spwecify a subpath.
+also make sure that smb exported /persisted if it is mouned
+also when i connect to teh sandbox i want to be in ~/ initially
+
+---
+
+remove all ref to /workspace from the project. all code and docs!
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+   The user had four sequential requests:
+   - **Fix garbled characters** in `sandcastle connect` terminal (OSC escape sequences leaking in prompt)
+   - **Fix hostname support** in `SANDCASTLE_HOST` (was broken when using names like `dev.sand` instead of IPs), install on `dev.sand`, switch to mkcert TLS, ensure TLS cert works
+   - **Three UI/UX changes**: (a) Convert data_path from text field to a "Mount /persisted" toggle with optional subpath, (b) Export /persisted via SMB when mounted, (c) Start in `~/` on `sandcastle connect`
+   - **Remove ALL references to `/workspace`** from the entire project — all code and docs
+
+2. Key Technical Concepts:
+   - OSC (Operating System Command) escape sequences and tmux `escape-time` setting
+   - X.509 certificate SAN (Subject Alternative Name) — `IP:` vs `DNS:` prefix for self-signed certs
+   - Installer runtime `.env` vs user `sandcastle.env` — precedence and sync on re-install
+   - mkcert for locally-trusted TLS certificates
+   - Samba/SMB file sharing configuration in sandbox entrypoint
+   - tmux session wrapper (`sc-tmux.sh`) and SSH connect flow
+   - Sandcastle form UI with Tailwind CSS and vanilla JS toggles
+
+3. Files and Code Sections:
+
+   - **`images/sandbox/tmux.conf`** — Removed `escape-time 10` override that caused garbled prompt over SSH. tmux's default 500ms properly handles OSC responses.
+
+   - **`installer/installer.sh.in`** (and generated `installer.sh`) — Two fixes:
+     1. Self-signed cert SAN detection (around line 1158):
+     ```bash
+     # Detect IP vs hostname for the SAN extension
+     local san_type="DNS"
+     echo "$SANDCASTLE_HOST" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+ && san_type="IP"
+     openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+       -keyout "$TRAEFIK_DIR/certs/key.pem" -out "$TRAEFIK_DIR/certs/cert.pem" \
+       -subj "/CN=$SANDCASTLE_HOST" \
+       -addext "subjectAltName=${san_type}:${SANDCASTLE_HOST},IP:127.0.0.1,DNS:localhost" 2>/dev/null
+     ```
+     2. Runtime .env sync for user-configurable values (around line 1061):
+     ```bash
+     # Save user-configurable values from sandcastle.env before runtime .env overrides them
+     local _user_host="${SANDCASTLE_HOST:-}"
+     local _user_tls_mode="${SANDCASTLE_TLS_MODE:-}"
+     
+     source "$SANDCASTLE_HOME/.env"
+     
+     # Sync user-configurable values: sandcastle.env → runtime .env
+     if [ -n "$_user_host" ] && [ "$_user_host" != "$SANDCASTLE_HOST" ]; then
+       sed -i "s|^SANDCASTLE_HOST=.*|SANDCASTLE_HOST=${_user_host}|" "$SANDCASTLE_HOME/.env"
+       SANDCASTLE_HOST="$_user_host"
+       info "Updated SANDCASTLE_HOST to $SANDCASTLE_HOST"
+     fi
+     if [ -n "$_user_tls_mode" ] && [ "$_user_tls_mode" != "$SANDCASTLE_TLS_MODE" ]; then
+       sed -i "s|^SANDCASTLE_TLS_MODE=.*|SANDCASTLE_TLS_MODE=${_user_tls_mode}|" "$SANDCASTLE_HOME/.env"
+       SANDCASTLE_TLS_MODE="$_user_tls_mode"
+       info "Updated SANDCASTLE_TLS_MODE to $SANDCASTLE_TLS_MODE"
+     fi
+     ```
+
+   - **`app/views/sandboxes/new.html.erb`** — Replaced data_path text field with toggle + conditional subpath:
+     ```erb
+     <label class="flex items-start gap-3 cursor-pointer">
+       <%= form.check_box :mount_data, id: "sandbox_mount_data", checked: @defaults.default_data_path.present?,
+             class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+       <div class="flex-1">
+         <div class="text-sm font-medium text-gray-900">Mount /persisted</div>
+         <p class="text-xs text-gray-500">Mount a persistent data volume at /persisted in the sandbox</p>
+       </div>
+     </label>
+
+     <div id="data_path_row">
+       <%= form.label :data_path, "Data Subpath (optional)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+       <%= form.text_field :data_path,
+             value: @defaults.default_data_path.presence&.then { |p| p == "." ? "" : p },
+             placeholder: "e.g., projects/myapp",
+             class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+       <p class="mt-1 text-xs text-gray-500">Leave empty for the root data directory, or specify a subpath</p>
+     </div>
+     ```
+     Also added JS toggle and updated SMB description from "home/workspace" to "home/persisted".
+
+   - **`app/controllers/sandboxes_controller.rb`** — Updated create action:
+     ```ruby
+     mount_home: params[:mount_home] == "1",
+     data_path: params[:mount_data] == "1" ? (params[:data_path].presence || ".") : nil,
+     ```
+
+   - **`images/sandbox/entrypoint.sh`** — Replaced workspace SMB share with /persisted:
+     ```bash
+     # Add persisted data share if the volume is mounted
+     if [ -d /persisted ]; then
+         cat >> /etc/samba/smb.conf << SMBCONF2
+
+     [persisted]
+         path = /persisted
+         browseable = yes
+         read only = no
+         valid users = $USERNAME
+         guest ok = no
+         create mask = 0644
+         directory mask = 0755
+     SMBCONF2
+     fi
+     ```
+     Removed the legacy /workspace SMB block entirely.
+
+   - **`images/sandbox/sc-tmux.sh`** — Added `cd ~` before tmux:
+     ```bash
+     cd ~ 2>/dev/null
+     exec tmux new-session -A -s main
+     ```
+
+   - **`app/views/sandboxes/show.html.erb`** — Changed SMB instructions from `persistent_volume?`/workspace to `data_path.present?`/persisted
+
+   - **`app/views/settings/show.html.erb`** — "workspace" → "/persisted" in SMB description
+
+   - **`app/views/pages/guide.html.erb`** — Updated SMB references and snapshot description
+
+   - **`app/services/sandbox_manager.rb`** — Updated snapshot layers comment from "container, home, data, workspace" to "container, home, data"
+
+   - **`vendor/sandcastle-cli/cmd/snapshot.go`** — Updated --layers flag help text
+
+   - **`vendor/sandcastle-cli/cmd/smb.go`** — Updated help text from "/workspace" to "/persisted"
+
+   - **`CLAUDE.md`** — Updated container model: `Optional persistent data volume at /data/users/{name}/data/{path}:/persisted`
+
+   - **`docs/SNAPSHOTS.md`** — Removed workspace layer entirely, updated all references
+
+   - **`website/index.html`** — "workspace volumes" → "data volumes", "Volume: /workspace" → "Data: /persisted"
+
+   - **`sandcastle-design.md`** — All /workspace → /persisted
+
+   - **`research/*.md`** (6 files: docker-sysbox.md, QUICK_REFERENCE.md, COMPARISON.md, README.md, firecracker.md, gvisor.md) — All /workspace path references → /persisted, stale `/data/sandboxes/{name}/vol` paths updated to `/data/users/{name}/data/{path}`
+
+4. Errors and fixes:
+   - **tmux escape-time initially set to 50ms**: User asked "why do we need this at all?" — removed it entirely instead of tweaking the value
+   - **Installer self-signed cert SAN hardcoded `IP:`**: Fixed with regex detection (`grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
+   - **Runtime .env overwriting user's sandcastle.env values on re-install**: First attempt to switch TLS mode to mkcert failed silently — installer loaded old runtime .env which overwrote the new value. Fixed by saving user values before sourcing runtime .env and syncing them back
+   - **SSH to sandman timed out initially**: Retried later and it connected (transient Tailscale issue)
+   - **Rails tests fail locally**: Expected — no local Postgres per CLAUDE.md. Verified Go CLI compiles instead
+
+5. Problem Solving:
+   - Diagnosed OSC escape sequence leak through SSH+tmux by identifying the 10ms escape-time as too aggressive for SSH latency
+   - Traced hostname-as-SANDCASTLE_HOST failure to two root causes: bad cert SAN type and runtime .env precedence
+   - Performed full install/uninstall/reinstall testing on remote host `dev.sand` (100.106.185.92)
+   - Installed mkcert CA root locally to verify TLS works without `-k` flag
+   - Systematically found and replaced all /workspace references across 18+ files
+
+6. All user messages:
+   - "sandcastle connect shows weir characters." (with screenshot of OSC escape sequences in prompt)
+   - "why do we need this at all?" (questioning the escape-time setting)
+   - "commit"
+   - "setting up a sandxcaste with name instead of an ip in SANDCASTLE_HOST= does not work. install sandcaste on dev.sand and use dev.sand as hostname - debug what's missing. also make sure that the TLS cert works!"
+   - "test the install unsiatll on dev.sand!"
+   - "curl https://dev.sand/ → curl: (60) SSL certificate problem: self signed certificate" (showing curl output)
+   - "yes" (confirming switch to mkcert)
+   - "commit and push"
+   - "Data path should be 'mount /persisted' and a toggle. If on, you can specify a subpath. also make sure that smb exported /persisted if it is mounted. also when i connect to teh sandbox i want to be in ~/ initially" (with screenshot of current form)
+   - "remove all ref to /workspace from the project. all code and docs!"
+
+7. Pending Tasks:
+   - The workspace removal changes (and the UI/UX changes from the previous request) have NOT been committed yet. All changes are unstaged in the working directory.
+
+8. Current Work:
+   Immediately before the summary request, I was completing the removal of all `/workspace` references from the entire Sandcastle codebase. I had just finished updating the last research docs (`gvisor.md`, `COMPARISON.md`), verified no `/workspace` path references remain with grep, and confirmed the Go CLI still compiles. The changes span 18+ files but are all uncommitted. The `git diff --stat` before the workspace removal showed:
+   ```
+   app/controllers/sandboxes_controller.rb |  2 +-
+   app/views/pages/guide.html.erb          |  4 ++--
+   app/views/sandboxes/new.html.erb        | 29 ++++++++++++++++++++++++-----
+   images/sandbox/entrypoint.sh            | 23 +++++++++++++++++++----
+   images/sandbox/sc-tmux.sh               |  1 +
+   vendor/sandcastle-cli/cmd/smb.go        |  4 ++--
+   ```
+   Plus additional files modified during the /workspace removal: show.html.erb, settings/show.html.erb, sandbox_manager.rb, snapshot.go, CLAUDE.md, docs/SNAPSHOTS.md, website/index.html, sandcastle-design.md, and 6 research/*.md files.
+
+9. Optional Next Step:
+   Commit all the uncommitted changes. The user's last two explicit requests ("Data path should be a toggle..." and "remove all ref to /workspace") resulted in changes that haven't been committed. The user previously asked to "commit and push" after installer changes, so they may want the same here, but should confirm before proceeding.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
+Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.

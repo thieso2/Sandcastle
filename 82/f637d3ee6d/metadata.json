@@ -66,6 +66,7 @@
     "app/views/layouts/terminal.html.erb",
     "app/views/pages/guide.html.erb",
     "app/views/sandboxes/logs.html.erb",
+    "app/views/sandboxes/new.html.erb",
     "app/views/sandboxes/show.html.erb",
     "app/views/settings/show.html.erb",
     "app/views/shared/_navbar.html.erb",
@@ -92,11 +93,13 @@
     "docker-compose.local.yml",
     "docker-compose.yml",
     "docs/DOCKER_SYSBOX_TROUBLE.md",
+    "docs/SNAPSHOTS.md",
     "images/sandbox/.Dockerfile.swp",
     "images/sandbox/Dockerfile",
     "images/sandbox/Dockerfile.base",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
+    "images/sandbox/sc-tmux.sh",
     "images/sandbox/tmux.conf",
     "install-defaults",
     "installer/installer.sh.in",
@@ -105,6 +108,13 @@
     "installer/templates/dockyard.sh",
     "installer/templates/sandcastle-admin.sh",
     "mise.toml",
+    "research/COMPARISON.md",
+    "research/QUICK_REFERENCE.md",
+    "research/README.md",
+    "research/docker-sysbox.md",
+    "research/firecracker.md",
+    "research/gvisor.md",
+    "sandcastle-design.md",
     "test/controllers/registrations_controller_test.rb",
     "test/controllers/terminal_controller_test.rb",
     "test/fixtures/sandboxes.yml",
@@ -130,8 +140,11 @@
     "vendor/sandcastle-cli/cmd/info.go",
     "vendor/sandcastle-cli/cmd/route.go",
     "vendor/sandcastle-cli/cmd/sandbox.go",
+    "vendor/sandcastle-cli/cmd/smb.go",
+    "vendor/sandcastle-cli/cmd/snapshot.go",
     "vendor/sandcastle-cli/cmd/status.go",
-    "vendor/sandcastle-cli/internal/config/config.go"
+    "vendor/sandcastle-cli/internal/config/config.go",
+    "website/index.html"
   ],
   "sessions": [
     {
@@ -423,10 +436,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 8607,
-    "cache_creation_tokens": 2310248,
-    "cache_read_tokens": 141851970,
-    "output_tokens": 422269,
-    "api_call_count": 1618
+    "input_tokens": 7457,
+    "cache_creation_tokens": 2315591,
+    "cache_read_tokens": 149211181,
+    "output_tokens": 425454,
+    "api_call_count": 1647
   }
 }

@@ -41,3 +41,23 @@ yes
 
 commit and push
 
+### Prompt 9
+
+Data path should be "mount /persisted" and a toggle. If on, you can spwecify a subpath.
+also make sure that smb exported /persisted if it is mouned
+also when i connect to teh sandbox i want to be in ~/ initially
+
+### Prompt 10
+
+remove all ref to /workspace from the project. all code and docs!
+
+### Prompt 11
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Summary:
+1. Primary Request and Intent:
+   The user had four sequential requests:
+   - **Fix garbled characters** in `sandcastle connect` terminal (OSC escape sequences leaking in prompt)
+   - **Fix hostname support** in `SANDCASTLE_HOST` (was broken when using names like `dev.sand` instead of IPs), install on `dev.sand`, switch to mkcert TLS, e...
+
