@@ -241,6 +241,7 @@ ERB templates with Tailwind CSS (v4). Turbo Frames for async container stats. No
 
 - When features are changed or added, update the guide page at `app/views/pages/guide.html.erb` to reflect the new CLI commands and usage.
 - **Never edit `installer.sh` directly** — it is generated from `installer/installer.sh.in`. Make all installer changes in `installer/installer.sh.in` and regenerate `installer.sh` from it.
+- **Never edit `installer/templates/dockyard.sh`** — Dockyard is an upstream project. If Sandcastle needs changes to the dockyard template, create an issue at `thieso2/dockyard` instead.
 
 ## GitHub Actions Workflow
 

@@ -1,5 +1,12 @@
 class User < ApplicationRecord
   has_secure_password
+  encrypts :smb_password
+
+  def smb_password
+    super
+  rescue ActiveRecord::Encryption::Errors::Decryption
+    nil
+  end
   has_many :sessions, dependent: :destroy
   has_many :sandboxes, dependent: :destroy
   has_many :api_tokens, dependent: :destroy

@@ -136,6 +136,28 @@
     </div>
   <% end %>
 
+  <%# SMB Connection Info %>
+  <% if @sandbox.smb_enabled? %>
+    <div class="bg-white rounded-lg border border-gray-200 px-6 py-4">
+      <h2 class="text-base font-semibold text-gray-900 mb-3">File Sharing (SMB)</h2>
+      <% if @sandbox.tailscale? %>
+        <p class="text-sm text-gray-600 mb-3">Connect via SMB3 using your sandbox's Tailscale IP on port 445:</p>
+        <div class="space-y-1 text-xs font-mono bg-gray-50 border border-gray-200 rounded p-3">
+          <div><span class="text-gray-500">macOS:</span> smb://&lt;tailscale-ip&gt;/home</div>
+          <div><span class="text-gray-500">Windows:</span> \\&lt;tailscale-ip&gt;\home</div>
+          <% if @sandbox.persistent_volume? %>
+            <div><span class="text-gray-500">workspace:</span> smb://&lt;tailscale-ip&gt;/workspace</div>
+          <% end %>
+        </div>
+        <p class="text-xs text-gray-500 mt-2">Username: <%= @sandbox.user.name %> · Password: the SMB password set in <%= link_to "Settings", settings_path, class: "text-blue-600 hover:underline" %>.</p>
+      <% else %>
+        <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+          SMB is enabled but requires Tailscale for access. Enable Tailscale on your account and connect this sandbox.
+        </p>
+      <% end %>
+    </div>
+  <% end %>
+
   <%# Routes %>
   <div class="bg-white rounded-lg border border-gray-200">
     <div class="px-6 py-4 border-b border-gray-200">
@@ -324,12 +346,6 @@
             <label class="flex items-center gap-2 text-sm">
               <input type="checkbox" name="layers[]" value="data" checked class="h-4 w-4 text-blue-600 border-gray-300 rounded">
               Data directory (<%= @sandbox.data_path %>)
-            </label>
-          <% end %>
-          <% if @sandbox.persistent_volume && @btrfs %>
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="layers[]" value="workspace" checked class="h-4 w-4 text-blue-600 border-gray-300 rounded">
-              Workspace volume
             </label>
           <% end %>
           <% unless @btrfs %>

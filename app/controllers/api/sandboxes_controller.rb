@@ -46,7 +46,6 @@ module Api
         name: params.require(:name),
         status: "pending",
         image: image,
-        persistent_volume: params[:persistent] || false,
         mount_home: params.key?(:mount_home) ? params[:mount_home] : defaults.default_mount_home,
         data_path: params.key?(:data_path) ? params[:data_path] : defaults.default_data_path,
         tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? },
@@ -54,12 +53,9 @@ module Api
         vnc_geometry: params[:vnc_geometry] || "1280x900",
         vnc_depth: params[:vnc_depth]&.to_i || 24,
         docker_enabled: params.key?(:docker_enabled) ? params[:docker_enabled] : defaults.default_docker_enabled,
-        temporary: params[:temporary] || false
+        temporary: params[:temporary] || false,
+        smb_enabled: params[:smb_enabled] || false
       )
-
-      if sandbox.persistent_volume
-        sandbox.volume_path = "#{SandboxManager::DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
-      end
 
       sandbox.save!
 
@@ -258,7 +254,6 @@ module Api
         full_name: sandbox.full_name,
         status: sandbox.status,
         image: sandbox.image,
-        persistent_volume: sandbox.persistent_volume,
         mount_home: sandbox.mount_home,
         data_path: sandbox.data_path,
         temporary: sandbox.temporary,
@@ -267,6 +262,7 @@ module Api
         vnc_geometry: sandbox.vnc_geometry,
         vnc_depth: sandbox.vnc_depth,
         docker_enabled: sandbox.docker_enabled,
+        smb_enabled: sandbox.smb_enabled,
         routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
         image_built_at: sandbox.image_built_at,
         created_at: sandbox.created_at,

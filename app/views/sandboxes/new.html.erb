@@ -69,14 +69,6 @@
 
       <div class="space-y-3">
         <label class="flex items-start gap-3 cursor-pointer">
-          <%= form.check_box :persistent, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
-          <div class="flex-1">
-            <div class="text-sm font-medium text-gray-900">Enable persistent volume</div>
-            <p class="text-xs text-gray-500">Create a persistent /data volume that survives sandbox recreation</p>
-          </div>
-        </label>
-
-        <label class="flex items-start gap-3 cursor-pointer">
           <%= form.check_box :mount_home, checked: @defaults.default_mount_home, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
           <div class="flex-1">
             <div class="text-sm font-medium text-gray-900">Mount persistent home directory</div>
@@ -90,7 +82,7 @@
                 value: @defaults.default_data_path,
                 placeholder: "e.g., . (all user data) or projects/myapp",
                 class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
-          <p class="mt-1 text-xs text-gray-500">Mount user data directory (or subpath) to /data in the sandbox</p>
+          <p class="mt-1 text-xs text-gray-500">Mount user data directory (or subpath) to /persisted in the sandbox</p>
         </div>
       </div>
     </div>
@@ -130,6 +122,25 @@
         <div class="flex-1">
           <div class="text-sm font-medium text-gray-900">Enable VNC display</div>
           <p class="text-xs text-gray-500">Start a virtual display (Xvnc) for GUI apps and browser access</p>
+        </div>
+      </label>
+
+      <% smb_ready = Current.user.tailscale_enabled? && Current.user.smb_password.present? %>
+      <label class="flex items-start gap-3 <%= smb_ready ? 'cursor-pointer' : 'opacity-50' %>">
+        <%= form.check_box :smb_enabled,
+              disabled: !smb_ready,
+              title: smb_ready ? nil : "Requires Tailscale enabled and an SMB password set in Settings",
+              class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+        <div class="flex-1">
+          <div class="text-sm font-medium text-gray-900">Enable SMB file sharing</div>
+          <% if smb_ready %>
+            <p class="text-xs text-gray-500">Mount home/workspace as a network drive via SMB3</p>
+          <% else %>
+            <p class="text-xs text-gray-500">
+              Requires Tailscale enabled and an SMB password —
+              <%= link_to "configure in Settings", settings_path, class: "text-blue-600 hover:underline" %>
+            </p>
+          <% end %>
         </div>
       </label>
 

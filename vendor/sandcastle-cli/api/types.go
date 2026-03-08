@@ -9,7 +9,6 @@ type Sandbox struct {
 	Status           string    `json:"status"`
 	Image            string    `json:"image"`
 	SSHPort          int       `json:"ssh_port,omitempty"`
-	PersistentVolume bool      `json:"persistent_volume"`
 	MountHome        bool      `json:"mount_home"`
 	DataPath         string    `json:"data_path,omitempty"`
 	Temporary        bool      `json:"temporary"`
@@ -19,6 +18,7 @@ type Sandbox struct {
 	VNCGeometry      string         `json:"vnc_geometry,omitempty"`
 	VNCDepth         int            `json:"vnc_depth,omitempty"`
 	DockerEnabled    bool           `json:"docker_enabled"`
+	SMBEnabled       bool           `json:"smb_enabled"`
 	Routes           []SandboxRoute `json:"routes"`
 	ConnectCommand   string         `json:"connect_command"`
 	ImageBuiltAt     *time.Time     `json:"image_built_at,omitempty"`
@@ -181,7 +181,6 @@ type RouteResponse struct {
 type CreateSandboxRequest struct {
 	Name          string   `json:"name"`
 	Image         string   `json:"image,omitempty"`
-	Persistent    bool     `json:"persistent,omitempty"`
 	Snapshot      string   `json:"snapshot,omitempty"`
 	FromSnapshot  string   `json:"from_snapshot,omitempty"`
 	RestoreLayers []string `json:"restore_layers,omitempty"`
@@ -193,6 +192,7 @@ type CreateSandboxRequest struct {
 	VNCGeometry   string   `json:"vnc_geometry,omitempty"`
 	VNCDepth      int      `json:"vnc_depth,omitempty"`
 	DockerEnabled bool     `json:"docker_enabled"`
+	SMBEnabled    bool     `json:"smb_enabled,omitempty"`
 }
 
 type UpdateSandboxRequest struct {

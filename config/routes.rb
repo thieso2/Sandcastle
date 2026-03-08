@@ -19,6 +19,7 @@ Rails.application.routes.draw do
     patch :update_profile
     patch :update_password
     patch :toggle_tailscale
+    patch :update_smb_password
     post :generate_token
     delete "revoke_token/:id", action: :revoke_token, as: :revoke_token
   end
@@ -134,6 +135,9 @@ Rails.application.routes.draw do
       patch :update_settings
       delete :disable
       get :status
+    end
+    resource :smb, only: [], controller: "smb" do
+      patch :set_password
     end
   end
 

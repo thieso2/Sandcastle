@@ -5,21 +5,16 @@ class SandboxManager
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: DEFAULT_IMAGE, persistent: false, tailscale: false, mount_home: false, data_path: nil, temporary: false)
+  def create(user:, name:, image: DEFAULT_IMAGE, tailscale: false, mount_home: false, data_path: nil, temporary: false)
     # Build sandbox record (not saved yet)
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
       status: "pending",
-      persistent_volume: persistent,
       mount_home: mount_home,
       data_path: data_path,
       temporary: temporary
     )
-
-    if persistent
-      sandbox.volume_path = "#{DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
-    end
 
     # Validate before doing expensive operations
     sandbox.validate!
@@ -85,9 +80,22 @@ class SandboxManager
     end
     sandbox.update!(container_id: container.id, status: "running")
 
+    # Connect to per-user network for tenant isolation
+    begin
+      NetworkManager.new.connect_sandbox(sandbox: sandbox)
+    rescue NetworkManager::Error => e
+      container.stop rescue nil
+      container.delete(force: true) rescue nil
+      sandbox.update!(container_id: nil, status: "pending")
+      raise Error, "Failed to attach tenant network: #{e.message}"
+    end
+
     # Pre-write Traefik routes so they're active immediately (no wait on first open).
     TerminalManager.new.prepare_traefik_config(sandbox)
     VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+
+    # Set SMB password via exec (avoids leaking password in container env/metadata)
+    set_smb_password(container, sandbox.user) if sandbox.smb_enabled?
   end
 
   # Public method for job usage
@@ -121,10 +129,6 @@ class SandboxManager
       ensure_dir(dir)
       prepare_bind_mount(dir)
     end
-    if sandbox.persistent_volume && sandbox.volume_path
-      ensure_dir(sandbox.volume_path)
-      prepare_bind_mount(sandbox.volume_path)
-    end
     # Chrome profile persistence: mount .config/google-chrome separately if not mounting full home
     if user.chrome_persist_profile? && !sandbox.mount_home
       dir = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
@@ -135,7 +139,7 @@ class SandboxManager
     raise Error, "Failed to create mount directories: #{e.message}"
   end
 
-  def destroy(sandbox:, keep_volume: false, archive: false)
+  def destroy(sandbox:, archive: false)
     begin
       TerminalManager.new.close(sandbox: sandbox)
     rescue TerminalManager::Error, Docker::Error::DockerError
@@ -170,10 +174,14 @@ class SandboxManager
       archived_name = "#{Time.current.strftime('%Y%m%d%H%M%S')}-#{sandbox.name}"
       sandbox.update!(status: "archived", container_id: nil, archived_at: Time.current, name: archived_name)
     else
-      unless keep_volume
-        FileUtils.rm_rf(sandbox.volume_path) if sandbox.volume_path.present?
-      end
       sandbox.update!(status: "destroyed", container_id: nil)
+    end
+
+    # Remove per-user network if this was the last active sandbox
+    begin
+      NetworkManager.new.cleanup_user_network(sandbox.user)
+    rescue NetworkManager::Error => e
+      Rails.logger.warn("SandboxManager#destroy: network cleanup failed for #{sandbox.user.name}: #{e.message}")
     end
   end
 
@@ -348,7 +356,7 @@ class SandboxManager
 
     user = sandbox.user
     name = name.presence || Date.today.iso8601
-    requested_layers = layers&.map(&:to_s) || %w[container home data workspace]
+    requested_layers = layers&.map(&:to_s) || %w[container home data]
 
     snap = Snapshot.new(
       user: user,
@@ -394,18 +402,6 @@ class SandboxManager
         BtrfsHelper.snapshot_subvolume(data_src, data_dest)
         snap.data_snapshot = data_dest
         snap.data_size     = BtrfsHelper.subvolume_size(data_dest)
-      end
-    end
-
-    # ── Workspace layer (BTRFS only) ─────────────────────────────────────────
-    if requested_layers.include?("workspace") && sandbox.persistent_volume? && sandbox.volume_path.present? && BtrfsHelper.btrfs?
-      workspace_src  = sandbox.volume_path
-      workspace_dest = "#{DATA_DIR}/snapshots/#{user.name}/#{name}/workspace"
-      if Dir.exist?(workspace_src)
-        BtrfsHelper.snapshot_subvolume(workspace_src, workspace_dest)
-        # Store workspace alongside data_snapshot when no data layer taken
-        snap.data_snapshot ||= workspace_dest
-        snap.data_size     = BtrfsHelper.subvolume_size(workspace_dest)
       end
     end
 
@@ -568,30 +564,11 @@ class SandboxManager
 
     # ── Recreate container ────────────────────────────────────────────────────
     final_image = restore_container ? image_ref : sandbox.image
+    # Clear stale container reference before recreating — prevents the record
+    # from pointing at a dead container if create_container_and_start fails.
+    sandbox.update!(image: final_image, container_id: nil, status: "pending")
 
-    container = Docker::Container.create(
-      "name" => sandbox.full_name,
-      "Image" => final_image,
-      "Hostname" => sandbox.full_name,
-      "Env" => container_env(user, sandbox),
-      "Labels" => { "sandcastle.sandbox" => "true" },
-      "HostConfig" => {
-        "Runtime" => container_runtime,
-        "NetworkMode" => NETWORK_NAME,
-        "Binds" => volume_binds(user, sandbox),
-        "RestartPolicy" => { "Name" => "unless-stopped" }
-      },
-      "NetworkingConfig" => {
-        "EndpointsConfig" => { NETWORK_NAME => {} }
-      }
-    )
-
-    container.start
-    sandbox.update!(container_id: container.id, image: final_image, status: "running")
-
-    # Pre-write Traefik routes so they're active immediately after restore.
-    TerminalManager.new.prepare_traefik_config(sandbox)
-    VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+    create_container_and_start(sandbox: sandbox, user: user)
 
     if was_tailscale && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)
@@ -662,6 +639,24 @@ class SandboxManager
     }
   end
 
+  # Update the SMB password on all active SMB-enabled sandboxes for a user.
+  def update_smb_password(user:)
+    raise Error, "No SMB password set" unless user.smb_password.present?
+
+    user.sandboxes.active.where(smb_enabled: true).find_each do |sandbox|
+      next if sandbox.container_id.blank?
+
+      begin
+        container = Docker::Container.get(sandbox.container_id)
+        set_smb_password(container, user)
+      rescue Docker::Error::NotFoundError
+        # Container gone, skip
+      rescue Docker::Error::DockerError => e
+        Rails.logger.warn("Failed to update SMB password for #{sandbox.full_name}: #{e.message}")
+      end
+    end
+  end
+
   private
 
   def wait_for_tailscale_ip(sandbox:, max_attempts: 30, delay: 0.5)
@@ -727,6 +722,10 @@ class SandboxManager
     env << "SANDCASTLE_VNC_GEOMETRY=#{sandbox.vnc_geometry}"
     env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
     env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
+    env << "SANDCASTLE_SMB_ENABLED=#{sandbox.smb_enabled? ? '1' : '0'}"
+    env << "SANDCASTLE_HOME_PERSISTED=#{sandbox.mount_home ? '1' : '0'}"
+    env << "SANDCASTLE_DATA_PERSISTED=#{sandbox.data_path.present? ? '1' : '0'}"
+    env << "SANDCASTLE_DATA_PATH=#{sandbox.data_path}" if sandbox.data_path.present?
     env
   end
 
@@ -807,17 +806,28 @@ class SandboxManager
     tags&.first || all.first.id
   end
 
+  # Inject SMB password into the container via exec, avoiding env var leakage.
+  def set_smb_password(container, user)
+    return unless user.smb_password.present?
+
+    username = user.name
+    password = user.smb_password
+    container.exec(
+      ["bash", "-c", "printf '%s\\n%s\\n' \"$0\" \"$0\" | smbpasswd -a -s \"$1\" 2>&1 || echo 'Warning: smbpasswd failed' >&2",
+       password, username]
+    )
+  rescue Docker::Error::DockerError => e
+    Rails.logger.warn("set_smb_password failed for #{user.name}: #{e.message}")
+  end
+
   def volume_binds(user, sandbox)
     binds = []
     if sandbox.mount_home
       binds << "#{DATA_DIR}/users/#{user.name}/home:/home/#{user.name}"
     end
-    if sandbox.persistent_volume && sandbox.volume_path
-      binds << "#{sandbox.volume_path}:/workspace"
-    end
     if sandbox.data_path.present?
       host_path = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
-      binds << "#{host_path}:/data"
+      binds << "#{host_path}:/persisted"
     end
     # Chrome profile persistence: mount separately if not mounting full home
     if user.chrome_persist_profile? && !sandbox.mount_home

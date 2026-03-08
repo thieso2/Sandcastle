@@ -14,6 +14,9 @@ class ContainerSyncJob < ApplicationJob
       restore_tailscale_from_saved_key(user)
     end
 
+    # Reconcile per-user network membership for running sandboxes
+    sync_user_networks
+
     begin
       RouteManager.new.sync_all_configs
     rescue => e
@@ -98,6 +101,26 @@ class ContainerSyncJob < ApplicationJob
     Rails.logger.warn("ContainerSyncJob: Tailscale restore for #{user.name} failed: #{e.message}")
   rescue => e
     Rails.logger.error("ContainerSyncJob: Tailscale restore for #{user.name} unexpected error: #{e.message}")
+  end
+
+  def sync_user_networks
+    nm = NetworkManager.new
+
+    # Ensure all running sandboxes are connected to their user's per-user network
+    Sandbox.running.where.not(container_id: nil).find_each do |sandbox|
+      nm.ensure_sandbox_connected(sandbox: sandbox)
+    rescue => e
+      Rails.logger.error("ContainerSyncJob: user network sync failed for #{sandbox.full_name}: #{e.message}")
+    end
+
+    # Clean up orphaned user networks (user has no active sandboxes)
+    User.where.not(network_name: nil).find_each do |user|
+      nm.cleanup_user_network(user) unless user.sandboxes.active.exists?
+    rescue => e
+      Rails.logger.error("ContainerSyncJob: user network cleanup failed for #{user.name}: #{e.message}")
+    end
+  rescue => e
+    Rails.logger.error("ContainerSyncJob: sync_user_networks failed: #{e.message}")
   end
 
   def sync_tailscale_sidecar(user)

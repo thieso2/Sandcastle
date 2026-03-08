@@ -7,8 +7,7 @@ class SandboxProvisionJobTest < ActiveJob::TestCase
     @user = users(:thies)
     @sandbox = @user.sandboxes.create!(
       name: "test-provision",
-      image: "ghcr.io/thieso2/sandcastle-sandbox:latest",
-      persistent_volume: false
+      image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
     )
     DockerMock.reset!
   end

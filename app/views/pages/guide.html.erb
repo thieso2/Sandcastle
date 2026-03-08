@@ -48,9 +48,8 @@ sandcastle tailscale enable --auth-key tskey-auth-...</code></pre>
       <li><strong>Name</strong> — unique identifier for your sandbox</li>
       <li><strong>Container Image</strong> — custom image or default</li>
       <li><strong>Snapshot</strong> — restore from an existing snapshot</li>
-      <li><strong>Persistent Volume</strong> — keep /workspace across recreations</li>
       <li><strong>Mount Home</strong> — persistent home directory across all sandboxes</li>
-      <li><strong>Data Path</strong> — mount user data (or subpath) to /data</li>
+      <li><strong>Data Path</strong> — mount user data (or subpath) to /persisted</li>
       <li><strong>Tailscale</strong> — connect to your Tailscale network</li>
       <li><strong>Docker daemon</strong> — enable/disable Docker-in-Docker</li>
       <li><strong>Temporary</strong> — auto-remove when you disconnect</li>
@@ -153,9 +152,45 @@ sandcastle ssh my-dev -- -D 1080</code></pre>
     </div>
   </section>
 
+  <%# ── SMB File Sharing ── %>
+  <section class="mb-10">
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">8. SMB file sharing</h2>
+    <p class="text-gray-700 mb-3">
+      Mount your sandbox home directory or <code class="bg-gray-100 px-1 rounded">/workspace</code>
+      as a network drive from macOS, Windows, or Linux using SMB3.
+      This is useful for editing files with your local IDE or dragging and dropping in Finder/Explorer.
+    </p>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 mb-3">
+      <strong>Requirements:</strong> Tailscale must be enabled (for network access) and you must set an SMB password in
+      <%= link_to "Settings → File Sharing", settings_path, class: "underline" %>.
+    </div>
+
+    <h3 class="text-base font-semibold text-gray-800 mb-2">Setup</h3>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># Set your SMB password (stored encrypted on the server)
+sandcastle smb set-password
+
+# Create a sandbox with SMB enabled
+sandcastle create my-dev --smb --tailscale</code></pre>
+
+    <h3 class="text-base font-semibold text-gray-800 mt-4 mb-2">Connect</h3>
+    <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code># macOS (Finder → Go → Connect to Server, or in Terminal):
+open smb://&lt;tailscale-ip&gt;/home
+open smb://&lt;tailscale-ip&gt;/workspace   # if --persistent was used
+
+# Windows (File Explorer → Map Network Drive):
+\\&lt;tailscale-ip&gt;\home
+
+# Linux:
+sudo mount -t cifs //&lt;tailscale-ip&gt;/home /mnt/sandbox \
+  -o username=&lt;your-sandcastle-username&gt;,vers=3.0</code></pre>
+    <p class="text-gray-500 text-sm mt-2">
+      The Tailscale IP is shown on the sandbox detail page. Username is your Sandcastle username. Password is what you set with <code class="bg-gray-100 px-1 rounded">sandcastle smb set-password</code>.
+    </p>
+  </section>
+
   <%# ── Manage ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">8. Manage sandboxes</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Manage sandboxes</h2>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle list              # Show all your sandboxes
 sandcastle stop my-dev       # Stop a running sandbox
 sandcastle start my-dev      # Start a stopped sandbox
@@ -191,7 +226,7 @@ sandcastle purge my-dev</code></pre>
 
   <%# ── Routes ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">9. Routes</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">10. Routes</h2>
     <p class="text-gray-700 mb-3">
       Expose services running inside your sandbox to the outside world. Two modes are supported:
     </p>
@@ -231,7 +266,7 @@ sandcastle route delete myapp --id 42</code></pre>
 
   <%# ── Snapshots ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">10. Snapshots</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">11. Snapshots</h2>
     <p class="text-gray-700 mb-3">
       Save and restore the full state of a sandbox. Snapshots are composite — they capture
       the container filesystem (via <code class="bg-gray-100 px-1 rounded">docker commit</code>)
@@ -272,14 +307,14 @@ sandcastle snapshot delete before-migration</code></pre>
     <% unless (BtrfsHelper.btrfs? rescue false) %>
       <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800 mt-3">
         <strong>Note:</strong> BTRFS not detected on this host. Only the container layer is snapshotted.
-        Home, data, and workspace layers require BTRFS.
+        Home and data layers require BTRFS.
       </div>
     <% end %>
   </section>
 
   <%# ── Settings ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">11. User settings</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">12. User settings</h2>
     <p class="text-gray-700 mb-3">
       Click <strong>Settings</strong> in the navbar to manage your account preferences:
     </p>
@@ -301,7 +336,7 @@ sandcastle snapshot delete before-migration</code></pre>
 
   <%# ── Inviting Users (Admin) ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">12. Inviting users <span class="text-sm font-normal text-gray-500">(admin)</span></h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">13. Inviting users <span class="text-sm font-normal text-gray-500">(admin)</span></h2>
     <p class="text-gray-700 mb-3">
       Admins can invite new users via email. Each invite generates a unique, one-time registration link.
       New users click the link to choose a username and set a password — no pre-created account required.
@@ -327,7 +362,7 @@ sandcastle snapshot delete before-migration</code></pre>
 
   <%# ── Custom SSL Certificates ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">13. Custom SSL certificates <span class="text-sm font-normal text-gray-500">(advanced)</span></h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">14. Custom SSL certificates <span class="text-sm font-normal text-gray-500">(advanced)</span></h2>
     <p class="text-gray-700 mb-3">
       For internal networks, you can configure alternative hostnames with custom SSL certificates to avoid browser warnings.
     </p>
@@ -356,7 +391,7 @@ SANDCASTLE_TLS_MODE=selfsigned</code></pre>
 
   <%# ── CLI Preferences ── %>
   <section class="mb-10">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">14. CLI preferences</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">15. CLI preferences</h2>
     <p class="text-gray-700 mb-3">
       Persist connection preferences in <code class="bg-gray-100 px-1 rounded">~/.sandcastle/config.yaml</code>.
       Environment variables override the file (useful with
@@ -400,7 +435,7 @@ SANDCASTLE_USE_TMUX = "false"</code></pre>
   </section>
 
   <section class="mb-8">
-    <h2 class="text-xl font-semibold text-gray-900 mb-3">15. Short aliases</h2>
+    <h2 class="text-xl font-semibold text-gray-900 mb-3">16. Short aliases</h2>
     <p class="text-gray-700 mb-3">
       Common commands have 1-2 letter shortcuts:
     </p>

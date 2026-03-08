@@ -892,6 +892,53 @@ BANNER_SCRIPT
   ok "Login banner configured"
 }
 
+# ═══ setup_network_isolation ══════════════════════════════════════════════
+# Write infra container IPs to isolation.d/infra.rules and restart the
+# dockyard service so its ExecStartPost picks up the rules.
+# Must be called AFTER docker-compose is up (so infra container IPs are known).
+# Chain creation and iptables management is handled by dockyard (v0.1.1+).
+
+setup_network_isolation() {
+  local isolation_dir="${DOCKYARD_ROOT}/etc/isolation.d"
+  local rules_file="${isolation_dir}/infra.rules"
+
+  # Derive fixed infra IPs from the sandcastle-web network subnet.
+  # These match the ipv4_address values in docker-compose.yml (.10-.13).
+  local net_subnet
+  net_subnet=$($DOCKER network inspect sandcastle-web \
+    --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null) || true
+
+  if [ -z "$net_subnet" ]; then
+    warn "sandcastle-web network not found — skipping isolation rules"
+    return
+  fi
+
+  local net_prefix="${net_subnet%.*}"
+
+  mkdir -p "$isolation_dir"
+  cat > "$rules_file" <<RULES
+# Fixed IPs of infrastructure containers on sandcastle-web (${net_subnet})
+# traefik
+${net_prefix}.10
+# postgres
+${net_prefix}.11
+# web
+${net_prefix}.12
+# worker
+${net_prefix}.13
+RULES
+  wrote "$rules_file"
+
+  # Restart dockyard service to apply isolation rules via ExecStartPost
+  local service_name="${DOCKYARD_DOCKER_PREFIX}docker"
+  if systemctl is-active "$service_name" &>/dev/null; then
+    systemctl restart "$service_name"
+    ok "Cross-tenant network isolation configured (via dockyard service restart)"
+  else
+    warn "Dockyard service ${service_name} not running — isolation rules will apply on next start"
+  fi
+}
+
 # ═══ ensure_dirs ═════════════════════════════════════════════════════════
 # Create/fix data directories and ownership. Safe to run repeatedly.
 
@@ -2626,6 +2673,23 @@ LOGS
 write_compose() {
   local DATA_MOUNT="$SANDCASTLE_HOME/data"
 
+  # Derive fixed IPs from the sandcastle-web network subnet.
+  # If the network doesn't exist yet (shouldn't happen — created before this),
+  # fall back to no fixed IPs and let Docker assign dynamically.
+  local NET_PREFIX=""
+  local TRAEFIK_IP="" POSTGRES_IP="" WEB_IP="" WORKER_IP=""
+  local net_subnet
+  net_subnet=$($DOCKER network inspect sandcastle-web \
+    --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null) || true
+  if [ -n "$net_subnet" ]; then
+    # e.g. "10.89.1.0/24" → "10.89.1"
+    NET_PREFIX="${net_subnet%.*}"
+    TRAEFIK_IP="${NET_PREFIX}.10"
+    POSTGRES_IP="${NET_PREFIX}.11"
+    WEB_IP="${NET_PREFIX}.12"
+    WORKER_IP="${NET_PREFIX}.13"
+  fi
+
   cat > "$SANDCASTLE_HOME/docker-compose.yml" <<COMPOSE
 services:
   traefik:
@@ -2643,7 +2707,8 @@ services:
       - ${DATA_MOUNT}/traefik/acme.json:/data/acme.json
       - ${DATA_MOUNT}/traefik/certs:/data/certs:ro
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${TRAEFIK_IP}
 
   postgres:
     image: postgres:18
@@ -2662,7 +2727,8 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${POSTGRES_IP}
 
   web:
     image: ${APP_IMAGE}
@@ -2703,7 +2769,8 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${WEB_IP}
 
   worker:
     image: ${APP_IMAGE}
@@ -2737,7 +2804,8 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - sandcastle-web
+      sandcastle-web:
+        ipv4_address: ${WORKER_IP}
 
   migrate:
     image: ${APP_IMAGE}
@@ -2760,7 +2828,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - sandcastle-web
+      sandcastle-web:
 
 networks:
   sandcastle-web:
@@ -3647,9 +3715,11 @@ INITDB
       done
     fi
     rm -rf "$_tmp_bk"
+    setup_network_isolation
   else
     info "Starting Sandcastle..."
     $DOCKER compose up -d
+    setup_network_isolation
 
     # ── Seed database (fresh install without backup) ──────────────────────
 
@@ -3785,6 +3855,7 @@ ARKEYS
   info "Restarting services..."
   cd "$SANDCASTLE_HOME"
   $DOCKER compose up -d
+  setup_network_isolation
   ok "Services restarted"
 
   echo ""

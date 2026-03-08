@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     openssh-server sudo curl git tmux vim neovim \
     build-essential \
     jq ripgrep fd-find htop wget unzip ca-certificates net-tools iproute2 iputils-ping \
-    mosh \
+    mosh samba \
     && rm -rf /var/lib/apt/lists/*
 
 # GitHub CLI (gh)
@@ -147,7 +147,8 @@ RUN echo "MISE_DATA_DIR=/usr/local/share/mise" >> /etc/environment \
     && echo "MISE_CONFIG_DIR=/usr/local/etc/mise" >> /etc/environment \
     && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
     && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc \
-    && echo "alias ycodex='codex --dangerously-bypass-approvals-and-sandbox'" >> /etc/bash.bashrc
+    && echo "alias ycodex='codex --dangerously-bypass-approvals-and-sandbox'" >> /etc/bash.bashrc \
+    && echo "alias dps='docker ps --format \"table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.State}}\t{{.Status}}\"'" >> /etc/bash.bashrc
 
 # SSH configuration (key-only auth) — use drop-in config for Ubuntu 25.10 compatibility
 # StrictModes no: the home dir is bind-mounted from the host.  Sysbox user-

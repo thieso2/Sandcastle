@@ -48,7 +48,6 @@ class SandboxesController < ApplicationController
       name: params.require(:name),
       status: "pending",
       image: image,
-      persistent_volume: params[:persistent] == "1",
       mount_home: params[:mount_home] == "1",
       data_path: params[:data_path].presence,
       tailscale: params[:tailscale] == "1",
@@ -56,12 +55,9 @@ class SandboxesController < ApplicationController
       vnc_geometry: Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900",
       vnc_depth: Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24,
       docker_enabled: params[:docker_enabled] != "0",
+      smb_enabled: params[:smb_enabled] == "1",
       temporary: false
     )
-
-    if sandbox.persistent_volume
-      sandbox.volume_path = "#{SandboxManager::DATA_DIR}/sandboxes/#{sandbox.full_name}/vol"
-    end
 
     if sandbox.save
       # Enqueue async job
