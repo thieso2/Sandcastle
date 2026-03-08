@@ -1771,9 +1771,7 @@ DAEMONJSONEOF
     # Installing as dockyard.sh means the script's own ../etc/dockyard.env
     # auto-discovery works: ${BIN_DIR}/dockyard.sh finds ${ETC_DIR}/dockyard.env
     # without needing DOCKYARD_ENV to be set.
-    local _dest="${ETC_DIR}/dockyard.env"
-    [ "$(realpath "$LOADED_ENV_FILE")" = "$(realpath "$_dest" 2>/dev/null)" ] \
-        || cp "$LOADED_ENV_FILE" "$_dest"
+    cp "$LOADED_ENV_FILE" "${ETC_DIR}/dockyard.env"
     cp "${SCRIPT_DIR}/dockyard.sh" "${BIN_DIR}/dockyard.sh"
     chmod +x "${BIN_DIR}/dockyard.sh"
     ln -sf dockyard.sh "${BIN_DIR}/dockyardctl"
@@ -1929,6 +1927,8 @@ STACKEOF
     chmod 755 "${BIN_DIR}/dockyard-stack"
     echo "  installed ${BIN_DIR}/dockyard-stack"
 
+    local ISO_CHAIN="DOCKYARD-ISO-${DOCKYARD_DOCKER_PREFIX%_}"
+
     cat > "$SERVICE_FILE" <<SERVICEEOF
 [Unit]
 Description=Dockyard Docker (${SERVICE_NAME})
@@ -1950,8 +1950,8 @@ ExecStartPre=/bin/mkdir -p ${LOG_DIR} ${RUN_DIR}/containerd ${SYSBOX_RUN_DIR} ${
 ExecStartPre=-/bin/rm -f ${CONTAINERD_SOCKET} ${DOCKER_SOCKET}
 ExecStartPre=-/bin/rm -f ${SYSBOX_RUN_DIR}/sysmgr.sock ${SYSBOX_RUN_DIR}/sysfs.sock ${SYSBOX_RUN_DIR}/sysfs-seccomp.sock
 
-# Enable IP forwarding
-ExecStartPre=/bin/bash -c 'sysctl -w net.ipv4.ip_forward=1 >/dev/null'
+# Enable IP forwarding and bridge netfilter (needed for isolation.d iptables on bridge traffic)
+ExecStartPre=/bin/bash -c 'sysctl -w net.ipv4.ip_forward=1 >/dev/null; modprobe br_netfilter 2>/dev/null; sysctl -w net.bridge.bridge-nf-call-iptables=1 >/dev/null 2>&1 || true'
 
 # Create bridge
 ExecStartPre=/bin/bash -c 'if ! ip link show ${BRIDGE} &>/dev/null; then ip link add ${BRIDGE} type bridge && ip addr add ${DOCKYARD_BRIDGE_CIDR} dev ${BRIDGE} && ip link set ${BRIDGE} up; fi'
@@ -1970,6 +1970,11 @@ ExecStart=${BIN_DIR}/dockyard-stack
 # Wait until dockerd accepts API connections before systemctl start returns.
 ExecStartPost=/bin/bash -c 'i=0; while ! ${BIN_DIR}/docker-cli -H unix://${DOCKER_SOCKET} info >/dev/null 2>&1; do i=\$((i+1)); [ \$i -ge 360 ] && exit 1; sleep 0.5; done'
 
+# Apply isolation rules from ${ETC_DIR}/isolation.d/ if any .rules files exist.
+# Each .rules file lists IPs to ACCEPT; all other intra-bridge traffic is DROPped.
+# Chain ${ISO_CHAIN} is per-instance; built once, then jump rules added per user-defined bridge.
+ExecStartPost=-/bin/bash -c 'dir=${ETC_DIR}/isolation.d; ls "\$dir"/*.rules >/dev/null 2>&1 || exit 0; iptables -L ${ISO_CHAIN} >/dev/null 2>&1 || iptables -N ${ISO_CHAIN}; iptables -F ${ISO_CHAIN}; iptables -A ${ISO_CHAIN} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; for f in "\$dir"/*.rules; do [ -f "\$f" ] || continue; sed "s/#.*//;s/ //g;/^$/d" "\$f" | while IFS= read -r line; do iptables -A ${ISO_CHAIN} -s "\$line" -j ACCEPT; iptables -A ${ISO_CHAIN} -d "\$line" -j ACCEPT; done; done; iptables -A ${ISO_CHAIN} -j DROP; for net_id in \$(${BIN_DIR}/docker-cli -H unix://${DOCKER_SOCKET} network ls --filter driver=bridge --format "{{.ID}}" 2>/dev/null); do br=br-\$(echo \$net_id | cut -c1-12); ip link show "\$br" &>/dev/null || continue; iptables -C FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN} 2>/dev/null || iptables -I FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN}; done'
+
 # Clean up docker/containerd sockets
 ExecStopPost=-/bin/rm -f ${DOCKER_SOCKET} ${CONTAINERD_SOCKET}
 
@@ -1978,6 +1983,9 @@ ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -i ${BRIDGE} -o ${BRIDGE} -j ACC
 
 # Remove iptables rules (user-defined networks)
 ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -D FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -t nat -D POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE 2>/dev/null'
+
+# Remove per-instance isolation chain and its jump rules
+ExecStopPost=-/bin/bash -c 'for br in \$(ip -o link show type bridge 2>/dev/null | grep -oP "br-[0-9a-f]+"); do iptables -D FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN} 2>/dev/null; done; iptables -F ${ISO_CHAIN} 2>/dev/null; iptables -X ${ISO_CHAIN} 2>/dev/null'
 
 # Remove bridge
 ExecStopPost=-/bin/bash -c 'if ip link show ${BRIDGE} &>/dev/null; then ip link set ${BRIDGE} down 2>/dev/null; ip link delete ${BRIDGE} 2>/dev/null; fi'
@@ -2101,8 +2109,10 @@ cmd_start() {
         echo "Bridge ${BRIDGE} already exists"
     fi
 
-    # Enable IP forwarding
+    # Enable IP forwarding and bridge netfilter (needed for isolation.d iptables on bridge traffic)
     sysctl -w net.ipv4.ip_forward=1 >/dev/null
+    modprobe br_netfilter 2>/dev/null || true
+    sysctl -w net.bridge.bridge-nf-call-iptables=1 >/dev/null 2>&1 || true
 
     # Bridge rules (idempotent)
     iptables -C FORWARD -i "$BRIDGE" -o "$BRIDGE" -j ACCEPT 2>/dev/null ||
@@ -2157,6 +2167,38 @@ cmd_start() {
     wait_for_file "$DOCKER_SOCKET" "dockerd" 30 || cleanup
     echo "  dockerd ready (pid ${DOCKERD_PID})"
 
+    # Apply isolation rules from ${ETC_DIR}/isolation.d/ if any .rules files exist.
+    # Each .rules file lists IPs to ACCEPT; all other intra-bridge traffic is DROPped.
+    local isolation_dir="${ETC_DIR}/isolation.d"
+    local iso_chain="DOCKYARD-ISO-${DOCKYARD_DOCKER_PREFIX%_}"
+    if ls "${isolation_dir}"/*.rules >/dev/null 2>&1; then
+        # Build the chain once (not per-bridge)
+        iptables -L "$iso_chain" >/dev/null 2>&1 || iptables -N "$iso_chain"
+        iptables -F "$iso_chain"
+        iptables -A "$iso_chain" -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+        for f in "${isolation_dir}"/*.rules; do
+            [ -f "$f" ] || continue
+            while IFS= read -r line; do
+                line="${line%%#*}"          # strip comments
+                line="${line// /}"          # strip spaces
+                [ -n "$line" ] || continue
+                iptables -A "$iso_chain" -s "$line" -j ACCEPT
+                iptables -A "$iso_chain" -d "$line" -j ACCEPT
+            done < "$f"
+        done
+        iptables -A "$iso_chain" -j DROP
+
+        # Add per-bridge jump rules for this instance's user-defined networks
+        for net_id in $("${BIN_DIR}/docker-cli" -H "unix://${DOCKER_SOCKET}" network ls \
+                --filter driver=bridge --format '{{.ID}}' 2>/dev/null); do
+            local br="br-${net_id:0:12}"
+            ip link show "$br" &>/dev/null || continue
+            iptables -C FORWARD -i "$br" -o "$br" -j "$iso_chain" 2>/dev/null ||
+                iptables -I FORWARD -i "$br" -o "$br" -j "$iso_chain"
+            echo "  isolation rules applied on ${br}"
+        done
+    fi
+
     echo "=== All daemons started ==="
     echo "Run: DOCKER_HOST=unix://${DOCKER_SOCKET} docker ps"
 }
@@ -2183,6 +2225,14 @@ cmd_stop() {
     iptables -D FORWARD -s "$DOCKYARD_POOL_BASE" -j ACCEPT 2>/dev/null || true
     iptables -D FORWARD -d "$DOCKYARD_POOL_BASE" -j ACCEPT 2>/dev/null || true
     iptables -t nat -D POSTROUTING -s "$DOCKYARD_POOL_BASE" -j MASQUERADE 2>/dev/null || true
+
+    # Remove per-instance isolation chain and its jump rules
+    local iso_chain="DOCKYARD-ISO-${DOCKYARD_DOCKER_PREFIX%_}"
+    for br in $(ip -o link show type bridge 2>/dev/null | grep -oP 'br-[0-9a-f]+'); do
+        iptables -D FORWARD -i "$br" -o "$br" -j "$iso_chain" 2>/dev/null || true
+    done
+    iptables -F "$iso_chain" 2>/dev/null || true
+    iptables -X "$iso_chain" 2>/dev/null || true
 
     # Remove bridge
     if ip link show "$BRIDGE" &>/dev/null; then
