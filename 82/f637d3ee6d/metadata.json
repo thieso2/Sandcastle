@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 46,
+  "checkpoints_count": 49,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -80,6 +80,7 @@
     "config/initializers/solid_errors.rb",
     "config/recurring.yml",
     "config/routes.rb",
+    "db/errors_migrate/20260308064400_create_solid_errors_tables.rb",
     "db/migrate/20260222074421_add_mode_and_public_port_to_routes.rb",
     "db/migrate/20260302000002_add_archive_retention_to_settings.rb",
     "db/migrate/20260302000003_add_archive_retention_to_users.rb",
@@ -381,13 +382,20 @@
       "context": "/82/f637d3ee6d/35/context.md",
       "content_hash": "/82/f637d3ee6d/35/content_hash.txt",
       "prompt": "/82/f637d3ee6d/35/prompt.txt"
+    },
+    {
+      "metadata": "/82/f637d3ee6d/36/metadata.json",
+      "transcript": "/82/f637d3ee6d/36/full.jsonl",
+      "context": "/82/f637d3ee6d/36/context.md",
+      "content_hash": "/82/f637d3ee6d/36/content_hash.txt",
+      "prompt": "/82/f637d3ee6d/36/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 5340,
-    "cache_creation_tokens": 2047908,
-    "cache_read_tokens": 117268796,
-    "output_tokens": 355749,
-    "api_call_count": 1324
+    "input_tokens": 5387,
+    "cache_creation_tokens": 2082588,
+    "cache_read_tokens": 118413256,
+    "output_tokens": 364494,
+    "api_call_count": 1361
   }
 }

@@ -1,0 +1,49 @@
+06:36:52 +0000
+2026-03-08T06:36:52.616920003Z [c72ff184-9c32-449a-84e6-54312188f271] Processing by SandboxesController#logs as HTML
+2026-03-08T06:36:52.616926472Z [c72ff184-9c32-449a-84e6-54312188f271]   Parameters: {"id" => "9"}
+2026-03-08T06:36:52.626051214Z [c72ff184-9c32-449a-84e6-54312188f271]   Rendered layout layouts/application.html.erb (Duration: 1.1ms | GC: 0.0ms)
+2026-03-08T06:36:52.626145317Z [c72ff184-9c32-449a-84e6-54312188f271] Completed 500 Internal Server Error in 9ms (ActiveRecord: 0.9ms (3 queries, 0 cached) | GC: 0.1ms)
+2026-03-08T06:36:52.627561512Z [c72ff184-9c32-449a-84e6-54312188f271]
+2026-03-08T06:36:52.627568351Z [c72ff184-9c32-449a-84e6-54312188f271] ActionView::Template::Error (incompatible character encodings: UTF-8 and BINARY (ASCII-8BIT))
+2026-03-08T06:36:52.627570212Z [c72ff184-9c32-449a-84e6-54312188f271] Caused by: Encoding::CompatibilityError (incompatible character encodings: UTF-8 and BINARY (ASCII-8BIT))
+2026-03-08T06:36:52.627571676Z [c72ff184-9c32-449a-84e6-54312188f271]
+2026-03-08T06:36:52.627574883Z Information for: ActionView::Template::Error (incompatible character encodings: UTF-8 and BINARY (ASCII-8BIT)):
+2026-03-08T06:36:52.627576358Z [c72ff184-9c32-449a-84e6-54312188f271]     21:     <% elsif @logs.blank? %>
+2026-03-08T06:36:52.627577929Z [c72ff184-9c32-449a-84e6-54312188f271]     22:       <div class="px-6 py-8 text-center text-gray-400 text-sm">No logs available.</div>
+2026-03-08T06:36:52.627579551Z [c72ff184-9c32-449a-84e6-54312188f271]     23:     <% else %>
+2026-03-08T06:36:52.627580925Z [c72ff184-9c32-449a-84e6-54312188f271]     24:       <pre class="px-4 py-3 text-xs text-gray-200 font-mono overflow-x-auto max-h-[75vh] overflow-y-auto whitespace-pre-wrap break-all"><%= @logs.gsub(/[\x00-\x08]/, "") %></pre>
+2026-03-08T06:36:52.627582777Z [c72ff184-9c32-449a-84e6-54312188f271]     25:     <% end %>
+2026-03-08T06:36:52.627584004Z [c72ff184-9c32-449a-84e6-54312188f271]     26:   </div>
+2026-03-08T06:36:52.627585213Z [c72ff184-9c32-449a-84e6-54312188f271]     27: </div>
+2026-03-08T06:36:52.627586402Z [c72ff184-9c32-449a-84e6-54312188f271]
+
+---
+
+when showing log files do not jump to the end if i haved scrolled up by hand. add a follow checkmark tah gets toggles by manual scroll and can be set again by the user.
+aslo the order of the tabs of the docker logs should be web, worker, pg, trasefik
+
+---
+
+2026-03-08T06:44:42.216197514Z [faf097a6-63f9-40fe-90ca-0be6d9d49ed6] puma (7.2.0) lib/puma/thread_pool.rb:355:in 'Puma::ThreadPool#with_force_shutdown'
+2026-03-08T06:44:42.216198792Z [faf097a6-63f9-40fe-90ca-0be6d9d49ed6] puma (7.2.0) lib/puma/request.rb:102:in 'Puma::Request#handle_request'
+2026-03-08T06:44:42.216200055Z [faf097a6-63f9-40fe-90ca-0be6d9d49ed6] puma (7.2.0) lib/puma/server.rb:503:in 'Puma::Server#process_client'
+2026-03-08T06:44:42.216201305Z [faf097a6-63f9-40fe-90ca-0be6d9d49ed6] puma (7.2.0) lib/puma/server.rb:262:in 'block in Puma::Server#run'
+2026-03-08T06:44:42.216202563Z [faf097a6-63f9-40fe-90ca-0be6d9d49ed6] puma (7.2.0) lib/puma/thread_pool.rb:182:in 'block in Puma::ThreadPool#spawn_thread'
+2026-03-08T06:44:42.216642867Z [faf097a6-63f9-40fe-90ca-0be6d9d49ed6] Error subscriber raised an error: PG::UndefinedTable: ERROR:  relation "solid_errors" does not exist
+2026-03-08T06:44:42.216647061Z LINE 10:  WHERE a.attrelid = '"solid_errors"'::regclass
+2026-03-08T06:44:42.216648487Z                              ^
+2026-03-08T06:44:42.216649686Z  (ActiveRecord::StatementInvalid)
+2026-03-08T06:44:42.216650922Z /usr/local/bundle/ruby/4.0.0/gems/activerecord-8.1.2/lib/active_record/connection_adapters/postgresql/database_statements.rb:167:in 'PG::Connection#exec'
+2026-03-08T06:44:42.216652397Z /usr/local/bundle/ruby/4.0.0/gems/activerecord-8.1.2/lib/active_record/connection_adapters/postgresql/database_statements.rb:167:in 'ActiveRecord::ConnectionAdapters::PostgreSQL::DatabaseStatements#perform_query'
+2026-03-08T06:44:42.216653858Z /usr/local/bundle/ruby/4.0.0/gems/activerecord-8.1.2/lib/active_record/connection_adapters/abstract/database_statements.rb:571:in 'block (2 levels) in ActiveRecord::ConnectionAdapters::DatabaseStatements#raw_execute'
+2026-03-08T06:44:42.216655282Z /usr/local/bundle/ruby/4.0.0/gems/activerecord-8.1.2/lib/active_record/connection_adapters/abstract_adapter.rb:1086:in 'block in ActiveRecord::ConnectionAdapters::AbstractAdapter#with_raw_connection'
+2026-03-08T06:44:42.216656671Z /usr/local/bundle/ruby/4.0.0/gems/activesupport-8.1.2/lib/active_support/concurrency/null_lock.rb:9:in 'ActiveSupport::Concurrency::NullLock#synchronize'
+2026-03-08T06:44:42.216657964Z /usr/local/bundle/ruby/4.0.0/gems/activerecord-8.1.2/lib/active_record/connection_adapters/abstract_adapter.rb:1055:in 'ActiveRecord::ConnectionAdapters::AbstractAdapter#with_raw_connection'
+
+---
+
+solid_errors were working before - dig deeper!
+
+---
+
+commit push and release
