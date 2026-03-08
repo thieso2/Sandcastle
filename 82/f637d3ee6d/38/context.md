@@ -22,3 +22,19 @@ add to CLAUDE.md tha we never touch dockyard.sh in here - always create issues i
 
 commit "no ci" and push
 
+### Prompt 6
+
+are we using foxed adresses for the main conatiners now? how are they generated?
+
+### Prompt 7
+
+yes!
+
+### Prompt 8
+
+[Request interrupted by user]
+
+### Prompt 9
+
+yes! also revert any changes to dockyard.sh and wait for the upstramm fix!
+
