@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 51,
+  "checkpoints_count": 52,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -20,7 +20,6 @@
     "app/controllers/admin/docker_controller.rb",
     "app/controllers/admin/sandboxes_controller.rb",
     "app/controllers/admin/settings_controller.rb",
-    "app/controllers/admin/update_controller.rb",
     "app/controllers/admin/users_controller.rb",
     "app/controllers/api/routes_controller.rb",
     "app/controllers/api/sandboxes_controller.rb",
@@ -56,12 +55,12 @@
     "app/services/stats_calculator.rb",
     "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
+    "app/services/update_checker.rb",
     "app/services/update_manager.rb",
     "app/services/vnc_manager.rb",
     "app/views/admin/_subnav.html.erb",
     "app/views/admin/dashboard/_update_status.html.erb",
     "app/views/admin/docker/index.html.erb",
-    "app/views/admin/update/progress.html.erb",
     "app/views/admin/users/_form.html.erb",
     "app/views/dashboard/_sandbox.html.erb",
     "app/views/dashboard/index.html.erb",
@@ -427,10 +426,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5711,
-    "cache_creation_tokens": 2270169,
-    "cache_read_tokens": 140390398,
-    "output_tokens": 427235,
-    "api_call_count": 1606
+    "input_tokens": 5707,
+    "cache_creation_tokens": 2261812,
+    "cache_read_tokens": 140581100,
+    "output_tokens": 419522,
+    "api_call_count": 1598
   }
 }

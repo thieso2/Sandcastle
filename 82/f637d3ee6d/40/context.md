@@ -97,3 +97,41 @@ we should run a fullscreen page and a JS that checks if the app is "back" and if
 
 commti and push and release
 
+### Prompt 20
+
+live patch dev.sand
+
+### Prompt 21
+
+teh Update butteon donÄt work:
+
+controller.ts:28 Error invoking action "click->update-check#startPull"
+
+Error: Action "click->update-check#startPull" references undefined method "startPull"
+    at get method (controller.ts:28:39)
+    at p.invokeWithEvent (controller.ts:28:39)
+    at p.handleEvent (controller.ts:28:39)
+    at e.handleEvent (controller.ts:28:39)
+
+Object
+handleError @ controller.ts:28
+controller.ts:28 Error invoking action "click->update-check#startPull"
+
+Error: Action "click->upd...
+
+### Prompt 22
+
+we need to update teh system update partial - when a pull finished.
+
+### Prompt 23
+
+als after the images are pulled we shoudl see a restart now that does the real restart.
+
+### Prompt 24
+
+detect when the pulled app image is newer that the running one and offer a restart option.
+
+### Prompt 25
+
+commti and push
+
