@@ -223,3 +223,19 @@ Summary:
 
 If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/thies/.REDACTED.jsonl
 Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.
+
+---
+
+push and release a new version
+
+---
+
+update sandcaste to use the lastest dockyard v0.1.3
+
+---
+
+commit and push
+
+---
+
+"Check for update" is not working - see dev.sand !

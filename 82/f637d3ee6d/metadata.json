@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 51,
+  "checkpoints_count": 50,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -54,6 +54,7 @@
     "app/services/stats_calculator.rb",
     "app/services/tailscale_manager.rb",
     "app/services/terminal_manager.rb",
+    "app/services/update_checker.rb",
     "app/services/vnc_manager.rb",
     "app/views/admin/_subnav.html.erb",
     "app/views/admin/docker/index.html.erb",
@@ -66,7 +67,6 @@
     "app/views/layouts/terminal.html.erb",
     "app/views/pages/guide.html.erb",
     "app/views/sandboxes/logs.html.erb",
-    "app/views/sandboxes/new.html.erb",
     "app/views/sandboxes/show.html.erb",
     "app/views/settings/show.html.erb",
     "app/views/shared/_navbar.html.erb",
@@ -93,14 +93,11 @@
     "docker-compose.local.yml",
     "docker-compose.yml",
     "docs/DOCKER_SYSBOX_TROUBLE.md",
-    "docs/SNAPSHOTS.md",
     "images/sandbox/.Dockerfile.swp",
     "images/sandbox/Dockerfile",
     "images/sandbox/Dockerfile.base",
     "images/sandbox/docker-restart.sh",
     "images/sandbox/entrypoint.sh",
-    "images/sandbox/sc-tmux.sh",
-    "images/sandbox/tmux.conf",
     "install-defaults",
     "installer/installer.sh.in",
     "installer/templates/.dockyard..swp",
@@ -108,13 +105,6 @@
     "installer/templates/dockyard.sh",
     "installer/templates/sandcastle-admin.sh",
     "mise.toml",
-    "research/COMPARISON.md",
-    "research/QUICK_REFERENCE.md",
-    "research/README.md",
-    "research/docker-sysbox.md",
-    "research/firecracker.md",
-    "research/gvisor.md",
-    "sandcastle-design.md",
     "test/controllers/registrations_controller_test.rb",
     "test/controllers/terminal_controller_test.rb",
     "test/fixtures/sandboxes.yml",
@@ -140,11 +130,8 @@
     "vendor/sandcastle-cli/cmd/info.go",
     "vendor/sandcastle-cli/cmd/route.go",
     "vendor/sandcastle-cli/cmd/sandbox.go",
-    "vendor/sandcastle-cli/cmd/smb.go",
-    "vendor/sandcastle-cli/cmd/snapshot.go",
     "vendor/sandcastle-cli/cmd/status.go",
-    "vendor/sandcastle-cli/internal/config/config.go",
-    "website/index.html"
+    "vendor/sandcastle-cli/internal/config/config.go"
   ],
   "sessions": [
     {
@@ -436,10 +423,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 7457,
-    "cache_creation_tokens": 2315591,
-    "cache_read_tokens": 149211181,
-    "output_tokens": 425454,
-    "api_call_count": 1647
+    "input_tokens": 5716,
+    "cache_creation_tokens": 2265854,
+    "cache_read_tokens": 139414296,
+    "output_tokens": 416363,
+    "api_call_count": 1609
   }
 }

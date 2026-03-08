@@ -61,3 +61,19 @@ Summary:
    - **Fix garbled characters** in `sandcastle connect` terminal (OSC escape sequences leaking in prompt)
    - **Fix hostname support** in `SANDCASTLE_HOST` (was broken when using names like `dev.sand` instead of IPs), install on `dev.sand`, switch to mkcert TLS, e...
 
+### Prompt 12
+
+push and release a new version
+
+### Prompt 13
+
+update sandcaste to use the lastest dockyard v0.1.3
+
+### Prompt 14
+
+commit and push
+
+### Prompt 15
+
+"Check for update" is not working - see dev.sand !
+
