@@ -144,3 +144,19 @@ we get logged out on restart. hot to fix that!
 also on relase tag the docker imnages with the release version and surface that in the update page. show the installed and the newly availanble version.
   debug the flow and make sure all works!
 
+### Prompt 28
+
+So it’s all fixed now
+
+### Prompt 29
+
+Will we see the release tags in the zu now?
+
+### Prompt 30
+
+debug "Restart now" on dev.sand using chrome and the log files on the server https://dev.sand/admin
+
+### Prompt 31
+
+commit and üush and release.
+
