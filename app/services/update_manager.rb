@@ -12,6 +12,7 @@ class UpdateManager
   APP_IMAGE     = "ghcr.io/thieso2/sandcastle:latest"
   SANDBOX_IMAGE = SandboxManager::DEFAULT_IMAGE
   COMPOSE_PATH  = "/sandcastle/docker-compose.yml"
+  SANDCASTLE_HOME = "/sandcastle"
   CACHE_KEY     = "update_manager/pull_status"
 
   class Error < StandardError; end
@@ -70,19 +71,28 @@ class UpdateManager
   end
 
   def spawn_updater_container
-    # DOCKER_SOCK contains the host path to the dockyard Docker socket.
-    # Bind mounts reference host paths, not paths inside this container.
-    host_sock = ENV.fetch("DOCKER_SOCK", "/var/run/docker.sock")
+    # DOCKER_SOCK is the host path to the dockyard Docker socket.
+    # Derive the dockyard root from it (e.g. /sandcastle/dockyard/run/docker.sock → /sandcastle/dockyard).
+    host_sock    = ENV.fetch("DOCKER_SOCK", "/var/run/docker.sock")
+    dockyard_root = File.dirname(File.dirname(host_sock)) # .../run/docker.sock → .../
+
+    # The app image has a Docker CLI but no compose plugin. Mount the host's
+    # dockyard docker-cli binary and compose plugin so `docker compose` works.
+    binds = [
+      "#{host_sock}:/var/run/docker.sock",
+      "#{SANDCASTLE_HOME}:#{SANDCASTLE_HOME}",
+      "#{SANDCASTLE_HOME}/.env:#{SANDCASTLE_HOME}/.env:ro",
+      "#{dockyard_root}/bin/docker-cli:/usr/local/bin/docker",
+      "#{dockyard_root}/lib/docker-config/cli-plugins/docker-compose:/usr/local/lib/docker/cli-plugins/docker-compose"
+    ]
 
     container = Docker::Container.create(
       "Image" => APP_IMAGE,
+      "User"  => "root",
       "Cmd"   => [ "sh", "-c",
                    "sleep 2 && docker compose -f #{COMPOSE_PATH} up -d" ],
       "HostConfig" => {
-        "Binds" => [
-          "#{host_sock}:/var/run/docker.sock",
-          "/sandcastle:/sandcastle"
-        ],
+        "Binds"      => binds,
         "AutoRemove" => true
       }
     )
