@@ -32,6 +32,7 @@ COPY gitconfig /etc/gitconfig
 LABEL org.opencontainers.image.source="https://github.com/thieso2/sandcastle"
 LABEL org.opencontainers.image.description="Sandcastle sandbox image — Ubuntu 25.10 with Docker-in-Docker, SSH, and dev tools"
 LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.version="${SANDCASTLE_VERSION}"
 
 EXPOSE 22 5900 6080 7681 7682
 EXPOSE 60000-61000/udp

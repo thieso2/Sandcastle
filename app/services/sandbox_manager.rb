@@ -30,7 +30,7 @@ class SandboxManager
 
     # Record image digest and build date
     info = fetch_image_info(image)
-    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at])
+    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at], image_version: info[:image_version])
 
     # Create and start container
     create_container_and_start(sandbox: sandbox, user: user)
@@ -196,7 +196,7 @@ class SandboxManager
     ensure_mount_dirs(user, sandbox)
 
     info = fetch_image_info(sandbox.image)
-    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at])
+    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at], image_version: info[:image_version])
 
     create_container_and_start(sandbox: sandbox, user: user)
     # Strip the timestamp prefix added during archival (e.g. "20260307123456-mybox" → "mybox")
@@ -235,7 +235,7 @@ class SandboxManager
 
     # Refresh image info in case the image was updated since sandbox creation
     info = fetch_image_info(sandbox.image)
-    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at])
+    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at], image_version: info[:image_version])
 
     create_container_and_start(sandbox: sandbox, user: user)
 
@@ -695,10 +695,11 @@ class SandboxManager
 
     {
       image_id:       img.id,
-      image_built_at: date_str ? Time.zone.parse(date_str) : nil
+      image_built_at: date_str ? Time.zone.parse(date_str) : nil,
+      image_version:  labels["org.opencontainers.image.version"]
     }
   rescue Docker::Error::DockerError, ArgumentError, TypeError
-    { image_id: nil, image_built_at: nil }
+    { image_id: nil, image_built_at: nil, image_version: nil }
   end
 
   def connect_to_network(container)

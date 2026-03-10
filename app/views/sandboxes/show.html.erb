@@ -27,7 +27,7 @@
         </span>
       </div>
       <p class="text-sm text-gray-500 mt-1 ml-6">
-        <%= @sandbox.image.sub("ghcr.io/thieso2/", "") %>
+        <%= @sandbox.image_version.present? ? @sandbox.image_version : @sandbox.image.sub("ghcr.io/thieso2/", "") %>
         · Created <%= time_ago_in_words(@sandbox.created_at) %> ago
       </p>
     </div>

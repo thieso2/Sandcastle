@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_08_100002) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_10_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -99,6 +99,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_08_100002) do
     t.string "image", default: "ghcr.io/thieso2/sandcastle-sandbox:latest", null: false
     t.datetime "image_built_at"
     t.string "image_id"
+    t.string "image_version"
     t.text "job_error"
     t.datetime "job_started_at"
     t.string "job_status"
