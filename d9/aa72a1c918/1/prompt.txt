@@ -1,0 +1,11 @@
+what happened to ssh-agent-switcher?
+
+---
+
+we need to reintroduce it and make it work with out tmux setup. i know that mosh is not working but i want this to work for out ssh-based sessions.
+  implement and make it work. use "mise run deploy:dev" to deploy locally and validate that it works - you can live.path the image and the app - just
+  amke sure to add the chnages to got as well.
+
+---
+
+commit push and release!
