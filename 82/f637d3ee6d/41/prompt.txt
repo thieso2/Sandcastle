@@ -1,0 +1,5 @@
+add an smb link to the dashboard using sbm://user:password@tailscale-ip  (when smb is active)
+
+---
+
+commit and push and release
