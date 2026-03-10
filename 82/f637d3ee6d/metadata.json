@@ -3,7 +3,7 @@
   "checkpoint_id": "82f637d3ee6d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 51,
+  "checkpoints_count": 52,
   "files_touched": [
     ".github/workflows/app-base-image.yml",
     ".github/workflows/release.yml",
@@ -57,6 +57,7 @@
     "app/services/update_manager.rb",
     "app/services/vnc_manager.rb",
     "app/views/admin/_subnav.html.erb",
+    "app/views/admin/dashboard/_sandbox.html.erb",
     "app/views/admin/docker/index.html.erb",
     "app/views/admin/update/progress.html.erb",
     "app/views/admin/users/_form.html.erb",
@@ -89,6 +90,7 @@
     "db/migrate/20260302000003_add_archive_retention_to_users.rb",
     "db/migrate/20260306153839_create_container_metrics.rb",
     "db/migrate/20260307151841_add_terminal_emulator_to_users.rb",
+    "db/migrate/20260310000001_add_image_version_to_sandboxes.rb",
     "db/schema.rb",
     "docker-compose.dev.yml",
     "docker-compose.local.yml",
@@ -431,10 +433,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 5725,
-    "cache_creation_tokens": 2550033,
-    "cache_read_tokens": 143345454,
-    "output_tokens": 421910,
-    "api_call_count": 1615
+    "input_tokens": 5758,
+    "cache_creation_tokens": 2561793,
+    "cache_read_tokens": 145475903,
+    "output_tokens": 428653,
+    "api_call_count": 1646
   }
 }
