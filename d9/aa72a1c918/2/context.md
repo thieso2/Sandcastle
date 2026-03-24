@@ -171,3 +171,7 @@ in the contaner: we do not want to swallow errors! they should be visible.
 
 commit and push
 
+### Prompt 24
+
+lets add to the CI that the sandbox-image is only rebuilt when stuff in images/sandbox/ changed!
+

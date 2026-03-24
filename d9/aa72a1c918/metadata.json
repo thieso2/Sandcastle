@@ -3,14 +3,11 @@
   "checkpoint_id": "d9aa72a1c918",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 3,
   "files_touched": [
+    ".github/workflows/sandbox-image.yml",
     "192.168.2.10",
-    "Dockerfile.base",
-    "app/services/sandbox_manager.rb",
-    "app/services/tailscale_manager.rb",
     "images/sandbox/Dockerfile",
-    "images/sandbox/entrypoint.sh",
     "images/sandbox/sc-tmux.sh",
     "installer/templates/docker-compose.yml.template"
   ],
@@ -38,10 +35,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 4408,
-    "cache_creation_tokens": 251771,
-    "cache_read_tokens": 11259581,
-    "output_tokens": 57311,
-    "api_call_count": 185
+    "input_tokens": 1603,
+    "cache_creation_tokens": 227767,
+    "cache_read_tokens": 8639517,
+    "output_tokens": 48237,
+    "api_call_count": 158
   }
 }
