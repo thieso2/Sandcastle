@@ -33,20 +33,34 @@ fi
 # The host ensures 777 on the mount point before container start (via sudo
 # chmod in SandboxManager#prepare_bind_mount), so the sandbox user can always
 # write ~/.Xauthority, .ssh, etc.
-chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/dev/null || true
-chmod 777 "/home/$USERNAME"
+#
+# On BTRFS bind mounts with Sysbox ID-mapped mounts, chmod/chown may fail
+# with EOVERFLOW ("Value too large for defined data type"). This is a known
+# Sysbox bug (thieso2/sysbox#12). Log the error visibly but don't crash —
+# the host has already set 777 on the mount point.
+if ! chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/tmp/chown-home.err; then
+    echo "WARNING: chown /home/$USERNAME failed: $(cat /tmp/chown-home.err | head -1)" >&2
+    echo "  This is likely BTRFS + Sysbox ID-mapped mount issue (thieso2/sysbox#12)" >&2
+fi
+if ! chmod 777 "/home/$USERNAME" 2>/tmp/chmod-home.err; then
+    echo "WARNING: chmod /home/$USERNAME failed: $(cat /tmp/chmod-home.err | head -1)" >&2
+    echo "  This is likely BTRFS + Sysbox ID-mapped mount issue (thieso2/sysbox#12)" >&2
+fi
 
 # Configure git identity in user's ~/.gitconfig (skip if it already exists,
 # e.g. from a bind-mounted home directory with prior customizations)
 GITCONFIG="/home/$USERNAME/.gitconfig"
 if [ ! -f "$GITCONFIG" ] && { [ -n "$USER_FULLNAME" ] || [ -n "$USER_EMAIL" ]; }; then
-    {
+    if ! {
         echo "[user]"
         [ -n "$USER_FULLNAME" ] && echo "        name = $USER_FULLNAME"
         [ -n "$USER_EMAIL" ] && echo "        email = $USER_EMAIL"
         [ -n "$GITHUB_USERNAME" ] && echo "[github]" && echo "        user = $GITHUB_USERNAME"
-    } > "$GITCONFIG"
-    chown "$USERNAME:$USERNAME" "$GITCONFIG" 2>/dev/null || true
+    } > "$GITCONFIG" 2>/dev/null; then
+        echo "WARNING: could not write $GITCONFIG (home dir may be read-only under Sysbox)" >&2
+    else
+        chown "$USERNAME:$USERNAME" "$GITCONFIG" 2>/dev/null || true
+    fi
 fi
 
 # Generate SSH host keys if missing
