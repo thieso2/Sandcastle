@@ -147,3 +147,27 @@ yes!
 
 yes
 
+### Prompt 19
+
+when creating a sandcaste with home dir mounted it gets no talscale IP - check. see sandcastle on sandman 
+see thies@sandman:~$ sudo /sandcastle/dockyard/bin/docker ps
+
+for logs etc.
+
+### Prompt 20
+
+we have our own sysbox fork - what's the exact problem with it and btrfs (research)
+also - what's the downside of using a docker volumne?
+
+### Prompt 21
+
+create an issue in thieso2/sysbox repo so we can fix it. also add in issue to thieso2/dockyard what needs to be added ti the testsuite!
+
+### Prompt 22
+
+in the contaner: we do not want to swallow errors! they should be visible.
+
+### Prompt 23
+
+commit and push
+
