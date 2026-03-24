@@ -179,3 +179,7 @@ lets add to the CI that the sandbox-image is only rebuilt when stuff in images/s
 
 when Dockerfile.base changes we need to do a rebuild, right?
 
+### Prompt 26
+
+why would a chahe in websockify not rebuild the image?
+
