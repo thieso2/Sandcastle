@@ -3,29 +3,32 @@
   "checkpoint_id": "d9aa72a1c918",
   "session_id": "b8f611c8-0a81-4ac2-958a-f4a92dfb1bea",
   "strategy": "manual-commit",
-  "created_at": "2026-03-24T14:51:41.953402Z",
+  "created_at": "2026-03-24T15:15:24.944949Z",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 1,
   "files_touched": [
     "Dockerfile.base",
-    "app/services/sandbox_manager.rb"
+    "app/services/sandbox_manager.rb",
+    "app/services/tailscale_manager.rb"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "57d274f1-f7d5-4251-81d6-c625471ea094",
+  "transcript_identifier_at_start": "d4b93bf5-c612-48ba-aeed-55ce8be908da",
+  "checkpoint_transcript_start": 326,
+  "transcript_lines_at_start": 326,
   "token_usage": {
-    "input_tokens": 123,
-    "cache_creation_tokens": 72713,
-    "cache_read_tokens": 5397374,
-    "output_tokens": 15029,
-    "api_call_count": 103
+    "input_tokens": 20,
+    "cache_creation_tokens": 9832,
+    "cache_read_tokens": 1019657,
+    "output_tokens": 1554,
+    "api_call_count": 12
   },
   "initial_attribution": {
-    "calculated_at": "2026-03-24T14:51:41.8968Z",
-    "agent_lines": 4,
+    "calculated_at": "2026-03-24T15:15:24.869429Z",
+    "agent_lines": 20,
     "human_added": 0,
     "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 4,
+    "total_committed": 20,
     "agent_percentage": 100
   }
 }

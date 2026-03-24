@@ -100,3 +100,50 @@ use the sandcaste instraller.sh (in this dir) to do a sandcaste install! (we hav
 
 commit and craee new release!
 
+### Prompt 15
+
+explain and analyze Development system — may vanish at any moment · Your data WILL get eaten ☠️
+Sandcastle
+Dashboard
+Guide
+Tailscale
+Admin
+2
+thies
+Settings
+Log out
+Overview
+Users
+Invites
+Settings
+Docker
+Jobs
+Errors
+2
+🔥
+TailscaleManager::Error
+from
+application.solid_queue
+#2
+Failed to connect sandbox to Tailscale: {"message":"network sandbox for container 59cfed95f94910be332a9288427c5e1f240816bcb2b4de75f8532d5a39257581 not found"}
+Severity
+🔥
+error
+Status
+⏳
+unresolved
+First seen
+les...
+
+### Prompt 16
+
+what would be a full fix?
+
+### Prompt 17
+
+yes!
+
+### Prompt 18
+
+yes
+
