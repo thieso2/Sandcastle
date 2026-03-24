@@ -11,12 +11,9 @@ on:
     branches:
       - main
     paths:
-      - 'images/sandbox/Dockerfile'
-      - 'images/sandbox/entrypoint.sh'
-      - 'images/sandbox/docker-restart.sh'
-      - 'images/sandbox/startchrome.sh'
-      - 'images/sandbox/tmux.conf'
-      - 'images/sandbox/gitconfig'
+      - 'images/sandbox/**'
+      - '!images/sandbox/Dockerfile.base'
+      - '!images/sandbox/websockify/**'
 
 env:
   REGISTRY: ghcr.io
