@@ -376,3 +376,7 @@ commit and push
 ---
 
 lets add to the CI that the sandbox-image is only rebuilt when stuff in images/sandbox/ changed!
+
+---
+
+when Dockerfile.base changes we need to do a rebuild, right?
