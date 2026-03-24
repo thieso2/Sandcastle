@@ -763,8 +763,10 @@ class SandboxManager
     # directory disappeared — race condition, ignore
   end
 
-  # Fix ownership and permissions of a host path via a busybox container.
+  # Fix ownership and permissions of a host path via sudo (preferred) or a busybox container fallback.
   def docker_chown(path)
+    return if system("/usr/bin/sudo", "-n", "/usr/bin/chown", "#{Process.uid}:#{Process.gid}", path) &&
+             system("/usr/bin/sudo", "-n", "/usr/bin/chmod", "755", path)
     docker_run_fix(path, "sh", "-c", "chown #{Process.uid}:#{Process.gid} /mnt && chmod 755 /mnt")
   end
 
