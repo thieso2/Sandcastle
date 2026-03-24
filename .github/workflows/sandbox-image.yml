@@ -12,7 +12,6 @@ on:
       - main
     paths:
       - 'images/sandbox/**'
-      - '!images/sandbox/websockify/**'
 
 env:
   REGISTRY: ghcr.io
