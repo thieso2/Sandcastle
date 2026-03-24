@@ -3,9 +3,11 @@
   "checkpoint_id": "d9aa72a1c918",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 4,
   "files_touched": [
     "192.168.2.10",
+    "Dockerfile.base",
+    "app/services/sandbox_manager.rb",
     "images/sandbox/Dockerfile",
     "images/sandbox/sc-tmux.sh",
     "installer/templates/docker-compose.yml.template"
@@ -24,13 +26,20 @@
       "context": "/d9/aa72a1c918/1/context.md",
       "content_hash": "/d9/aa72a1c918/1/content_hash.txt",
       "prompt": "/d9/aa72a1c918/1/prompt.txt"
+    },
+    {
+      "metadata": "/d9/aa72a1c918/2/metadata.json",
+      "transcript": "/d9/aa72a1c918/2/full.jsonl",
+      "context": "/d9/aa72a1c918/2/context.md",
+      "content_hash": "/d9/aa72a1c918/2/content_hash.txt",
+      "prompt": "/d9/aa72a1c918/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1593,
-    "cache_creation_tokens": 223852,
-    "cache_read_tokens": 7694737,
-    "output_tokens": 46924,
-    "api_call_count": 150
+    "input_tokens": 1716,
+    "cache_creation_tokens": 296565,
+    "cache_read_tokens": 13092111,
+    "output_tokens": 61953,
+    "api_call_count": 253
   }
 }

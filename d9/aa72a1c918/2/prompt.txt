@@ -1,0 +1,207 @@
+explain:
+Development system — may vanish at any moment · Your data WILL get eaten ☠️
+Sandcastle
+Dashboard
+Guide
+Tailscale
+Admin
+1
+thies
+Settings
+Log out
+Overview
+Users
+Invites
+Settings
+Docker
+Jobs
+Errors
+1
+🔥
+SandboxManager::Error
+from
+application.solid_queue
+#1
+docker_run_fix failed (exit 1) for /sandcastle/data/users/thies: sh -c chown 220568:220568 /mnt && chmod 755 /mnt
+Severity
+🔥
+error
+Status
+⏳
+unresolved
+First seen
+less than a minute ago
+Last seen
+less than a minute ago
+Exception class
+SandboxManager::Error
+Source
+application.solid_queue
+Project root
+/rails
+Gem root
+/usr/local/bundle/ruby/4.0.0
+Back to errors
+
+Resolve, Error #1
+
+
+Occurrences
+2 total
+
+« ‹ › »
+2026-03-24 13:12:01 UTC (less than a minute ago)
+Job
+#<SolidCable::TrimJob>
+Backtrace
+[PROJECT_ROOT]/app/services/sandbox_manager.rb:787 in SandboxManager#docker_run_fix
+    exit_code = result&.dig("StatusCode") || -1
+    unless exit_code == 0
+      raise Error, "docker_run_fix failed (exit #{exit_code}) for #{host_path}: #{cmd.join(' ')}"
+    end
+  ensure
+[PROJECT_ROOT]/app/services/sandbox_manager.rb:768 in SandboxManager#docker_chown
+  # Fix ownership and permissions of a host path via a busybox container.
+  def docker_chown(path)
+    docker_run_fix(path, "sh", "-c", "chown #{Process.uid}:#{Process.gid} /mnt && chmod 755 /mnt")
+  end
+
+[PROJECT_ROOT]/app/services/sandbox_manager.rb:751 in SandboxManager#ensure_dir
+    FileUtils.mkdir_p(path)
+  rescue Errno::EACCES
+    docker_chown(File.dirname(path))
+    FileUtils.mkdir_p(path)
+  end
+[PROJECT_ROOT]/app/services/sandbox_manager.rb:135 in SandboxManager#ensure_mount_dirs
+    if user.chrome_persist_profile? && !sandbox.mount_home
+      dir = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
+      ensure_dir(dir)
+      prepare_bind_mount(dir)
+    end
+[PROJECT_ROOT]/app/jobs/sandbox_provision_job.rb:13 in SandboxProvisionJob#perform
+    begin
+      # Directory creation
+      manager.ensure_mount_dirs(sandbox.user, sandbox)
+
+      # Image pull (can be slow)
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/execution.rb:68 in block in ActiveJob::Execution#_perform_job
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:121 in block in ActiveSupport::Callbacks#run_callbacks
+[PROJECT_ROOT]/app/jobs/application_job.rb:12 in block in <class:ApplicationJob>
+    logger.info { "[Job] #{job.class.name} started (#{args_summary})" }
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    block.call
+    elapsed = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).round(1)
+    logger.info { "[Job] #{job.class.name} completed in #{elapsed}s" }
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:130 in BasicObject#instance_exec
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:130 in block in ActiveSupport::Callbacks#run_callbacks
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:141 in ActiveSupport::Callbacks#run_callbacks
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/execution.rb:67 in ActiveJob::Execution#_perform_job
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:44 in ActiveJob::Instrumentation#_perform_job
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/execution.rb:51 in ActiveJob::Execution#perform_now
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:26 in block in ActiveJob::Instrumentation#perform_now
+[GEM_ROOT]/gems/activerecord-8.1.2/lib/active_record/railties/job_runtime.rb:12 in block in ActiveRecord::Railties::JobRuntime#instrument
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:34 in block in ActiveJob::Instrumentation#instrument
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/notifications.rb:210 in block in ActiveSupport::Notifications.instrument
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/notifications/instrumenter.rb:58 in ActiveSupport::Notifications::Instrumenter#instrument
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/notifications.rb:210 in ActiveSupport::Notifications.instrument
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:33 in ActiveJob::Instrumentation#instrument
+[GEM_ROOT]/gems/activerecord-8.1.2/lib/active_record/railties/job_runtime.rb:10 in ActiveRecord::Railties::JobRuntime#instrument
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/instrumentation.rb:26 in ActiveJob::Instrumentation#perform_now
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/logging.rb:32 in block in ActiveJob::Logging#perform_now
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/tagged_logging.rb:143 in block in ActiveSupport::TaggedLogging#tagged
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/tagged_logging.rb:38 in ActiveSupport::TaggedLogging::Formatter#tagged
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/tagged_logging.rb:143 in ActiveSupport::TaggedLogging#tagged
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/broadcast_logger.rb:228 in ActiveSupport::BroadcastLogger#method_missing
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/logging.rb:39 in ActiveJob::Logging#tag_logger
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/logging.rb:32 in ActiveJob::Logging#perform_now
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/execution_state.rb:7 in block (2 levels) in ActiveJob::ExecutionState#perform_now
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/core_ext/time/zones.rb:65 in Time.use_zone
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/execution_state.rb:7 in block in ActiveJob::ExecutionState#perform_now
+[GEM_ROOT]/gems/i18n-1.14.8/lib/i18n.rb:354 in I18n::Base#with_locale
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/execution_state.rb:6 in ActiveJob::ExecutionState#perform_now
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/execution.rb:29 in block in ActiveJob::Execution::ClassMethods#execute
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:121 in block in ActiveSupport::Callbacks#run_callbacks
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/railtie.rb:86 in block (4 levels) in <class:Railtie>
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/reloader.rb:77 in block in ActiveSupport::Reloader.wrap
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/execution_wrapper.rb:87 in ActiveSupport::ExecutionWrapper.wrap
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/reloader.rb:74 in ActiveSupport::Reloader.wrap
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/railtie.rb:85 in block (3 levels) in <class:Railtie>
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:130 in BasicObject#instance_exec
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:130 in block in ActiveSupport::Callbacks#run_callbacks
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/callbacks.rb:141 in ActiveSupport::Callbacks#run_callbacks
+[GEM_ROOT]/gems/activejob-8.1.2/lib/active_job/execution.rb:27 in ActiveJob::Execution::ClassMethods#execute
+[GEM_ROOT]/gems/solid_queue-1.3.2/app/models/solid_queue/claimed_execution.rb:104 in SolidQueue::ClaimedExecution#execute
+[GEM_ROOT]/gems/solid_queue-1.3.2/app/models/solid_queue/claimed_execution.rb:66 in SolidQueue::ClaimedExecution#perform
+[GEM_ROOT]/gems/solid_queue-1.3.2/lib/solid_queue/pool.rb:23 in block (2 levels) in SolidQueue::Pool#post
+[GEM_ROOT]/gems/activesupport-8.1.2/lib/active_support/execution_wrapper.rb:91 in ActiveSupport::ExecutionWrapper.wrap
+[GEM_ROOT]/gems/solid_queue-1.3.2/lib/solid_queue/app_executor.rb:7 in SolidQueue::AppExecutor#wrap_in_app_executor
+[GEM_ROOT]/gems/solid_queue-1.3.2/lib/solid_queue/pool.rb:22 in block in SolidQueue::Pool#post
+[GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/promises.rb:1593 in Concurrent::Promises::AbstractPromise#evaluate_to
+[GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/promises.rb:1776 in block in Concurrent::Promises::ChainPromise#on_resolvable
+[GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:382 in Concurrent::RubyThreadPoolExecutor::Worker#run_task
+[GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:372 in block (3 levels) in Concurrent::RubyThreadPoolExecutor::Worker#create_worker
+[GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:361 in Kernel#loop
+[GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:361 in block (2 levels) in Concurrent::RubyThreadPoolExecutor::Worker#create_worker
+[GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:358 in Kernel#catch
+[GEM_ROOT]/gems/concurrent-ruby-1.3.6/lib/concurrent-ruby/concurrent/executor/ruby_thread_pool_executor.rb:358 in block in Concurrent::RubyThreadPoolExecutor::Worker#create_worker
+2026-03-24 13:11:55 UTC (less than a minute ago)
+v0.8.77 (96bf923b0030200f274b1bd9ee5dd669c1cfb89b) · Download CLI
+
+---
+
+login to sandman
+
+---
+
+yes
+
+---
+
+it shoudl run as sysbox so we can run DiD!
+
+---
+
+2
+
+---
+
+create an incus-vm on sandman and debug and fix that issue.
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+<task-notification>
+<task-id>bn9egn4v4</task-id>
+<tool-use-id>toolu_016yq7FnfCf3yyYdFJCGiPsX</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>failed</status>
+<summary>Background command "Check VM console access and resource usage" failed with exit code 255</summary>
+</task-notification>
+Read the output file to retrieve the result: REDACTED.output
+
+---
+
+incus:sandcastle-dev now has ipv4 on sandman - debug it there.
+
+---
+
+[Request interrupted by user]
+
+---
+
+use the sandcaste instraller.sh (in this dir) to do a sandcaste install!
+
+---
+
+[Request interrupted by user]
+
+---
+
+use the sandcaste instraller.sh (in this dir) to do a sandcaste install! (we have our own sysbox fork!)
+
+---
+
+commit and craee new release!
