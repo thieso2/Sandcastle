@@ -253,10 +253,29 @@ class TailscaleManager
     raise Error, "Tailscale not enabled for user" unless user.tailscale_enabled?
     raise Error, "Sandbox not running" unless sandbox.container_id.present?
 
+    # Verify container exists and check if already connected
+    container = Docker::Container.get(sandbox.container_id)
+    connected_networks = container.info.dig("NetworkSettings", "Networks") || {}
+    return sandbox if connected_networks.key?(user.tailscale_network)
+
     network = Docker::Network.get(user.tailscale_network)
-    network.connect(sandbox.container_id)
+
+    # Sysbox containers have heavier init (user namespace, rootless daemon) so
+    # the network namespace may not be attachable immediately after start.
+    retries = 0
+    begin
+      network.connect(sandbox.container_id)
+    rescue Docker::Error::ServerError => e
+      raise unless e.message.include?("network sandbox") && retries < 3
+      retries += 1
+      sleep retries
+      retry
+    end
+
     sandbox.update!(tailscale: true)
     sandbox
+  rescue Error
+    raise
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to connect sandbox to Tailscale: #{e.message}"
   end
