@@ -3,11 +3,13 @@
   "checkpoint_id": "d9aa72a1c918",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 6,
   "files_touched": [
     ".github/workflows/sandbox-image.yml",
     "192.168.2.10",
+    "app/services/sandbox_manager.rb",
     "app/services/tailscale_manager.rb",
+    "bin/docker-entrypoint",
     "images/sandbox/Dockerfile",
     "images/sandbox/sc-tmux.sh",
     "installer/templates/docker-compose.yml.template"
@@ -40,13 +42,20 @@
       "context": "/d9/aa72a1c918/3/context.md",
       "content_hash": "/d9/aa72a1c918/3/content_hash.txt",
       "prompt": "/d9/aa72a1c918/3/prompt.txt"
+    },
+    {
+      "metadata": "/d9/aa72a1c918/4/metadata.json",
+      "transcript": "/d9/aa72a1c918/4/full.jsonl",
+      "context": "/d9/aa72a1c918/4/context.md",
+      "content_hash": "/d9/aa72a1c918/4/content_hash.txt",
+      "prompt": "/d9/aa72a1c918/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1628,
-    "cache_creation_tokens": 261196,
-    "cache_read_tokens": 8830212,
-    "output_tokens": 54648,
-    "api_call_count": 175
+    "input_tokens": 1720,
+    "cache_creation_tokens": 372111,
+    "cache_read_tokens": 14691607,
+    "output_tokens": 90244,
+    "api_call_count": 261
   }
 }

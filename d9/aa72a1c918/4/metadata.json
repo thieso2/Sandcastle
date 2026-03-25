@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "d9aa72a1c918",
+  "session_id": "ed244393-f29a-47dd-b134-7640360a9915",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-25T07:39:55.116115Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/services/sandbox_manager.rb",
+    "bin/docker-entrypoint"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 92,
+    "cache_creation_tokens": 110915,
+    "cache_read_tokens": 5861395,
+    "output_tokens": 35596,
+    "api_call_count": 86
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-25T07:39:55.057881Z",
+    "agent_lines": 19,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 19,
+    "agent_percentage": 100
+  }
+}
