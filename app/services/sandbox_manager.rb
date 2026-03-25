@@ -91,8 +91,13 @@ class SandboxManager
     end
 
     # Pre-write Traefik routes so they're active immediately (no wait on first open).
-    TerminalManager.new.prepare_traefik_config(sandbox)
-    VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+    # Non-critical: routes will be written on first terminal/VNC open if this fails.
+    begin
+      TerminalManager.new.prepare_traefik_config(sandbox)
+      VncManager.new.prepare_traefik_config(sandbox) if sandbox.vnc_enabled?
+    rescue Errno::EACCES => e
+      Rails.logger.warn("SandboxManager: could not pre-write Traefik config: #{e.message}")
+    end
 
     # Set SMB password via exec (avoids leaking password in container env/metadata)
     set_smb_password(container, sandbox.user) if sandbox.smb_enabled?

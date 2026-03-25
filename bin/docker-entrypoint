@@ -1,5 +1,17 @@
 #!/bin/bash -e
 
+# Fix ownership of the Traefik dynamic config directory.
+# The Dockyard Docker daemon (Sysbox) can shift UIDs on bind-mounted paths,
+# leaving files owned by the Sysbox subordinate UID (e.g. 231072) instead of
+# the app UID (220568). Use passwordless sudo (granted in Dockerfile.base) to
+# reclaim ownership so the app can write Traefik route configs.
+if [ -n "$SANDCASTLE_DATA_DIR" ]; then
+  _dynamic="$SANDCASTLE_DATA_DIR/traefik/dynamic"
+  if [ -d "$_dynamic" ] && [ "$(stat -c %u "$_dynamic")" != "$(id -u)" ]; then
+    sudo -n chown -R "$(id -u):$(id -g)" "$_dynamic" 2>/dev/null || true
+  fi
+fi
+
 # Wait for PostgreSQL to be ready (belt-and-suspenders with compose health check)
 if [ -n "$DB_HOST" ]; then
   echo "Waiting for PostgreSQL at $DB_HOST..."
