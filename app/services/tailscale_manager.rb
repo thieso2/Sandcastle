@@ -489,7 +489,10 @@ class TailscaleManager
       # Run tailscaled directly — we manage login via `tailscale up`.
       # Also used for restore_from_state: raw tailscaled exits without running
       # `tailscale logout` on SIGTERM, preserving saved credentials in state file.
-      config["Entrypoint"] = [ "tailscaled", "--state=/var/lib/tailscale/tailscaled.state" ]
+      # Fix ownership first: Tailscale image updates may change which user the daemon
+      # runs as (e.g. root vs nobody), leaving persisted state files unreadable.
+      # With userns-remap the UID mismatch causes "permission denied" on startup.
+      config["Entrypoint"] = [ "sh", "-c", "chown -R root:root /var/lib/tailscale 2>/dev/null; exec tailscaled --state=/var/lib/tailscale/tailscaled.state" ]
       config["Cmd"] = []
     end
 
