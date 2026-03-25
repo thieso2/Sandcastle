@@ -1621,7 +1621,7 @@ cmd_create() {
 
     local DOCKER_VERSION="29.2.1"
     local DOCKER_ROOTLESS_VERSION="29.2.1"
-    local SYSBOX_VERSION="0.6.7.10-tc"
+    local SYSBOX_VERSION="0.7.0.6-tc"
     local SYSBOX_TARBALL="sysbox-static-${ARCH}.tar.gz"
     local COMPOSE_VERSION="2.32.4"
 
@@ -1632,13 +1632,13 @@ cmd_create() {
         x86_64)
             DOCKER_SHA256="995b1d0b51e96d551a3b49c552c0170bc6ce9f8b9e0866b8c15bbc67d1cf93a3"
             DOCKER_ROOTLESS_SHA256="8c7b7783d8b391ca3183d9b5c7dea1794f6de69cfaa13c45f61fcd17d2b9c3ef"
-            SYSBOX_SHA256="9107dca08cc69c5871a0be7981dec3a3e8e5aa6e0924b7a6ca36df324357274b"
+            SYSBOX_SHA256="91f44ab16948a14c4df8225d254e730e616b952a74879eb0a874692690fae20b"
             COMPOSE_SHA256="ed1917fb54db184192ea9d0717bcd59e3662ea79db48bff36d3475516c480a6b"
             ;;
         aarch64)
             DOCKER_SHA256="236c5064473295320d4bf732fbbfc5b11b6b2dc446e8bc7ebb9222015fb36857"
             DOCKER_ROOTLESS_SHA256="15895df8b46ff33179d357e61b600b5b51242f9b9587c0f66695689e62f57894"
-            SYSBOX_SHA256="6a543f863cf77cbec285f9eebbbe5d5e5c0f3fd3836347909b4ef1e4b3fc03ef"
+            SYSBOX_SHA256="9601a03ab1455bf3a3409c7cc09df864df8c717c38e35f0c13ded80665b89d81"
             COMPOSE_SHA256="0c4591cf3b1ed039adcd803dbbeddf757375fc08c11245b0154135f838495a2f"
             ;;
     esac
