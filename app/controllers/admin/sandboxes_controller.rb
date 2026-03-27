@@ -70,7 +70,7 @@ module Admin
       authorize @sandbox
       if @sandbox.status == "running" && @sandbox.container_id.present?
         container = Docker::Container.get(@sandbox.container_id)
-        raw = container.stats(stream: false)
+        raw = container.stats(stream: false) || {}
 
         networks = raw["networks"] || {}
         net_rx = networks.values.sum { |n| n["rx_bytes"] || 0 }

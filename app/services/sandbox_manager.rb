@@ -163,6 +163,8 @@ class SandboxManager
       TailscaleManager.new.disconnect_sandbox(sandbox: sandbox)
     end
 
+    NetworkManager.new.disconnect_sandbox(sandbox: sandbox)
+
     if sandbox.container_id.present?
       begin
         container = Docker::Container.get(sandbox.container_id)
