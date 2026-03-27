@@ -1,0 +1,13 @@
+update the Bundle to  solid_errors to use my prompt branch from https://github.com/thieso2/solid_errors/tree/prompt
+
+---
+
+did we fix the bogus restart now button?
+
+---
+
+whats the runc change?
+
+---
+
+okay commit that - then release a new version!
