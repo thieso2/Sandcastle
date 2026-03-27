@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "e54316bbcc55",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/controllers/admin/sandboxes_controller.rb",
+    "app/services/sandbox_manager.rb"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e5/4316bbcc55/0/metadata.json",
+      "transcript": "/e5/4316bbcc55/0/full.jsonl",
+      "context": "/e5/4316bbcc55/0/context.md",
+      "content_hash": "/e5/4316bbcc55/0/content_hash.txt",
+      "prompt": "/e5/4316bbcc55/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 24,
+    "cache_creation_tokens": 11073,
+    "cache_read_tokens": 820557,
+    "output_tokens": 2580,
+    "api_call_count": 16
+  }
+}
