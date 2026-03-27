@@ -93,7 +93,8 @@ class UpdateManager
                    "sleep 2 && docker compose -f #{COMPOSE_PATH} up -d" ],
       "HostConfig" => {
         "Binds"      => binds,
-        "AutoRemove" => true
+        "AutoRemove" => true,
+        "Runtime"    => "runc"
       }
     )
     container.start
