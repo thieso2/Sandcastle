@@ -43,7 +43,7 @@ gem "solid_queue"
 gem "solid_cable"
 
 # Database-backed error tracking
-gem "solid_errors"
+gem "solid_errors", github: "thieso2/solid_errors", branch: "prompt"
 
 # Job monitoring dashboard
 gem "mission_control-jobs"
