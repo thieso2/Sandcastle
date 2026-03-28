@@ -1,0 +1,68 @@
+on create or connect do a quick check if teh ip is reachable (tailscale runnign, network up) bofore tying the connection.
+
+---
+
+on sandman - forwarwding a port into my sandcaste does not work. sandcastle thieso has port 3000 forwarded to 22 internall - maybe teh outside firewall has it blocked?
+
+---
+
+<task-notification>
+<task-id>bbw9tbzw0</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Read Traefik route config for sandbox 19" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bz83qtjcb</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Inspect container port bindings" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>b4j27x206</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>REDACTED.output</output-file>
+<status>completed</status>
+<summary>Background command "Inspect host port bindings config" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+~/Projects/GitHub/Engram [main] % sc  route list thieso
+Server: demo (https://demo.sandcastle.rocks)
+ID  MODE  DOMAIN / PUBLIC PORT    CONTAINER PORT  URL
+1   http  thies.sandcastle.rocks  8080            https://thies.sandcastle.rocks
+3   tcp   :3000                   22
+~/Projects/GitHub/Engram [main] % ssh -v 195.201.204.55 -p 3000
+debug1: OpenSSH_10.2p1, LibreSSL 3.3.6
+debug1: Reading configuration data /Users/thies/.ssh/config
+debug1: Reading configuration data /Users/thies/.orbstack/ssh/config
+debug1: /Users/thies/.ssh/config line 6: include /Users/thies/.colima/ssh_config matched no files
+debug1: /Users/thies/.ssh/config line 8: Applying options for *
+debug1: /Users/thies/.ssh/config line 138: Applying options for *
+debug1: Reading configuration data /etc/ssh/ssh_config
+debug1: /etc/ssh/ssh_config line 21: include /etc/ssh/ssh_config.d/* matched no files
+debug1: /etc/ssh/ssh_config line 54: Applying options for *
+debug1: Authenticator provider $SSH_SK_PROVIDER did not resolve; disabling
+debug1: Connecting to 195.201.204.55 [195.201.204.55] port 3000.
+
+---
+
+great - yes. work thru tailscale!
+
+---
+
+[Request interrupted by user]
+
+---
+
+all works now!
+commit and release a new version!
