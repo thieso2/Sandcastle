@@ -335,8 +335,10 @@ class RouteManager
     container.restart
   rescue Docker::Error::NotFoundError
     Rails.logger.warn("RouteManager: Traefik container #{TRAEFIK_CONTAINER} not found, skipping restart")
-  rescue Errno::ENOENT, Errno::EACCES => e
+  rescue Errno::ENOENT => e
     Rails.logger.warn("RouteManager: could not update Traefik static config: #{e.message}")
+  rescue Errno::EACCES => e
+    raise Error, "Cannot write Traefik static config (#{TRAEFIK_STATIC_CONFIG}): #{e.message}. Fix with: chmod 666 #{TRAEFIK_STATIC_CONFIG}"
   end
 
   def ensure_network

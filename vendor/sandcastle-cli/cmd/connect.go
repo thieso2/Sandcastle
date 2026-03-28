@@ -64,6 +64,10 @@ var connectCmd = &cobra.Command{
 			return err
 		}
 
+		if err := checkHostReachable(info.Host, info.Port); err != nil {
+			return err
+		}
+
 		if err := waitForSSH(info.Host, info.Port); err != nil {
 			return err
 		}
@@ -116,6 +120,10 @@ var sshCmd = &cobra.Command{
 			return err
 		}
 
+		if err := checkHostReachable(info.Host, info.Port); err != nil {
+			return err
+		}
+
 		if err := waitForSSH(info.Host, info.Port); err != nil {
 			return err
 		}
@@ -161,6 +169,31 @@ func resolveProtocol(cmd *cobra.Command, cfg *config.Config, host string, port i
 		}
 	}
 	return pickProtocol(cfg, host, port, user, extraArgs)
+}
+
+// checkHostReachable does a fast reachability check before waiting for SSH.
+// It catches common issues like Tailscale being down or the network being
+// unreachable, so the user gets a clear error instead of a 30s timeout.
+func checkHostReachable(host string, port int) error {
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
+	conn, err := net.DialTimeout("tcp", addr, 3*time.Second)
+	if conn != nil {
+		conn.Close()
+		return nil
+	}
+	if err == nil {
+		return nil
+	}
+	// "connection refused" means the host is reachable but SSH isn't up yet
+	// — that's fine, waitForSSH will handle it.
+	if opErr, ok := err.(*net.OpError); ok {
+		if sysErr, ok := opErr.Err.(*os.SyscallError); ok {
+			if sysErr.Syscall == "connect" {
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("host %s is not reachable — is Tailscale running and the network up?\n  %w", host, err)
 }
 
 func waitForSSH(host string, port int) error {

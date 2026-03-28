@@ -225,6 +225,10 @@ Flags explicitly passed on the command line take precedence over environment var
 			}
 		}
 
+		if err := checkHostReachable(info.Host, info.Port); err != nil {
+			return err
+		}
+
 		if err := waitForSSH(info.Host, info.Port); err != nil {
 			return err
 		}
