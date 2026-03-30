@@ -255,6 +255,38 @@ class SandboxManager
     raise Error, "Container not found — sandbox must be recreated"
   end
 
+  def rebuild(sandbox:)
+    raise Error, "Sandbox is destroyed" if sandbox.status == "destroyed"
+
+    user = sandbox.user
+
+    # Destroy the existing container so we get a fresh one with the latest image.
+    if sandbox.container_id.present?
+      begin
+        old = Docker::Container.get(sandbox.container_id)
+        old.stop(t: 5) rescue nil
+        old.delete(force: true)
+      rescue Docker::Error::NotFoundError
+        # already gone
+      end
+    end
+
+    ensure_mount_dirs(user, sandbox)
+
+    info = fetch_image_info(sandbox.image)
+    sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at], image_version: info[:image_version])
+
+    create_container_and_start(sandbox: sandbox, user: user)
+
+    TailscaleManager.new.connect_sandbox(sandbox: sandbox) if sandbox.tailscale? && user.tailscale_enabled?
+    RouteManager.new.reconnect_routes(sandbox: sandbox) if sandbox.routed?
+
+    sandbox
+  rescue Docker::Error::NotFoundError
+    sandbox.update!(status: "destroyed", container_id: nil)
+    raise Error, "Container not found — sandbox must be recreated"
+  end
+
   def stop(sandbox:)
     return sandbox if sandbox.status == "stopped"
 

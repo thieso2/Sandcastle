@@ -1,6 +1,6 @@
 module Api
   class SandboxesController < BaseController
-    before_action :set_sandbox, only: %i[show update destroy start stop logs connect snapshot restore tailscale_connect tailscale_disconnect service_start service_stop]
+    before_action :set_sandbox, only: %i[show update destroy start stop rebuild logs connect snapshot restore tailscale_connect tailscale_disconnect service_start service_stop]
     before_action :set_archived_sandbox, only: %i[archive_restore purge]
 
     def index
@@ -121,6 +121,16 @@ module Api
       end
 
       SandboxStopJob.perform_later(sandbox_id: @sandbox.id)
+      render json: sandbox_json(@sandbox.reload)
+    end
+
+    def rebuild
+      if @sandbox.job_in_progress?
+        render json: { error: "Operation already in progress" }, status: :conflict
+        return
+      end
+
+      SandboxRebuildJob.perform_later(sandbox_id: @sandbox.id)
       render json: sandbox_json(@sandbox.reload)
     end
 

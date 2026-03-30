@@ -40,6 +40,7 @@ func init() {
 	deleteCmd.Flags().BoolVarP(&deleteForce, "force", "f", false, "Skip confirmation prompt")
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(stopCmd)
+	rootCmd.AddCommand(rebuildCmd)
 	rootCmd.AddCommand(useCmd)
 	rootCmd.AddCommand(setCmd)
 	rootCmd.AddCommand(renameCmd)
@@ -476,6 +477,33 @@ var stopCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Sandbox %q stopped.\n", sandbox.Name)
+		return nil
+	},
+}
+
+var rebuildCmd = &cobra.Command{
+	Use:   "rebuild <name>",
+	Short: "Rebuild a sandbox with the latest image",
+	Long:  `Destroys and recreates the container from the latest image. Bind-mounted data (home, persisted) is preserved but file ownership may shift due to Sysbox UID remapping. Use "start" for a quick restart that preserves ownership.`,
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+		printServer(client)
+
+		sandbox, err := findSandboxByName(client, args[0])
+		if err != nil {
+			return err
+		}
+
+		sandbox, err = client.RebuildSandbox(sandbox.ID)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Sandbox %q rebuilding with latest image.\n", sandbox.Name)
 		return nil
 	},
 }

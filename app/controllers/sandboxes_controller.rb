@@ -1,5 +1,5 @@
 class SandboxesController < ApplicationController
-  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :retry, :logs, :metrics ]
+  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :rebuild, :retry, :logs, :metrics ]
   before_action :set_archived_sandbox, only: [ :archive_restore, :purge ]
 
   def new
@@ -177,6 +177,21 @@ class SandboxesController < ApplicationController
 
     respond_to do |format|
       format.html { redirect_to root_path, notice: "Stopping sandcastle #{@sandbox.name}..." }
+      format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "dashboard/sandbox", locals: { sandbox: @sandbox }) }
+    end
+  end
+
+  def rebuild
+    if @sandbox.job_in_progress?
+      redirect_to root_path, alert: "Operation already in progress"
+      return
+    end
+
+    @sandbox.start_job("rebuilding")
+    SandboxRebuildJob.perform_later(sandbox_id: @sandbox.id)
+
+    respond_to do |format|
+      format.html { redirect_to root_path, notice: "Rebuilding sandcastle #{@sandbox.name}..." }
       format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "dashboard/sandbox", locals: { sandbox: @sandbox }) }
     end
   end

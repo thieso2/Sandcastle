@@ -298,6 +298,12 @@ func (c *Client) StopSandbox(id int) (*Sandbox, error) {
 	return &s, err
 }
 
+func (c *Client) RebuildSandbox(id int) (*Sandbox, error) {
+	var s Sandbox
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/rebuild", id), nil, &s)
+	return &s, err
+}
+
 func (c *Client) ServiceStart(sandboxID int, service string, save bool) (*Sandbox, error) {
 	path := fmt.Sprintf("/api/sandboxes/%d/services/%s/start", sandboxID, service)
 	if save {

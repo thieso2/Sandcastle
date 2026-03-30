@@ -51,6 +51,22 @@ module Admin
       end
     end
 
+    def rebuild
+      authorize @sandbox
+      if @sandbox.job_in_progress?
+        redirect_to admin_dashboard_path, alert: "Operation already in progress"
+        return
+      end
+
+      @sandbox.start_job("rebuilding")
+      SandboxRebuildJob.perform_later(sandbox_id: @sandbox.id)
+
+      respond_to do |format|
+        format.html { redirect_to admin_dashboard_path, notice: "Rebuilding sandbox #{@sandbox.name}..." }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "admin/dashboard/sandbox", locals: { sandbox: @sandbox }) }
+      end
+    end
+
     def archive_restore
       authorize @sandbox, :archive_restore?
       @sandbox.start_job("restoring")

@@ -33,6 +33,7 @@ Rails.application.routes.draw do
     member do
       post :start
       post :stop
+      post :rebuild
       post :retry
       post :archive_restore
       delete :purge
@@ -86,6 +87,7 @@ Rails.application.routes.draw do
       member do
         post :start
         post :stop
+        post :rebuild
         get :stats
         post :archive_restore
         delete :purge
@@ -109,6 +111,7 @@ Rails.application.routes.draw do
       member do
         post :start
         post :stop
+        post :rebuild
         get :logs
         post :connect
         post :snapshot
