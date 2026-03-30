@@ -47,13 +47,6 @@ if ! chmod 777 "/home/$USERNAME" 2>/tmp/chmod-home.err; then
     echo "  This is likely BTRFS + Sysbox ID-mapped mount issue (thieso2/sysbox#12)" >&2
 fi
 
-# Fix ownership on persisted data volume. Sysbox assigns a random UID mapping
-# per container, so after a recreate the bind-mounted files appear owned by the
-# previous mapping's offset. Run chown in background to avoid delaying SSH.
-if [ -d /persisted ]; then
-    (chown -R "$USERNAME:$USERNAME" /persisted 2>/dev/null || true) &
-fi
-
 # Configure git identity in user's ~/.gitconfig (skip if it already exists,
 # e.g. from a bind-mounted home directory with prior customizations)
 GITCONFIG="/home/$USERNAME/.gitconfig"

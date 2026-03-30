@@ -225,19 +225,19 @@ class SandboxManager
 
     user = sandbox.user
 
+    # Try to restart the existing container to preserve Sysbox UID mapping.
+    # Recreating the container assigns a new UID offset, which causes
+    # bind-mounted files to appear owned by the wrong user.
     if sandbox.container_id.present?
-      begin
-        old = Docker::Container.get(sandbox.container_id)
-        old.stop(t: 5) rescue nil
-        old.delete(force: true)
-      rescue Docker::Error::NotFoundError
-        # already gone
+      restarted = try_restart_existing(sandbox)
+      if restarted
+        TailscaleManager.new.connect_sandbox(sandbox: sandbox) if sandbox.tailscale? && user.tailscale_enabled?
+        RouteManager.new.reconnect_routes(sandbox: sandbox) if sandbox.routed?
+        return sandbox
       end
     end
 
-    # Reset bind-mount directory permissions before starting the new container.
-    # After a previous Sysbox run, dirs may be owned by a remapped UID that
-    # Rails can't chmod — ensure_mount_dirs uses sudo to reset to 777.
+    # Container gone or restart failed — recreate from scratch.
     ensure_mount_dirs(user, sandbox)
 
     # Refresh image info in case the image was updated since sandbox creation
@@ -685,6 +685,32 @@ class SandboxManager
     end
     Rails.logger.warn("Tailscale IP not available for sandbox #{sandbox.id} after #{max_attempts} attempts (status: #{sandbox.status})")
     nil
+  end
+
+  # Try to start the existing container in-place (preserves Sysbox UID mapping).
+  # Returns true if the container was successfully restarted, false if it should
+  # be recreated (container gone, or start failed).
+  def try_restart_existing(sandbox)
+    container = Docker::Container.get(sandbox.container_id)
+    container.start
+    container.refresh!
+    unless container.json.dig("State", "Running")
+      container.delete(force: true) rescue nil
+      return false
+    end
+    sandbox.update!(status: "running")
+    true
+  rescue Docker::Error::NotFoundError
+    false
+  rescue Docker::Error::DockerError => e
+    Rails.logger.warn("SandboxManager: restart existing container failed: #{e.message}, will recreate")
+    begin
+      container&.stop(t: 5) rescue nil
+      container&.delete(force: true)
+    rescue Docker::Error::DockerError
+      # best-effort cleanup
+    end
+    false
   end
 
   # Extracts the image SHA and BUILD_DATE from a local Docker image.
