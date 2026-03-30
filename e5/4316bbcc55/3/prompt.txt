@@ -130,3 +130,26 @@ Please analyze this error and suggest:
 2. Potential fixes
 3. Any patterns or anti-patterns you notice
 4. Recommendations for preventing similar errors
+
+---
+
+commti and push
+
+---
+
+/Volumes [] % cd /Volumes/persisted
+/Volumes/persisted [] % ls -la
+total 0
+ls: .: Operation not permitted
+
+---
+
+io-web
+
+---
+
+Commands are in the form `/command [args]`
+
+---
+
+samba is not working fine!

@@ -113,3 +113,26 @@ Context:
 BACKTRACE:
 1. [GEM_ROOT]/gems/excon-1.4.2/lib/excon/middlewares/expects.rb:13 in `Excon::Middle...
 
+### Prompt 13
+
+commti and push
+
+### Prompt 14
+
+/Volumes [] % cd /Volumes/persisted
+/Volumes/persisted [] % ls -la
+total 0
+ls: .: Operation not permitted
+
+### Prompt 15
+
+io-web
+
+### Prompt 16
+
+Commands are in the form `/command [args]`
+
+### Prompt 17
+
+samba is not working fine!
+
