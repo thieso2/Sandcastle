@@ -87,6 +87,14 @@ class NetworkManager
         Rails.logger.warn("NetworkManager: refusing to delete network #{user.network_name} — owner label mismatch (#{owner.inspect})")
         return
       end
+
+      # Disconnect any remaining containers (e.g. Tailscale sidecar) before
+      # deleting — Docker returns 403 if the network still has endpoints.
+      containers = network.info.dig("Containers") || {}
+      containers.each_key do |container_id|
+        network.disconnect(container_id, { "Force" => true }) rescue nil
+      end
+
       network.delete
     rescue Docker::Error::NotFoundError
       # Already gone
