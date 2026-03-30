@@ -1,0 +1,15 @@
+lets add a little tui to the sandcaste cli
+create/list/start/stop/destryo/add/remove routes etc. 
+bring up the tui when no param is given
+
+---
+
+when createing a sandcaste - add a real dialog for att the options we can user when creating
+
+---
+
+add  selecting teh server and adding a new server, removing an old one
+
+---
+
+add a setting screen (defaults: mosh, vnc, mount etct)
