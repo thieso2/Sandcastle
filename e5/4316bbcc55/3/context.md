@@ -136,3 +136,70 @@ Commands are in the form `/command [args]`
 
 samba is not working fine!
 
+### Prompt 18
+
+/Volumes [] % ls -la /Volumes/persisted
+total 0
+ls: /Volumes/persisted: Operation not permitted
+
+### Prompt 19
+
+[Image #1]
+
+### Prompt 20
+
+[Image: source: /Users/thies/.claude/image-cache/6f3c45d2-4df5-465c-a575-b80052395c6b/1.png]
+
+### Prompt 21
+
+~/Projects/GitHub/Sandcastle [main] % ls -la /Volumes/persisted
+total 0
+ls: /Volumes/persisted: Operation not permitted
+
+debug on sandcastle io-web - (ssh 10.206.10.3)
+
+### Prompt 22
+
+~/Projects/GitHub/Sandcastle [main] % mount_smbfs //thies:tubu@10.206.10.3/persisted /tmp/test2
+~/Projects/GitHub/Sandcastle [main] % ls -la /Volumes/persisted
+~/Projects/GitHub/Sandcastle [main] % ls /tmp/test2
+ls: /tmp/test2: Operation not permitted
+~/Projects/GitHub/Sandcastle [main] % ls /tmp/test2
+
+### Prompt 23
+
+[Image #2]
+
+### Prompt 24
+
+[Image: source: /Users/thies/.claude/image-cache/6f3c45d2-4df5-465c-a575-b80052395c6b/2.png]
+
+### Prompt 25
+
+no it's no - it'S not sching the files!
+
+### Prompt 26
+
+~ [] % find  /tmp/test2
+/tmp/test2
+/tmp/test2/hh
+/tmp/test2/IO
+/tmp/test2/IO/mise.toml
+/tmp/test2/IO/sensor
+/tmp/test2/.DS_Store
+/tmp/test2/.streams
+/tmp/test2/.streams/80
+
+/persisted/IO/sensor/gitlab-archive-iom-common-web-build/test/fixtures/senso^C%~/Projects/GitHub/Sandcastle [main]~/Projects/GitHub/Sandcastle [main] % ssh 10.206.10.3 find /persisted/| head
+/persisted/
+/persisted/hh
+/persisted/IO
+/persisted/IO/mise.toml
+/persisted/IO/sensor
+/persisted/IO/sensor/CLAUDE.md
+/persisted/IO/sensor...
+
+### Prompt 27
+
+it's not serving teh cntent of teh sensors directorty!
+
