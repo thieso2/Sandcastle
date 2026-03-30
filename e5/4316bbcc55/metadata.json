@@ -6,9 +6,15 @@
   "checkpoints_count": 9,
   "files_touched": [
     "app/controllers/admin/sandboxes_controller.rb",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/jobs/sandbox_rebuild_job.rb",
     "app/services/route_manager.rb",
     "app/services/sandbox_manager.rb",
+    "app/views/pages/guide.html.erb",
+    "config/routes.rb",
     "images/sandbox/entrypoint.sh",
+    "vendor/sandcastle-cli/api/client.go",
     "vendor/sandcastle-cli/cmd/connect.go",
     "vendor/sandcastle-cli/cmd/root.go",
     "vendor/sandcastle-cli/cmd/sandbox.go",
@@ -45,10 +51,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 216,
-    "cache_creation_tokens": 345117,
-    "cache_read_tokens": 11769496,
-    "output_tokens": 55296,
-    "api_call_count": 186
+    "input_tokens": 230,
+    "cache_creation_tokens": 355083,
+    "cache_read_tokens": 12887357,
+    "output_tokens": 57870,
+    "api_call_count": 200
   }
 }

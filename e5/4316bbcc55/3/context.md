@@ -41,3 +41,7 @@ sudo /sandcastle/dockyard/bin/docker ps
 
 can we not fix the userid somehow - chanhing it on every container start seems over the top!
 
+### Prompt 6
+
+yes also add that to the cli!
+
