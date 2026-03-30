@@ -37,3 +37,7 @@ thies@thies-io-js:/persisted/IO$
 sandbox is  thies-io-js
 sudo /sandcastle/dockyard/bin/docker ps
 
+### Prompt 5
+
+can we not fix the userid somehow - chanhing it on every container start seems over the top!
+
