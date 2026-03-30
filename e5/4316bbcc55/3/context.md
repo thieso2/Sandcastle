@@ -24,3 +24,16 @@ add this to images/sandbox build
 
 commit and release a new image
 
+### Prompt 4
+
+after restarting a sandbox on sandcastle my files are no longer owned by me:
+
+drwxrwxr-x 1 32513 32513  30 Mar 19 17:16 .
+drwxrwxrwx 1 root  root   48 Mar 30 10:43 ..
+-rw-rw-r-- 1 32513 32513  24 Mar 19 17:16 mise.toml
+drwxrwxr-x 1 32513 32513 868 Mar 30 13:02 sensor
+thies@thies-io-js:/persisted/IO$
+
+sandbox is  thies-io-js
+sudo /sandcastle/dockyard/bin/docker ps
+
