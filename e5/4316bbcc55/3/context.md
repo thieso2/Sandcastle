@@ -1,0 +1,26 @@
+# Session Context
+
+## User Prompts
+
+### Prompt 1
+
+for sambe:
+  Add these lines to your [global] section in /etc/samba/smb.conf:
+
+  vfs objects = fruit streams_xattr
+  fruit:metadata = stream
+  fruit:model = MacSamba
+  fruit:posix_rename = yes
+  fruit:veto_appledouble = no
+  fruit:nfs_aces = no
+  fruit:wipe_intentionally_left_blank_rfork = yes
+  fruit:delete_empty_adfiles = yes
+
+### Prompt 2
+
+add this to images/sandbox build
+
+### Prompt 3
+
+commit and release a new image
+
