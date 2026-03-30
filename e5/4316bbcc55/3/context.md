@@ -68,3 +68,21 @@ BACKTRACE:
 1. [GEM_ROOT]/gems/pundit-2.5.2/lib/pundit/context.rb:70 in `Kernel#public_send`
   ... (...
 
+### Prompt 8
+
+still samba is failing!
+//thies@10.206.10.4/persisted        1998043776  160997480 1837046296     9% 80498738  918523148    8%   /Volumes/persisted
+/ [] % ls -al /Volumes/persisted
+total 0
+ls: /Volumes/persisted: Operation not permitted
+/ [] %
+
+### Prompt 9
+
+[Request interrupted by user for tool use]
+
+### Prompt 10
+
+using 
+zen-dragon  right now!
+
