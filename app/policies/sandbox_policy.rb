@@ -6,6 +6,7 @@ class SandboxPolicy < ApplicationPolicy
   def destroy?               = owner_or_admin?
   def start?                 = owner_or_admin?
   def stop?                  = owner_or_admin?
+  def rebuild?               = owner_or_admin?
   def retry?                 = owner_only?
   def logs?                  = owner_or_admin?
   def stats?                 = owner_or_admin?
