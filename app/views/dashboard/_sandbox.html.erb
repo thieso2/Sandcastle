@@ -113,6 +113,15 @@
         <% if sandbox.status == "stopped" %>
           <%= button_to "Start", start_sandbox_path(sandbox), method: :post,
                 class: "text-xs px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" %>
+          <% if sandbox.container_id.present? %>
+            <%= link_to logs_sandbox_path(sandbox), target: "_blank",
+                  class: "text-xs px-2 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors inline-flex items-center gap-1" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+                <path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm2.25 8.5a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Zm0 3a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Z" clip-rule="evenodd" />
+              </svg>
+              Logs
+            <% end %>
+          <% end %>
         <% elsif sandbox.status == "running" %>
           <%= button_to terminal_sandbox_path(sandbox, type: "tmux"), method: :post,
                 form: { target: "_blank" },
@@ -149,6 +158,13 @@
             </svg>
             Snapshot
           </button>
+          <%= link_to logs_sandbox_path(sandbox), target: "_blank",
+                class: "text-xs px-2 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors inline-flex items-center gap-1" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+              <path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm2.25 8.5a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Zm0 3a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Z" clip-rule="evenodd" />
+            </svg>
+            Logs
+          <% end %>
           <%= button_to "Stop", stop_sandbox_path(sandbox), method: :post,
                 class: "text-xs px-3 py-1.5 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors" %>
         <% end %>
