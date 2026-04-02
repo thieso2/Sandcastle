@@ -236,6 +236,8 @@ if command -v smbd &>/dev/null && [ "$SMB_ENABLED" = "1" ]; then
     fruit:nfs_aces = no
     fruit:wipe_intentionally_left_blank_rfork = yes
     fruit:delete_empty_adfiles = yes
+    oplocks = no
+    level2 oplocks = no
 
 [home]
     path = /home/$USERNAME
