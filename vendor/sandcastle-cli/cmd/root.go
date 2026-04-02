@@ -20,6 +20,9 @@ var rootCmd = &cobra.Command{
 	Long:          "CLI for managing Sandcastle development sandboxes.",
 	SilenceUsage:  true,
 	SilenceErrors: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runTUI()
+	},
 }
 
 func Execute() {
