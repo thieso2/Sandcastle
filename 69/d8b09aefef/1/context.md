@@ -161,3 +161,133 @@ Release: completed failure</event>
 
 fox GH CI!
 
+### Prompt 21
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+### Prompt 22
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 23
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 24
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 25
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 26
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 27
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 28
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 29
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 30
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 31
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Release: in_progress
+Rebuild Sandbox Image: completed success</event>
+</task-notification>
+
+### Prompt 32
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>[Monitor timed out — re-arm if needed.]</event>
+</task-notification>
+
+### Prompt 33
+
+Ssh keys entry 2 does not look like a valid SSH public key
+
+### Prompt 34
+
+Ssh keys entry 2 does not look like a valid SSH public key
+
+ecdsa-sha2-nistp256 REDACTED La Terminal Enclave Key on iPad
+
+is a valid key!
+
