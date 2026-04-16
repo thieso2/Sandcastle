@@ -33,3 +33,67 @@ today we see (see log below) - we do not want claude to be installed in the user
 thies@thies-wild-viper:/persisted/IO/sensor$ claude --update
 Current version: 2.1.71Checking for updates to latest version...Warning: Native installation exists but ~/.local/bin is not in your PATHFix...
 
+### Prompt 7
+
+commit adn release a new version (watch ci and make sure rails and image is rebuild!)
+
+### Prompt 8
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+### Prompt 9
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+### Prompt 10
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+### Prompt 11
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+### Prompt 12
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+### Prompt 13
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: completed failure</event>
+</task-notification>
+

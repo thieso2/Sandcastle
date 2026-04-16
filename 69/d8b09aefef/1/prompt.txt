@@ -26,3 +26,67 @@ today we see (see log below) - we do not want claude to be installed in the user
 
 thies@thies-wild-viper:/persisted/IO/sensor$ claude --update
 Current version: 2.1.71Checking for updates to latest version...Warning: Native installation exists but ~/.local/bin is not in your PATHFix: Run: echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc then open a new terminal or run: source ~/.bashrcthies@thies-wild-viper:/persisted/IO/sensor$
+
+---
+
+commit adn release a new version (watch ci and make sure rails and image is rebuild!)
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: in_progress</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Base Image: in_progress
+Rebuild Sandbox Image: completed failure</event>
+</task-notification>
