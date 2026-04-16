@@ -8,9 +8,25 @@ ARG SANDCASTLE_VERSION=dev
 
 # Always pull latest security patches and package updates.
 # CACHE_DATE is set at build time to bust the layer cache on demand.
+#
+# Hold Docker-stack packages before upgrading: the base image pins
+# containerd.io=1.7.27-1 (see Dockerfile.base for rationale — containerd.io ≥ 2.x
+# breaks sysbox-runc, nestybox/sysbox#958). Without the hold, `apt-get upgrade`
+# installs containerd.io 2.x, which also replaces /usr/bin/runc with a newer
+# runc (1.3.3+) whose CVE-2025-52881 fix rejects sysbox's FUSE-backed procfs
+# with "unsafe procfs detected" and breaks docker-in-docker inside sandboxes.
+# Re-install the pinned runc afterwards as belt-and-suspenders in case an
+# older base image (built before the apt-mark hold was added) is used.
 ARG CACHE_DATE=0
-RUN for i in 1 2 3; do apt-get update && break || sleep 5; done \
-    && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+RUN apt-mark hold docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
+    && for i in 1 2 3; do apt-get update && break || sleep 5; done \
+    && apt-get upgrade -y \
+    && RUNC_VERSION="v1.1.15" \
+    && ARCH=$(dpkg --print-architecture) \
+    && curl -fsSL "https://github.com/opencontainers/runc/releases/download/${RUNC_VERSION}/runc.${ARCH}" \
+       -o /usr/bin/runc \
+    && chmod +x /usr/bin/runc \
+    && rm -rf /var/lib/apt/lists/*
 
 # Bake version into the image
 RUN echo "${SANDCASTLE_VERSION}" > /etc/sandcastle-version

@@ -84,6 +84,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
          containerd.io=1.7.27-1 \
          docker-buildx-plugin=0.24.0-1~ubuntu.24.04~noble \
          docker-compose-plugin=2.40.3-1~ubuntu.24.04~noble \
+    && apt-mark hold docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
 # Pin runc — multiple runc versions break inside sysbox containers:
