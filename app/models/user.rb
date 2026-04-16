@@ -110,7 +110,7 @@ class User < ApplicationRecord
         errors.add(:ssh_keys, "entry #{i + 1} must have a key")
         next
       end
-      unless entry["key"].match?(/\Assh-\S+ \S+/)
+      unless entry["key"].match?(/\A(ssh-|ecdsa-|sk-)\S+ \S+/)
         errors.add(:ssh_keys, "entry #{i + 1} does not look like a valid SSH public key")
       end
     end
