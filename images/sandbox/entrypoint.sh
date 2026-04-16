@@ -11,6 +11,10 @@ if ! id "$USERNAME" &>/dev/null; then
     chmod 0440 /etc/sudoers.d/sandcastle
 fi
 
+# Allow sandbox user to update Claude Code and Codex in place via
+# `claude --update` / `codex --update` without requiring sudo.
+chown "$USERNAME" /usr/local/bin/claude 2>/dev/null || true
+
 # Set up SSH authorized keys (append if not already present, preserving
 # any WeTTY keys that may have been injected for other sandboxes sharing
 # this user's home directory via bind mount).

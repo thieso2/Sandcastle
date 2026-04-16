@@ -145,6 +145,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 # (which don't inherit Docker ENV) pick up the shared mise install paths.
 RUN echo "MISE_DATA_DIR=/usr/local/share/mise" >> /etc/environment \
     && echo "MISE_CONFIG_DIR=/usr/local/etc/mise" >> /etc/environment \
+    && echo "CLAUDE_INSTALL_DIR=/usr/local/bin" >> /etc/environment \
     && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
     && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc \
     && echo "alias ycodex='codex --dangerously-bypass-approvals-and-sandbox'" >> /etc/bash.bashrc \

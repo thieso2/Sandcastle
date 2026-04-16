@@ -6,7 +6,9 @@ FROM ghcr.io/thieso2/sandcastle-sandbox-base:latest
 
 ARG SANDCASTLE_VERSION=dev
 
-# Always pull latest security patches and package updates
+# Always pull latest security patches and package updates.
+# CACHE_DATE is set at build time to bust the layer cache on demand.
+ARG CACHE_DATE=0
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # Bake version into the image
