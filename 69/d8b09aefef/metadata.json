@@ -5,8 +5,8 @@
   "branch": "main",
   "checkpoints_count": 2,
   "files_touched": [
-    "images/sandbox/Dockerfile",
-    "images/sandbox/entrypoint.sh"
+    "images/sandbox/entrypoint.sh",
+    "vendor/sandcastle-cli/.goreleaser.yaml"
   ],
   "sessions": [
     {
@@ -25,10 +25,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 65,
-    "cache_creation_tokens": 27987,
-    "cache_read_tokens": 4951384,
-    "output_tokens": 6843,
-    "api_call_count": 43
+    "input_tokens": 50,
+    "cache_creation_tokens": 12166,
+    "cache_read_tokens": 3508476,
+    "output_tokens": 5515,
+    "api_call_count": 30
   }
 }

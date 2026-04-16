@@ -90,3 +90,67 @@ Rebuild Sandbox Image: in_progress</event>
 Rebuild Sandbox Base Image: in_progress
 Rebuild Sandbox Image: completed failure</event>
 </task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Image: in_progress
+Release: completed failure</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Image: in_progress
+Release: completed failure</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Image: in_progress
+Release: completed failure</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Image: in_progress
+Release: completed failure</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Image: in_progress
+Release: completed failure</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bwmdg3hhi</task-id>
+<summary>Monitor event: "CI release and image build status for v0.8.94"</summary>
+<event>Release: in_progress
+Rebuild Sandbox Image: in_progress
+Release: completed failure</event>
+</task-notification>
+
+---
+
+fox GH CI!
