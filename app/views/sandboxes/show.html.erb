@@ -80,6 +80,8 @@
           </svg>
           Logs
         <% end %>
+        <%= link_to "Discover Files", discover_files_sandbox_path(@sandbox),
+              class: "px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded hover:bg-gray-200 transition-colors inline-flex items-center gap-1.5" %>
         <%= button_to "Stop", stop_sandbox_path(@sandbox), method: :post,
               class: "px-3 py-1.5 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700 transition-colors" %>
       <% elsif @sandbox.status == "stopped" %>

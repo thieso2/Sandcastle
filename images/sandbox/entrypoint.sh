@@ -75,6 +75,12 @@ if [ ! -f "$GITCONFIG" ] && { [ -n "$USER_FULLNAME" ] || [ -n "$USER_EMAIL" ]; }
     fi
 fi
 
+# Sandcastle metadata directory — used for baseline snapshot of $HOME
+# (read by the web app's "discover new files" feature) and any future
+# per-container state we want isolated from the user's home dir.
+mkdir -p /var/sandcastle
+chmod 755 /var/sandcastle
+
 # Generate SSH host keys if missing
 ssh-keygen -A
 

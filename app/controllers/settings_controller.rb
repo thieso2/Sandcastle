@@ -77,6 +77,50 @@ class SettingsController < ApplicationController
     end
   end
 
+  def update_persisted_paths
+    @user = Current.user
+    paths = (params[:persisted_paths] || []).map { |p| p[:path].to_s.strip.chomp("/") }.reject(&:blank?).uniq
+
+    PersistedPath.transaction do
+      @user.persisted_paths.where.not(path: paths).destroy_all
+      paths.each { |p| @user.persisted_paths.find_or_create_by!(path: p) }
+    end
+
+    redirect_to settings_path, notice: "Persisted directories updated."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to settings_path, alert: e.message
+  end
+
+  def update_injected_files
+    @user = Current.user
+    rows = (params[:injected_files] || []).reject { |r| r[:path].blank? }
+
+    InjectedFile.transaction do
+      kept_paths = rows.map { |r| r[:path].to_s.strip }
+      @user.injected_files.where.not(path: kept_paths).destroy_all
+
+      rows.each do |row|
+        path = row[:path].to_s.strip
+        record = @user.injected_files.find_or_initialize_by(path: path)
+        # Empty content on existing record = leave as-is (lets users edit path/mode without re-uploading content)
+        record.content = row[:content] if row[:content].present? || record.new_record?
+        # Mode is always octal in form input ("600" → 0o600 = 384 decimal)
+        record.mode = row[:mode].to_s.to_i(8) if row[:mode].present?
+        record.save!
+      end
+    end
+
+    redirect_to settings_path, notice: "Injected files updated."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to settings_path, alert: e.message
+  end
+
+  def delete_injected_file
+    @user = Current.user
+    @user.injected_files.find(params[:id]).destroy!
+    redirect_to settings_path, notice: "Injected file removed."
+  end
+
   def generate_token
     @user = Current.user
 

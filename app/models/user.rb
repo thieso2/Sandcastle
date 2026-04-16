@@ -11,6 +11,13 @@ class User < ApplicationRecord
   has_many :sandboxes, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
   has_many :oauth_identities, dependent: :destroy
+  has_many :injected_files, dependent: :destroy
+  has_many :persisted_paths, dependent: :destroy
+  has_many :ignored_paths, dependent: :destroy
+
+  DEFAULT_PERSISTED_PATHS = %w[.claude .codex].freeze
+
+  after_create_commit :seed_default_persisted_paths
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   normalizes :name, with: ->(n) { n.strip.downcase }
@@ -98,6 +105,12 @@ class User < ApplicationRecord
   end
 
   private
+
+  def seed_default_persisted_paths
+    DEFAULT_PERSISTED_PATHS.each do |p|
+      persisted_paths.create(path: p)
+    end
+  end
 
   def validate_ssh_keys
     return if ssh_keys.blank?

@@ -1,5 +1,5 @@
 class SandboxesController < ApplicationController
-  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :rebuild, :retry, :logs, :metrics ]
+  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :rebuild, :retry, :logs, :metrics, :discover_files, :promote_file ]
   before_action :set_archived_sandbox, only: [ :archive_restore, :purge ]
 
   def new
@@ -194,6 +194,45 @@ class SandboxesController < ApplicationController
       format.html { redirect_to root_path, notice: "Rebuilding sandcastle #{@sandbox.name}..." }
       format.turbo_stream { render turbo_stream: turbo_stream.replace(@sandbox, partial: "dashboard/sandbox", locals: { sandbox: @sandbox }) }
     end
+  end
+
+  def discover_files
+    @results = HomeFileDiscovery.new(@sandbox).call
+  end
+
+  def promote_file
+    path = params[:path].to_s
+    action = params[:action_type].to_s
+    user = Current.user
+
+    if path.blank?
+      redirect_back fallback_location: sandbox_path(@sandbox), alert: "Missing path."
+      return
+    end
+
+    case action
+    when "bind"
+      bind_path = File.dirname(path)
+      bind_path = path if bind_path == "."
+      user.persisted_paths.find_or_create_by!(path: bind_path)
+      notice = "Persisting #{bind_path}/ on next sandbox start."
+    when "inject"
+      content = HomeFileDiscovery.new(@sandbox).fetch_content(path)
+      record = user.injected_files.find_or_initialize_by(path: path)
+      record.content = content
+      record.save!
+      notice = "Will inject #{path} on next sandbox start."
+    when "ignore"
+      user.ignored_paths.find_or_create_by!(path: path)
+      notice = "Ignoring #{path}."
+    else
+      redirect_back fallback_location: sandbox_path(@sandbox), alert: "Unknown action."
+      return
+    end
+
+    redirect_to sandbox_path(@sandbox, anchor: "discover"), notice: notice
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_back fallback_location: sandbox_path(@sandbox), alert: e.message
   end
 
   def retry

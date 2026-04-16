@@ -1,0 +1,66 @@
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="mb-6">
+    <%= link_to sandbox_path(@sandbox), class: "text-sm text-blue-600 hover:text-blue-700" do %>
+      &larr; Back to <%= @sandbox.name %>
+    <% end %>
+  </div>
+
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">Discover New Files</h1>
+  <p class="text-sm text-gray-500 mb-6">
+    Files that appeared in <code class="bg-gray-100 px-1 rounded font-mono">/home/<%= @sandbox.user.name %></code>
+    after this sandbox started, minus known noise. Promote anything you want to keep across sandboxes.
+  </p>
+
+  <% if @results.empty? %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
+      <p class="text-sm text-gray-600">No new files detected. The home baseline is empty (sandbox not started yet?) or nothing has changed.</p>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">Path</th>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">Suggested</th>
+            <th class="text-left px-4 py-2 font-medium text-gray-700">Why</th>
+            <th class="text-right px-4 py-2 font-medium text-gray-700">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @results.each do |row| %>
+            <tr>
+              <td class="px-4 py-2 font-mono text-xs text-gray-900"><%= row[:path] %></td>
+              <td class="px-4 py-2">
+                <% case row[:suggested] %>
+                <% when "bind" %>
+                  <span class="inline-block px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800">Bind</span>
+                <% when "inject" %>
+                  <span class="inline-block px-2 py-0.5 text-xs rounded bg-green-100 text-green-800">Inject</span>
+                <% else %>
+                  <span class="inline-block px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-800">Ignore</span>
+                <% end %>
+              </td>
+              <td class="px-4 py-2 text-xs text-gray-500"><%= row[:reason] %></td>
+              <td class="px-4 py-2 text-right">
+                <div class="inline-flex gap-1">
+                  <%= button_to "Bind", promote_file_sandbox_path(@sandbox), method: :post,
+                        params: { path: row[:path], action_type: "bind" },
+                        class: "px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700",
+                        form: { class: "inline" } %>
+                  <%= button_to "Inject", promote_file_sandbox_path(@sandbox), method: :post,
+                        params: { path: row[:path], action_type: "inject" },
+                        class: "px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700",
+                        form: { class: "inline" } %>
+                  <%= button_to "Ignore", promote_file_sandbox_path(@sandbox), method: :post,
+                        params: { path: row[:path], action_type: "ignore" },
+                        class: "px-2 py-1 text-xs rounded bg-gray-300 text-gray-700 hover:bg-gray-400",
+                        form: { class: "inline" } %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+</div>

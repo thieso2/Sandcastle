@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_10_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_16_100003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -52,6 +52,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_000001) do
     t.index ["user_id"], name: "index_device_codes_on_user_id"
   end
 
+  create_table "ignored_paths", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "path", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "path"], name: "index_ignored_paths_on_user_id_and_path", unique: true
+    t.index ["user_id"], name: "index_ignored_paths_on_user_id"
+  end
+
+  create_table "injected_files", force: :cascade do |t|
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.integer "mode", default: 384, null: false
+    t.string "path", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "path"], name: "index_injected_files_on_user_id_and_path", unique: true
+    t.index ["user_id"], name: "index_injected_files_on_user_id"
+  end
+
   create_table "invites", force: :cascade do |t|
     t.datetime "accepted_at"
     t.datetime "created_at", null: false
@@ -75,6 +95,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_000001) do
     t.index ["provider", "uid"], name: "index_oauth_identities_on_provider_and_uid", unique: true
     t.index ["user_id", "provider"], name: "index_oauth_identities_on_user_id_and_provider", unique: true
     t.index ["user_id"], name: "index_oauth_identities_on_user_id"
+  end
+
+  create_table "persisted_paths", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "path", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "path"], name: "index_persisted_paths_on_user_id_and_path", unique: true
+    t.index ["user_id"], name: "index_persisted_paths_on_user_id"
   end
 
   create_table "routes", force: :cascade do |t|
@@ -106,10 +135,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_000001) do
     t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
     t.boolean "persistent_volume", default: false, null: false
+    t.boolean "smb_enabled", default: false, null: false
     t.integer "ssh_port"
     t.string "status", default: "pending", null: false
     t.boolean "tailscale", default: false, null: false
-    t.boolean "smb_enabled", default: false, null: false
     t.boolean "temporary", default: false, null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
@@ -177,6 +206,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_000001) do
     t.boolean "admin", default: false, null: false
     t.boolean "chrome_persist_profile", default: true, null: false
     t.datetime "created_at", null: false
+    t.jsonb "custom_links", default: []
     t.string "email_address", null: false
     t.string "full_name"
     t.string "github_username"
@@ -187,6 +217,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_000001) do
     t.string "password_digest", null: false
     t.integer "sandbox_archive_retention_days"
     t.text "smb_password"
+    t.jsonb "ssh_keys", default: []
     t.text "ssh_public_key"
     t.string "status", default: "active", null: false
     t.string "tailscale_auth_key"
@@ -206,8 +237,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_000001) do
   add_foreign_key "container_metrics", "sandboxes"
   add_foreign_key "device_codes", "api_tokens"
   add_foreign_key "device_codes", "users"
+  add_foreign_key "ignored_paths", "users"
+  add_foreign_key "injected_files", "users"
   add_foreign_key "invites", "users", column: "invited_by_id"
   add_foreign_key "oauth_identities", "users"
+  add_foreign_key "persisted_paths", "users"
   add_foreign_key "routes", "sandboxes"
   add_foreign_key "sandboxes", "users"
   add_foreign_key "sessions", "users"

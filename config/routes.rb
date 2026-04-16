@@ -22,6 +22,9 @@ Rails.application.routes.draw do
     patch :update_smb_password
     patch :update_custom_links
     patch :update_ssh_keys
+    patch :update_persisted_paths
+    patch :update_injected_files
+    delete "injected_files/:id", action: :delete_injected_file, as: :delete_injected_file
     post :generate_token
     delete "revoke_token/:id", action: :revoke_token, as: :revoke_token
   end
@@ -48,6 +51,8 @@ Rails.application.routes.draw do
       post :vnc, controller: "vnc", action: "open"
       delete :vnc, controller: "vnc", action: "close"
       post :snapshot, controller: "snapshots", action: "create_for_sandbox"
+      get :discover_files
+      post :promote_file
     end
     resources :routes, only: [ :create, :destroy ]
   end

@@ -4,7 +4,7 @@
 # Simulates Docker container and image operations without requiring real Docker
 module DockerMock
   class << self
-    attr_accessor :containers, :images, :networks, :failure_mode
+    attr_accessor :containers, :images, :networks, :failure_mode, :exec_calls, :exec_response
 
     def reset!
       @containers = {}
@@ -18,6 +18,8 @@ module DockerMock
       }
       @networks = {}
       @failure_mode = nil
+      @exec_calls = []
+      @exec_response = [ [], [], 0 ]
     end
 
     def enable!
@@ -190,6 +192,14 @@ module DockerMock
 
     def info
       json
+    end
+
+    def exec(cmd, opts = {})
+      raise Docker::Error::DockerError, "Simulated exec failure" if DockerMock.failure_mode == :exec
+
+      DockerMock.exec_calls << { container_id: @id, cmd: cmd }
+      response = DockerMock.exec_response
+      response.respond_to?(:call) ? response.call(cmd) : response
     end
 
     def commit(opts = {})

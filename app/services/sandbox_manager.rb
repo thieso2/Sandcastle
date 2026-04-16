@@ -101,6 +101,13 @@ class SandboxManager
 
     # Set SMB password via exec (avoids leaking password in container env/metadata)
     set_smb_password(container, sandbox.user) if sandbox.smb_enabled?
+
+    # Inject per-user files (Claude/Codex creds, dotfiles, etc.)
+    inject_files(container, sandbox.user)
+
+    # Snapshot the post-init state of $HOME so the "discover new files" flow
+    # can show only what the user themselves created/modified in this sandbox.
+    write_home_baseline(container, sandbox.user)
   end
 
   # Public method for job usage
@@ -139,6 +146,14 @@ class SandboxManager
       dir = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
       ensure_dir(dir)
       prepare_bind_mount(dir)
+    end
+    # Per-user persisted paths (e.g. .claude, .codex) — only when full home isn't mounted
+    if !sandbox.mount_home
+      user.persisted_paths.find_each do |pp|
+        dir = "#{DATA_DIR}/users/#{user.name}/persisted/#{pp.path}"
+        ensure_dir(dir)
+        prepare_bind_mount(dir)
+      end
     end
   rescue Errno::EACCES, Errno::ENOENT => e
     raise Error, "Failed to create mount directories: #{e.message}"
@@ -678,6 +693,37 @@ class SandboxManager
     }
   end
 
+  HOME_BASELINE_PATH = "/var/sandcastle/home-baseline.txt".freeze
+
+  def write_home_baseline(container, user)
+    container.exec([
+      "bash", "-c",
+      "find /home/\"$1\" -xdev -type f -printf '%P\\n' 2>/dev/null | sort > #{HOME_BASELINE_PATH}",
+      "_", user.name
+    ])
+  rescue Docker::Error::DockerError => e
+    Rails.logger.warn("write_home_baseline: failed for #{user.name}: #{e.message}")
+  end
+
+  # Drop per-user files into a running container via `docker exec` so secrets
+  # never appear in container env or `docker inspect`. Mirrors set_smb_password.
+  def inject_files(container, user)
+    user.injected_files.find_each do |f|
+      content = f.content.to_s
+      script = <<~SH
+        set -e
+        target="/home/$1/$2"
+        mkdir -p "$(dirname "$target")"
+        printf '%s' "$3" > "$target"
+        chmod "$4" "$target"
+        chown "$1:$1" "$target" 2>/dev/null || true
+      SH
+      container.exec([ "bash", "-c", script, "_", user.name, f.path, content, format("%o", f.mode) ])
+    rescue Docker::Error::DockerError => e
+      Rails.logger.warn("inject_files: failed to write #{f.path} for #{user.name}: #{e.message}")
+    end
+  end
+
   # Update the SMB password on all active SMB-enabled sandboxes for a user.
   def update_smb_password(user:)
     raise Error, "No SMB password set" unless user.smb_password.present?
@@ -901,6 +947,13 @@ class SandboxManager
     if user.chrome_persist_profile? && !sandbox.mount_home
       host_path = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
       binds << "#{host_path}:/home/#{user.name}/.config/google-chrome"
+    end
+    # Per-user persisted dotdirs (Claude/Codex auth, etc.) — only when full home isn't mounted
+    if !sandbox.mount_home
+      user.persisted_paths.find_each do |pp|
+        host_path = "#{DATA_DIR}/users/#{user.name}/persisted/#{pp.path}"
+        binds << "#{host_path}:/home/#{user.name}/#{pp.path}"
+      end
     end
     binds
   end
