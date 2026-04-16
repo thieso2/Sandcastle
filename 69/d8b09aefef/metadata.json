@@ -3,8 +3,19 @@
   "checkpoint_id": "69d8b09aefef",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
+    "app/controllers/settings_controller.rb",
+    "app/javascript/controllers/custom_links_controller.js",
+    "app/javascript/controllers/ssh_keys_controller.js",
+    "app/models/user.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "config/routes.rb",
+    "db/migrate/20260416000001_add_custom_links_to_users.rb",
+    "db/migrate/20260416000002_add_ssh_keys_to_users.rb",
     "images/sandbox/entrypoint.sh"
   ],
   "sessions": [
@@ -14,13 +25,20 @@
       "context": "/69/d8b09aefef/0/context.md",
       "content_hash": "/69/d8b09aefef/0/content_hash.txt",
       "prompt": "/69/d8b09aefef/0/prompt.txt"
+    },
+    {
+      "metadata": "/69/d8b09aefef/1/metadata.json",
+      "transcript": "/69/d8b09aefef/1/full.jsonl",
+      "context": "/69/d8b09aefef/1/context.md",
+      "content_hash": "/69/d8b09aefef/1/content_hash.txt",
+      "prompt": "/69/d8b09aefef/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 15,
-    "cache_creation_tokens": 5424,
-    "cache_read_tokens": 440096,
-    "output_tokens": 1676,
-    "api_call_count": 9
+    "input_tokens": 101,
+    "cache_creation_tokens": 105646,
+    "cache_read_tokens": 5882872,
+    "output_tokens": 26083,
+    "api_call_count": 81
   }
 }

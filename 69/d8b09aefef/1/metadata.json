@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "69d8b09aefef",
+  "session_id": "32d69744-ab8b-4e81-aa23-14f4e348b4e9",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-16T16:14:24.048369Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/controllers/settings_controller.rb",
+    "app/javascript/controllers/custom_links_controller.js",
+    "app/javascript/controllers/ssh_keys_controller.js",
+    "app/models/user.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "config/routes.rb",
+    "db/migrate/20260416000001_add_custom_links_to_users.rb",
+    "db/migrate/20260416000002_add_ssh_keys_to_users.rb",
+    "images/sandbox/entrypoint.sh"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 86,
+    "cache_creation_tokens": 100222,
+    "cache_read_tokens": 5442776,
+    "output_tokens": 24407,
+    "api_call_count": 72
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-16T16:14:23.989606Z",
+    "agent_lines": 316,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 316,
+    "agent_percentage": 100
+  }
+}
