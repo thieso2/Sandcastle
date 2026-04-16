@@ -5,7 +5,7 @@
   "branch": "main",
   "checkpoints_count": 2,
   "files_touched": [
-    "app/models/user.rb",
+    "app/views/dashboard/_sandbox.html.erb",
     "images/sandbox/entrypoint.sh"
   ],
   "sessions": [
@@ -25,10 +25,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 68,
-    "cache_creation_tokens": 10527,
-    "cache_read_tokens": 4554289,
-    "output_tokens": 4319,
-    "api_call_count": 36
+    "input_tokens": 50,
+    "cache_creation_tokens": 15556,
+    "cache_read_tokens": 3779464,
+    "output_tokens": 8066,
+    "api_call_count": 30
   }
 }

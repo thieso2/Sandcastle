@@ -284,3 +284,44 @@ Ssh keys entry 2 does not look like a valid SSH public key
 ecdsa-sha2-nistp256 REDACTED La Terminal Enclave Key on iPad
 
 is a valid key!
+
+---
+
+commti and relase new version
+
+---
+
+how to link to the tailsscale ip
+
+---
+
+<task-notification>
+<task-id>bl4o07xzz</task-id>
+<summary>Monitor event: "CI release v0.8.94 final status"</summary>
+<event>=== RELEASE RUN COMPLETED ===</event>
+</task-notification>
+
+---
+
+[Image #1]
+
+---
+
+[Image: source: /Users/thies/.claude/image-cache/32d69744-ab8b-4e81-aa23-14f4e348b4e9/1.png]
+
+---
+
+this is the link: [Image #2]
+
+---
+
+[Image: source: /Users/thies/.claude/image-cache/32d69744-ab8b-4e81-aa23-14f4e348b4e9/2.png]
+
+---
+
+the link seems correct (inspected it via chome devtools) - but it does not work (see last screenshot) - expore and explain!
+
+---
+
+on mac:
+turbo.es2017-esm.js:525 Uncaught TypeError: Failed to construct 'URL': Invalid URL    at k (turbo.es2017-esm.js:525:10)    at H (turbo.es2017-esm.js:558:10)    at HTMLHtmlElement.clickBubbled (turbo.es2017-esm.js:1680:26)expandURL @ turbo.es2017-esm.js:525getLocationForLink @ turbo.es2017-esm.js:558(anonymous) @ turbo.es2017-esm.js:1680turbo.es2017-esm.js:525 Uncaught TypeError: Failed to construct 'URL': Invalid URL    at k (turbo.es2017-esm.js:525:10)    at H (turbo.es2017-esm.js:558:10)    at clickBubbled (turbo.es2017-esm.js:1680:26)expandURL @ turbo.es2017-esm.js:525getLocationForLink @ turbo.es2017-esm.js:558(anonymous) @ turbo.es2017-esm.js:1680
