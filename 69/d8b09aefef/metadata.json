@@ -3,7 +3,7 @@
   "checkpoint_id": "69d8b09aefef",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "app/controllers/sandboxes_controller.rb",
     "app/controllers/settings_controller.rb",
@@ -24,6 +24,8 @@
     "db/migrate/20260416100001_create_injected_files.rb",
     "db/migrate/20260416100002_create_persisted_paths.rb",
     "db/migrate/20260416100003_create_ignored_paths.rb",
+    "images/sandbox/Dockerfile",
+    "images/sandbox/Dockerfile.base",
     "images/sandbox/entrypoint.sh",
     "test/controllers/sandboxes_controller_discovery_test.rb",
     "test/controllers/settings_controller_test.rb",
@@ -56,13 +58,20 @@
       "context": "/69/d8b09aefef/2/context.md",
       "content_hash": "/69/d8b09aefef/2/content_hash.txt",
       "prompt": "/69/d8b09aefef/2/prompt.txt"
+    },
+    {
+      "metadata": "/69/d8b09aefef/3/metadata.json",
+      "transcript": "/69/d8b09aefef/3/full.jsonl",
+      "context": "/69/d8b09aefef/3/context.md",
+      "content_hash": "/69/d8b09aefef/3/content_hash.txt",
+      "prompt": "/69/d8b09aefef/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 160,
-    "cache_creation_tokens": 322868,
-    "cache_read_tokens": 12669650,
-    "output_tokens": 94887,
-    "api_call_count": 95
+    "input_tokens": 219,
+    "cache_creation_tokens": 398035,
+    "cache_read_tokens": 14507578,
+    "output_tokens": 111061,
+    "api_call_count": 129
   }
 }

@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "69d8b09aefef",
+  "session_id": "8c84d9af-3702-4476-ac37-230de7256853",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-16T19:33:51.812149Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "images/sandbox/Dockerfile",
+    "images/sandbox/Dockerfile.base"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 59,
+    "cache_creation_tokens": 75167,
+    "cache_read_tokens": 1837928,
+    "output_tokens": 16174,
+    "api_call_count": 34
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-16T19:33:51.79154Z",
+    "agent_lines": 12,
+    "human_added": 1184,
+    "human_modified": 7,
+    "human_removed": 0,
+    "total_committed": 1203,
+    "agent_percentage": 0.997506234413965
+  }
+}
