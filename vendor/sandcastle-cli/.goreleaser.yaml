@@ -24,16 +24,18 @@ checksum:
   name_template: checksums.txt
   algorithm: sha256
 
-notarize:
-  macos:
-    - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
-      sign:
-        certificate: "{{ .Env.MACOS_SIGN_P12 }}"
-        password: "{{ .Env.MACOS_SIGN_PASSWORD }}"
-      notarize:
-        issuer_id: "{{ .Env.MACOS_NOTARY_ISSUER_ID }}"
-        key_id: "{{ .Env.MACOS_NOTARY_KEY_ID }}"
-        key: "{{ .Env.MACOS_NOTARY_KEY }}"
+## Notarization disabled — Apple Developer agreement expired (REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED).
+## Re-enable after renewing at https://developer.apple.com/account
+# notarize:
+#   macos:
+#     - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
+#       sign:
+#         certificate: "{{ .Env.MACOS_SIGN_P12 }}"
+#         password: "{{ .Env.MACOS_SIGN_PASSWORD }}"
+#       notarize:
+#         issuer_id: "{{ .Env.MACOS_NOTARY_ISSUER_ID }}"
+#         key_id: "{{ .Env.MACOS_NOTARY_KEY_ID }}"
+#         key: "{{ .Env.MACOS_NOTARY_KEY }}"
 
 brews:
   - repository:
