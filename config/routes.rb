@@ -20,6 +20,8 @@ Rails.application.routes.draw do
     patch :update_password
     patch :toggle_tailscale
     patch :update_smb_password
+    patch :update_custom_links
+    patch :update_ssh_keys
     post :generate_token
     delete "revoke_token/:id", action: :revoke_token, as: :revoke_token
   end

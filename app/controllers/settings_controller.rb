@@ -51,6 +51,32 @@ class SettingsController < ApplicationController
     end
   end
 
+  def update_custom_links
+    @user = Current.user
+    links = (params[:custom_links] || []).reject { |l| l[:name].blank? && l[:url].blank? }.map do |l|
+      { "name" => l[:name].to_s.strip, "url" => l[:url].to_s.strip, "show_on" => l[:show_on].presence || "all" }
+    end
+
+    if @user.update(custom_links: links)
+      redirect_to settings_path, notice: "Custom links updated."
+    else
+      redirect_to settings_path, alert: @user.errors.full_messages.join(", ")
+    end
+  end
+
+  def update_ssh_keys
+    @user = Current.user
+    keys = (params[:ssh_keys] || []).reject { |k| k[:key].blank? }.map do |k|
+      { "name" => k[:name].to_s.strip.presence || "key-#{SecureRandom.hex(3)}", "key" => k[:key].to_s.strip }
+    end
+
+    if @user.update(ssh_keys: keys)
+      redirect_to settings_path, notice: "SSH keys updated."
+    else
+      redirect_to settings_path, alert: @user.errors.full_messages.join(", ")
+    end
+  end
+
   def generate_token
     @user = Current.user
 

@@ -14,15 +14,16 @@ fi
 # Set up SSH authorized keys (append if not already present, preserving
 # any WeTTY keys that may have been injected for other sandboxes sharing
 # this user's home directory via bind mount).
+# SSH_KEY may contain multiple keys separated by newlines.
 if [ -n "$SSH_KEY" ]; then
     SSH_DIR="/home/$USERNAME/.ssh"
     mkdir -p "$SSH_DIR" 2>/dev/null || true
     if [ -d "$SSH_DIR" ]; then
-        if [ -f "$SSH_DIR/authorized_keys" ]; then
-            grep -qF "$SSH_KEY" "$SSH_DIR/authorized_keys" || echo "$SSH_KEY" >> "$SSH_DIR/authorized_keys"
-        else
-            echo "$SSH_KEY" > "$SSH_DIR/authorized_keys"
-        fi
+        touch "$SSH_DIR/authorized_keys"
+        while IFS= read -r key; do
+            [ -z "$key" ] && continue
+            grep -qF "$key" "$SSH_DIR/authorized_keys" || echo "$key" >> "$SSH_DIR/authorized_keys"
+        done <<< "$SSH_KEY"
         chmod 700 "$SSH_DIR" 2>/dev/null || true
         chmod 600 "$SSH_DIR/authorized_keys" 2>/dev/null || true
     fi

@@ -779,7 +779,7 @@ class SandboxManager
   def container_env(user, sandbox)
     env = [
       "SANDCASTLE_USER=#{user.name}",
-      "SANDCASTLE_SSH_KEY=#{user.ssh_public_key}"
+      "SANDCASTLE_SSH_KEY=#{user.all_ssh_keys_text}"
     ]
     env << "USER_EMAIL=#{user.email_address}" if user.email_address.present?
     env << "USER_FULLNAME=#{user.full_name}" if user.full_name.present?

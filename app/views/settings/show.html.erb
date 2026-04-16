@@ -169,6 +169,87 @@
     </div>
   </div>
 
+  <%# ── Custom Links Section ── %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="custom-links">
+    <h2 class="text-lg font-semibold text-gray-900 mb-2">Custom Links</h2>
+    <p class="text-sm text-gray-500 mb-4">
+      Add custom links that appear on each sandbox card. Use template variables in the URL:
+      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{user}</code>,
+      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{hostname}</code>,
+      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{ssh_port}</code>,
+      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{sandbox}</code>,
+      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tailscale_ip}</code>,
+      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tmux_cmd}</code>,
+      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tmux_cmd_encoded}</code>
+    </p>
+
+    <%= form_with url: update_custom_links_settings_path, method: :patch do |f| %>
+      <div data-custom-links-target="list" class="space-y-3 mb-4">
+        <% (@user.custom_links.presence || []).each_with_index do |link, i| %>
+          <div data-custom-links-row class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div class="flex-1 min-w-0">
+              <input type="text" name="custom_links[][name]" value="<%= link["name"] %>" placeholder="Name (e.g. LaTerminal)"
+                     class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1">
+              <input type="text" name="custom_links[][url]" value="<%= link["url"] %>" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
+                     class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <select name="custom_links[][show_on]" class="rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
+              <% User::CUSTOM_LINK_SHOW_ON_VALUES.each do |val| %>
+                <option value="<%= val %>" <%= "selected" if link["show_on"] == val %>><%= val.capitalize %></option>
+              <% end %>
+            </select>
+            <button type="button" data-action="custom-links#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        <% end %>
+      </div>
+
+      <template data-custom-links-target="template">
+        <div data-custom-links-row class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div class="flex-1 min-w-0">
+            <input type="text" name="custom_links[][name]" value="" placeholder="Name (e.g. LaTerminal)"
+                   class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1">
+            <input type="text" name="custom_links[][url]" value="" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
+                   class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <select name="custom_links[][show_on]" class="rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
+            <% User::CUSTOM_LINK_SHOW_ON_VALUES.each do |val| %>
+              <option value="<%= val %>"><%= val.capitalize %></option>
+            <% end %>
+          </select>
+          <button type="button" data-action="custom-links#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </template>
+
+      <div class="flex items-center gap-3">
+        <button type="button" data-action="custom-links#add"
+                class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+          </svg>
+          Add Link
+        </button>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Save Links
+        </button>
+      </div>
+    <% end %>
+
+    <div class="mt-4 bg-gray-50 border border-gray-200 rounded p-3 text-xs text-gray-600 space-y-1">
+      <p><strong>Example:</strong> <code class="bg-gray-100 px-1 rounded font-mono">laterminal://open/{user}@{hostname}:{ssh_port}?command={tmux_cmd_encoded}</code> — open sandbox in LaTerminal with tmux</p>
+      <p><strong>Example:</strong> <code class="bg-gray-100 px-1 rounded font-mono">ssh://{user}@{hostname}:{ssh_port}</code> — open plain SSH connection</p>
+      <p><strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd}</code></strong> expands to <code class="bg-gray-100 px-1 rounded font-mono"><%= User::TMUX_CMD %></code> (plain text). <strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd_encoded}</code></strong> is the URL-encoded version (for query parameters).</p>
+      <p><strong>Show on:</strong> controls which devices display the link — <code class="bg-gray-100 px-1 rounded font-mono">all</code>, <code class="bg-gray-100 px-1 rounded font-mono">desktop</code>, <code class="bg-gray-100 px-1 rounded font-mono">tablet</code>, or <code class="bg-gray-100 px-1 rounded font-mono">phone</code></p>
+    </div>
+  </div>
+
   <%# ── API Tokens Section ── %>
   <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
@@ -292,9 +373,63 @@
     <% end %>
   </div>
 
-  <%# ── SSH Keys Section (Future) ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6 opacity-50 cursor-not-allowed">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">SSH Keys</h2>
-    <p class="text-sm text-gray-500">Coming soon: Manage your SSH keys for sandbox access.</p>
+  <%# ── SSH Keys Section ── %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="ssh-keys">
+    <h2 class="text-lg font-semibold text-gray-900 mb-2">SSH Keys</h2>
+    <p class="text-sm text-gray-500 mb-4">
+      Add your SSH public keys to access sandboxes via SSH. Multiple keys are supported (e.g. one per device).
+    </p>
+
+    <%= form_with url: update_ssh_keys_settings_path, method: :patch do |f| %>
+      <div data-ssh-keys-target="list" class="space-y-3 mb-4">
+        <% (@user.ssh_keys.presence || []).each_with_index do |entry, i| %>
+          <div data-ssh-keys-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div class="flex items-center gap-2 mb-2">
+              <input type="text" name="ssh_keys[][name]" value="<%= entry["name"] %>" placeholder="Label (e.g. MacBook, iPad)"
+                     class="w-48 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button type="button" data-action="ssh-keys#remove" class="ml-auto text-red-500 hover:text-red-700 p-1" title="Remove key">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            <textarea name="ssh_keys[][key]" rows="2" placeholder="ssh-ed25519 AAAA... or ssh-rsa AAAA..."
+                      class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"><%= entry["key"] %></textarea>
+            <% if entry["key"].present? %>
+              <p class="text-xs text-gray-400 mt-1 font-mono truncate"><%= entry["key"].split(" ").first %> ...<%= entry["key"].split(" ").last(1).first&.last(12) %></p>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <template data-ssh-keys-target="template">
+        <div data-ssh-keys-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div class="flex items-center gap-2 mb-2">
+            <input type="text" name="ssh_keys[][name]" value="" placeholder="Label (e.g. MacBook, iPad)"
+                   class="w-48 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button type="button" data-action="ssh-keys#remove" class="ml-auto text-red-500 hover:text-red-700 p-1" title="Remove key">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+          <textarea name="ssh_keys[][key]" rows="2" placeholder="ssh-ed25519 AAAA... or ssh-rsa AAAA..."
+                    class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+        </div>
+      </template>
+
+      <div class="flex items-center gap-3">
+        <button type="button" data-action="ssh-keys#add"
+                class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+          </svg>
+          Add Key
+        </button>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Save Keys
+        </button>
+      </div>
+    <% end %>
   </div>
 </div>
