@@ -23,3 +23,13 @@ yes
 
 commit
 
+### Prompt 6
+
+two more things:
+update the sandbox image to teh lastrest packages
+make sure we can update claude inside a sandbox:
+today we see (see log below) - we do not want claude to be installed in the users home but usr local bin. set the env so that claudes install localtion defaults to usr local bin
+
+thies@thies-wild-viper:/persisted/IO/sensor$ claude --update
+Current version: 2.1.71Checking for updates to latest version...Warning: Native installation exists but ~/.local/bin is not in your PATHFix...
+
