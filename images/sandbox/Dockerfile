@@ -9,7 +9,8 @@ ARG SANDCASTLE_VERSION=dev
 # Always pull latest security patches and package updates.
 # CACHE_DATE is set at build time to bust the layer cache on demand.
 ARG CACHE_DATE=0
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+RUN for i in 1 2 3; do apt-get update && break || sleep 5; done \
+    && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # Bake version into the image
 RUN echo "${SANDCASTLE_VERSION}" > /etc/sandcastle-version
