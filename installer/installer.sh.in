@@ -365,14 +365,13 @@ ensure_dirs() {
   for d in "$SANDCASTLE_HOME"/data/users/*; do
     if [ -d "$d" ]; then
       chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" "$d"
-      # Also fix any direct children (home, data, chrome-profile, tailscale, etc.)
+      # Also fix any direct children (home, data, tailscale, etc.)
       find "$d" -maxdepth 1 -mindepth 1 -type d \
         -exec chown "${SANDCASTLE_UID}:${SANDCASTLE_GID}" {} +
     fi
   done
   for d in "$SANDCASTLE_HOME"/data/users/*/home \
            "$SANDCASTLE_HOME"/data/users/*/data \
-           "$SANDCASTLE_HOME"/data/users/*/chrome-profile \
            "$SANDCASTLE_HOME"/data/sandboxes/*/vol; do
     [ -d "$d" ] && chmod 777 "$d"
   done

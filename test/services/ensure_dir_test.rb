@@ -26,7 +26,7 @@ class EnsureDirTest < ActiveSupport::TestCase
     FileUtils.chmod(0o555, parent)
 
     # Verify mkdir would fail
-    child = File.join(parent, "chrome-profile")
+    child = File.join(parent, "some-subdir")
     assert_raises(Errno::EACCES) { FileUtils.mkdir_p(child) }
 
     # ensure_dir should catch EACCES and attempt docker_chown.

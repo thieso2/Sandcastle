@@ -142,12 +142,6 @@ class SandboxManager
       ensure_dir(dir)
       prepare_bind_mount(dir)
     end
-    # Chrome profile persistence: mount .config/google-chrome separately if not mounting full home
-    if user.chrome_persist_profile? && !sandbox.mount_home
-      dir = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
-      ensure_dir(dir)
-      prepare_bind_mount(dir)
-    end
     # Per-user persisted paths (e.g. .claude, .codex) — only when full home isn't mounted
     if !sandbox.mount_home
       user.persisted_paths.find_each do |pp|
@@ -958,11 +952,6 @@ class SandboxManager
     if sandbox.data_path.present?
       host_path = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
       binds << "#{host_path}:/persisted"
-    end
-    # Chrome profile persistence: mount separately if not mounting full home
-    if user.chrome_persist_profile? && !sandbox.mount_home
-      host_path = "#{DATA_DIR}/users/#{user.name}/chrome-profile"
-      binds << "#{host_path}:/home/#{user.name}/.config/google-chrome"
     end
     # Per-user persisted dotdirs (Claude/Codex auth, etc.) — only when full home isn't mounted
     if !sandbox.mount_home

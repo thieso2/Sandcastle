@@ -145,10 +145,9 @@ sandcastle ssh my-dev -- -D 1080</code></pre>
       Clicking VNC launches a noVNC container that connects to the sandbox's VNC server, giving you a full graphical browser in your web browser.
     </div>
     <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800">
-      <strong>Chrome profile persistence:</strong> Go to Settings → VNC to enable Chrome profile persistence.
-      When enabled, your Chrome extensions, bookmarks, and settings are saved and persist across sandbox recreations.
-      If you use <strong>Mount Home</strong>, profiles are stored in <code class="bg-green-100 px-1 rounded">~/.config/google-chrome</code> alongside all your other home directory files.
-      Without Mount Home, profiles are stored separately in a dedicated directory.
+      <strong>Chrome profile:</strong> With <strong>Mount Home</strong> enabled, your Chrome extensions, bookmarks, and
+      settings are stored in <code class="bg-green-100 px-1 rounded">~/.config/google-chrome</code> and persist across
+      sandbox recreations alongside the rest of your home directory.
     </div>
   </section>
 
@@ -323,7 +322,6 @@ sandcastle snapshot delete before-migration</code></pre>
       <li><strong>Profile</strong> — Update your email address and change your password</li>
       <li><strong>Tailscale</strong> — View connection status and toggle auto-connect for new sandboxes</li>
       <li><strong>Sandbox Archive</strong> — Set your personal archive retention period (overrides the system default)</li>
-      <li><strong>VNC</strong> — Toggle Chrome profile persistence across sandbox recreations</li>
       <li><strong>Custom Links</strong> — Define custom URL links (with template variables) shown on each sandbox card, e.g. for launching a native terminal app</li>
       <li><strong>SSH Keys</strong> — Add, edit, and remove SSH public keys for sandbox access</li>
       <li><strong>API Tokens</strong> — Create, list, and revoke multiple named API tokens for different devices or applications</li>

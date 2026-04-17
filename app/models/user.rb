@@ -65,10 +65,6 @@ class User < ApplicationRecord
     tailscale_auto_connect
   end
 
-  def chrome_persist_profile?
-    chrome_persist_profile
-  end
-
   def effective_archive_retention_days
     return sandbox_archive_retention_days if sandbox_archive_retention_days.present?
 
