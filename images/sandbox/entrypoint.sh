@@ -11,10 +11,6 @@ if ! id "$USERNAME" &>/dev/null; then
     chmod 0440 /etc/sudoers.d/sandcastle
 fi
 
-# Allow sandbox user to update Claude Code and Codex in place via
-# `claude --update` / `codex --update` without requiring sudo.
-chown "$USERNAME" /usr/local/bin/claude 2>/dev/null || true
-
 # Set up SSH authorized keys (append if not already present, preserving
 # any WeTTY keys that may have been injected for other sandboxes sharing
 # this user's home directory via bind mount).
@@ -57,6 +53,20 @@ fi
 # background to avoid delaying SSH readiness.
 if [ -d /persisted ]; then
     (chown -R "$USERNAME:$USERNAME" /persisted 2>/dev/null || true) &
+fi
+
+# Seed Claude Code into the user's $HOME if not already present. The base
+# image ships the binary at /opt/claude/claude (off $PATH); each user gets
+# their own copy at ~/.local/bin/claude. Because $HOME is bind-mounted from
+# the host, `claude --update` persists across sandbox recreations and
+# survives base-image rebuilds. To pick up a newer base-image version, the
+# user deletes ~/.local/bin/claude and restarts the sandbox.
+CLAUDE_SRC="/opt/claude/claude"
+CLAUDE_DST="/home/$USERNAME/.local/bin/claude"
+if [ -x "$CLAUDE_SRC" ] && [ ! -e "$CLAUDE_DST" ]; then
+    install -d -o "$USERNAME" -g "$USERNAME" -m 0755 "/home/$USERNAME/.local/bin" 2>/dev/null || true
+    install -o "$USERNAME" -g "$USERNAME" -m 0755 "$CLAUDE_SRC" "$CLAUDE_DST" 2>/dev/null || \
+        echo "WARNING: could not seed $CLAUDE_DST from $CLAUDE_SRC" >&2
 fi
 
 # Configure git identity in user's ~/.gitconfig (skip if it already exists,
