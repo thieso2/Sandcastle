@@ -91,30 +91,33 @@ fi
 mkdir -p /var/sandcastle
 chmod 755 /var/sandcastle
 
-# Manage the tmux auto-attach block in ~/.bashrc. Runs every container
-# start so toggling the setting applies on next sandbox launch. Uses
-# fenced markers so we can reliably replace/remove just our block without
-# disturbing user edits elsewhere in .bashrc.
-BASHRC="/home/$USERNAME/.bashrc"
-BEGIN_MARK="# >>> sandcastle ssh tmux auto-attach >>>"
-END_MARK="# <<< sandcastle ssh tmux auto-attach <<<"
-if [ -f "$BASHRC" ] || [ -f /etc/skel/.bashrc ]; then
-    [ -f "$BASHRC" ] || cp /etc/skel/.bashrc "$BASHRC" 2>/dev/null || touch "$BASHRC"
-    # Strip any previous block.
-    sed -i "/^${BEGIN_MARK}$/,/^${END_MARK}$/d" "$BASHRC" 2>/dev/null || true
-    if [ "${SANDCASTLE_SSH_START_TMUX:-1}" = "1" ]; then
-        cat >> "$BASHRC" <<'TMUX_EOF'
-# >>> sandcastle ssh tmux auto-attach >>>
+# Manage the tmux auto-attach snippet in /etc/profile.d. Runs every
+# container start so toggling the setting applies on next sandbox launch.
+# Using /etc/profile.d (not ~/.bashrc) means the block fires reliably on
+# SSH login even when the user's home is a bind-mounted volume that
+# lacks a ~/.profile to source ~/.bashrc.
+#
+# Also tidy up the legacy ~/.bashrc block from earlier versions so it
+# can't double-exec or leave stale content behind.
+TMUX_PROFILE=/etc/profile.d/sandcastle-tmux.sh
+if [ "${SANDCASTLE_SSH_START_TMUX:-1}" = "1" ]; then
+    cat > "$TMUX_PROFILE" <<'TMUX_EOF'
 # Auto-attach to a shared tmux session for interactive SSH logins.
 # Toggle per-sandbox via the "Start tmux on SSH" setting.
 # Bypass for a single connection with: ssh -o SetEnv=NO_TMUX=1 ...
-if [ -z "$TMUX" ] && [ -z "$NO_TMUX" ] && [ -n "$SSH_CONNECTION" ] && [[ $- == *i* ]] && command -v tmux >/dev/null 2>&1; then
+if [ -z "$TMUX" ] && [ -z "$NO_TMUX" ] && [ -n "$SSH_CONNECTION" ] && [ -t 0 ] && command -v tmux >/dev/null 2>&1; then
     exec tmux new-session -A -s main
 fi
-# <<< sandcastle ssh tmux auto-attach <<<
 TMUX_EOF
-    fi
-    chown "$USERNAME:$USERNAME" "$BASHRC" 2>/dev/null || true
+    chmod 0644 "$TMUX_PROFILE"
+else
+    rm -f "$TMUX_PROFILE"
+fi
+
+# Remove legacy ~/.bashrc block from prior versions (pre /etc/profile.d move).
+BASHRC="/home/$USERNAME/.bashrc"
+if [ -f "$BASHRC" ]; then
+    sed -i '/^# >>> sandcastle ssh tmux auto-attach >>>$/,/^# <<< sandcastle ssh tmux auto-attach <<<$/d' "$BASHRC" 2>/dev/null || true
 fi
 
 # Allow SSH clients to forward NO_TMUX so users can bypass the tmux
