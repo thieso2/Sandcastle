@@ -1286,6 +1286,52 @@ detect_storage_driver() {
     echo "overlay2"
 }
 
+# Detect the host's upstream DNS resolvers for embedding into daemon.json.
+# Fixes https://github.com/thieso2/dockyard/issues/19: on hosts where
+# /etc/resolv.conf points at 127.0.0.53 (systemd-resolved), Docker detects
+# loopback-only resolvers and falls back to hardcoded 8.8.8.8 / 8.8.4.4.
+# Environments that block public DNS (e.g. Hetzner) then see silent DNS
+# failure inside containers.
+#
+# Lookup order:
+#   1. DOCKYARD_DNS env override (space- or comma-separated IPs)
+#   2. resolvectl dns (systemd-resolved authoritative source)
+#   3. /run/systemd/resolve/resolv.conf (real upstreams when resolved is used)
+#   4. /etc/resolv.conf (whatever is there, loopback filtered out)
+#
+# Loopback (127.0.0.0/8) and link-local (169.254.0.0/16) entries are stripped.
+# Returns a space-separated list on stdout, or empty string when nothing is
+# available (caller then omits the "dns" key from daemon.json so Docker uses
+# its own defaults).
+detect_upstream_dns() {
+    local raw=""
+
+    if [ -n "${DOCKYARD_DNS:-}" ]; then
+        raw="${DOCKYARD_DNS//,/ }"
+    elif command -v resolvectl &>/dev/null; then
+        # resolvectl dns prints "Global: 1.1.1.1 8.8.8.8" and per-link lines.
+        # Extract every IP-shaped token from all lines.
+        raw=$(resolvectl dns 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | sort -u | tr '\n' ' ')
+    fi
+
+    if [ -z "$raw" ] && [ -f /run/systemd/resolve/resolv.conf ]; then
+        raw=$(awk '/^nameserver/ {print $2}' /run/systemd/resolve/resolv.conf | tr '\n' ' ')
+    fi
+
+    if [ -z "$raw" ] && [ -f /etc/resolv.conf ]; then
+        raw=$(awk '/^nameserver/ {print $2}' /etc/resolv.conf | tr '\n' ' ')
+    fi
+
+    local ip out=""
+    for ip in $raw; do
+        case "$ip" in
+            127.*|169.254.*|::1|fe80:*) continue ;;
+        esac
+        out="${out}${ip} "
+    done
+    echo "${out% }"
+}
+
 wait_for_file() {
     local file="$1"
     local label="$2"
@@ -1797,6 +1843,25 @@ DOCKEREOF
     echo "  storage:     ${STORAGE_DRIVER} (on ${BACKING_FS})"
     echo ""
 
+    # Detect host upstream DNS so containers don't fall back to Docker's
+    # hardcoded 8.8.8.8 when /etc/resolv.conf points at systemd-resolved.
+    # See https://github.com/thieso2/dockyard/issues/19.
+    local DNS_JSON="" dns_list dns_ip dns_joined=""
+    dns_list=$(detect_upstream_dns)
+    if [ -n "$dns_list" ]; then
+        for dns_ip in $dns_list; do
+            if [ -z "$dns_joined" ]; then
+                dns_joined="\"${dns_ip}\""
+            else
+                dns_joined="${dns_joined},\"${dns_ip}\""
+            fi
+        done
+        DNS_JSON="  \"dns\": [${dns_joined}],"$'\n'
+        echo "  dns:         ${dns_list}"
+    else
+        echo "  dns:         (none detected — Docker will use built-in fallback)"
+    fi
+
     # Write daemon.json (embedded — no external file dependency)
     # sysbox-runc 0.6.7.9-tc parses --run-dir from os.Args in init(), so
     # runtimeArgs works correctly. No wrapper script needed.
@@ -1811,7 +1876,7 @@ DOCKEREOF
   },
   "storage-driver": "${STORAGE_DRIVER}",
   "userland-proxy-path": "${BIN_DIR}/docker-proxy",
-  "features": {
+${DNS_JSON}  "features": {
     "buildkit": true
   }
 }
@@ -2025,7 +2090,8 @@ ExecStartPost=/bin/bash -c 'i=0; while ! ${BIN_DIR}/docker-cli -H unix://${DOCKE
 # Apply isolation rules from ${ETC_DIR}/isolation.d/ if any .rules files exist.
 # Each .rules file lists IPs to ACCEPT; all other intra-bridge traffic is DROPped.
 # Chain ${ISO_CHAIN} is per-instance; built once, then jump rules added per user-defined bridge.
-ExecStartPost=-/bin/bash -c 'dir=${ETC_DIR}/isolation.d; ls "\$dir"/*.rules >/dev/null 2>&1 || exit 0; iptables -L ${ISO_CHAIN} >/dev/null 2>&1 || iptables -N ${ISO_CHAIN}; iptables -F ${ISO_CHAIN}; iptables -A ${ISO_CHAIN} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; for f in "\$dir"/*.rules; do [ -f "\$f" ] || continue; sed "s/#.*//;s/ //g;/^$/d" "\$f" | while IFS= read -r line; do iptables -A ${ISO_CHAIN} -s "\$line" -j ACCEPT; iptables -A ${ISO_CHAIN} -d "\$line" -j ACCEPT; done; done; iptables -A ${ISO_CHAIN} -j DROP; for net_id in \$(${BIN_DIR}/docker-cli -H unix://${DOCKER_SOCKET} network ls --filter driver=bridge --format "{{.ID}}" 2>/dev/null); do br=br-\$(echo \$net_id | cut -c1-12); ip link show "\$br" &>/dev/null || continue; iptables -C FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN} 2>/dev/null || iptables -I FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN}; done'
+# Containers on the same bridge subnet are auto-whitelisted (intra-bridge communication).
+ExecStartPost=-/bin/bash -c 'dir=${ETC_DIR}/isolation.d; ls "\$dir"/*.rules >/dev/null 2>&1 || exit 0; iptables -L ${ISO_CHAIN} >/dev/null 2>&1 || iptables -N ${ISO_CHAIN}; iptables -F ${ISO_CHAIN}; iptables -A ${ISO_CHAIN} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; for f in "\$dir"/*.rules; do [ -f "\$f" ] || continue; sed "s/#.*//;s/ //g;/^$/d" "\$f" | while IFS= read -r line; do iptables -A ${ISO_CHAIN} -s "\$line" -j ACCEPT; iptables -A ${ISO_CHAIN} -d "\$line" -j ACCEPT; done; done; for net_id in \$(${BIN_DIR}/docker-cli -H unix://${DOCKER_SOCKET} network ls --filter driver=bridge --format "{{.ID}}" 2>/dev/null); do br=br-\$(echo \$net_id | cut -c1-12); ip link show "\$br" &>/dev/null || continue; br_cidr=\$(ip -4 -o addr show "\$br" 2>/dev/null | awk "{print \\\$4}"); [ -n "\$br_cidr" ] && iptables -A ${ISO_CHAIN} -s "\$br_cidr" -j ACCEPT && iptables -A ${ISO_CHAIN} -d "\$br_cidr" -j ACCEPT; done; iptables -A ${ISO_CHAIN} -j DROP; for net_id in \$(${BIN_DIR}/docker-cli -H unix://${DOCKER_SOCKET} network ls --filter driver=bridge --format "{{.ID}}" 2>/dev/null); do br=br-\$(echo \$net_id | cut -c1-12); ip link show "\$br" &>/dev/null || continue; iptables -C FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN} 2>/dev/null || iptables -I FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN}; done'
 
 # Clean up docker/containerd sockets
 ExecStopPost=-/bin/rm -f ${DOCKER_SOCKET} ${CONTAINERD_SOCKET}
@@ -2221,6 +2287,9 @@ cmd_start() {
 
     # Apply isolation rules from ${ETC_DIR}/isolation.d/ if any .rules files exist.
     # Each .rules file lists IPs to ACCEPT; all other intra-bridge traffic is DROPped.
+    # Containers on the same bridge subnet are always allowed to communicate —
+    # isolation controls which external/infrastructure IPs are reachable, not
+    # intra-bridge traffic between co-located containers.
     local isolation_dir="${ETC_DIR}/isolation.d"
     local iso_chain="DOCKYARD-ISO-${DOCKYARD_DOCKER_PREFIX%_}"
     if ls "${isolation_dir}"/*.rules >/dev/null 2>&1; then
@@ -2238,6 +2307,22 @@ cmd_start() {
                 iptables -A "$iso_chain" -d "$line" -j ACCEPT
             done < "$f"
         done
+
+        # Allow intra-bridge traffic: containers on the same bridge should
+        # always be able to communicate. Auto-whitelist each bridge's subnet.
+        for net_id in $("${BIN_DIR}/docker-cli" -H "unix://${DOCKER_SOCKET}" network ls \
+                --filter driver=bridge --format '{{.ID}}' 2>/dev/null); do
+            local br="br-${net_id:0:12}"
+            ip link show "$br" &>/dev/null || continue
+            local br_cidr
+            br_cidr=$(ip -4 -o addr show "$br" 2>/dev/null | awk '{print $4}')
+            if [ -n "$br_cidr" ]; then
+                iptables -A "$iso_chain" -s "$br_cidr" -j ACCEPT
+                iptables -A "$iso_chain" -d "$br_cidr" -j ACCEPT
+                echo "  bridge subnet ${br_cidr} whitelisted on ${br}"
+            fi
+        done
+
         iptables -A "$iso_chain" -j DROP
 
         # Add per-bridge jump rules for this instance's user-defined networks
@@ -2896,6 +2981,7 @@ services:
       SANDCASTLE_TCP_PORT_MIN: \${SANDCASTLE_TCP_PORT_MIN:-${TCP_PORT_MIN}}
       SANDCASTLE_TCP_PORT_MAX: \${SANDCASTLE_TCP_PORT_MAX:-${TCP_PORT_MAX}}
       SANDCASTLE_TRAEFIK_CONFIG: ${DATA_MOUNT}/traefik/traefik.yml
+      SANDCASTLE_DOCKER_DNS: \${SANDCASTLE_DOCKER_DNS:-}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -2931,6 +3017,7 @@ services:
       SANDCASTLE_TCP_PORT_MIN: \${SANDCASTLE_TCP_PORT_MIN:-${TCP_PORT_MIN}}
       SANDCASTLE_TCP_PORT_MAX: \${SANDCASTLE_TCP_PORT_MAX:-${TCP_PORT_MAX}}
       SANDCASTLE_TRAEFIK_CONFIG: ${DATA_MOUNT}/traefik/traefik.yml
+      SANDCASTLE_DOCKER_DNS: \${SANDCASTLE_DOCKER_DNS:-}
     restart: unless-stopped
     depends_on:
       migrate:
