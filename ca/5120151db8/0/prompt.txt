@@ -1,0 +1,6 @@
+when "really delete"ing an archived sandcastle. just remove it from the screen once it's don - do not close the "Archived" section on the screen.
+also add an "remove all archived" button.
+
+---
+
+lets remove "Persist Chrome profile across sandbox recreations" - it's in $HOME - so the feature is not needed.

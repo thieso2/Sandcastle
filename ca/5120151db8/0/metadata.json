@@ -1,0 +1,74 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "ca5120151db8",
+  "session_id": "a191c7cf-78f0-4119-9d67-ffd71431eabf",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-17T15:58:01.878418318Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/controllers/dashboard_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/models/sandbox.rb",
+    "app/views/dashboard/_archived_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb",
+    "config/routes.rb"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "b2545a8d54e7",
+  "token_usage": {
+    "input_tokens": 101,
+    "cache_creation_tokens": 89028,
+    "cache_read_tokens": 6062522,
+    "output_tokens": 26469,
+    "api_call_count": 86
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-17T15:58:01.863424746Z",
+    "agent_lines": 46,
+    "agent_removed": 5,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 46,
+    "total_lines_changed": 51,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 46,
+      "agent_lines_removed": 5
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 473,
+      "user_lines_removed": 0,
+      "agent_lines_added": 60,
+      "agent_lines_removed": 54,
+      "user_added_per_file": {
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".gemini/agents/entire-search.md": 28,
+        ".gemini/settings.json": 141,
+        ".github/hooks/entire.json": 61,
+        ".opencode/plugins/entire.ts": 177
+      }
+    }
+  ]
+}
