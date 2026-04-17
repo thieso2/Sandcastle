@@ -107,6 +107,7 @@
               end
             expanded_url = sandbox.user.expand_custom_link_url(link["url"], sandbox: sandbox, tailscale_ip: local_assigns[:tailscale_ip])
           %>
+          <% next if expanded_url.nil? %>
           <a href="<%= expanded_url %>"
              title="<%= link["name"] %>"
              data-turbo="false"

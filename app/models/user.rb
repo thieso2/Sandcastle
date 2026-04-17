@@ -84,20 +84,31 @@ class User < ApplicationRecord
   CUSTOM_LINK_TEMPLATE_VARS = %w[user hostname ssh_port sandbox tailscale_ip tmux_cmd tmux_cmd_encoded].freeze
   TMUX_CMD = "tmux new-session -A -s main".freeze
 
+  # Expands {vars} in a custom-link URL template. Returns nil if any
+  # referenced variable resolves to a blank value (e.g. a fresh sandbox
+  # whose tailscale_ip isn't assigned yet) — callers skip rendering in
+  # that case so Turbo's click handler doesn't choke on an invalid URL.
   def expand_custom_link_url(url_template, sandbox:, tailscale_ip: nil)
     hostname = ENV.fetch("SANDCASTLE_HOST", "localhost")
-    url_template.gsub(/\{(\w+)\}/) do |match|
-      case $1
-      when "user" then name
-      when "hostname" then hostname
-      when "ssh_port" then sandbox.ssh_port.to_s
-      when "sandbox" then sandbox.name
-      when "tailscale_ip" then tailscale_ip.to_s
-      when "tmux_cmd" then TMUX_CMD
-      when "tmux_cmd_encoded" then ERB::Util.url_encode(TMUX_CMD)
-      else match
+    missing = false
+    expanded = url_template.gsub(/\{(\w+)\}/) do
+      value = case $1
+              when "user" then name
+              when "hostname" then hostname
+              when "ssh_port" then sandbox.ssh_port
+              when "sandbox" then sandbox.name
+              when "tailscale_ip" then tailscale_ip
+              when "tmux_cmd" then TMUX_CMD
+              when "tmux_cmd_encoded" then ERB::Util.url_encode(TMUX_CMD)
+              end
+      if value.to_s.empty?
+        missing = true
+        ""
+      else
+        value.to_s
       end
     end
+    missing ? nil : expanded
   end
 
   private
