@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "94b48d3ad72d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb",
+    "app/views/sandboxes/show.html.erb",
+    "app/views/settings/show.html.erb"
+  ],
+  "sessions": [
+    {
+      "metadata": "/94/b48d3ad72d/0/metadata.json",
+      "transcript": "/94/b48d3ad72d/0/full.jsonl",
+      "content_hash": "/94/b48d3ad72d/0/content_hash.txt",
+      "prompt": "/94/b48d3ad72d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 346,
+    "cache_creation_tokens": 608785,
+    "cache_read_tokens": 48120327,
+    "output_tokens": 138562,
+    "api_call_count": 281
+  }
+}
