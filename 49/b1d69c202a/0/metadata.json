@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "49b1d69c202a",
+  "session_id": "a191c7cf-78f0-4119-9d67-ffd71431eabf",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-17T17:09:58.977529512Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "config/application.rb"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "515db5f8e31d",
+  "token_usage": {
+    "input_tokens": 345,
+    "cache_creation_tokens": 607928,
+    "cache_read_tokens": 47803359,
+    "output_tokens": 138395,
+    "api_call_count": 280
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-17T17:09:58.931827859Z",
+    "agent_lines": 8,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 8,
+    "total_lines_changed": 8,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 473,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".gemini/agents/entire-search.md": 28,
+        ".gemini/settings.json": 141,
+        ".github/hooks/entire.json": 61,
+        ".opencode/plugins/entire.ts": 177
+      }
+    }
+  ]
+}
