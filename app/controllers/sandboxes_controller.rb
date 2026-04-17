@@ -148,7 +148,30 @@ class SandboxesController < ApplicationController
 
     @sandbox.start_job("destroying")
     SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: false)
-    redirect_to root_path, notice: "Permanently deleting sandcastle..."
+
+    # Turbo-stream reply removes just the archived row so the Archived
+    # <details> section stays open. Broadcast from the job will also fire a
+    # remove when the sandbox reaches the "destroyed" state — idempotent.
+    respond_to do |format|
+      format.html { redirect_to root_path, notice: "Permanently deleting sandcastle..." }
+      format.turbo_stream { render turbo_stream: turbo_stream.remove("#{helpers.dom_id(@sandbox)}-archived") }
+    end
+  end
+
+  def purge_all
+    archived = Current.user.sandboxes.archived.where(job_status: nil)
+    count = archived.count
+
+    streams = archived.map do |sandbox|
+      sandbox.start_job("destroying")
+      SandboxDestroyJob.perform_later(sandbox_id: sandbox.id, archive: false)
+      turbo_stream.remove("#{helpers.dom_id(sandbox)}-archived")
+    end
+
+    respond_to do |format|
+      format.html { redirect_to root_path, notice: "Permanently deleting #{count} archived sandcastle#{'s' if count != 1}..." }
+      format.turbo_stream { render turbo_stream: streams }
+    end
   end
 
   def start

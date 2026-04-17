@@ -16,6 +16,8 @@
     <% if sandbox.archived_at %>
       <% retention = (Current.user || sandbox.user).effective_archive_retention_days %>
       <% expires_at = sandbox.archived_at + retention.days %>
+      <span title="<%= sandbox.archived_at.strftime("%Y-%m-%d %H:%M") %>">Deleted <%= time_ago_in_words(sandbox.archived_at) %> ago</span>
+      <span>·</span>
       <span>Expires <%= time_ago_in_words(expires_at) %> <%= expires_at > Time.current ? "from now" : "ago" %></span>
     <% end %>
 

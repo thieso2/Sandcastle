@@ -47,7 +47,18 @@
         <span class="text-xs text-gray-400">— will be purged after retention window expires</span>
       </summary>
 
-      <div id="archived-sandboxes" class="space-y-3 mt-3">
+      <div class="flex justify-end mt-3 mb-2">
+        <div data-controller="inline-confirm" class="inline-block">
+          <%= button_to "Remove all archived", purge_all_sandboxes_path, method: :delete,
+                class: "px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
+                data: {
+                  action: "click->inline-confirm#confirm",
+                  confirm_message: "Permanently delete ALL archived sandcastles? This cannot be undone."
+                } %>
+        </div>
+      </div>
+
+      <div id="archived-sandboxes" class="space-y-3">
         <% archived_sandboxes.each do |sandbox| %>
           <%= render "dashboard/archived_sandbox", sandbox: sandbox %>
         <% end %>

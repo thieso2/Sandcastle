@@ -35,6 +35,9 @@ Rails.application.routes.draw do
   post "auth/device/approve",      to: "device_auth#approve",  as: :auth_device_approve
 
   resources :sandboxes, only: [ :new, :create, :show, :destroy, :update ] do
+    collection do
+      delete :purge_all
+    end
     member do
       post :start
       post :stop

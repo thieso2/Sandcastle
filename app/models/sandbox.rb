@@ -105,9 +105,11 @@ class Sandbox < ApplicationRecord
       broadcast_remove_to([ user, "dashboard" ], target: dom_id(self))
       broadcast_remove_to([ user, "dashboard" ], target: "#{dom_id(self)}-archived")
     elsif status == "archived" && prev_status != "archived"
-      # Active → archived: move the row between lists live.
+      # Active → archived: move the row between lists live. Prepend so the
+      # most recently archived sandbox appears at the top of the list —
+      # matches the `archived_at: :desc` order on the dashboard.
       broadcast_remove_to([ user, "dashboard" ], target: dom_id(self))
-      broadcast_append_to(
+      broadcast_prepend_to(
         [ user, "dashboard" ],
         partial: "dashboard/archived_sandbox",
         locals: { sandbox: self },
