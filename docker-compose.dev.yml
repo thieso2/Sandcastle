@@ -223,7 +223,7 @@ services:
     volumes:
       - .:/rails
       - bundle-data:/usr/local/bundle
-    command: ["./bin/rails", "db:prepare"]
+    command: ["sh", "-c", "./bin/rails db:prepare && ./bin/rails novnc:download"]
     environment:
       RAILS_ENV: development
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}

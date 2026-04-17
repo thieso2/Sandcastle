@@ -12,6 +12,11 @@ namespace :novnc do
     require "net/http"
 
     novnc_dir = File.expand_path("../../public/novnc", __dir__)
+    version_file = File.join(novnc_dir, ".novnc-version")
+    if File.exist?(File.join(novnc_dir, "vnc.html")) && File.exist?(version_file) && File.read(version_file).strip == NOVNC_VERSION
+      puts "noVNC #{NOVNC_VERSION} already installed at #{novnc_dir}"
+      next
+    end
     tarball_url = "https://github.com/novnc/noVNC/archive/refs/tags/v#{NOVNC_VERSION}.tar.gz"
     puts "Downloading noVNC #{NOVNC_VERSION}..."
 

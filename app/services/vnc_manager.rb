@@ -75,7 +75,8 @@ class VncManager
     id = sandbox.id
     sandbox_name = sandbox.full_name
 
-    base_rule = if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+    selfsigned = ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+    base_rule = if selfsigned
       "HostRegexp(`.+`) && PathPrefix(`/vnc/#{id}/websockify`)"
     else
       "Host(`#{host}`) && PathPrefix(`/vnc/#{id}/websockify`)"
@@ -84,18 +85,28 @@ class VncManager
     # Route only the WebSocket path /vnc/{id}/websockify to websockify-go on port 6080.
     # noVNC static files (vnc.html, core/, etc.) are served from Rails public/novnc/.
     # stripPrefix removes /vnc/{id} so websockify-go receives /websockify.
+    routers = {
+      "vnc-#{id}" => {
+        "rule" => base_rule,
+        "service" => "vnc-#{id}",
+        "entryPoints" => [ "websecure" ],
+        "tls" => tls_config,
+        "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
+        "priority" => 100
+      }
+    }
+
+    # In dev (selfsigned mode) also expose the plain-HTTP entrypoint so
+    # noVNC works over http://<host>:8080 without trusting the self-signed cert.
+    if selfsigned
+      routers["vnc-#{id}-http"] = routers["vnc-#{id}"].merge(
+        "entryPoints" => [ "web" ]
+      ).except("tls")
+    end
+
     config = {
       "http" => {
-        "routers" => {
-          "vnc-#{id}" => {
-            "rule" => base_rule,
-            "service" => "vnc-#{id}",
-            "entryPoints" => [ "websecure" ],
-            "tls" => tls_config,
-            "middlewares" => [ "vnc-auth-#{id}", "vnc-stripprefix-#{id}" ],
-            "priority" => 100
-          }
-        },
+        "routers" => routers,
         "middlewares" => {
           "vnc-auth-#{id}" => {
             "forwardAuth" => {
