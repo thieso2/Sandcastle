@@ -1,0 +1,10 @@
+on sandman (100.100.218.64) - i cannot "really delete" 20260324153946-silent-shark - why? debug and fix cause.
+
+---
+
+the ssh link works now.
+
+---
+
+tmux shoudl also be started on SSH connection by default!
+add NO_TMUX env var that can be supplied via ssh cmdline to not start tmux instead.
