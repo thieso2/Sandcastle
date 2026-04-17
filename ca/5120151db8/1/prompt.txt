@@ -1,0 +1,21 @@
+validate that deletion of archived sandboxed work in chrome!
+
+---
+
+validate that deletion of archived sandboxed work in chrome! running sandcastle is http://10.206.10.5:8080/
+
+---
+
+do a full examiniaton of all flows and features of the app. note and fix all problems and bugs you find. craete and maintain PROGRESS.md
+
+---
+
+continue
+
+---
+
+create a multi tab settings page for the user settings.
+
+---
+
+move admin/settings Sandbox Defaults into the User Settings. they are not global by per user.

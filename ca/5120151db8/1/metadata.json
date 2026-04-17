@@ -1,0 +1,92 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "ca5120151db8",
+  "session_id": "a57a1ed0-744c-489b-9d40-b3aa0ea38825",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-17T15:58:03.057803018Z",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "app/models/sandbox.rb",
+    "app/views/dashboard/_archived_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "664f0a9c3a3b",
+  "token_usage": {
+    "input_tokens": 602,
+    "cache_creation_tokens": 730178,
+    "cache_read_tokens": 105128406,
+    "output_tokens": 153712,
+    "api_call_count": 413
+  },
+  "session_metrics": {
+    "turn_count": 11
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-17T15:58:02.777489633Z",
+    "agent_lines": 93,
+    "agent_removed": 33,
+    "human_added": 27,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 120,
+    "total_lines_changed": 154,
+    "agent_percentage": 81.81818181818183,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "images/sandbox/gitconfig": 1,
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 335,
+      "agent_lines_removed": 55,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    }
+  ]
+}
