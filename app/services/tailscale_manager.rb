@@ -460,31 +460,44 @@ class TailscaleManager
     state_dir = "#{DATA_DIR}/users/#{user.name}/tailscale"
     ts_hostname = hostname.presence || TAILSCALE_HOSTNAME
 
+    # Dev fallback: when the host can't expose /dev/net/tun (e.g. Sysbox),
+    # fall back to Tailscale's userspace networking. Subnet routing is then
+    # limited, but login and tailnet reachability still work — enough to
+    # exercise the app's Tailscale flow end-to-end in development.
+    userspace = ActiveModel::Type::Boolean.new.cast(ENV["SANDCASTLE_TAILSCALE_USERSPACE"])
+
+    host_config = {
+      "NetworkMode" => network,
+      "Sysctls" => { "net.ipv4.ip_forward" => "1" },
+      "Binds" => [ "#{state_dir}:/var/lib/tailscale" ],
+      "RestartPolicy" => { "Name" => "unless-stopped" }
+    }
+
+    unless userspace
+      host_config["CapAdd"] = [ "NET_ADMIN", "SYS_MODULE" ]
+      host_config["Devices"] = [
+        { "PathOnHost" => "/dev/net/tun", "PathInContainer" => "/dev/net/tun", "CgroupPermissions" => "rwm" }
+      ]
+    end
+
     config = {
       "Image" => TAILSCALE_IMAGE,
       "name" => name,
       "Hostname" => ts_hostname,
-      "HostConfig" => {
-        "NetworkMode" => network,
-        "CapAdd" => [ "NET_ADMIN", "SYS_MODULE" ],
-        "Devices" => [
-          { "PathOnHost" => "/dev/net/tun", "PathInContainer" => "/dev/net/tun", "CgroupPermissions" => "rwm" }
-        ],
-        "Sysctls" => { "net.ipv4.ip_forward" => "1" },
-        "Binds" => [ "#{state_dir}:/var/lib/tailscale" ],
-        "RestartPolicy" => { "Name" => "unless-stopped" }
-      }
+      "HostConfig" => host_config
     }
 
     if auth_key.present?
       # Use containerboot (default entrypoint) with auth key for automated flow
-      config["Env"] = [
+      env = [
         "TS_STATE_DIR=/var/lib/tailscale",
         "TS_HOSTNAME=#{ts_hostname}",
         "TS_EXTRA_ARGS=--advertise-routes=#{subnet} --accept-routes#{TAILSCALE_TAG ? " --advertise-tags=#{TAILSCALE_TAG}" : ""}",
         "TS_AUTH_ONCE=true",
         "TS_AUTHKEY=#{auth_key}"
       ]
+      env << "TS_USERSPACE=true" << "TS_TUN=userspace-networking" if userspace
+      config["Env"] = env
     else
       # Run tailscaled directly — we manage login via `tailscale up`.
       # Also used for restore_from_state: raw tailscaled exits without running
@@ -492,7 +505,8 @@ class TailscaleManager
       # Fix ownership first: Tailscale image updates may change which user the daemon
       # runs as (e.g. root vs nobody), leaving persisted state files unreadable.
       # With userns-remap the UID mismatch causes "permission denied" on startup.
-      config["Entrypoint"] = [ "sh", "-c", "chown -R root:root /var/lib/tailscale 2>/dev/null; exec tailscaled --state=/var/lib/tailscale/tailscaled.state" ]
+      tun_flag = userspace ? " --tun=userspace-networking" : ""
+      config["Entrypoint"] = [ "sh", "-c", "chown -R root:root /var/lib/tailscale 2>/dev/null; exec tailscaled --state=/var/lib/tailscale/tailscaled.state#{tun_flag}" ]
       config["Cmd"] = []
     end
 
