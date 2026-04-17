@@ -1,0 +1,1 @@
+ssh still does not use tmzx - check if the stting works
