@@ -59,7 +59,8 @@ class TerminalManager
     id   = sandbox.id
     container = sandbox.full_name
 
-    if ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+    selfsigned = ENV["SANDCASTLE_TLS_MODE"] == "selfsigned"
+    if selfsigned
       tmux_rule  = "HostRegexp(`.+`) && PathPrefix(`/terminal/#{id}/tmux`)"
       shell_rule = "HostRegexp(`.+`) && PathPrefix(`/terminal/#{id}/shell`)"
     else
@@ -67,26 +68,39 @@ class TerminalManager
       shell_rule = "Host(`#{host}`) && PathPrefix(`/terminal/#{id}/shell`)"
     end
 
+    routers = {
+      "terminal-#{id}-tmux" => {
+        "rule"        => tmux_rule,
+        "service"     => "terminal-#{id}-tmux",
+        "entryPoints" => [ "websecure" ],
+        "tls"         => tls_config,
+        "middlewares" => [ "terminal-auth-#{id}", "terminal-#{id}-strip-tmux" ],
+        "priority"    => 100
+      },
+      "terminal-#{id}-shell" => {
+        "rule"        => shell_rule,
+        "service"     => "terminal-#{id}-shell",
+        "entryPoints" => [ "websecure" ],
+        "tls"         => tls_config,
+        "middlewares" => [ "terminal-auth-#{id}", "terminal-#{id}-strip-shell" ],
+        "priority"    => 100
+      }
+    }
+
+    # In dev (selfsigned mode) also expose the plain-HTTP entrypoint so the
+    # terminal works without trusting the self-signed cert.
+    if selfsigned
+      routers["terminal-#{id}-tmux-http"] = routers["terminal-#{id}-tmux"].merge(
+        "entryPoints" => [ "web" ]
+      ).except("tls")
+      routers["terminal-#{id}-shell-http"] = routers["terminal-#{id}-shell"].merge(
+        "entryPoints" => [ "web" ]
+      ).except("tls")
+    end
+
     config = {
       "http" => {
-        "routers" => {
-          "terminal-#{id}-tmux" => {
-            "rule"        => tmux_rule,
-            "service"     => "terminal-#{id}-tmux",
-            "entryPoints" => [ "websecure" ],
-            "tls"         => tls_config,
-            "middlewares" => [ "terminal-auth-#{id}", "terminal-#{id}-strip-tmux" ],
-            "priority"    => 100
-          },
-          "terminal-#{id}-shell" => {
-            "rule"        => shell_rule,
-            "service"     => "terminal-#{id}-shell",
-            "entryPoints" => [ "websecure" ],
-            "tls"         => tls_config,
-            "middlewares" => [ "terminal-auth-#{id}", "terminal-#{id}-strip-shell" ],
-            "priority"    => 100
-          }
-        },
+        "routers" => routers,
         "middlewares" => {
           "terminal-auth-#{id}" => {
             "forwardAuth" => {

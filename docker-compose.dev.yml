@@ -139,8 +139,9 @@ services:
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       SANDCASTLE_TLS_CERT_DIR: /certs
-      SANDCASTLE_TERMINAL_URL: https://${DEV_HOST:-localhost}:8443
-      SANDCASTLE_VNC_URL: https://${DEV_HOST:-localhost}:8443
+      # SANDCASTLE_TERMINAL_URL / SANDCASTLE_VNC_URL intentionally unset —
+      # Rails falls back to request.host_with_port so the browser's current
+      # host (e.g. Tailscale IP, 127.0.0.1, LAN IP) is used for WebSockets.
       SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
       SANDCASTLE_TCP_PORT_MIN: "3000"
       SANDCASTLE_TCP_PORT_MAX: "3099"
