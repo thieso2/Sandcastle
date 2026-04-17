@@ -17,8 +17,20 @@ class SandboxesController < ApplicationController
   end
 
   def update
-    if @sandbox.update(params.require(:sandbox).permit(:name, :ssh_start_tmux))
-      notice = params[:sandbox][:ssh_start_tmux].nil? ? "Sandbox renamed to #{@sandbox.name}." : "Sandbox settings updated. Takes effect on next sandbox start."
+    sandbox_params = params.require(:sandbox).permit(
+      :name, :ssh_start_tmux, :mount_home, :docker_enabled,
+      :vnc_enabled, :vnc_geometry, :vnc_depth, :smb_enabled
+    )
+
+    # Only name may be edited while the sandbox is running; everything else
+    # needs a rebuild/restart to take effect, so we reject settings edits to
+    # avoid silently-stored-but-ignored values.
+    if @sandbox.status == "running" && sandbox_params.except(:name).any?
+      redirect_to @sandbox, alert: "Stop the sandbox before editing settings." and return
+    end
+
+    if @sandbox.update(sandbox_params)
+      notice = sandbox_params.keys == ["name"] ? "Sandbox renamed to #{@sandbox.name}." : "Sandbox settings updated. Changes apply on next rebuild/start."
       redirect_to @sandbox, notice: notice
     else
       @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
