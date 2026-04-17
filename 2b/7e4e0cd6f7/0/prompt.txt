@@ -1,0 +1,19 @@
+when "really delete"ing an archived sandcastle. just remove it from the screen once it's don - do not close the "Archived" section on the screen.
+also add an "remove all archived" button.
+
+---
+
+lets remove "Persist Chrome profile across sandbox recreations" - it's in $HOME - so the feature is not needed.
+
+---
+
+commit and push and release
+
+---
+
+lets add a user setting to start teh tmux session by default of ssh. teh default value is a user setting. it can be overwritten on each sandcastle createing and also changed on teh sandcaste detail page. the entrypoint updates the .bashrc on each launch to honor the mode.
+remove tmux and shell from teh dashboard and onyl show a genric terminal button.
+
+---
+
+yes

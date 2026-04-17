@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2b7e4e0cd6f7",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/controllers/settings_controller.rb",
+    "app/models/sandbox.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/sandboxes/new.html.erb",
+    "app/views/sandboxes/show.html.erb",
+    "app/views/settings/show.html.erb",
+    "db/migrate/20260417220000_add_ssh_start_tmux.rb",
+    "db/queue_schema.rb",
+    "db/schema.rb",
+    "images/sandbox/entrypoint.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/2b/7e4e0cd6f7/0/metadata.json",
+      "transcript": "/2b/7e4e0cd6f7/0/full.jsonl",
+      "content_hash": "/2b/7e4e0cd6f7/0/content_hash.txt",
+      "prompt": "/2b/7e4e0cd6f7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 182,
+    "cache_creation_tokens": 194956,
+    "cache_read_tokens": 16387823,
+    "output_tokens": 61566,
+    "api_call_count": 157
+  }
+}
