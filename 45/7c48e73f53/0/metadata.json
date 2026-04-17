@@ -1,0 +1,81 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "457c48e73f53",
+  "session_id": "a191c7cf-78f0-4119-9d67-ffd71431eabf",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-17T16:17:51.332156286Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/controllers/settings_controller.rb",
+    "app/models/user.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "db/migrate/20260417210000_remove_chrome_persist_profile_from_users.rb",
+    "db/queue_schema.rb",
+    "db/schema.rb",
+    "installer.sh",
+    "installer/installer.sh.in",
+    "test/services/ensure_dir_test.rb"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "dd17460ac3b7",
+  "token_usage": {
+    "input_tokens": 181,
+    "cache_creation_tokens": 193914,
+    "cache_read_tokens": 16203229,
+    "output_tokens": 61254,
+    "api_call_count": 156
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-17T16:17:51.303613047Z",
+    "agent_lines": 12,
+    "agent_removed": 49,
+    "human_added": 0,
+    "human_modified": 8,
+    "human_removed": 16,
+    "total_committed": 20,
+    "total_lines_changed": 85,
+    "agent_percentage": 71.76470588235294,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 473,
+      "user_lines_removed": 0,
+      "agent_lines_added": 14,
+      "agent_lines_removed": 49,
+      "user_added_per_file": {
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".gemini/agents/entire-search.md": 28,
+        ".gemini/settings.json": 141,
+        ".github/hooks/entire.json": 61,
+        ".opencode/plugins/entire.ts": 177
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 473,
+      "user_lines_removed": 0,
+      "agent_lines_added": 115,
+      "agent_lines_removed": 77,
+      "user_added_per_file": {
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".gemini/agents/entire-search.md": 28,
+        ".gemini/settings.json": 141,
+        ".github/hooks/entire.json": 61,
+        ".opencode/plugins/entire.ts": 177
+      }
+    }
+  ]
+}

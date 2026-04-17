@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "457c48e73f53",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "app/controllers/settings_controller.rb",
+    "app/models/user.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "db/migrate/20260417210000_remove_chrome_persist_profile_from_users.rb",
+    "db/queue_schema.rb",
+    "db/schema.rb",
+    "installer.sh",
+    "installer/installer.sh.in",
+    "test/services/ensure_dir_test.rb"
+  ],
+  "sessions": [
+    {
+      "metadata": "/45/7c48e73f53/0/metadata.json",
+      "transcript": "/45/7c48e73f53/0/full.jsonl",
+      "content_hash": "/45/7c48e73f53/0/content_hash.txt",
+      "prompt": "/45/7c48e73f53/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 181,
+    "cache_creation_tokens": 193914,
+    "cache_read_tokens": 16203229,
+    "output_tokens": 61254,
+    "api_call_count": 156
+  }
+}
