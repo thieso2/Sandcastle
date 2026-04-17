@@ -171,7 +171,8 @@ RUN mkdir -p /var/run/sshd /etc/ssh/sshd_config.d \
     && echo "PermitRootLogin no" > /etc/ssh/sshd_config.d/10-sandcastle.conf \
     && echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config.d/10-sandcastle.conf \
     && echo "PasswordAuthentication no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf \
-    && echo "StrictModes no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf
+    && echo "StrictModes no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf \
+    && echo "AcceptEnv NO_TMUX" >> /etc/ssh/sshd_config.d/10-sandcastle.conf
 
 LABEL org.opencontainers.image.source="https://github.com/thieso2/sandcastle"
 LABEL org.opencontainers.image.description="Sandcastle sandbox base image — Ubuntu 25.10 with Docker-in-Docker, SSH, and dev tools"

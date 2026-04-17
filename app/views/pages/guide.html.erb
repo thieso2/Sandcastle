@@ -130,9 +130,13 @@ sandcastle ssh my-dev -- -D 1080</code></pre>
       — re-attachable and shared across browser tabs. Protected by your existing login, no extra passwords required.
     </div>
     <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800 mt-3">
-      <strong>Start tmux on SSH:</strong> When the <em>Start tmux on SSH login</em> setting is on, SSH sessions
-      auto-attach to the same shared tmux session so work survives disconnects. Toggle the default in
+      <strong>Start tmux on SSH:</strong> When the <em>Start tmux on SSH login</em> setting is on (default), SSH
+      sessions auto-attach to the same shared tmux session so work survives disconnects. Toggle the default in
       Settings → Sandbox Defaults, and override per sandbox on the sandbox detail page.
+      <br>
+      <strong>Skip tmux for a single connection:</strong> pass <code class="bg-green-100 px-1 rounded">NO_TMUX=1</code>
+      — e.g. <code class="bg-green-100 px-1 rounded">ssh -o SetEnv=NO_TMUX=1 user@host</code> — to get a plain shell
+      without disabling the setting.
     </div>
   </section>
 

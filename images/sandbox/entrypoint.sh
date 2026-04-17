@@ -106,14 +106,22 @@ if [ -f "$BASHRC" ] || [ -f /etc/skel/.bashrc ]; then
         cat >> "$BASHRC" <<'TMUX_EOF'
 # >>> sandcastle ssh tmux auto-attach >>>
 # Auto-attach to a shared tmux session for interactive SSH logins.
-# Toggle via the sandbox's "Start tmux on SSH" setting.
-if [ -z "$TMUX" ] && [ -n "$SSH_CONNECTION" ] && [[ $- == *i* ]] && command -v tmux >/dev/null 2>&1; then
+# Toggle per-sandbox via the "Start tmux on SSH" setting.
+# Bypass for a single connection with: ssh -o SetEnv=NO_TMUX=1 ...
+if [ -z "$TMUX" ] && [ -z "$NO_TMUX" ] && [ -n "$SSH_CONNECTION" ] && [[ $- == *i* ]] && command -v tmux >/dev/null 2>&1; then
     exec tmux new-session -A -s main
 fi
 # <<< sandcastle ssh tmux auto-attach <<<
 TMUX_EOF
     fi
     chown "$USERNAME:$USERNAME" "$BASHRC" 2>/dev/null || true
+fi
+
+# Allow SSH clients to forward NO_TMUX so users can bypass the tmux
+# auto-attach for a single connection (e.g. `ssh -o SetEnv=NO_TMUX=1 ...`).
+# Idempotent: the file is regenerated on every container start.
+if [ -d /etc/ssh/sshd_config.d ] && ! grep -qs '^AcceptEnv NO_TMUX' /etc/ssh/sshd_config.d/*.conf 2>/dev/null; then
+    echo "AcceptEnv NO_TMUX" >> /etc/ssh/sshd_config.d/20-sandcastle-env.conf
 fi
 
 # Generate SSH host keys if missing
