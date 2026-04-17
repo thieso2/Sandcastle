@@ -1,0 +1,13 @@
+on sandman in continer thies-sandcastle the folloing works:
+docker run -ti alpine ping -c 1 1.1.1.1
+thies does now:
+docker run -ti alpine ping -c 1 www.heise.de 
+so - dns is broken - examine, explain and fix
+
+---
+
+yes
+
+---
+
+commit and push

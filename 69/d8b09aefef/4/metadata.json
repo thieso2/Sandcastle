@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "69d8b09aefef",
+  "session_id": "259bcfa7-d8a9-4bd7-93fe-3c0ce9d65fb2",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-17T09:50:45.408071Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/services/sandbox_manager.rb",
+    "docker-compose.yml",
+    "installer/templates/docker-compose.yml.template"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "9680746d-a07a-400c-99eb-e04d5b7fd687",
+  "token_usage": {
+    "input_tokens": 75,
+    "cache_creation_tokens": 78760,
+    "cache_read_tokens": 3910797,
+    "output_tokens": 27922,
+    "api_call_count": 60
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-17T09:50:45.363673Z",
+    "agent_lines": 18,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 18,
+    "agent_percentage": 100
+  }
+}
