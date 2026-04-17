@@ -1,4 +1,6 @@
 class SettingsController < ApplicationController
+  ALLOWED_TABS = %w[profile tokens sandboxes network files].freeze
+
   def show
     @user = Current.user
     @api_tokens = @user.api_tokens.active.order(created_at: :desc)
@@ -8,7 +10,7 @@ class SettingsController < ApplicationController
     @user = Current.user
 
     if @user.update(profile_params)
-      redirect_to settings_path, notice: "Profile updated successfully."
+      redirect_to_tab(notice: "Profile updated successfully.")
     else
       render :show, status: :unprocessable_entity
     end
@@ -18,14 +20,14 @@ class SettingsController < ApplicationController
     @user = Current.user
 
     unless @user.authenticate(params[:current_password])
-      redirect_to settings_path, alert: "Current password is incorrect."
+      redirect_to_tab(alert: "Current password is incorrect.")
       return
     end
 
     if @user.update(password_params)
-      redirect_to settings_path, notice: "Password changed successfully."
+      redirect_to_tab(notice: "Password changed successfully.")
     else
-      redirect_to settings_path, alert: @user.errors.full_messages.join(", ")
+      redirect_to_tab(alert: @user.errors.full_messages.join(", "))
     end
   end
 
@@ -34,9 +36,9 @@ class SettingsController < ApplicationController
 
     if @user.update(smb_password_params)
       SandboxManager.new.update_smb_password(user: @user)
-      redirect_to settings_path, notice: "SMB password updated."
+      redirect_to_tab(notice: "SMB password updated.")
     else
-      redirect_to settings_path, alert: @user.errors.full_messages.join(", ").presence || "Failed to update SMB password."
+      redirect_to_tab(alert: @user.errors.full_messages.join(", ").presence || "Failed to update SMB password.")
     end
   end
 
@@ -45,9 +47,9 @@ class SettingsController < ApplicationController
 
     if @user.update(tailscale_auto_connect: !@user.tailscale_auto_connect)
       status = @user.tailscale_auto_connect ? "enabled" : "disabled"
-      redirect_to settings_path, notice: "Tailscale auto-connect #{status}."
+      redirect_to_tab(notice: "Tailscale auto-connect #{status}.")
     else
-      redirect_to settings_path, alert: "Failed to update Tailscale settings."
+      redirect_to_tab(alert: "Failed to update Tailscale settings.")
     end
   end
 
@@ -58,9 +60,9 @@ class SettingsController < ApplicationController
     end
 
     if @user.update(custom_links: links)
-      redirect_to settings_path, notice: "Custom links updated."
+      redirect_to_tab(notice: "Custom links updated.")
     else
-      redirect_to settings_path, alert: @user.errors.full_messages.join(", ")
+      redirect_to_tab(alert: @user.errors.full_messages.join(", "))
     end
   end
 
@@ -71,9 +73,9 @@ class SettingsController < ApplicationController
     end
 
     if @user.update(ssh_keys: keys)
-      redirect_to settings_path, notice: "SSH keys updated."
+      redirect_to_tab(notice: "SSH keys updated.")
     else
-      redirect_to settings_path, alert: @user.errors.full_messages.join(", ")
+      redirect_to_tab(alert: @user.errors.full_messages.join(", "))
     end
   end
 
@@ -86,9 +88,9 @@ class SettingsController < ApplicationController
       paths.each { |p| @user.persisted_paths.find_or_create_by!(path: p) }
     end
 
-    redirect_to settings_path, notice: "Persisted directories updated."
+    redirect_to_tab(notice: "Persisted directories updated.")
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to settings_path, alert: e.message
+    redirect_to_tab(alert: e.message)
   end
 
   def update_injected_files
@@ -110,15 +112,15 @@ class SettingsController < ApplicationController
       end
     end
 
-    redirect_to settings_path, notice: "Injected files updated."
+    redirect_to_tab(notice: "Injected files updated.")
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to settings_path, alert: e.message
+    redirect_to_tab(alert: e.message)
   end
 
   def delete_injected_file
     @user = Current.user
     @user.injected_files.find(params[:id]).destroy!
-    redirect_to settings_path, notice: "Injected file removed."
+    redirect_to_tab(notice: "Injected file removed.")
   end
 
   def generate_token
@@ -128,7 +130,7 @@ class SettingsController < ApplicationController
     token, raw_token = ApiToken.generate_for(@user, name: token_name)
 
     flash[:api_token] = raw_token
-    redirect_to settings_path, notice: "API token '#{token_name}' generated. Make sure to copy it now - you won't be able to see it again!"
+    redirect_to_tab(notice: "API token '#{token_name}' generated. Make sure to copy it now - you won't be able to see it again!")
   end
 
   def revoke_token
@@ -137,10 +139,18 @@ class SettingsController < ApplicationController
     token_name = token.name
     token.destroy!
 
-    redirect_to settings_path, notice: "API token '#{token_name}' revoked."
+    redirect_to_tab(notice: "API token '#{token_name}' revoked.")
   end
 
   private
+
+  # Redirect back to /settings, preserving the active tab the user was on.
+  # Tab names are allowlisted so no user-controlled fragment lands in the URL.
+  def redirect_to_tab(notice: nil, alert: nil)
+    tab = params[:tab].to_s
+    anchor = ALLOWED_TABS.include?(tab) ? tab : nil
+    redirect_to settings_path(anchor: anchor), notice: notice, alert: alert
+  end
 
   def profile_params
     params.require(:user).permit(:email_address, :full_name, :github_username, :chrome_persist_profile, :sandbox_archive_retention_days, :terminal_emulator)

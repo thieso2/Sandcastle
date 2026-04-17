@@ -1,5 +1,7 @@
-<div class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
+<div class="max-w-4xl mx-auto px-4 py-8"
+     data-controller="tabs"
+     data-tabs-default-value="profile">
+  <h1 class="text-3xl font-bold text-gray-900 mb-6">Settings</h1>
 
   <% if flash[:api_token] %>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -14,188 +16,279 @@
     </div>
   <% end %>
 
-  <%# ── Profile Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Profile</h2>
+  <%# ── Tab navigation ── %>
+  <nav class="flex gap-1 -mb-px border-b border-gray-200 mb-6 overflow-x-auto" role="tablist" aria-label="Settings sections">
+    <%
+      tabs = [
+        { id: "profile",   label: "Profile" },
+        { id: "tokens",    label: "API Tokens" },
+        { id: "sandboxes", label: "Sandboxes" },
+        { id: "network",   label: "Network" },
+        { id: "files",     label: "Files & Keys" },
+      ]
+    %>
+    <% tabs.each do |t| %>
+      <button type="button"
+              role="tab"
+              data-tabs-target="tab"
+              data-tab-id="<%= t[:id] %>"
+              data-action="tabs#select"
+              aria-selected="false"
+              class="inline-flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors whitespace-nowrap cursor-pointer">
+        <%= t[:label] %>
+      </button>
+    <% end %>
+  </nav>
 
-    <div class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-        <div class="text-sm text-gray-900 font-mono bg-gray-50 px-3 py-2 rounded border border-gray-200">
-          <%= @user.name %>
+  <%# ══════ Profile tab ══════ %>
+  <div data-tabs-target="panel" data-tab-id="profile" role="tabpanel" hidden>
+    <%# ── Profile Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Profile</h2>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+          <div class="text-sm text-gray-900 font-mono bg-gray-50 px-3 py-2 rounded border border-gray-200">
+            <%= @user.name %>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Username cannot be changed</p>
         </div>
-        <p class="text-xs text-gray-500 mt-1">Username cannot be changed</p>
+
+        <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "space-y-4" do |f| %>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <%= f.text_field :full_name, placeholder: "Your full name (used in .gitconfig)", class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <%= f.email_field :email_address, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            <% if @user.errors[:email_address].any? %>
+              <p class="text-xs text-red-600 mt-1"><%= @user.errors[:email_address].first %></p>
+            <% end %>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">GitHub Username</label>
+            <%= f.text_field :github_username, placeholder: "e.g. octocat", class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono" %>
+            <p class="text-xs text-gray-500 mt-1">Used for git configuration in sandboxes</p>
+          </div>
+
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+            Save Profile
+          </button>
+        <% end %>
       </div>
+    </div>
 
-      <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "space-y-4" do |f| %>
+    <%# ── Change Password Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
+
+      <%= form_with url: update_password_settings_path, method: :patch, class: "space-y-4" do |f| %>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-          <%= f.text_field :full_name, placeholder: "Your full name (used in .gitconfig)", class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+          <%= password_field_tag :current_password, nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-          <%= f.email_field :email_address, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-          <% if @user.errors[:email_address].any? %>
-            <p class="text-xs text-red-600 mt-1"><%= @user.errors[:email_address].first %></p>
-          <% end %>
+          <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+          <%= password_field_tag "user[password]", nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">GitHub Username</label>
-          <%= f.text_field :github_username, placeholder: "e.g. octocat", class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono" %>
-          <p class="text-xs text-gray-500 mt-1">Used for git configuration in sandboxes</p>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+          <%= password_field_tag "user[password_confirmation]", nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
         </div>
 
         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-          Save Profile
+          Change Password
         </button>
       <% end %>
     </div>
   </div>
 
-  <%# ── Change Password Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
-
-    <%= form_with url: update_password_settings_path, method: :patch, class: "space-y-4" do |f| %>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-        <%= password_field_tag :current_password, nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+  <%# ══════ API Tokens tab ══════ %>
+  <div data-tabs-target="panel" data-tab-id="tokens" role="tabpanel" hidden>
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">API Tokens</h2>
+        <button onclick="document.getElementById('new-token-form').classList.toggle('hidden')"
+                class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          New Token
+        </button>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-        <%= password_field_tag "user[password]", nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-        <%= password_field_tag "user[password_confirmation]", nil, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-      </div>
-
-      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-        Change Password
-      </button>
-    <% end %>
-  </div>
-
-  <%# ── Tailscale Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Tailscale</h2>
-
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-sm font-medium text-gray-700">Status</p>
-          <p class="text-sm text-gray-600">
-            <% case @user.tailscale_state %>
-            <% when "enabled" %>
-              <span class="inline-flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                Enabled
-              </span>
-            <% when "pending" %>
-              <span class="inline-flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
-                Pending authentication
-              </span>
-            <% else %>
-              <span class="inline-flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
-                Disabled
-              </span>
-            <% end %>
-          </p>
-        </div>
-        <% if @user.tailscale_enabled? %>
-          <%= link_to "Manage Tailscale", tailscale_path, class: "text-sm text-blue-600 hover:text-blue-700 underline" %>
+      <%# New Token Form (hidden by default) %>
+      <div id="new-token-form" class="hidden mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <%= form_with url: generate_token_settings_path, method: :post, class: "flex gap-2" do |f| %>
+          <%= text_field_tag :name, nil, placeholder: "Token name (e.g., 'laptop', 'CI/CD')",
+                class: "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          <%= button_tag "Generate", type: :submit,
+                class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap" %>
+          <button type="button"
+                  onclick="document.getElementById('new-token-form').classList.add('hidden')"
+                  class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm">
+            Cancel
+          </button>
         <% end %>
       </div>
 
-      <% if @user.tailscale_enabled? %>
-        <%= form_with url: toggle_tailscale_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
+      <% if @api_tokens.any? %>
+        <div class="space-y-3">
+          <% @api_tokens.each do |token| %>
+            <div class="flex items-start justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <p class="text-sm font-medium text-gray-900"><%= token.name %></p>
+                  <code class="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-mono">
+                    <%= token.prefix %>
+                  </code>
+                </div>
+                <p class="text-xs text-gray-500">
+                  Created <%= time_ago_in_words(token.created_at) %> ago
+                  <% if token.last_used_at %>
+                    · Last used <%= time_ago_in_words(token.last_used_at) %> ago
+                  <% else %>
+                    · Never used
+                  <% end %>
+                </p>
+              </div>
+              <%= button_to "Revoke", revoke_token_settings_path(id: token.id), method: :delete,
+                    class: "ml-3 px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs whitespace-nowrap",
+                    data: { confirm_message: "Revoke '#{token.name}'? Applications using this token will stop working." } %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="space-y-4">
+          <p class="text-sm text-gray-600">No API tokens generated yet. Create one to use the Sandcastle CLI and API.</p>
+        </div>
+      <% end %>
+
+      <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p class="text-xs text-blue-800">
+          <strong>Tip:</strong> Use your API token with the Sandcastle CLI by running <code class="bg-blue-100 px-1.5 py-0.5 rounded font-mono">sandcastle token create</code>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <%# ══════ Sandboxes tab ══════ %>
+  <div data-tabs-target="panel" data-tab-id="sandboxes" role="tabpanel" hidden>
+    <%# ── VNC Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">VNC</h2>
+
+      <div class="space-y-4">
+        <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
           <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <input type="checkbox"
-                   <%= "checked" if @user.tailscale_auto_connect %>
-                   onchange="this.form.requestSubmit()"
-                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-            Auto-connect new sandboxes to Tailscale
+            <%= f.check_box :chrome_persist_profile,
+                  onchange: "this.form.requestSubmit()",
+                  class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            Persist Chrome profile across sandbox recreations
           </label>
         <% end %>
-      <% else %>
-        <p class="text-sm text-gray-500">
-          <%= link_to "Enable Tailscale", tailscale_path, class: "text-blue-600 hover:text-blue-700 underline" %> to connect your sandboxes to your tailnet.
+        <p class="text-xs text-gray-500 ml-6">
+          When enabled, your Chrome extensions, bookmarks, and settings are saved in <code class="bg-gray-100 px-1 py-0.5 rounded font-mono">~/.config/google-chrome</code> and persist when you destroy and recreate sandboxes.
         </p>
-      <% end %>
+      </div>
     </div>
-  </div>
 
-  <%# ── VNC Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">VNC</h2>
+    <%# ── Terminal Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Terminal</h2>
 
-    <div class="space-y-4">
-      <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
-        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-          <%= f.check_box :chrome_persist_profile,
+      <div class="space-y-4">
+        <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
+          <label class="text-sm text-gray-700">Terminal emulator</label>
+          <%= f.select :terminal_emulator,
+                [["Ghostty Web", "ghostty"], ["xterm.js", "xterm"]],
+                {},
                 onchange: "this.form.requestSubmit()",
-                class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
-          Persist Chrome profile across sandbox recreations
-        </label>
-      <% end %>
-      <p class="text-xs text-gray-500 ml-6">
-        When enabled, your Chrome extensions, bookmarks, and settings are saved in <code class="bg-gray-100 px-1 py-0.5 rounded font-mono">~/.config/google-chrome</code> and persist when you destroy and recreate sandboxes.
-      </p>
+                class: "rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" %>
+        <% end %>
+        <p class="text-xs text-gray-500">
+          Choose which terminal emulator to use in the browser. <strong>Ghostty Web</strong> uses Ghostty's WASM-based parser. <strong>xterm.js</strong> is the classic JavaScript terminal.
+        </p>
+      </div>
     </div>
-  </div>
 
-  <%# ── Terminal Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Terminal</h2>
-
-    <div class="space-y-4">
-      <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
-        <label class="text-sm text-gray-700">Terminal emulator</label>
-        <%= f.select :terminal_emulator,
-              [["Ghostty Web", "ghostty"], ["xterm.js", "xterm"]],
-              {},
-              onchange: "this.form.requestSubmit()",
-              class: "rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" %>
-      <% end %>
-      <p class="text-xs text-gray-500">
-        Choose which terminal emulator to use in the browser. <strong>Ghostty Web</strong> uses Ghostty's WASM-based parser. <strong>xterm.js</strong> is the classic JavaScript terminal.
+    <%# ── Sandbox Archive Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Sandbox Archive</h2>
+      <% default_retention_days = Setting.instance.sandbox_archive_retention_days || 30 %>
+      <p class="text-sm text-gray-500 mb-4">
+        When you remove a sandbox it is archived (soft-deleted) instead of immediately purged,
+        so you can restore it if needed. Leave blank to use the system default
+        (<%= default_retention_days %> days).
+        Set to <strong>0</strong> to disable archiving (immediate purge on remove).
       </p>
+
+      <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "flex items-end gap-3" do |f| %>
+        <div>
+          <%= f.label :sandbox_archive_retention_days, "Retention period (days)", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.number_field :sandbox_archive_retention_days,
+                min: 0, max: 365,
+                placeholder: "#{default_retention_days} (system default)",
+                class: "w-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Save
+        </button>
+      <% end %>
     </div>
-  </div>
 
-  <%# ── Custom Links Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="custom-links">
-    <h2 class="text-lg font-semibold text-gray-900 mb-2">Custom Links</h2>
-    <p class="text-sm text-gray-500 mb-4">
-      Add custom links that appear on each sandbox card. Use template variables in the URL:
-      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{user}</code>,
-      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{hostname}</code>,
-      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{ssh_port}</code>,
-      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{sandbox}</code>,
-      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tailscale_ip}</code>,
-      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tmux_cmd}</code>,
-      <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tmux_cmd_encoded}</code>
-    </p>
+    <%# ── Custom Links Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6" data-controller="custom-links">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">Custom Links</h2>
+      <p class="text-sm text-gray-500 mb-4">
+        Add custom links that appear on each sandbox card. Use template variables in the URL:
+        <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{user}</code>,
+        <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{hostname}</code>,
+        <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{ssh_port}</code>,
+        <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{sandbox}</code>,
+        <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tailscale_ip}</code>,
+        <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tmux_cmd}</code>,
+        <code class="bg-gray-100 px-1 py-0.5 rounded font-mono text-xs">{tmux_cmd_encoded}</code>
+      </p>
 
-    <%= form_with url: update_custom_links_settings_path, method: :patch do |f| %>
-      <div data-custom-links-target="list" class="space-y-3 mb-4">
-        <% (@user.custom_links.presence || []).each_with_index do |link, i| %>
+      <%= form_with url: update_custom_links_settings_path, method: :patch do |f| %>
+        <div data-custom-links-target="list" class="space-y-3 mb-4">
+          <% (@user.custom_links.presence || []).each_with_index do |link, i| %>
+            <div data-custom-links-row class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div class="flex-1 min-w-0">
+                <input type="text" name="custom_links[][name]" value="<%= link["name"] %>" placeholder="Name (e.g. LaTerminal)"
+                       class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1">
+                <input type="text" name="custom_links[][url]" value="<%= link["url"] %>" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
+                       class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+              <select name="custom_links[][show_on]" class="rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
+                <% User::CUSTOM_LINK_SHOW_ON_VALUES.each do |val| %>
+                  <option value="<%= val %>" <%= "selected" if link["show_on"] == val %>><%= val.capitalize %></option>
+                <% end %>
+              </select>
+              <button type="button" data-action="custom-links#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          <% end %>
+        </div>
+
+        <template data-custom-links-target="template">
           <div data-custom-links-row class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
             <div class="flex-1 min-w-0">
-              <input type="text" name="custom_links[][name]" value="<%= link["name"] %>" placeholder="Name (e.g. LaTerminal)"
+              <input type="text" name="custom_links[][name]" value="" placeholder="Name (e.g. LaTerminal)"
                      class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1">
-              <input type="text" name="custom_links[][url]" value="<%= link["url"] %>" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
+              <input type="text" name="custom_links[][url]" value="" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
                      class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <select name="custom_links[][show_on]" class="rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
               <% User::CUSTOM_LINK_SHOW_ON_VALUES.each do |val| %>
-                <option value="<%= val %>" <%= "selected" if link["show_on"] == val %>><%= val.capitalize %></option>
+                <option value="<%= val %>"><%= val.capitalize %></option>
               <% end %>
             </select>
             <button type="button" data-action="custom-links#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
@@ -204,189 +297,209 @@
               </svg>
             </button>
           </div>
-        <% end %>
-      </div>
+        </template>
 
-      <template data-custom-links-target="template">
-        <div data-custom-links-row class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-          <div class="flex-1 min-w-0">
-            <input type="text" name="custom_links[][name]" value="" placeholder="Name (e.g. LaTerminal)"
-                   class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1">
-            <input type="text" name="custom_links[][url]" value="" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
-                   class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
-          </div>
-          <select name="custom_links[][show_on]" class="rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
-            <% User::CUSTOM_LINK_SHOW_ON_VALUES.each do |val| %>
-              <option value="<%= val %>"><%= val.capitalize %></option>
-            <% end %>
-          </select>
-          <button type="button" data-action="custom-links#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
+        <div class="flex items-center gap-3">
+          <button type="button" data-action="custom-links#add"
+                  class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
             </svg>
+            Add Link
+          </button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+            Save Links
           </button>
         </div>
-      </template>
+      <% end %>
 
-      <div class="flex items-center gap-3">
-        <button type="button" data-action="custom-links#add"
-                class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-          </svg>
-          Add Link
-        </button>
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-          Save Links
-        </button>
+      <div class="mt-4 bg-gray-50 border border-gray-200 rounded p-3 text-xs text-gray-600 space-y-1">
+        <p><strong>Example:</strong> <code class="bg-gray-100 px-1 rounded font-mono">laterminal://open/{user}@{hostname}:{ssh_port}?command={tmux_cmd_encoded}</code> — open sandbox in LaTerminal with tmux</p>
+        <p><strong>Example:</strong> <code class="bg-gray-100 px-1 rounded font-mono">ssh://{user}@{hostname}:{ssh_port}</code> — open plain SSH connection</p>
+        <p><strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd}</code></strong> expands to <code class="bg-gray-100 px-1 rounded font-mono"><%= User::TMUX_CMD %></code> (plain text). <strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd_encoded}</code></strong> is the URL-encoded version (for query parameters).</p>
+        <p><strong>Show on:</strong> controls which devices display the link — <code class="bg-gray-100 px-1 rounded font-mono">all</code>, <code class="bg-gray-100 px-1 rounded font-mono">desktop</code>, <code class="bg-gray-100 px-1 rounded font-mono">tablet</code>, or <code class="bg-gray-100 px-1 rounded font-mono">phone</code></p>
       </div>
-    <% end %>
-
-    <div class="mt-4 bg-gray-50 border border-gray-200 rounded p-3 text-xs text-gray-600 space-y-1">
-      <p><strong>Example:</strong> <code class="bg-gray-100 px-1 rounded font-mono">laterminal://open/{user}@{hostname}:{ssh_port}?command={tmux_cmd_encoded}</code> — open sandbox in LaTerminal with tmux</p>
-      <p><strong>Example:</strong> <code class="bg-gray-100 px-1 rounded font-mono">ssh://{user}@{hostname}:{ssh_port}</code> — open plain SSH connection</p>
-      <p><strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd}</code></strong> expands to <code class="bg-gray-100 px-1 rounded font-mono"><%= User::TMUX_CMD %></code> (plain text). <strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd_encoded}</code></strong> is the URL-encoded version (for query parameters).</p>
-      <p><strong>Show on:</strong> controls which devices display the link — <code class="bg-gray-100 px-1 rounded font-mono">all</code>, <code class="bg-gray-100 px-1 rounded font-mono">desktop</code>, <code class="bg-gray-100 px-1 rounded font-mono">tablet</code>, or <code class="bg-gray-100 px-1 rounded font-mono">phone</code></p>
     </div>
   </div>
 
-  <%# ── API Tokens Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">API Tokens</h2>
-      <button onclick="document.getElementById('new-token-form').classList.toggle('hidden')"
-              class="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-        New Token
-      </button>
+  <%# ══════ Network tab ══════ %>
+  <div data-tabs-target="panel" data-tab-id="network" role="tabpanel" hidden>
+    <%# ── Tailscale Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Tailscale</h2>
+
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-700">Status</p>
+            <p class="text-sm text-gray-600">
+              <% case @user.tailscale_state %>
+              <% when "enabled" %>
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                  Enabled
+                </span>
+              <% when "pending" %>
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+                  Pending authentication
+                </span>
+              <% else %>
+                <span class="inline-flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                  Disabled
+                </span>
+              <% end %>
+            </p>
+          </div>
+          <% if @user.tailscale_enabled? %>
+            <%= link_to "Manage Tailscale", tailscale_path, class: "text-sm text-blue-600 hover:text-blue-700 underline" %>
+          <% end %>
+        </div>
+
+        <% if @user.tailscale_enabled? %>
+          <%= form_with url: toggle_tailscale_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
+            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox"
+                     <%= "checked" if @user.tailscale_auto_connect %>
+                     onchange="this.form.requestSubmit()"
+                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              Auto-connect new sandboxes to Tailscale
+            </label>
+          <% end %>
+        <% else %>
+          <p class="text-sm text-gray-500">
+            <%= link_to "Enable Tailscale", tailscale_path, class: "text-blue-600 hover:text-blue-700 underline" %> to connect your sandboxes to your tailnet.
+          </p>
+        <% end %>
+      </div>
     </div>
 
-    <%# New Token Form (hidden by default) %>
-    <div id="new-token-form" class="hidden mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-      <%= form_with url: generate_token_settings_path, method: :post, class: "flex gap-2" do |f| %>
-        <%= text_field_tag :name, nil, placeholder: "Token name (e.g., 'laptop', 'CI/CD')",
-              class: "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        <%= button_tag "Generate", type: :submit,
-              class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap" %>
-        <button type="button"
-                onclick="document.getElementById('new-token-form').classList.add('hidden')"
-                class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm">
-          Cancel
+    <%# ── SMB / File Sharing Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">File Sharing (SMB)</h2>
+
+      <p class="text-sm text-gray-600 mb-4">
+        Set an SMB password to mount your sandbox's home directory or /persisted as a network drive from macOS, Windows, or Linux.
+        Enable SMB per-sandbox when creating or editing a sandbox. Requires Tailscale for access.
+      </p>
+
+      <%= form_with url: update_smb_password_settings_path, method: :patch, class: "space-y-4" do |f| %>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">SMB Password</label>
+          <%= password_field_tag "user[smb_password]", nil,
+                placeholder: @user.smb_password.present? ? "••••••••" : "Set a password for SMB access",
+                class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          <% if @user.smb_password.present? %>
+            <p class="text-xs text-green-600 mt-1">SMB password is set. Enter a new value to change it.</p>
+          <% else %>
+            <p class="text-xs text-gray-500 mt-1">No SMB password set. SMB will not start even if enabled on a sandbox.</p>
+          <% end %>
+        </div>
+
+        <div class="bg-gray-50 border border-gray-200 rounded p-3 text-xs text-gray-600 space-y-1">
+          <p><strong>macOS:</strong> <code class="bg-gray-100 px-1 rounded font-mono">smb://&lt;tailscale-ip&gt;/home</code></p>
+          <p><strong>Windows:</strong> <code class="bg-gray-100 px-1 rounded font-mono">\\&lt;tailscale-ip&gt;\home</code></p>
+          <p><strong>Linux:</strong> <code class="bg-gray-100 px-1 rounded font-mono">mount -t cifs //&lt;tailscale-ip&gt;/home /mnt -o username=&lt;you&gt;</code></p>
+        </div>
+
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Save SMB Password
         </button>
       <% end %>
     </div>
+  </div>
 
-    <% if @api_tokens.any? %>
-      <div class="space-y-3">
-        <% @api_tokens.each do |token| %>
-          <div class="flex items-start justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <p class="text-sm font-medium text-gray-900"><%= token.name %></p>
-                <code class="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-mono">
-                  <%= token.prefix %>
-                </code>
-              </div>
-              <p class="text-xs text-gray-500">
-                Created <%= time_ago_in_words(token.created_at) %> ago
-                <% if token.last_used_at %>
-                  · Last used <%= time_ago_in_words(token.last_used_at) %> ago
-                <% else %>
-                  · Never used
-                <% end %>
-              </p>
-            </div>
-            <%= button_to "Revoke", revoke_token_settings_path(id: token.id), method: :delete,
-                  class: "ml-3 px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs whitespace-nowrap",
-                  data: { confirm_message: "Revoke '#{token.name}'? Applications using this token will stop working." } %>
-          </div>
-        <% end %>
-      </div>
-    <% else %>
-      <div class="space-y-4">
-        <p class="text-sm text-gray-600">No API tokens generated yet. Create one to use the Sandcastle CLI and API.</p>
-      </div>
-    <% end %>
-
-    <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-      <p class="text-xs text-blue-800">
-        <strong>Tip:</strong> Use your API token with the Sandcastle CLI by running <code class="bg-blue-100 px-1.5 py-0.5 rounded font-mono">sandcastle token create</code>
+  <%# ══════ Files & Keys tab ══════ %>
+  <div data-tabs-target="panel" data-tab-id="files" role="tabpanel" hidden>
+    <%# ── SSH Keys Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="ssh-keys">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">SSH Keys</h2>
+      <p class="text-sm text-gray-500 mb-4">
+        Add your SSH public keys to access sandboxes via SSH. Multiple keys are supported (e.g. one per device).
       </p>
+
+      <%= form_with url: update_ssh_keys_settings_path, method: :patch do |f| %>
+        <div data-ssh-keys-target="list" class="space-y-3 mb-4">
+          <% (@user.ssh_keys.presence || []).each_with_index do |entry, i| %>
+            <div data-ssh-keys-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div class="flex items-center gap-2 mb-2">
+                <input type="text" name="ssh_keys[][name]" value="<%= entry["name"] %>" placeholder="Label (e.g. MacBook, iPad)"
+                       class="w-48 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="button" data-action="ssh-keys#remove" class="ml-auto text-red-500 hover:text-red-700 p-1" title="Remove key">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              <textarea name="ssh_keys[][key]" rows="2" placeholder="ssh-ed25519 AAAA... or ssh-rsa AAAA..."
+                        class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"><%= entry["key"] %></textarea>
+              <% if entry["key"].present? %>
+                <p class="text-xs text-gray-400 mt-1 font-mono truncate"><%= entry["key"].split(" ").first %> ...<%= entry["key"].split(" ").last(1).first&.last(12) %></p>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <template data-ssh-keys-target="template">
+          <div data-ssh-keys-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div class="flex items-center gap-2 mb-2">
+              <input type="text" name="ssh_keys[][name]" value="" placeholder="Label (e.g. MacBook, iPad)"
+                     class="w-48 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button type="button" data-action="ssh-keys#remove" class="ml-auto text-red-500 hover:text-red-700 p-1" title="Remove key">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            <textarea name="ssh_keys[][key]" rows="2" placeholder="ssh-ed25519 AAAA... or ssh-rsa AAAA..."
+                      class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+          </div>
+        </template>
+
+        <div class="flex items-center gap-3">
+          <button type="button" data-action="ssh-keys#add"
+                  class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+            </svg>
+            Add Key
+          </button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+            Save Keys
+          </button>
+        </div>
+      <% end %>
     </div>
-  </div>
 
-  <%# ── Sandbox Archive Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Sandbox Archive</h2>
-    <% default_retention_days = Setting.instance.sandbox_archive_retention_days || 30 %>
-    <p class="text-sm text-gray-500 mb-4">
-      When you remove a sandbox it is archived (soft-deleted) instead of immediately purged,
-      so you can restore it if needed. Leave blank to use the system default
-      (<%= default_retention_days %> days).
-      Set to <strong>0</strong> to disable archiving (immediate purge on remove).
-    </p>
+    <%# ── Persisted Directories Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="persisted-paths">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">Persisted Directories</h2>
+      <p class="text-sm text-gray-500 mb-4">
+        Per-user directories under <code class="bg-gray-100 px-1 rounded font-mono">$HOME</code> that survive sandbox destroy/recreate.
+        Files written inside a sandbox round-trip back to the host. Use this for OAuth credentials that the CLI rewrites
+        (e.g. <code class="bg-gray-100 px-1 rounded font-mono">.claude</code>, <code class="bg-gray-100 px-1 rounded font-mono">.codex</code>).
+      </p>
 
-    <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "flex items-end gap-3" do |f| %>
-      <div>
-        <%= f.label :sandbox_archive_retention_days, "Retention period (days)", class: "block text-sm font-medium text-gray-700 mb-1" %>
-        <%= f.number_field :sandbox_archive_retention_days,
-              min: 0, max: 365,
-              placeholder: "#{default_retention_days} (system default)",
-              class: "w-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-      </div>
-      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-        Save
-      </button>
-    <% end %>
-  </div>
+      <%= form_with url: update_persisted_paths_settings_path, method: :patch do |f| %>
+        <div data-persisted-paths-target="list" class="space-y-2 mb-4">
+          <% (@user.persisted_paths.order(:path)).each do |pp| %>
+            <div data-persisted-paths-row class="flex items-center gap-2">
+              <input type="text" name="persisted_paths[][path]" value="<%= pp.path %>"
+                     placeholder=".claude"
+                     class="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <button type="button" data-action="persisted-paths#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          <% end %>
+        </div>
 
-  <%# ── SMB / File Sharing Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">File Sharing (SMB)</h2>
-
-    <p class="text-sm text-gray-600 mb-4">
-      Set an SMB password to mount your sandbox's home directory or /persisted as a network drive from macOS, Windows, or Linux.
-      Enable SMB per-sandbox when creating or editing a sandbox. Requires Tailscale for access.
-    </p>
-
-    <%= form_with url: update_smb_password_settings_path, method: :patch, class: "space-y-4" do |f| %>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">SMB Password</label>
-        <%= password_field_tag "user[smb_password]", nil,
-              placeholder: @user.smb_password.present? ? "••••••••" : "Set a password for SMB access",
-              class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-        <% if @user.smb_password.present? %>
-          <p class="text-xs text-green-600 mt-1">SMB password is set. Enter a new value to change it.</p>
-        <% else %>
-          <p class="text-xs text-gray-500 mt-1">No SMB password set. SMB will not start even if enabled on a sandbox.</p>
-        <% end %>
-      </div>
-
-      <div class="bg-gray-50 border border-gray-200 rounded p-3 text-xs text-gray-600 space-y-1">
-        <p><strong>macOS:</strong> <code class="bg-gray-100 px-1 rounded font-mono">smb://&lt;tailscale-ip&gt;/home</code></p>
-        <p><strong>Windows:</strong> <code class="bg-gray-100 px-1 rounded font-mono">\\&lt;tailscale-ip&gt;\home</code></p>
-        <p><strong>Linux:</strong> <code class="bg-gray-100 px-1 rounded font-mono">mount -t cifs //&lt;tailscale-ip&gt;/home /mnt -o username=&lt;you&gt;</code></p>
-      </div>
-
-      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-        Save SMB Password
-      </button>
-    <% end %>
-  </div>
-
-  <%# ── Persisted Directories Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="persisted-paths">
-    <h2 class="text-lg font-semibold text-gray-900 mb-2">Persisted Directories</h2>
-    <p class="text-sm text-gray-500 mb-4">
-      Per-user directories under <code class="bg-gray-100 px-1 rounded font-mono">$HOME</code> that survive sandbox destroy/recreate.
-      Files written inside a sandbox round-trip back to the host. Use this for OAuth credentials that the CLI rewrites
-      (e.g. <code class="bg-gray-100 px-1 rounded font-mono">.claude</code>, <code class="bg-gray-100 px-1 rounded font-mono">.codex</code>).
-    </p>
-
-    <%= form_with url: update_persisted_paths_settings_path, method: :patch do |f| %>
-      <div data-persisted-paths-target="list" class="space-y-2 mb-4">
-        <% (@user.persisted_paths.order(:path)).each do |pp| %>
+        <template data-persisted-paths-target="template">
           <div data-persisted-paths-row class="flex items-center gap-2">
-            <input type="text" name="persisted_paths[][path]" value="<%= pp.path %>"
+            <input type="text" name="persisted_paths[][path]" value=""
                    placeholder=".claude"
                    class="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
             <button type="button" data-action="persisted-paths#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
@@ -395,56 +508,68 @@
               </svg>
             </button>
           </div>
-        <% end %>
-      </div>
+        </template>
 
-      <template data-persisted-paths-target="template">
-        <div data-persisted-paths-row class="flex items-center gap-2">
-          <input type="text" name="persisted_paths[][path]" value=""
-                 placeholder=".claude"
-                 class="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
-          <button type="button" data-action="persisted-paths#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
+        <div class="flex items-center gap-3">
+          <button type="button" data-action="persisted-paths#add"
+                  class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
             </svg>
+            Add Directory
+          </button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+            Save Directories
           </button>
         </div>
-      </template>
+      <% end %>
+    </div>
 
-      <div class="flex items-center gap-3">
-        <button type="button" data-action="persisted-paths#add"
-                class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-          </svg>
-          Add Directory
-        </button>
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-          Save Directories
-        </button>
-      </div>
-    <% end %>
-  </div>
+    <%# ── Injected Files Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6" data-controller="injected-files">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">Injected Files</h2>
+      <p class="text-sm text-gray-500 mb-4">
+        Files dropped into <code class="bg-gray-100 px-1 rounded font-mono">$HOME</code> on every new sandbox.
+        Stored encrypted; written via <code class="bg-gray-100 px-1 rounded font-mono">docker exec</code> after start (never appears in container env or
+        <code class="bg-gray-100 px-1 rounded font-mono">docker inspect</code>). Use for static credentials and dotfiles
+        (<code class="bg-gray-100 px-1 rounded font-mono">.npmrc</code>, <code class="bg-gray-100 px-1 rounded font-mono">.aws/credentials</code>, <code class="bg-gray-100 px-1 rounded font-mono">.config/op/config</code>).
+      </p>
 
-  <%# ── Injected Files Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="injected-files">
-    <h2 class="text-lg font-semibold text-gray-900 mb-2">Injected Files</h2>
-    <p class="text-sm text-gray-500 mb-4">
-      Files dropped into <code class="bg-gray-100 px-1 rounded font-mono">$HOME</code> on every new sandbox.
-      Stored encrypted; written via <code class="bg-gray-100 px-1 rounded font-mono">docker exec</code> after start (never appears in container env or
-      <code class="bg-gray-100 px-1 rounded font-mono">docker inspect</code>). Use for static credentials and dotfiles
-      (<code class="bg-gray-100 px-1 rounded font-mono">.npmrc</code>, <code class="bg-gray-100 px-1 rounded font-mono">.aws/credentials</code>, <code class="bg-gray-100 px-1 rounded font-mono">.config/op/config</code>).
-    </p>
+      <%= form_with url: update_injected_files_settings_path, method: :patch do |f| %>
+        <div data-injected-files-target="list" class="space-y-3 mb-4">
+          <% @user.injected_files.order(:path).each do |inj| %>
+            <div data-injected-files-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              <div class="flex items-center gap-2 mb-2">
+                <input type="text" name="injected_files[][path]" value="<%= inj.path %>"
+                       placeholder=".aws/credentials"
+                       class="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="injected_files[][mode]" value="<%= format("%o", inj.mode) %>"
+                       placeholder="600"
+                       title="Octal mode"
+                       class="w-20 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="button" data-action="injected-files#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              <textarea name="injected_files[][content]" rows="3"
+                        placeholder="<%= inj.content.present? ? "Leave blank to keep existing content unchanged" : "File contents (encrypted at rest)" %>"
+                        class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+              <% if inj.content.present? %>
+                <p class="text-xs text-gray-400 mt-1"><%= inj.content.bytesize %> bytes stored · leave content blank to keep unchanged</p>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
 
-    <%= form_with url: update_injected_files_settings_path, method: :patch do |f| %>
-      <div data-injected-files-target="list" class="space-y-3 mb-4">
-        <% @user.injected_files.order(:path).each do |inj| %>
+        <template data-injected-files-target="template">
           <div data-injected-files-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
             <div class="flex items-center gap-2 mb-2">
-              <input type="text" name="injected_files[][path]" value="<%= inj.path %>"
+              <input type="text" name="injected_files[][path]" value=""
                      placeholder=".aws/credentials"
                      class="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <input type="text" name="injected_files[][mode]" value="<%= format("%o", inj.mode) %>"
+              <input type="text" name="injected_files[][mode]" value="600"
                      placeholder="600"
                      title="Octal mode"
                      class="w-20 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -455,109 +580,24 @@
               </button>
             </div>
             <textarea name="injected_files[][content]" rows="3"
-                      placeholder="<%= inj.content.present? ? "Leave blank to keep existing content unchanged" : "File contents (encrypted at rest)" %>"
+                      placeholder="File contents (encrypted at rest)"
                       class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-            <% if inj.content.present? %>
-              <p class="text-xs text-gray-400 mt-1"><%= inj.content.bytesize %> bytes stored · leave content blank to keep unchanged</p>
-            <% end %>
           </div>
-        <% end %>
-      </div>
+        </template>
 
-      <template data-injected-files-target="template">
-        <div data-injected-files-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-          <div class="flex items-center gap-2 mb-2">
-            <input type="text" name="injected_files[][path]" value=""
-                   placeholder=".aws/credentials"
-                   class="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <input type="text" name="injected_files[][mode]" value="600"
-                   placeholder="600"
-                   title="Octal mode"
-                   class="w-20 px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button type="button" data-action="injected-files#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
-          <textarea name="injected_files[][content]" rows="3"
-                    placeholder="File contents (encrypted at rest)"
-                    class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+        <div class="flex items-center gap-3">
+          <button type="button" data-action="injected-files#add"
+                  class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+            </svg>
+            Add File
+          </button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+            Save Files
+          </button>
         </div>
-      </template>
-
-      <div class="flex items-center gap-3">
-        <button type="button" data-action="injected-files#add"
-                class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-          </svg>
-          Add File
-        </button>
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-          Save Files
-        </button>
-      </div>
-    <% end %>
-  </div>
-
-  <%# ── SSH Keys Section ── %>
-  <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="ssh-keys">
-    <h2 class="text-lg font-semibold text-gray-900 mb-2">SSH Keys</h2>
-    <p class="text-sm text-gray-500 mb-4">
-      Add your SSH public keys to access sandboxes via SSH. Multiple keys are supported (e.g. one per device).
-    </p>
-
-    <%= form_with url: update_ssh_keys_settings_path, method: :patch do |f| %>
-      <div data-ssh-keys-target="list" class="space-y-3 mb-4">
-        <% (@user.ssh_keys.presence || []).each_with_index do |entry, i| %>
-          <div data-ssh-keys-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            <div class="flex items-center gap-2 mb-2">
-              <input type="text" name="ssh_keys[][name]" value="<%= entry["name"] %>" placeholder="Label (e.g. MacBook, iPad)"
-                     class="w-48 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <button type="button" data-action="ssh-keys#remove" class="ml-auto text-red-500 hover:text-red-700 p-1" title="Remove key">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
-                </svg>
-              </button>
-            </div>
-            <textarea name="ssh_keys[][key]" rows="2" placeholder="ssh-ed25519 AAAA... or ssh-rsa AAAA..."
-                      class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"><%= entry["key"] %></textarea>
-            <% if entry["key"].present? %>
-              <p class="text-xs text-gray-400 mt-1 font-mono truncate"><%= entry["key"].split(" ").first %> ...<%= entry["key"].split(" ").last(1).first&.last(12) %></p>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-
-      <template data-ssh-keys-target="template">
-        <div data-ssh-keys-row class="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-          <div class="flex items-center gap-2 mb-2">
-            <input type="text" name="ssh_keys[][name]" value="" placeholder="Label (e.g. MacBook, iPad)"
-                   class="w-48 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <button type="button" data-action="ssh-keys#remove" class="ml-auto text-red-500 hover:text-red-700 p-1" title="Remove key">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
-          <textarea name="ssh_keys[][key]" rows="2" placeholder="ssh-ed25519 AAAA... or ssh-rsa AAAA..."
-                    class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-        </div>
-      </template>
-
-      <div class="flex items-center gap-3">
-        <button type="button" data-action="ssh-keys#add"
-                class="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-          </svg>
-          Add Key
-        </button>
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-          Save Keys
-        </button>
-      </div>
-    <% end %>
+      <% end %>
+    </div>
   </div>
 </div>
