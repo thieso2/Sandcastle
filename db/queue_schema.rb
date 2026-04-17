@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_17_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_17_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -326,6 +326,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_17_210000) do
     t.string "default_data_path"
     t.boolean "default_docker_enabled", default: true
     t.boolean "default_mount_home", default: false
+    t.boolean "default_ssh_start_tmux", default: true, null: false
     t.boolean "default_vnc_enabled", default: true
     t.string "email_address", null: false
     t.string "full_name"

@@ -53,6 +53,7 @@ module Api
         vnc_geometry: params[:vnc_geometry] || "1280x900",
         vnc_depth: params[:vnc_depth]&.to_i || 24,
         docker_enabled: params.key?(:docker_enabled) ? params[:docker_enabled] : current_user.default_docker_enabled,
+        ssh_start_tmux: params.key?(:ssh_start_tmux) ? params[:ssh_start_tmux] : nil,
         temporary: params[:temporary] || false,
         smb_enabled: params[:smb_enabled] || false
       )
@@ -273,6 +274,7 @@ module Api
         vnc_depth: sandbox.vnc_depth,
         docker_enabled: sandbox.docker_enabled,
         smb_enabled: sandbox.smb_enabled,
+        ssh_start_tmux: sandbox.effective_ssh_start_tmux?,
         routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
         image_version: sandbox.image_version,
         image_built_at: sandbox.image_built_at,

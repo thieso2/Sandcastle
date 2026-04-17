@@ -836,6 +836,7 @@ class SandboxManager
     env << "SANDCASTLE_HOME_PERSISTED=#{sandbox.mount_home ? '1' : '0'}"
     env << "SANDCASTLE_DATA_PERSISTED=#{sandbox.data_path.present? ? '1' : '0'}"
     env << "SANDCASTLE_DATA_PATH=#{sandbox.data_path}" if sandbox.data_path.present?
+    env << "SANDCASTLE_SSH_START_TMUX=#{sandbox.effective_ssh_start_tmux? ? '1' : '0'}"
     env
   end
 

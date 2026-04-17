@@ -125,6 +125,15 @@
       </label>
 
       <label class="flex items-start gap-3 cursor-pointer">
+        <%= form.check_box :ssh_start_tmux, checked: @defaults.default_ssh_start_tmux,
+              class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+        <div class="flex-1">
+          <div class="text-sm font-medium text-gray-900">Start tmux on SSH login</div>
+          <p class="text-xs text-gray-500">Automatically attach to a shared tmux session when you SSH in</p>
+        </div>
+      </label>
+
+      <label class="flex items-start gap-3 cursor-pointer">
         <%= form.check_box :vnc_enabled, checked: @defaults.default_vnc_enabled,
               id: "sandbox_vnc_enabled",
               class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>

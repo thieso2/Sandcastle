@@ -91,6 +91,31 @@ fi
 mkdir -p /var/sandcastle
 chmod 755 /var/sandcastle
 
+# Manage the tmux auto-attach block in ~/.bashrc. Runs every container
+# start so toggling the setting applies on next sandbox launch. Uses
+# fenced markers so we can reliably replace/remove just our block without
+# disturbing user edits elsewhere in .bashrc.
+BASHRC="/home/$USERNAME/.bashrc"
+BEGIN_MARK="# >>> sandcastle ssh tmux auto-attach >>>"
+END_MARK="# <<< sandcastle ssh tmux auto-attach <<<"
+if [ -f "$BASHRC" ] || [ -f /etc/skel/.bashrc ]; then
+    [ -f "$BASHRC" ] || cp /etc/skel/.bashrc "$BASHRC" 2>/dev/null || touch "$BASHRC"
+    # Strip any previous block.
+    sed -i "/^${BEGIN_MARK}$/,/^${END_MARK}$/d" "$BASHRC" 2>/dev/null || true
+    if [ "${SANDCASTLE_SSH_START_TMUX:-1}" = "1" ]; then
+        cat >> "$BASHRC" <<'TMUX_EOF'
+# >>> sandcastle ssh tmux auto-attach >>>
+# Auto-attach to a shared tmux session for interactive SSH logins.
+# Toggle via the sandbox's "Start tmux on SSH" setting.
+if [ -z "$TMUX" ] && [ -n "$SSH_CONNECTION" ] && [[ $- == *i* ]] && command -v tmux >/dev/null 2>&1; then
+    exec tmux new-session -A -s main
+fi
+# <<< sandcastle ssh tmux auto-attach <<<
+TMUX_EOF
+    fi
+    chown "$USERNAME:$USERNAME" "$BASHRC" 2>/dev/null || true
+fi
+
 # Generate SSH host keys if missing
 ssh-keygen -A
 

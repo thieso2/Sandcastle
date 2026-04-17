@@ -47,6 +47,13 @@ class Sandbox < ApplicationRecord
     smb_enabled
   end
 
+  # Whether SSH logins should auto-attach to a tmux session. Per-sandbox
+  # override (nullable) wins; otherwise falls back to the user's default.
+  def effective_ssh_start_tmux?
+    return ssh_start_tmux unless ssh_start_tmux.nil?
+    user.default_ssh_start_tmux?
+  end
+
   # Job lifecycle management
   def job_in_progress?
     job_status.present?

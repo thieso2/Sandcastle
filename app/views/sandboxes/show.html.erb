@@ -40,21 +40,13 @@
   <div class="bg-white rounded-lg border border-gray-200 px-5 py-4">
     <div class="flex items-center gap-2 flex-wrap">
       <% if @sandbox.status == "running" %>
-        <%= button_to terminal_sandbox_path(@sandbox, type: "tmux"), method: :post,
+        <%= button_to terminal_sandbox_path(@sandbox), method: :post,
               form: { target: "_blank" },
               class: "px-3 py-1.5 bg-gray-700 text-white text-sm rounded hover:bg-gray-800 transition-colors inline-flex items-center gap-1.5" do %>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
             <path fill-rule="evenodd" d="M3.25 3A2.25 2.25 0 0 0 1 5.25v9.5A2.25 2.25 0 0 0 3.25 17h13.5A2.25 2.25 0 0 0 19 14.75v-9.5A2.25 2.25 0 0 0 16.75 3H3.25Zm.943 8.752a.75.75 0 0 1 .055-1.06L6.128 9l-1.88-1.693a.75.75 0 1 1 1.004-1.114l2.5 2.25a.75.75 0 0 1 0 1.114l-2.5 2.25a.75.75 0 0 1-1.06-.055ZM9.75 10.25a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z" clip-rule="evenodd" />
           </svg>
-          tmux
-        <% end %>
-        <%= button_to terminal_sandbox_path(@sandbox, type: "shell"), method: :post,
-              form: { target: "_blank" },
-              class: "px-3 py-1.5 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors inline-flex items-center gap-1.5" do %>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path fill-rule="evenodd" d="M3.25 3A2.25 2.25 0 0 0 1 5.25v9.5A2.25 2.25 0 0 0 3.25 17h13.5A2.25 2.25 0 0 0 19 14.75v-9.5A2.25 2.25 0 0 0 16.75 3H3.25Zm.943 8.752a.75.75 0 0 1 .055-1.06L6.128 9l-1.88-1.693a.75.75 0 1 1 1.004-1.114l2.5 2.25a.75.75 0 0 1 0 1.114l-2.5 2.25a.75.75 0 0 1-1.06-.055ZM9.75 10.25a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z" clip-rule="evenodd" />
-          </svg>
-          shell
+          Terminal
         <% end %>
         <%= button_to vnc_sandbox_path(@sandbox), method: :post,
               form: { target: "_blank" },
@@ -245,6 +237,28 @@
         <% end %>
       <% else %>
         <p class="text-xs text-gray-400">Start the sandbox to add routes.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Settings %>
+  <div class="bg-white rounded-lg border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-base font-semibold text-gray-900">Settings</h2>
+    </div>
+    <div class="px-6 py-4">
+      <%= form_with model: @sandbox, class: "space-y-3" do |f| %>
+        <label class="flex items-start gap-3 cursor-pointer">
+          <%= f.check_box :ssh_start_tmux,
+                { checked: @sandbox.effective_ssh_start_tmux?,
+                  onchange: "this.form.requestSubmit()",
+                  class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" },
+                "1", "0" %>
+          <div class="flex-1">
+            <div class="text-sm font-medium text-gray-900">Start tmux on SSH login</div>
+            <p class="text-xs text-gray-500">Automatically attach to a shared tmux session when you SSH in. Takes effect on next sandbox start.</p>
+          </div>
+        </label>
       <% end %>
     </div>
   </div>

@@ -211,6 +211,14 @@
         </div>
 
         <div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <%= f.check_box :default_ssh_start_tmux, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            Start tmux on SSH login
+          </label>
+          <p class="mt-1 text-xs text-gray-500 ml-6">When SSHing in, automatically attach to a shared <code class="bg-gray-100 px-1 rounded font-mono">tmux</code> session so your work survives disconnects.</p>
+        </div>
+
+        <div>
           <%= f.label :default_data_path, "Default data path", class: "block text-sm font-medium text-gray-700 mb-1" %>
           <%= f.text_field :default_data_path,
                 placeholder: "e.g., . (all user data) or projects",

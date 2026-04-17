@@ -17,8 +17,9 @@ class SandboxesController < ApplicationController
   end
 
   def update
-    if @sandbox.update(params.require(:sandbox).permit(:name))
-      redirect_to @sandbox, notice: "Sandbox renamed to #{@sandbox.name}."
+    if @sandbox.update(params.require(:sandbox).permit(:name, :ssh_start_tmux))
+      notice = params[:sandbox][:ssh_start_tmux].nil? ? "Sandbox renamed to #{@sandbox.name}." : "Sandbox settings updated. Takes effect on next sandbox start."
+      redirect_to @sandbox, notice: notice
     else
       @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
                              .select { |s| s[:source_sandbox] == @sandbox.name }
@@ -56,6 +57,7 @@ class SandboxesController < ApplicationController
       vnc_depth: Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24,
       docker_enabled: params[:docker_enabled] != "0",
       smb_enabled: params[:smb_enabled] == "1",
+      ssh_start_tmux: params[:ssh_start_tmux] == "1",
       temporary: false
     )
 
