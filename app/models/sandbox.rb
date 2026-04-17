@@ -65,7 +65,18 @@ class Sandbox < ApplicationRecord
   end
 
   def fail_job(error_message)
-    update!(job_status: nil, job_error: error_message, job_started_at: nil)
+    # Bypass validations — this runs inside a job's rescue, and if the
+    # underlying failure was itself a validation error, update! would
+    # re-raise and leave job_status stuck forever. update_columns also
+    # skips callbacks, which is the right behavior here (no broadcast
+    # for "we failed to record a failure").
+    update_columns(
+      job_status: nil,
+      job_error: error_message,
+      job_started_at: nil,
+      updated_at: Time.current
+    )
+    broadcast_replace_to_dashboard
   end
 
   private
@@ -87,9 +98,30 @@ class Sandbox < ApplicationRecord
   end
 
   def broadcast_replace_to_dashboard
-    # If sandbox is destroyed or archived, remove it from the active dashboard
-    if status.in?(%w[destroyed archived])
+    prev_status = status_previously_was
+
+    if status == "destroyed"
+      # Purge from wherever the row lives (active or archived list).
       broadcast_remove_to([ user, "dashboard" ], target: dom_id(self))
+      broadcast_remove_to([ user, "dashboard" ], target: "#{dom_id(self)}-archived")
+    elsif status == "archived" && prev_status != "archived"
+      # Active → archived: move the row between lists live.
+      broadcast_remove_to([ user, "dashboard" ], target: dom_id(self))
+      broadcast_append_to(
+        [ user, "dashboard" ],
+        partial: "dashboard/archived_sandbox",
+        locals: { sandbox: self },
+        target: "archived-sandboxes"
+      )
+    elsif prev_status == "archived" && !status.in?(%w[destroyed archived])
+      # Archived → active (restore): move back to active list.
+      broadcast_remove_to([ user, "dashboard" ], target: "#{dom_id(self)}-archived")
+      broadcast_prepend_to(
+        [ user, "dashboard" ],
+        partial: "dashboard/sandbox",
+        locals: { sandbox: self },
+        target: "sandboxes"
+      )
     else
       broadcast_replace_to(
         [ user, "dashboard" ],
@@ -104,6 +136,7 @@ class Sandbox < ApplicationRecord
 
   def broadcast_remove_from_dashboard
     broadcast_remove_to([ user, "dashboard" ], target: dom_id(self))
+    broadcast_remove_to([ user, "dashboard" ], target: "#{dom_id(self)}-archived")
   rescue => e
     Rails.logger.warn("Sandbox#broadcast_remove: #{e.message}")
   end

@@ -253,26 +253,28 @@
       <% end %>
     </div>
   </div>
-</div>
 
-<%# Per-card snapshot modal %>
-<div id="snap-modal-<%= sandbox.id %>" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50" onclick="if(event.target===this)this.classList.add('hidden')">
-  <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
-    <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="text-base font-semibold text-gray-900">Snapshot — <%= sandbox.name %></h3>
-      <button onclick="document.getElementById('snap-modal-<%= sandbox.id %>').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
-    </div>
-    <%= form_with url: snapshot_sandbox_path(sandbox), method: :post, class: "px-5 py-4 space-y-3" do |f| %>
-      <%= f.text_field :name,
-            required: true,
-            id: "snap-name-#{sandbox.id}",
-            pattern: "[a-z][a-z0-9_\\-]*",
-            class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono" %>
-      <div class="flex items-center justify-end gap-3">
-        <button type="button" onclick="document.getElementById('snap-modal-<%= sandbox.id %>').classList.add('hidden')"
-                class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900">Cancel</button>
-        <%= f.submit "Create Snapshot", class: "px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer" %>
+  <%# Per-card snapshot modal — must live INSIDE the dom_id'd wrapper so
+      Turbo Stream `replace` swaps it atomically with the card. Otherwise
+      each refresh duplicates the modal in the parent list. %>
+  <div id="snap-modal-<%= sandbox.id %>" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
+      <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+        <h3 class="text-base font-semibold text-gray-900">Snapshot — <%= sandbox.name %></h3>
+        <button onclick="document.getElementById('snap-modal-<%= sandbox.id %>').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
       </div>
-    <% end %>
+      <%= form_with url: snapshot_sandbox_path(sandbox), method: :post, class: "px-5 py-4 space-y-3" do |f| %>
+        <%= f.text_field :name,
+              required: true,
+              id: "snap-name-#{sandbox.id}",
+              pattern: "[a-z][a-z0-9_\\-]*",
+              class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono" %>
+        <div class="flex items-center justify-end gap-3">
+          <button type="button" onclick="document.getElementById('snap-modal-<%= sandbox.id %>').classList.add('hidden')"
+                  class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900">Cancel</button>
+          <%= f.submit "Create Snapshot", class: "px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 cursor-pointer" %>
+        </div>
+      <% end %>
+    </div>
   </div>
 </div>

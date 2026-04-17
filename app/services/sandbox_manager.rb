@@ -221,10 +221,13 @@ class SandboxManager
     info = fetch_image_info(sandbox.image)
     sandbox.update!(image_id: info[:image_id], image_built_at: info[:image_built_at], image_version: info[:image_version])
 
-    create_container_and_start(sandbox: sandbox, user: user)
-    # Strip the timestamp prefix added during archival (e.g. "20260307123456-mybox" → "mybox")
+    # Strip the archival timestamp prefix (e.g. "20260307123456-mybox" → "mybox")
+    # BEFORE status transitions out of "archived", otherwise the name format
+    # validator runs against the prefixed name and fails.
     original_name = sandbox.name.sub(/\A\d{14}-/, "")
     sandbox.update!(archived_at: nil, name: original_name)
+
+    create_container_and_start(sandbox: sandbox, user: user)
 
     if sandbox.tailscale? && user.tailscale_enabled?
       TailscaleManager.new.connect_sandbox(sandbox: sandbox)

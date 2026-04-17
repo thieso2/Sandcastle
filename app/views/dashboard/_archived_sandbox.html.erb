@@ -11,8 +11,10 @@
   </div>
 
   <div class="flex items-center gap-3 shrink-0 text-xs text-gray-400">
+    <%# Fallback to sandbox.user so this partial renders in a job/broadcast
+        context where Current.user is not set. %>
     <% if sandbox.archived_at %>
-      <% retention = Current.user.effective_archive_retention_days %>
+      <% retention = (Current.user || sandbox.user).effective_archive_retention_days %>
       <% expires_at = sandbox.archived_at + retention.days %>
       <span>Expires <%= time_ago_in_words(expires_at) %> <%= expires_at > Time.current ? "from now" : "ago" %></span>
     <% end %>
