@@ -4,7 +4,8 @@
     function copyClaudeAnalysis(event) {
       const button = event.currentTarget;
       const text = button.getAttribute('data-claude-text');
-      navigator.clipboard.writeText(text).then(() => {
+
+      const showCopied = () => {
         const buttonText = document.getElementById('copy-button-text');
         const originalText = buttonText.textContent;
         buttonText.textContent = 'Copied!';
@@ -15,7 +16,30 @@
           button.classList.remove('text-green-600', 'border-green-600', 'hover:ring-green-200');
           button.classList.add('text-purple-600', 'border-purple-600', 'hover:ring-purple-200');
         }, 2000);
-      });
+      };
+
+      // navigator.clipboard is only defined in secure contexts (HTTPS or localhost).
+      // Fall back to execCommand('copy') for plain-HTTP dev access over LAN / Tailscale.
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(showCopied).catch(() => fallbackCopy(text, showCopied));
+      } else {
+        fallbackCopy(text, showCopied);
+      }
+    }
+
+    function fallbackCopy(text, onSuccess) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'absolute';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        if (document.execCommand('copy')) onSuccess();
+      } finally {
+        document.body.removeChild(ta);
+      }
     }
   </script>
 <% end %>
