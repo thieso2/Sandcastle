@@ -153,6 +153,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 # CLAUDE_INSTALL_DIR is intentionally not set.
 RUN echo "MISE_DATA_DIR=/usr/local/share/mise" >> /etc/environment \
     && echo "MISE_CONFIG_DIR=/usr/local/etc/mise" >> /etc/environment \
+    && echo "CLAUDE_CODE_NO_FLICKER=1" >> /etc/environment \
     && echo 'eval "$(mise activate bash)"' >> /etc/bash.bashrc \
     && echo "alias yolo='claude --dangerously-skip-permissions'" >> /etc/bash.bashrc \
     && echo "alias ycodex='codex --dangerously-bypass-approvals-and-sandbox'" >> /etc/bash.bashrc \
