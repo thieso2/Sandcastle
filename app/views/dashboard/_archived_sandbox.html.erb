@@ -19,8 +19,13 @@
 
     <%= button_to "Restore", archive_restore_sandbox_path(sandbox), method: :post,
           class: "px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" %>
-    <%= button_to "Really delete", purge_sandbox_path(sandbox), method: :delete,
-          class: "px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
-          data: { turbo_confirm: "This will permanently delete the sandbox and its data. Are you sure?" } %>
+    <div data-controller="inline-confirm" class="inline-block">
+      <%= button_to "Really delete", purge_sandbox_path(sandbox), method: :delete,
+            class: "px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors",
+            data: {
+              action: "click->inline-confirm#confirm",
+              confirm_message: "Permanently delete? This cannot be undone."
+            } %>
+    </div>
   </div>
 </div>
