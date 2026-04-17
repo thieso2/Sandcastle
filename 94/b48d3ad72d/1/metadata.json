@@ -1,0 +1,67 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "94b48d3ad72d",
+  "session_id": "fa76f0f8-f05f-4742-8f9f-801c9e2fdc12",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-17T17:51:19.62022478Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/dashboard/index.html.erb",
+    "app/views/layouts/application.html.erb",
+    "app/views/sandboxes/show.html.erb",
+    "app/views/settings/show.html.erb",
+    "app/views/shared/_navbar.html.erb"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "dd922e19e5c4",
+  "token_usage": {
+    "input_tokens": 212,
+    "cache_creation_tokens": 264231,
+    "cache_read_tokens": 18229841,
+    "output_tokens": 74798,
+    "api_call_count": 147
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-17T17:51:19.568214809Z",
+    "agent_lines": 217,
+    "agent_removed": 154,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 217,
+    "total_lines_changed": 371,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 473,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".gemini/agents/entire-search.md": 28,
+        ".gemini/settings.json": 141,
+        ".github/hooks/entire.json": 61,
+        ".opencode/plugins/entire.ts": 177
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 690,
+      "agent_lines_removed": 154
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+lets update the layout to work well on an iphone screen size and an ipad. explore and examine. use chrome to visualize and test the layout!
