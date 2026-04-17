@@ -166,7 +166,13 @@ if command -v dockerd &>/dev/null && [ "$DOCKER_ENABLED" = "1" ]; then
             # sysbox uid offset within ~1 s of container creation, making it
             # accessible to container root. Docker 29+ requires chmod on the
             # data-root; that succeeds once the backing dir is correctly owned.
-            dockerd --storage-driver=overlay2 --mtu="$MTU" &>/var/log/dockerd.log &
+            #
+            # --userland-proxy=false: use hairpin NAT via iptables instead of
+            # spawning a docker-proxy process per published port per address
+            # family. Each proxy is ~5 MB RSS; a nested sandbox that publishes
+            # a large port range (e.g. -p 3000-5000) otherwise accumulates
+            # hundreds of docker-proxy processes and ~1 GB of RSS overhead.
+            dockerd --storage-driver=overlay2 --mtu="$MTU" --userland-proxy=false &>/var/log/dockerd.log &
             _wait_for_socket
         }
 

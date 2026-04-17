@@ -25,7 +25,9 @@ fi
 MTU=$(ip link show eth0 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo 1500)
 echo "Starting dockerd (MTU=${MTU})..."
 # Run under sudo bash -c so the log redirect runs as root.
-sudo bash -c "dockerd --storage-driver=overlay2 --mtu=${MTU} &>/var/log/dockerd.log &"
+# --userland-proxy=false: avoid one docker-proxy process per published port
+# (see entrypoint.sh for the full rationale).
+sudo bash -c "dockerd --storage-driver=overlay2 --mtu=${MTU} --userland-proxy=false &>/var/log/dockerd.log &"
 
 echo -n "Waiting for Docker socket"
 for _i in $(seq 20); do
