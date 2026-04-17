@@ -64,6 +64,7 @@ services:
       SANDCASTLE_TCP_PORT_MIN: ${SANDCASTLE_TCP_PORT_MIN:-3000}
       SANDCASTLE_TCP_PORT_MAX: ${SANDCASTLE_TCP_PORT_MAX:-3099}
       SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
+      SANDCASTLE_DOCKER_DNS: ${SANDCASTLE_DOCKER_DNS:-}
     restart: unless-stopped
     depends_on:
       migrate:
@@ -99,6 +100,7 @@ services:
       SANDCASTLE_TCP_PORT_MIN: ${SANDCASTLE_TCP_PORT_MIN:-3000}
       SANDCASTLE_TCP_PORT_MAX: ${SANDCASTLE_TCP_PORT_MAX:-3099}
       SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
+      SANDCASTLE_DOCKER_DNS: ${SANDCASTLE_DOCKER_DNS:-}
     restart: unless-stopped
     depends_on:
       migrate:

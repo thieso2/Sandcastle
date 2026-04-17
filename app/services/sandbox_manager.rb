@@ -63,8 +63,9 @@ class SandboxManager
         "Runtime" => container_runtime,
         "NetworkMode" => NETWORK_NAME,
         "Binds" => volume_binds(user, sandbox),
+        "Dns" => docker_dns_servers,
         "RestartPolicy" => { "Name" => "unless-stopped" }
-      },
+      }.compact,
       "NetworkingConfig" => {
         "EndpointsConfig" => { NETWORK_NAME => {} }
       }
@@ -851,6 +852,18 @@ class SandboxManager
         "runc"
       end
     end
+  end
+
+  # Resolvers injected into the sandbox's /etc/resolv.conf. The sandbox's
+  # inner dockerd inherits these, so nested `docker run` containers get
+  # the same list. Required on hosts (e.g. Hetzner) that block outbound
+  # UDP/53 to public resolvers — without it the inner dockerd falls back
+  # to 8.8.8.8/8.8.4.4 and nested DNS silently times out.
+  def docker_dns_servers
+    raw = ENV["SANDCASTLE_DOCKER_DNS"].to_s.strip
+    return nil if raw.empty?
+    servers = raw.split(",").map(&:strip).reject(&:empty?)
+    servers.empty? ? nil : servers
   end
 
   # mkdir_p with self-healing: if EACCES, fix the parent dir's ownership
