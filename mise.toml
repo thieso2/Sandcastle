@@ -13,16 +13,55 @@ run = """
 #!/usr/bin/env bash
 set -euo pipefail
 
+# External bridge network shared with sandbox/WeTTY/Tailscale containers
+if ! docker network inspect sandcastle-web >/dev/null 2>&1; then
+  echo "Creating sandcastle-web network..."
+  docker network create sandcastle-web
+fi
+
+# Detect Docker socket GID so the web/worker containers can talk to dockerd
+if [ -z "${DOCKER_GID:-}" ]; then
+  if [ "$(uname)" = "Darwin" ]; then
+    DOCKER_GID=$(stat -f '%g' /var/run/docker.sock 2>/dev/null || echo 0)
+  else
+    DOCKER_GID=$(stat -c '%g' /var/run/docker.sock 2>/dev/null || echo 0)
+  fi
+  export DOCKER_GID
+fi
+
+# Default host for Traefik routing; override with DEV_HOST=foo.local
+export DEV_HOST="${DEV_HOST:-localhost}"
+
+# Pick a UID/GID for the in-container sandcastle user. Default to the host
+# user's IDs so bind-mounted source files stay owned by you on disk. If the
+# outer environment uses a restricted user namespace (e.g. Sysbox), the
+# production default of 220568 would exceed the range and fail with EINVAL
+# on chown/setgroups — the host UID is always within range.
+if [ -z "${SANDCASTLE_UID:-}" ]; then
+  if [ -r /proc/self/uid_map ]; then
+    range=$(awk 'END{print $3}' /proc/self/uid_map)
+    if [ -n "$range" ] && [ "$range" -lt 220569 ]; then
+      echo "Detected restricted userns (range=$range); using host UID/GID for sandcastle user."
+      SANDCASTLE_UID=$(id -u)
+      SANDCASTLE_GID=$(id -g)
+    fi
+  fi
+fi
+export SANDCASTLE_UID="${SANDCASTLE_UID:-220568}"
+export SANDCASTLE_GID="${SANDCASTLE_GID:-220568}"
+
 echo "Starting development environment with live reload..."
+echo "  DEV_HOST=${DEV_HOST}  DOCKER_GID=${DOCKER_GID}  SANDCASTLE_UID=${SANDCASTLE_UID}"
 docker compose -f docker-compose.dev.yml up --build
 
 echo ""
 echo "Development server running at:"
-echo "  - https://localhost:8443 (via Traefik)"
-echo "  - http://localhost:8080 (via Traefik)"
+echo "  - https://${DEV_HOST}:8443 (via Traefik)"
+echo "  - http://${DEV_HOST}:8080 (via Traefik)"
 echo ""
-echo "Changes to Ruby/ERB files will reload automatically"
-echo "Tailwind CSS compiles on file changes"
+echo "Changes to Ruby/ERB files reload automatically."
+echo "Tailwind CSS recompiles on file changes."
+echo "If reloads don't fire on macOS/Windows, re-run with RAILS_FILE_WATCHER=polling."
 echo ""
 echo "Logs: docker compose -f docker-compose.dev.yml logs -f"
 """

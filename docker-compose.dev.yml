@@ -43,12 +43,12 @@ services:
         http:
           routers:
             rails-http:
-              rule: "Host(`${DEV_HOST}`)"
+              rule: "PathPrefix(`/`)"
               service: rails
               entryPoints:
                 - web
             rails-https:
-              rule: "Host(`${DEV_HOST}`)"
+              rule: "PathPrefix(`/`)"
               service: rails
               entryPoints:
                 - websecure
@@ -71,7 +71,7 @@ services:
               keyFile: /certs/key.pem
         EOFTLS
         fi
-        chown -R 220568:220568 /data
+        chown -R ${SANDCASTLE_UID:-220568}:${SANDCASTLE_GID:-220568} /data
 
   postgres:
     image: postgres:18
@@ -95,7 +95,7 @@ services:
     image: busybox
     volumes:
       - sandcastle-data:/data
-    command: sh -c "mkdir -p /data/users /data/sandboxes && chown -R 220568:220568 /data"
+    command: sh -c "mkdir -p /data/users /data/sandboxes && chown -R ${SANDCASTLE_UID:-220568}:${SANDCASTLE_GID:-220568} /data"
 
   web:
     image: sandcastle:dev
@@ -107,6 +107,8 @@ services:
         BUILD_GIT_SHA: ""
         BUILD_GIT_DIRTY: ""
         BUILD_DATE: ""
+        SANDCASTLE_UID: ${SANDCASTLE_UID:-220568}
+        SANDCASTLE_GID: ${SANDCASTLE_GID:-220568}
     container_name: sandcastle-web
     group_add:
       - "${DOCKER_GID:-0}"
@@ -131,18 +133,22 @@ services:
       PORT: 80
       BINDING: 0.0.0.0
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: ${DEV_HOST}
+      SANDCASTLE_HOST: ${DEV_HOST:-localhost}
+      SANDCASTLE_OPEN_ROUTING: "true"
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       SANDCASTLE_TLS_CERT_DIR: /certs
-      SANDCASTLE_TERMINAL_URL: https://${DEV_HOST}:8443
-      SANDCASTLE_VNC_URL: https://${DEV_HOST}:8443
+      SANDCASTLE_TERMINAL_URL: https://${DEV_HOST:-localhost}:8443
+      SANDCASTLE_VNC_URL: https://${DEV_HOST:-localhost}:8443
       SANDCASTLE_TRAEFIK_CONFIG: /data/traefik/traefik.yml
       SANDCASTLE_TCP_PORT_MIN: "3000"
       SANDCASTLE_TCP_PORT_MAX: "3099"
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: ${DB_PASSWORD:-sandcastle}
+      # Set RAILS_FILE_WATCHER=polling on macOS/Windows Docker Desktop if reloads
+      # don't fire — inotify doesn't cross the host→container FS boundary there.
+      RAILS_FILE_WATCHER: ${RAILS_FILE_WATCHER:-}
     restart: unless-stopped
     command: ./bin/dev
     depends_on:
@@ -163,6 +169,8 @@ services:
         BUILD_GIT_SHA: ""
         BUILD_GIT_DIRTY: ""
         BUILD_DATE: ""
+        SANDCASTLE_UID: ${SANDCASTLE_UID:-220568}
+        SANDCASTLE_GID: ${SANDCASTLE_GID:-220568}
     container_name: sandcastle-worker
     group_add:
       - "${DOCKER_GID:-0}"
@@ -183,7 +191,7 @@ services:
     environment:
       RAILS_ENV: development
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
-      SANDCASTLE_HOST: ${DEV_HOST}
+      SANDCASTLE_HOST: ${DEV_HOST:-localhost}
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: selfsigned
       SANDCASTLE_TLS_CERT_DIR: /certs
@@ -206,6 +214,9 @@ services:
     build:
       context: .
       target: development
+      args:
+        SANDCASTLE_UID: ${SANDCASTLE_UID:-220568}
+        SANDCASTLE_GID: ${SANDCASTLE_GID:-220568}
     volumes:
       - .:/rails
       - bundle-data:/usr/local/bundle

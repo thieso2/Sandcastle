@@ -102,8 +102,14 @@ class RouteManager
     alt_hostnames = ENV["SANDCASTLE_ALT_HOSTNAMES"].to_s.split(",").map(&:strip).reject(&:empty?)
     hosts += alt_hostnames
 
-    host_rules = hosts.map { |h| "`#{h}`" }.join(", ")
-    rule = "Host(#{host_rules})"
+    # Dev escape hatch: accept requests for any hostname (e.g. a Tailscale IP)
+    # so developers don't have to enumerate every address they'll hit the box on.
+    rule =
+      if ActiveModel::Type::Boolean.new.cast(ENV["SANDCASTLE_OPEN_ROUTING"])
+        "PathPrefix(`/`)"
+      else
+        "Host(#{hosts.map { |h| "`#{h}`" }.join(", ")})"
+      end
 
     config = {
       "http" => {

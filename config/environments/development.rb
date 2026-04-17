@@ -6,6 +6,12 @@ Rails.application.configure do
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
 
+  # Force polling file watcher when running under Docker bind mounts on macOS/Windows,
+  # where inotify events don't propagate from the host FS into the container.
+  if ENV["RAILS_FILE_WATCHER"] == "polling"
+    config.file_watcher = ActiveSupport::FileUpdateChecker
+  end
+
   # Do not eager load code on boot.
   config.eager_load = false
 

@@ -58,6 +58,13 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails novnc:download
 # ── Development stage for live source mounting ───────────────────────────────
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS development
 
+# UID/GID for the sandcastle user. Override via build args so dev containers
+# running under restricted user namespaces (e.g. Sysbox) can pick a UID that
+# fits their range, and so bind-mounted source files stay owned by the host
+# user on disk.
+ARG SANDCASTLE_UID=220568
+ARG SANDCASTLE_GID=220568
+
 WORKDIR /rails
 
 # Install development dependencies
@@ -85,8 +92,8 @@ RUN install -m 0755 -d /etc/apt/keyrings && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Create user early
-RUN groupadd --system --gid 220568 sandcastle && \
-    useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/bash && \
+RUN groupadd --system --gid ${SANDCASTLE_GID} sandcastle && \
+    useradd sandcastle --uid ${SANDCASTLE_UID} --gid ${SANDCASTLE_GID} --create-home --shell /bin/bash && \
     groupadd --system docker && \
     usermod -aG docker sandcastle
 
@@ -107,7 +114,7 @@ RUN bundle install
 WORKDIR /rails
 
 # Run as sandcastle user
-USER 220568:220568
+USER ${SANDCASTLE_UID}:${SANDCASTLE_GID}
 
 # Entrypoint for db readiness
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
