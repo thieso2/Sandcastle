@@ -6,7 +6,7 @@ class SandboxesController < ApplicationController
     authorize Sandbox
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     @btrfs_available = BtrfsHelper.btrfs?
-    @defaults = Setting.instance
+    @defaults = Current.user
   end
 
   def show

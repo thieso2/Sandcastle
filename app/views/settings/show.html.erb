@@ -177,6 +177,53 @@
 
   <%# ══════ Sandboxes tab ══════ %>
   <div data-tabs-target="panel" data-tab-id="sandboxes" role="tabpanel" hidden>
+    <%# ── Sandbox Defaults Section ── %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Sandbox Defaults</h2>
+      <p class="text-sm text-gray-500 mb-4">
+        Pre-checked options on the "Create Sandcastle" form. You can still
+        override any of these when creating an individual sandbox.
+      </p>
+
+      <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "space-y-4" do |f| %>
+        <div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <%= f.check_box :default_vnc_enabled, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            Enable VNC display server
+          </label>
+          <p class="mt-1 text-xs text-gray-500 ml-6">Start a virtual display (Xvnc) for GUI apps and browser access.</p>
+        </div>
+
+        <div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <%= f.check_box :default_mount_home, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            Mount persistent home directory
+          </label>
+          <p class="mt-1 text-xs text-gray-500 ml-6">Persist <code class="bg-gray-100 px-1 rounded font-mono">~/</code> across sandboxes.</p>
+        </div>
+
+        <div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <%= f.check_box :default_docker_enabled, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            Start Docker daemon (DinD)
+          </label>
+          <p class="mt-1 text-xs text-gray-500 ml-6">Enables Docker-in-Docker inside each new sandbox.</p>
+        </div>
+
+        <div>
+          <%= f.label :default_data_path, "Default data path", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.text_field :default_data_path,
+                placeholder: "e.g., . (all user data) or projects",
+                class: "block w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono" %>
+          <p class="mt-1 text-xs text-gray-500">Mount this directory to <code class="bg-gray-100 px-1 rounded font-mono">/persisted</code> in new sandboxes. Leave blank to disable.</p>
+        </div>
+
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Save Defaults
+        </button>
+      <% end %>
+    </div>
+
     <%# ── VNC Section ── %>
     <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">VNC</h2>

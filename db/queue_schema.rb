@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_16_100003) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_17_200001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -165,10 +165,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_16_100003) do
 
   create_table "settings", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "default_data_path"
-    t.boolean "default_docker_enabled", default: true, null: false
-    t.boolean "default_mount_home", default: false, null: false
-    t.boolean "default_vnc_enabled", default: true, null: false
     t.string "github_client_id"
     t.text "github_client_secret"
     t.string "google_client_id"
@@ -328,6 +324,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_16_100003) do
     t.boolean "chrome_persist_profile", default: true, null: false
     t.datetime "created_at", null: false
     t.jsonb "custom_links", default: []
+    t.string "default_data_path"
+    t.boolean "default_docker_enabled", default: true
+    t.boolean "default_mount_home", default: false
+    t.boolean "default_vnc_enabled", default: true
     t.string "email_address", null: false
     t.string "full_name"
     t.string "github_username"

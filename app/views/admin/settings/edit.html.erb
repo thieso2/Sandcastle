@@ -113,48 +113,6 @@
       <% end %>
     </div>
 
-    <%# === Sandbox Defaults === %>
-    <div class="rounded-lg border border-gray-200 p-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-1">Sandbox Defaults</h2>
-      <p class="text-sm text-gray-500 mb-4">
-        Default options for new sandboxes. Users can override these when creating a sandbox.
-      </p>
-
-      <div class="space-y-4">
-        <div>
-          <%= form.label :default_vnc_enabled, class: "inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer" do %>
-            <%= form.check_box :default_vnc_enabled, class: "rounded border-gray-300" %>
-            Enable VNC display server
-          <% end %>
-          <p class="mt-1 text-xs text-gray-500 ml-6">Start a virtual display (Xvnc) for GUI apps and browser access</p>
-        </div>
-
-        <div>
-          <%= form.label :default_mount_home, class: "inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer" do %>
-            <%= form.check_box :default_mount_home, class: "rounded border-gray-300" %>
-            Mount persistent home directory
-          <% end %>
-          <p class="mt-1 text-xs text-gray-500 ml-6">Persist the user's home directory (~/) across sandboxes</p>
-        </div>
-
-        <div>
-          <%= form.label :default_docker_enabled, class: "inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer" do %>
-            <%= form.check_box :default_docker_enabled, class: "rounded border-gray-300" %>
-            Start Docker daemon (DinD)
-          <% end %>
-          <p class="mt-1 text-xs text-gray-500 ml-6">Start the Docker daemon inside sandboxes for Docker-in-Docker support</p>
-        </div>
-
-        <div>
-          <%= form.label :default_data_path, "Default data path", class: "block text-sm font-medium text-gray-700 mb-1" %>
-          <%= form.text_field :default_data_path,
-                placeholder: "e.g., . (all user data) or projects",
-                class: "block w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-blue-600" %>
-          <p class="mt-1 text-xs text-gray-500">Mount user data directory to /persisted in sandboxes. Leave blank to disable.</p>
-        </div>
-      </div>
-    </div>
-
     <%# === Sandbox Archive === %>
     <div class="rounded-lg border border-gray-200 p-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-1">Sandbox Archive</h2>

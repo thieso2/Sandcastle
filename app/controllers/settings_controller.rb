@@ -153,7 +153,11 @@ class SettingsController < ApplicationController
   end
 
   def profile_params
-    params.require(:user).permit(:email_address, :full_name, :github_username, :chrome_persist_profile, :sandbox_archive_retention_days, :terminal_emulator)
+    params.require(:user).permit(
+      :email_address, :full_name, :github_username,
+      :chrome_persist_profile, :sandbox_archive_retention_days, :terminal_emulator,
+      :default_vnc_enabled, :default_mount_home, :default_docker_enabled, :default_data_path
+    )
   end
 
   def password_params
