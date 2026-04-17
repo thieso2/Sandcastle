@@ -55,8 +55,17 @@ class Sandbox < ApplicationRecord
   end
 
   # Job lifecycle management
+  # A job is only considered "in progress" while still within this window.
+  # Past this, the claim is treated as stale — the worker almost certainly
+  # crashed or was killed (SIGKILL, OOM, container restart, deploy) before
+  # it could call finish_job / fail_job, so we let the next click go
+  # through instead of blocking the sandbox forever.
+  JOB_STALE_AFTER = 5.minutes
+
   def job_in_progress?
-    job_status.present?
+    return false if job_status.blank?
+    return true if job_started_at.nil?
+    job_started_at > JOB_STALE_AFTER.ago
   end
 
   def job_failed?
