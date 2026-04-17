@@ -1,7 +1,7 @@
-<div class="max-w-4xl mx-auto px-4 py-8"
+<div class="max-w-4xl mx-auto px-4 py-6 sm:py-8"
      data-controller="tabs"
      data-tabs-default-value="profile">
-  <h1 class="text-3xl font-bold text-gray-900 mb-6">Settings</h1>
+  <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Settings</h1>
 
   <% if flash[:api_token] %>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -43,7 +43,7 @@
   <%# ══════ Profile tab ══════ %>
   <div data-tabs-target="panel" data-tab-id="profile" role="tabpanel" hidden>
     <%# ── Profile Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Profile</h2>
 
       <div class="space-y-4">
@@ -83,7 +83,7 @@
     </div>
 
     <%# ── Change Password Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Change Password</h2>
 
       <%= form_with url: update_password_settings_path, method: :patch, class: "space-y-4" do |f| %>
@@ -111,7 +111,7 @@
 
   <%# ══════ API Tokens tab ══════ %>
   <div data-tabs-target="panel" data-tab-id="tokens" role="tabpanel" hidden>
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-900">API Tokens</h2>
         <button onclick="document.getElementById('new-token-form').classList.toggle('hidden')"
@@ -122,16 +122,18 @@
 
       <%# New Token Form (hidden by default) %>
       <div id="new-token-form" class="hidden mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-        <%= form_with url: generate_token_settings_path, method: :post, class: "flex gap-2" do |f| %>
+        <%= form_with url: generate_token_settings_path, method: :post, class: "flex flex-col sm:flex-row gap-2" do |f| %>
           <%= text_field_tag :name, nil, placeholder: "Token name (e.g., 'laptop', 'CI/CD')",
-                class: "flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
-          <%= button_tag "Generate", type: :submit,
-                class: "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap" %>
-          <button type="button"
-                  onclick="document.getElementById('new-token-form').classList.add('hidden')"
-                  class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm">
-            Cancel
-          </button>
+                class: "flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          <div class="flex gap-2">
+            <%= button_tag "Generate", type: :submit,
+                  class: "flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm whitespace-nowrap" %>
+            <button type="button"
+                    onclick="document.getElementById('new-token-form').classList.add('hidden')"
+                    class="flex-1 sm:flex-none px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-sm">
+              Cancel
+            </button>
+          </div>
         <% end %>
       </div>
 
@@ -178,7 +180,7 @@
   <%# ══════ Sandboxes tab ══════ %>
   <div data-tabs-target="panel" data-tab-id="sandboxes" role="tabpanel" hidden>
     <%# ── Sandbox Defaults Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Sandbox Defaults</h2>
       <p class="text-sm text-gray-500 mb-4">
         Pre-checked options on the "Create Sandcastle" form. You can still
@@ -233,7 +235,7 @@
     </div>
 
     <%# ── Terminal Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Terminal</h2>
 
       <div class="space-y-4">
@@ -252,7 +254,7 @@
     </div>
 
     <%# ── Sandbox Archive Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Sandbox Archive</h2>
       <% default_retention_days = Setting.instance.sandbox_archive_retention_days || 30 %>
       <p class="text-sm text-gray-500 mb-4">
@@ -277,7 +279,7 @@
     </div>
 
     <%# ── Custom Links Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6" data-controller="custom-links">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6" data-controller="custom-links">
       <h2 class="text-lg font-semibold text-gray-900 mb-2">Custom Links</h2>
       <p class="text-sm text-gray-500 mb-4">
         Add custom links that appear on each sandbox card. Use template variables in the URL:
@@ -293,16 +295,41 @@
       <%= form_with url: update_custom_links_settings_path, method: :patch do |f| %>
         <div data-custom-links-target="list" class="space-y-3 mb-4">
           <% (@user.custom_links.presence || []).each_with_index do |link, i| %>
-            <div data-custom-links-row class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div data-custom-links-row class="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <div class="flex-1 min-w-0">
                 <input type="text" name="custom_links[][name]" value="<%= link["name"] %>" placeholder="Name (e.g. LaTerminal)"
                        class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1">
                 <input type="text" name="custom_links[][url]" value="<%= link["url"] %>" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
                        class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
               </div>
-              <select name="custom_links[][show_on]" class="rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
+              <div class="flex items-center gap-2 sm:contents">
+                <select name="custom_links[][show_on]" class="flex-1 sm:flex-none rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
+                  <% User::CUSTOM_LINK_SHOW_ON_VALUES.each do |val| %>
+                    <option value="<%= val %>" <%= "selected" if link["show_on"] == val %>><%= val.capitalize %></option>
+                  <% end %>
+                </select>
+                <button type="button" data-action="custom-links#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <template data-custom-links-target="template">
+          <div data-custom-links-row class="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div class="flex-1 min-w-0">
+              <input type="text" name="custom_links[][name]" value="" placeholder="Name (e.g. LaTerminal)"
+                     class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1">
+              <input type="text" name="custom_links[][url]" value="" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
+                     class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex items-center gap-2 sm:contents">
+              <select name="custom_links[][show_on]" class="flex-1 sm:flex-none rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
                 <% User::CUSTOM_LINK_SHOW_ON_VALUES.each do |val| %>
-                  <option value="<%= val %>" <%= "selected" if link["show_on"] == val %>><%= val.capitalize %></option>
+                  <option value="<%= val %>"><%= val.capitalize %></option>
                 <% end %>
               </select>
               <button type="button" data-action="custom-links#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
@@ -311,27 +338,6 @@
                 </svg>
               </button>
             </div>
-          <% end %>
-        </div>
-
-        <template data-custom-links-target="template">
-          <div data-custom-links-row class="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            <div class="flex-1 min-w-0">
-              <input type="text" name="custom_links[][name]" value="" placeholder="Name (e.g. LaTerminal)"
-                     class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1">
-              <input type="text" name="custom_links[][url]" value="" placeholder="URL template (e.g. ssh://{user}@{hostname}:{ssh_port})"
-                     class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <select name="custom_links[][show_on]" class="rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5">
-              <% User::CUSTOM_LINK_SHOW_ON_VALUES.each do |val| %>
-                <option value="<%= val %>"><%= val.capitalize %></option>
-              <% end %>
-            </select>
-            <button type="button" data-action="custom-links#remove" class="text-red-500 hover:text-red-700 p-1" title="Remove">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
-              </svg>
-            </button>
           </div>
         </template>
 
@@ -361,7 +367,7 @@
   <%# ══════ Network tab ══════ %>
   <div data-tabs-target="panel" data-tab-id="network" role="tabpanel" hidden>
     <%# ── Tailscale Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">Tailscale</h2>
 
       <div class="space-y-4">
@@ -412,7 +418,7 @@
     </div>
 
     <%# ── SMB / File Sharing Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
       <h2 class="text-lg font-semibold text-gray-900 mb-4">File Sharing (SMB)</h2>
 
       <p class="text-sm text-gray-600 mb-4">
@@ -449,7 +455,7 @@
   <%# ══════ Files & Keys tab ══════ %>
   <div data-tabs-target="panel" data-tab-id="files" role="tabpanel" hidden>
     <%# ── SSH Keys Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="ssh-keys">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6" data-controller="ssh-keys">
       <h2 class="text-lg font-semibold text-gray-900 mb-2">SSH Keys</h2>
       <p class="text-sm text-gray-500 mb-4">
         Add your SSH public keys to access sandboxes via SSH. Multiple keys are supported (e.g. one per device).
@@ -509,7 +515,7 @@
     </div>
 
     <%# ── Persisted Directories Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6" data-controller="persisted-paths">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6" data-controller="persisted-paths">
       <h2 class="text-lg font-semibold text-gray-900 mb-2">Persisted Directories</h2>
       <p class="text-sm text-gray-500 mb-4">
         Per-user directories under <code class="bg-gray-100 px-1 rounded font-mono">$HOME</code> that survive sandbox destroy/recreate.
@@ -562,7 +568,7 @@
     </div>
 
     <%# ── Injected Files Section ── %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6" data-controller="injected-files">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6" data-controller="injected-files">
       <h2 class="text-lg font-semibold text-gray-900 mb-2">Injected Files</h2>
       <p class="text-sm text-gray-500 mb-4">
         Files dropped into <code class="bg-gray-100 px-1 rounded font-mono">$HOME</code> on every new sandbox.

@@ -8,8 +8,8 @@
      <% end %>>
 
   <%# Line 1: Status, name, pills %>
-  <div class="flex items-center justify-between gap-4">
-    <div class="flex items-center gap-2 flex-wrap">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+    <div class="flex items-center gap-2 flex-wrap min-w-0">
       <%# Status indicator with animation %>
       <span class="inline-block w-2.5 h-2.5 rounded-full transition-colors duration-200
         <%= if sandbox.job_in_progress?
@@ -120,7 +120,7 @@
     </div>
 
     <%# Action buttons %>
-    <div class="flex items-center gap-2 shrink-0">
+    <div class="flex items-center gap-2 flex-wrap md:flex-nowrap md:shrink-0">
       <% if sandbox.job_in_progress? %>
         <span class="text-xs text-gray-500 italic">Processing...</span>
       <% elsif sandbox.job_failed? %>
@@ -210,7 +210,7 @@
   <% end %>
 
   <%# Container info and stats %>
-  <div class="flex items-start justify-between gap-4 pt-1">
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4 pt-1">
     <div class="text-xs text-gray-400">
       <% if sandbox.container_id.present? %>
         <span class="font-mono"><%= sandbox.container_id.first(12) %></span> ·
@@ -224,13 +224,13 @@
       <% end %>
     </div>
 
-    <div class="shrink-0 text-right">
+    <div class="shrink-0 sm:text-right">
       <% if sandbox.status == "running" %>
         <div data-controller="sparkline"
              data-sparkline-metrics-url-value="<%= metrics_sandbox_path(sandbox, format: :json) %>"
              data-sparkline-stats-url-value="<%= stats_sandbox_path(sandbox, format: :json) %>"
              data-sparkline-compact-value="true">
-          <div class="flex items-center gap-3 justify-end">
+          <div class="flex items-center gap-3 sm:justify-end flex-wrap">
             <div class="flex items-center gap-1">
               <span class="text-xs text-gray-400">CPU</span>
               <span class="text-xs font-mono font-medium text-gray-500" data-sparkline-target="cpuValue">&mdash;</span>
