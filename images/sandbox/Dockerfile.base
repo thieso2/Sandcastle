@@ -105,7 +105,8 @@ RUN RUNC_VERSION="v1.1.15" \
 
 # Install mise + Node.js + Codex.
 # mise data/config live in /usr/local/share/mise and /usr/local/etc/mise so
-# all users share the same tool installs — no per-user setup needed.
+# the user can run `mise install` without sudo. entrypoint.sh chowns both
+# trees to the sandbox user on startup (single-user per sandbox).
 # Retry: mise install/exec can fail transiently in Docker builds (exit 127).
 ENV MISE_DATA_DIR=/usr/local/share/mise
 ENV MISE_CONFIG_DIR=/usr/local/etc/mise

@@ -11,6 +11,13 @@ if ! id "$USERNAME" &>/dev/null; then
     chmod 0440 /etc/sudoers.d/sandcastle
 fi
 
+# mise data/config dirs are shipped root-owned in the base image. Since each
+# sandbox is for one user, hand ownership over so `mise install/use` works
+# without sudo (otherwise runtime installs fail with EACCES on create_dir_all).
+for d in /usr/local/share/mise /usr/local/etc/mise; do
+    [ -d "$d" ] && chown -R "$USERNAME:$USERNAME" "$d" 2>/dev/null || true
+done
+
 # Set up SSH authorized keys (append if not already present, preserving
 # any WeTTY keys that may have been injected for other sandboxes sharing
 # this user's home directory via bind mount).
