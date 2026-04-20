@@ -104,9 +104,9 @@ RUN RUNC_VERSION="v1.1.15" \
     && chmod +x /usr/bin/runc
 
 # Install mise + Node.js + Codex.
-# mise data/config live in /usr/local/share/mise and /usr/local/etc/mise so
-# the user can run `mise install` without sudo. entrypoint.sh chowns both
-# trees to the sandbox user on startup (single-user per sandbox).
+# Chown to UID 1001 so the sandbox user (created at runtime by entrypoint.sh
+# via `useradd` — first free UID after ubuntu/1000) can run `mise install/use`
+# without sudo. Single-user per sandbox makes shared ownership safe.
 # Retry: mise install/exec can fail transiently in Docker builds (exit 127).
 ENV MISE_DATA_DIR=/usr/local/share/mise
 ENV MISE_CONFIG_DIR=/usr/local/etc/mise
@@ -118,7 +118,8 @@ RUN curl https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh \
          /usr/local/bin/mise exec -- npm install -g @openai/codex \
          && break; \
          echo "Retry $attempt: mise exec failed, retrying in 5s..."; sleep 5; \
-       done
+       done \
+    && chown -R 1001:1001 /usr/local/share/mise /usr/local/etc/mise
 
 # Claude Code — standalone native binary (no Node.js dependency).
 # Installed off $PATH at /opt/claude/claude so entrypoint.sh can seed a
