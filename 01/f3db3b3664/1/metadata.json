@@ -1,0 +1,178 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "01f3db3b3664",
+  "session_id": "df4dd3cd-45f7-4230-a56e-2a89076d3057",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-20T07:52:46.631399012Z",
+  "branch": "main",
+  "checkpoints_count": 16,
+  "files_touched": [
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/settings_controller.rb",
+    "app/views/sandboxes/new.html.erb",
+    "app/views/settings/show.html.erb",
+    "db/migrate/20260417230000_add_default_smb_enabled_to_users.rb",
+    "db/queue_schema.rb",
+    "db/schema.rb"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "be3b50c59f4a",
+  "token_usage": {
+    "input_tokens": 164,
+    "cache_creation_tokens": 282439,
+    "cache_read_tokens": 8553963,
+    "output_tokens": 27118,
+    "api_call_count": 74
+  },
+  "session_metrics": {
+    "turn_count": 16
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-20T07:52:46.597021453Z",
+    "agent_lines": 17,
+    "agent_removed": 3,
+    "human_added": 1,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 19,
+    "total_lines_changed": 22,
+    "agent_percentage": 90.9090909090909,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 473,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".gemini/agents/entire-search.md": 28,
+        ".gemini/settings.json": 141,
+        ".github/hooks/entire.json": 61,
+        ".opencode/plugins/entire.ts": 177
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 491,
+      "agent_lines_removed": 3
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 491,
+      "agent_lines_removed": 3
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 491,
+      "agent_lines_removed": 3
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 13,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 14,
+      "user_lines_added": 2,
+      "user_lines_removed": 1,
+      "agent_lines_added": 500,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "db/queue_schema.rb": 2
+      },
+      "user_removed_per_file": {
+        "db/queue_schema.rb": 1
+      }
+    },
+    {
+      "checkpoint_number": 15,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 502,
+      "agent_lines_removed": 5,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 16,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 502,
+      "agent_lines_removed": 5,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    }
+  ]
+}
