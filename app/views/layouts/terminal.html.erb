@@ -10,6 +10,8 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <% if @emulator == "xterm" %>
       <%= stylesheet_link_tag "xterm", "data-turbo-track": "reload" %>
+    <% elsif @emulator == "wterm" %>
+      <%= stylesheet_link_tag "wterm", "data-turbo-track": "reload" %>
     <% end %>
     <%= javascript_importmap_tags %>
 

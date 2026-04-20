@@ -250,13 +250,13 @@
         <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "flex items-center gap-3" do |f| %>
           <label class="text-sm text-gray-700">Terminal emulator</label>
           <%= f.select :terminal_emulator,
-                [["Ghostty Web", "ghostty"], ["xterm.js", "xterm"]],
+                [["Ghostty Web", "ghostty"], ["xterm.js", "xterm"], ["wterm", "wterm"]],
                 {},
                 onchange: "this.form.requestSubmit()",
                 class: "rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500" %>
         <% end %>
         <p class="text-xs text-gray-500">
-          Choose which terminal emulator to use in the browser. <strong>Ghostty Web</strong> uses Ghostty's WASM-based parser. <strong>xterm.js</strong> is the classic JavaScript terminal.
+          Choose which terminal emulator to use in the browser. <strong>Ghostty Web</strong> uses Ghostty's WASM-based parser. <strong>xterm.js</strong> is the classic JavaScript terminal. <strong>wterm</strong> (<a href="https://wterm.dev/" target="_blank" rel="noopener" class="text-blue-600 hover:underline">wterm.dev</a>) is a Zig/WASM terminal from Vercel Labs.
         </p>
       </div>
     </div>

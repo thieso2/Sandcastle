@@ -1,10 +1,17 @@
 <% content_for(:title) { "#{@sandbox.name} — Terminal" } %>
 
-<% if @emulator == "xterm" %>
+<% case @emulator %>
+<% when "xterm" %>
   <div id="terminal-container"
        data-controller="xterm-terminal"
        data-xterm-terminal-ws-url-value="<%= @ws_url %>"
        data-xterm-terminal-token-url-value="<%= @token_url %>">
+  </div>
+<% when "wterm" %>
+  <div id="terminal-container"
+       data-controller="wterm-terminal"
+       data-wterm-terminal-ws-url-value="<%= @ws_url %>"
+       data-wterm-terminal-token-url-value="<%= @token_url %>">
   </div>
 <% else %>
   <div id="terminal-container"
