@@ -1,0 +1,157 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "0447ec51f087",
+  "session_id": "222dc79d-91d3-4fdc-9793-e2f214a90c77",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-20T07:46:15.565341Z",
+  "branch": "add-wterm-emulator",
+  "checkpoints_count": 11,
+  "files_touched": [
+    "app/assets/stylesheets/wterm.css",
+    "app/javascript/controllers/wterm_terminal_controller.js",
+    "app/models/user.rb",
+    "app/views/layouts/terminal.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "app/views/terminal/show.html.erb",
+    "config/importmap.rb"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "53150dc2cb1c",
+  "token_usage": {
+    "input_tokens": 177,
+    "cache_creation_tokens": 261095,
+    "cache_read_tokens": 11349666,
+    "output_tokens": 43087,
+    "api_call_count": 112
+  },
+  "session_metrics": {
+    "turn_count": 11
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-20T07:46:15.552551Z",
+    "agent_lines": 134,
+    "agent_removed": 4,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 134,
+    "total_lines_changed": 138,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 9,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 10,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 11,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 12,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 134,
+      "agent_lines_removed": 4,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    }
+  ]
+}

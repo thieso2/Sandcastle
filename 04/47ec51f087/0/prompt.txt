@@ -1,0 +1,48 @@
+lets add a 3rt Terminal emulator -> https://wterm.dev/
+
+---
+
+run the local dev
+
+---
+
+try again
+
+---
+
+it's not dev.sand! local docker should be http://127.0.0.1:8080/ but at return 404
+
+---
+
+i did A.
+creatign a sandcastle via the UI does nit work - check logs!
+
+---
+
+A!
+
+---
+
+True arm64 build
+
+---
+
+<task-notification>
+<task-id>bofjlowq3</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-thies-Projects-GitHub-Sandcastle/222dc79d-91d3-4fdc-9793-e2f214a90c77/tasks/bofjlowq3.output</output-file>
+<status>completed</status>
+<summary>Background command "Build arm64 sandbox-base image" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+opening a terminal dioes not work. debug!
+
+---
+
+<<autonomous-loop-dynamic>>
+
+---
+
+opening a terminal dioes not work. debug!

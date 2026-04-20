@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "0447ec51f087",
+  "strategy": "manual-commit",
+  "branch": "add-wterm-emulator",
+  "checkpoints_count": 11,
+  "files_touched": [
+    "app/assets/stylesheets/wterm.css",
+    "app/javascript/controllers/wterm_terminal_controller.js",
+    "app/models/user.rb",
+    "app/views/layouts/terminal.html.erb",
+    "app/views/pages/guide.html.erb",
+    "app/views/settings/show.html.erb",
+    "app/views/terminal/show.html.erb",
+    "config/importmap.rb"
+  ],
+  "sessions": [
+    {
+      "metadata": "/04/47ec51f087/0/metadata.json",
+      "transcript": "/04/47ec51f087/0/full.jsonl",
+      "content_hash": "/04/47ec51f087/0/content_hash.txt",
+      "prompt": "/04/47ec51f087/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 177,
+    "cache_creation_tokens": 261095,
+    "cache_read_tokens": 11349666,
+    "output_tokens": 43087,
+    "api_call_count": 112
+  }
+}
