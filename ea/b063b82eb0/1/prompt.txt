@@ -1,0 +1,384 @@
+add samba on by default to user settings and to the sandbox detail page.
+
+---
+
+thies@thies-silent-bear:/persisted/Projects/Sandcastle$ mise run deploy:devgo@1.25.5       install                                                        ◜mise ERROR Failed to install core:go@1.25.5: failed create_dir_all: /usr/local/share/mise/installs/go/1.25.5: Permission denied (os error 13)mise ERROR Run with --verbose or MISE_VERBOSE=1 for more information
+
+/usr/local/ should always be owned by the user!
+
+---
+
+the sandbox if fot the user only. or can we point the MISE dir to something the user can write (not $HOME)
+
+---
+
+yes - and this should be the defaultz for new sandboxes
+
+---
+
+should
+
+---
+
+shouldrun and fix mise run deploy:dev
+
+---
+
+<task-notification>
+<task-id>br77nnwpf</task-id>
+<summary>Monitor event: "watch deploy:dev progress and errors"</summary>
+<event>#10 384.8 W: Some index files failed to download. They have been ignored, or old ones used instead.</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpfaoenz2</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1001/-persisted-Projects-Sandcastle/df4dd3cd-45f7-4230-a56e-2a89076d3057/tasks/bpfaoenz2.output</output-file>
+<status>failed</status>
+<summary>Background command "Run deploy:dev in background" failed with exit code 1</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>br77nnwpf</task-id>
+<summary>Monitor event: "watch deploy:dev progress and errors"</summary>
+<event>#10 ERROR: process "/bin/sh -c apt-get update -qq &amp;&amp;     apt-get install --no-install-recommends -y     curl libjemalloc2 libvips libpq5 postgresql-client openssh-client     build-essential     git     libpq-dev     node-gyp     pkg-config     python-is-python3     ca-certificates     gnupg &amp;&amp;     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so &amp;&amp;     rm -rf /var/lib/apt/lists /var/cache/apt/archives" did not complete successfully: exit code: 100
+target worker: failed to solve: process "/bin/sh -c apt-get update -qq &amp;&amp;     apt-get install --no-install-recommends -y     curl libjemalloc2 libvips libpq5 postgresql-client openssh-client     build-essential     git     libpq-dev     node-gyp     pkg-config     python-is-python3     ca-certificates     gnupg &amp;&amp;     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so &amp;&amp;     rm -rf /var/lib/apt/lists /var/cache/apt/archives" did not complete successfully: exit co...(truncated)
+[deploy:dev] ERROR task failed</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>#10 DONE 52.7s</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>#11 DONE 4.2s</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>#12 DONE 0.6s
+#13 DONE 0.2s</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>#14 DONE 3.6s</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>b672frel5</task-id>
+<summary>Monitor event: "watch mise deploy:dev for done/err"</summary>
+<event>[Monitor timed out — re-arm if needed.]</event>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>#15 DONE 22.7s
+#16 DONE 0.1s</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>#18 DONE 2.1s
+#17 DONE 2.1s
+#19 DONE 2.1s</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>#20 DONE 0.1s
+#21 DONE 0.1s
+#22 DONE 0.0s
+Network sandcastle_default  Creating
+Volume sandcastle_traefik-data  Creating
+Volume sandcastle_pgdata  Creating
+Volume sandcastle_sandcastle-data  Creating
+Volume sandcastle_bundle-data  Creating
+Volume sandcastle_node-modules  Creating</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>Container sandcastle-init-traefik-1  Creating
+Container sandcastle-init-data-1  Creating
+Container sandcastle-postgres-1  Creating</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>Container sandcastle-migrate-1  Creating
+Container sandcastle-traefik  Creating
+Container sandcastle-traefik  Created</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>Container sandcastle-worker  Creating
+Container sandcastle-web  Creating
+Container sandcastle-web  Created
+Container sandcastle-worker  Created</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>[Kinit-data-1 exited with code 0
+[Kinit-traefik-1 exited with code 0</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [33mWRN[0m [1mTraefik can reject some encoded characters in the request path. When your backend is not fully compliant with [RFC 3986](https://datatracker.ietf.org/doc/html/rfc3986), it is recommended to set these options to `false` to avoid split-view situation. Refer to the documentation for more details: https://doc.traefik.io/traefik/v3.6/migrate/v3/#encoded-characters-configuration-default-values[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mTraefik version 3.6.13 built on 2026-04-07T09:58:57Z[0m [36mversion=[0m3.6.13
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mVersion check is enabled.[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mTraefik checks for new releases to notify you if your version is out of date.[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mIt also collects usage data during this process.[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mCheck the documentation to get more info: https://doc.traefik.io/traefik/contributing/data-collection/[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1m
+sandcastle-traefik  | Stats collection is disabled.
+sandcastle-traefik  | Help us improve Traefik by turning this feature on :)
+sandcastle-traefik  | More details on: https://doc.traefik.io/traefik/contributing/data-collection/
+sandcastle-traefik  | [0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mStarting provider aggregator *aggregator.ProviderAggregator[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mStarting provider *file.Provider[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mStarting provider *traefik.Provider[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [32mINF[0m [1mStarting provider *acme.ChallengeTLSALPN[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [31mERR[0m [1mUnable to parse certificate /certs/cert.pem[0m [36merror=[0m[31m[1m"unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"[0m[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [31mERR[0m [1mError while creating certificate store[0m [36merror=[0m[31m[1m"failed to load X509 key pair: tls: failed to find any PEM data in certificate input"[0m[0m [36mtlsStoreName=[0mdefault
+sandcastle-traefik  | [90m2026-04-17T19:47:02Z[0m [33mWRN[0m [1mNo domain found in rule PathPrefix(`/`), the TLS options applied for this router will depend on the SNI of each request[0m [36mentryPointName=[0mwebsecure [36mrouterName=[0mrails-https@file</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>postgres-1          | Creating database: sandcastle_production_cache
+postgres-1          | Creating database: sandcastle_production_queue</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>postgres-1          | Creating database: sandcastle_production_cable
+postgres-1          | Creating database: sandcastle_production_errors
+postgres-1          | 2026-04-17 19:47:05.249 UTC [105] LOG:  background worker "logical replication launcher" (PID 114) exited with exit code 1</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>[Kmigrate-1 exited with code 0</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-worker   | Waiting for PostgreSQL at postgres...
+sandcastle-web      | Waiting for PostgreSQL at postgres...</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-web      | Installing foreman...</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-web      | Successfully installed thor-1.5.0
+sandcastle-web      | Successfully installed foreman-0.90.0
+sandcastle-web      | 2 gems installed
+sandcastle-worker   | DEPRECATION WARNING: ActiveSupport::Configurable is deprecated without replacement, and will be removed in Rails 8.2.
+sandcastle-worker   |
+sandcastle-worker   | You can emulate the previous behavior with `class_attribute`.
+sandcastle-worker   |  (called from &lt;top (required)&gt; at /rails/config/application.rb:7)
+sandcastle-web      | 19:47:25 web.1  | started with pid 84
+sandcastle-web      | 19:47:25 css.1  | started with pid 85</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-traefik  | [90m2026-04-17T19:47:26Z[0m [31mERR[0m [1mUnable to parse certificate /certs/cert.pem[0m [36merror=[0m[31m[1m"unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"[0m[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:26Z[0m [31mERR[0m [1mError while creating certificate store[0m [36merror=[0m[31m[1m"failed to load X509 key pair: tls: failed to find any PEM data in certificate input"[0m[0m [36mtlsStoreName=[0mdefault</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-web      | 19:47:26 web.1  | DEPRECATION WARNING: ActiveSupport::Configurable is deprecated without replacement, and will be removed in Rails 8.2.
+sandcastle-web      | 19:47:26 web.1  |
+sandcastle-web      | 19:47:26 web.1  | You can emulate the previous behavior with `class_attribute`.
+sandcastle-web      | 19:47:26 web.1  |  (called from &lt;main&gt; at /rails/config/application.rb:7)
+sandcastle-web      | 19:47:26 web.1  | =&gt; Booting Puma
+sandcastle-web      | 19:47:26 web.1  | =&gt; Rails 8.1.3 application starting in development
+sandcastle-web      | 19:47:26 web.1  | =&gt; Run `bin/rails server --help` for more startup options
+sandcastle-web      | 19:47:26 css.1  | DEPRECATION WARNING: ActiveSupport::Configurable is deprecated without replacement, and will be removed in Rails 8.2.
+sandcastle-web      | 19:47:26 css.1  |
+sandcastle-web      | 19:47:26 css.1  | You can emulate the previous behavior with `class_attribute`.
+sandcastle-web      | 19:47:26 css.1  |  (called from &lt;main&gt; at /rails/config/application.rb:7)</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1] Performing ContainerSyncJob (Job ID: 8e6d6af4-d194-4b52-b48f-402601cd73a1) from SolidQueue(default)
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1] ↳ config/initializers/container_sync.rb:10:in 'block in &lt;main&gt;'
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1] [Job] ContainerSyncJob started ()
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   [1m[36mSandbox Load (0.9ms)[0m  [1m[34mSELECT "sandboxes".* FROM "sandboxes" WHERE "sandboxes"."status" NOT IN ('destroyed', 'archived') AND "sandboxes"."container_id" IS NOT NULL ORDER BY "sandboxes"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   ↳ app/jobs/container_sync_job.rb:5:in 'ContainerSyncJob#perform'
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   [1m[36mUser Load (0.4ms)[0m  [1m[34mSELECT "users".* FROM "users" WHERE "users"."tailscale_state" IN ('enabled', 'pending') ORDER BY "users"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   ↳ app/jobs/container_sync_job.rb:9:in 'ContainerSyncJob#perform'
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   [1m[36mUser Load (0.3ms)[0m  [1m[34mSELECT "users".* FROM "users" WHERE "users"."tailscale_state" = 'disabled' ORDER BY "users"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   ↳ app/jobs/container_sync_job.rb:13:in 'ContainerSyncJob#perform'
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   [1m[36mSandbox Load (0.4ms)[0m  [1m[34mSELECT "sandboxes".* FROM "sandboxes" WHERE "sandboxes"."status" = 'running' AND "sandboxes"."container_id" IS NOT NULL ORDER BY "sandboxes"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   ↳ app/jobs/container_sync_job.rb:116:in 'ContainerSyncJob#sync_user_networks'
+sandcastle-web      | 19:47:27 web.1  | [ActiveJob] [ContainerSyncJob] [8e6d6af4-d194-4b52-b48f-402601cd73a1]   [1m[36mUser Load (0.2ms)[0m  [1m[34mSELECT "users".* FROM "users" WHERE "users"."network_name" IS NOT NULL ORDER BY "users"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-
+...(truncated)</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03] Performing ContainerSyncJob (Job ID: cd8fe425-95c0-4ab1-adf5-3794defedd03) from SolidQueue(default)
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03] ↳ config/initializers/container_sync.rb:10:in 'block in &lt;main&gt;'
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03] [Job] ContainerSyncJob started ()
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   [1m[36mSandbox Load (0.9ms)[0m  [1m[34mSELECT "sandboxes".* FROM "sandboxes" WHERE "sandboxes"."status" NOT IN ('destroyed', 'archived') AND "sandboxes"."container_id" IS NOT NULL ORDER BY "sandboxes"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   ↳ app/jobs/container_sync_job.rb:5:in 'ContainerSyncJob#perform'
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   [1m[36mUser Load (0.3ms)[0m  [1m[34mSELECT "users".* FROM "users" WHERE "users"."tailscale_state" IN ('enabled', 'pending') ORDER BY "users"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   ↳ app/jobs/container_sync_job.rb:9:in 'ContainerSyncJob#perform'
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   [1m[36mUser Load (0.2ms)[0m  [1m[34mSELECT "users".* FROM "users" WHERE "users"."tailscale_state" = 'disabled' ORDER BY "users"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   ↳ app/jobs/container_sync_job.rb:13:in 'ContainerSyncJob#perform'
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   [1m[36mSandbox Load (0.2ms)[0m  [1m[34mSELECT "sandboxes".* FROM "sandboxes" WHERE "sandboxes"."status" = 'running' AND "sandboxes"."container_id" IS NOT NULL ORDER BY "sandboxes"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   ↳ app/jobs/container_sync_job.rb:116:in 'ContainerSyncJob#sync_user_networks'
+sandcastle-web      | 19:47:27 css.1  | [ActiveJob] [ContainerSyncJob] [cd8fe425-95c0-4ab1-adf5-3794defedd03]   [1m[36mUser Load (0.1ms)[0m  [1m[34mSELECT "users".* FROM "users" WHERE "users"."network_name" IS NOT NULL ORDER BY "users"."id" ASC LIMIT 1000 /*application='Sandcastle',job='ContainerSyncJob'*/[0m
+sandcastle-
+...(truncated)</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-web      | 19:47:27 css.1  | Done in 133ms</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-traefik  | [90m2026-04-17T19:47:28Z[0m [31mERR[0m [1mUnable to parse certificate /certs/cert.pem[0m [36merror=[0m[31m[1m"unable to generate TLS certificate: tls: failed to find any PEM data in certificate input"[0m[0m
+sandcastle-traefik  | [90m2026-04-17T19:47:28Z[0m [31mERR[0m [1mError while creating certificate store[0m [36merror=[0m[31m[1m"failed to load X509 key pair: tls: failed to find any PEM data in certificate input"[0m[0m [36mtlsStoreName=[0mdefault
+sandcastle-traefik  | [90m2026-04-17T19:47:28Z[0m [33mWRN[0m [1mNo domain found in rule PathPrefix(`/`), the TLS options applied for this router will depend on the SNI of each request[0m [36mentryPointName=[0mwebsecure [36mrouterName=[0mrails-https@file</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bpy8iwnqw</task-id>
+<summary>Monitor event: "deploy:dev attempt 2 — errors and key milestones"</summary>
+<event>sandcastle-web      | 19:47:31 css.1  | Done in 6ms
+sandcastle-web      | 19:47:31 css.1  | Done in 6ms
+sandcastle-web      | 19:47:31 css.1  | Done in 6ms</event>
+If this event is something the user would act on now, send a PushNotification. Routine or benign output doesn't need one.
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>br77nnwpf</task-id>
+<summary>Monitor event: "watch deploy:dev progress and errors"</summary>
+<event>[Monitor timed out — re-arm if needed.]</event>
+</task-notification>
