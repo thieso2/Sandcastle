@@ -1,0 +1,53 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "0447ec51f087",
+  "session_id": "f0d33d2b-70ad-41d8-9773-fe596b58210e",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-20T07:46:15.753935Z",
+  "branch": "add-wterm-emulator",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "app/views/pages/guide.html.erb"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "initial_attribution": {
+    "calculated_at": "2026-04-20T07:46:15.753517Z",
+    "agent_lines": 53,
+    "agent_removed": 12,
+    "human_added": 123,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 176,
+    "total_lines_changed": 192,
+    "agent_percentage": 33.85416666666667,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 58,
+      "user_lines_removed": 91,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "app/services/sandbox_manager.rb": 7,
+        "app/views/admin/settings/edit.html.erb": 1,
+        "app/views/pages/guide.html.erb": 2,
+        "app/views/sandboxes/new.html.erb": 1,
+        "images/sandbox/Dockerfile.base": 2,
+        "images/sandbox/entrypoint.sh": 40,
+        "test/jobs/sandbox_provision_job_test.rb": 1,
+        "tmp/pids/server.pid": 1,
+        "vendor/sandcastle-cli/cmd/sandbox.go": 3
+      }
+    }
+  ]
+}

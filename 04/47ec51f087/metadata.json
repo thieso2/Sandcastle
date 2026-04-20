@@ -3,7 +3,7 @@
   "checkpoint_id": "0447ec51f087",
   "strategy": "manual-commit",
   "branch": "add-wterm-emulator",
-  "checkpoints_count": 11,
+  "checkpoints_count": 12,
   "files_touched": [
     "app/assets/stylesheets/wterm.css",
     "app/javascript/controllers/wterm_terminal_controller.js",
@@ -20,6 +20,12 @@
       "transcript": "/04/47ec51f087/0/full.jsonl",
       "content_hash": "/04/47ec51f087/0/content_hash.txt",
       "prompt": "/04/47ec51f087/0/prompt.txt"
+    },
+    {
+      "metadata": "/04/47ec51f087/1/metadata.json",
+      "transcript": "/04/47ec51f087/1/full.jsonl",
+      "content_hash": "/04/47ec51f087/1/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
