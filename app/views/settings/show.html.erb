@@ -221,6 +221,14 @@
         </div>
 
         <div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <%= f.check_box :default_smb_enabled, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            Enable SMB file sharing
+          </label>
+          <p class="mt-1 text-xs text-gray-500 ml-6">Mount home/persisted as a network drive via SMB3 over Tailscale. Requires Tailscale enabled and an SMB password set in the Network tab.</p>
+        </div>
+
+        <div>
           <%= f.label :default_data_path, "Default data path", class: "block text-sm font-medium text-gray-700 mb-1" %>
           <%= f.text_field :default_data_path,
                 placeholder: "e.g., . (all user data) or projects",

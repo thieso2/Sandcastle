@@ -157,7 +157,7 @@ class SettingsController < ApplicationController
       :email_address, :full_name, :github_username,
       :sandbox_archive_retention_days, :terminal_emulator,
       :default_vnc_enabled, :default_mount_home, :default_docker_enabled, :default_data_path,
-      :default_ssh_start_tmux
+      :default_ssh_start_tmux, :default_smb_enabled
     )
   end
 

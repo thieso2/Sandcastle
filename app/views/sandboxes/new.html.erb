@@ -146,6 +146,7 @@
       <% smb_ready = Current.user.tailscale_enabled? && Current.user.smb_password.present? %>
       <label class="flex items-start gap-3 <%= smb_ready ? 'cursor-pointer' : 'opacity-50' %>">
         <%= form.check_box :smb_enabled,
+              checked: smb_ready && @defaults.default_smb_enabled,
               disabled: !smb_ready,
               title: smb_ready ? nil : "Requires Tailscale enabled and an SMB password set in Settings",
               class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>

@@ -55,7 +55,7 @@ module Api
         docker_enabled: params.key?(:docker_enabled) ? params[:docker_enabled] : current_user.default_docker_enabled,
         ssh_start_tmux: params.key?(:ssh_start_tmux) ? params[:ssh_start_tmux] : nil,
         temporary: params[:temporary] || false,
-        smb_enabled: params[:smb_enabled] || false
+        smb_enabled: params.key?(:smb_enabled) ? params[:smb_enabled] : (current_user.default_smb_enabled && current_user.tailscale_enabled? && current_user.smb_password.present?)
       )
 
       sandbox.save!
