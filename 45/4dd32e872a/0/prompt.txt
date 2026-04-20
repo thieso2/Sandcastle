@@ -1,0 +1,43 @@
+commit local changes
+
+---
+
+merge the last PR and commit and push  and release new version
+
+---
+
+in the image : /usr/local/share/mise shoudl be owned by the user running the sandbox. this shoudl happen on image build not in entrypoint. is the default user always 1001?
+
+---
+
+just build a new container here to test it!
+
+---
+
+<task-notification>
+<task-id>b87fp42lm</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1001/-persisted-Projects-Sandcastle/6211e6cc-417c-4b8e-b38a-eb2093ca0729/tasks/b87fp42lm.output</output-file>
+<status>completed</status>
+<summary>Background command "Build sandbox base image locally" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bgse12z6f</task-id>
+<tool-use-id>toolu_011BX6jDrhfKNBiz6mYf7KhU</tool-use-id>
+<output-file>/tmp/claude-1001/-persisted-Projects-Sandcastle/6211e6cc-417c-4b8e-b38a-eb2093ca0729/tasks/bgse12z6f.output</output-file>
+<status>completed</status>
+<summary>Background command "Retry sandbox base build" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>bh31vjye5</task-id>
+<tool-use-id>toolu_01GK8HGT9tp5nrok5uRr3xjQ</tool-use-id>
+<output-file>/tmp/claude-1001/-persisted-Projects-Sandcastle/6211e6cc-417c-4b8e-b38a-eb2093ca0729/tasks/bh31vjye5.output</output-file>
+<status>completed</status>
+<summary>Background command "Retry build with host networking" completed (exit code 0)</summary>
+</task-notification>
