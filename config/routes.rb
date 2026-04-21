@@ -159,5 +159,10 @@ Rails.application.routes.draw do
 
   get "guide", to: "pages#guide"
 
+  # OIDC identity-provider endpoints — public. Used by external clouds
+  # (GCP, AWS, Azure) to verify JWTs Sandcastle mints for sandbox workloads.
+  get "/.well-known/openid-configuration" => "oidc#discovery", as: :oidc_discovery
+  get "/oauth/jwks"                       => "oidc#jwks",      as: :oidc_jwks
+
   get "up" => "rails/health#show", as: :rails_health_check
 end

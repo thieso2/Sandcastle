@@ -133,6 +133,7 @@ services:
       PORT: 80
       BINDING: 0.0.0.0
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      OIDC_PRIVATE_KEY_PEM: ${OIDC_PRIVATE_KEY_PEM:-}
       SANDCASTLE_HOST: ${DEV_HOST:-localhost}
       SANDCASTLE_OPEN_ROUTING: "true"
       SANDCASTLE_TAILSCALE_USERSPACE: "true"
