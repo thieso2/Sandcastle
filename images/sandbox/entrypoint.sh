@@ -29,29 +29,16 @@ if [ -n "$SSH_KEY" ]; then
     fi
 fi
 
-# Set correct ownership and permissions on the home directory.
-# chown -R covers .ssh, .local, and anything else created above.
-# The host ensures 777 on the mount point before container start (via sudo
-# chmod in SandboxManager#prepare_bind_mount), so the sandbox user can always
-# write ~/.Xauthority, .ssh, etc.
-#
-# On BTRFS bind mounts with Sysbox ID-mapped mounts, chmod/chown may fail
-# with EOVERFLOW ("Value too large for defined data type"). This is a known
-# Sysbox bug (thieso2/sysbox#12). Log the error visibly but don't crash —
-# the host has already set 777 on the mount point.
-if ! chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/tmp/chown-home.err; then
-    echo "WARNING: chown /home/$USERNAME failed: $(cat /tmp/chown-home.err | head -1)" >&2
-    echo "  This is likely BTRFS + Sysbox ID-mapped mount issue (thieso2/sysbox#12)" >&2
+# Ownership of bind-mounted $HOME and /persisted is handled by Sysbox's
+# ID-mapped mounts — the host UID is remapped transparently so files appear
+# correctly owned inside the container. No recursive chown needed on the
+# happy path. A cheap stat guard falls back to the old recursive chown if
+# the top-level dir still looks wrong (e.g. pre-idmap sysbox versions).
+USER_UID="$(id -u "$USERNAME")"
+if [ "$(stat -c %u "/home/$USERNAME" 2>/dev/null)" != "$USER_UID" ]; then
+    (chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/dev/null || true) &
 fi
-if ! chmod 777 "/home/$USERNAME" 2>/tmp/chmod-home.err; then
-    echo "WARNING: chmod /home/$USERNAME failed: $(cat /tmp/chmod-home.err | head -1)" >&2
-    echo "  This is likely BTRFS + Sysbox ID-mapped mount issue (thieso2/sysbox#12)" >&2
-fi
-
-# Fix ownership on persisted data volume. Multiple sandboxes can share the
-# same user's data path, each with a different Sysbox UID mapping. Run in
-# background to avoid delaying SSH readiness.
-if [ -d /persisted ]; then
+if [ -d /persisted ] && [ "$(stat -c %u /persisted 2>/dev/null)" != "$USER_UID" ]; then
     (chown -R "$USERNAME:$USERNAME" /persisted 2>/dev/null || true) &
 fi
 
@@ -127,8 +114,12 @@ if [ -d /etc/ssh/sshd_config.d ] && ! grep -qs '^AcceptEnv NO_TMUX' /etc/ssh/ssh
     echo "AcceptEnv NO_TMUX" >> /etc/ssh/sshd_config.d/20-sandcastle-env.conf
 fi
 
-# Generate SSH host keys if missing
-ssh-keygen -A
+# Generate SSH host keys if missing. Only ed25519 — modern clients prefer
+# it and skipping RSA saves 1-3s of keygen on every container start.
+# `ssh-keygen -A` generates all key types; we generate a single one instead.
+if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
+    ssh-keygen -q -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N "" < /dev/null
+fi
 
 # Generate login banner with sandbox configuration
 # Resolve values at container start, bake them into the profile script.

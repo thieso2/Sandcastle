@@ -176,6 +176,12 @@ RUN mkdir -p /var/run/sshd /etc/ssh/sshd_config.d \
     && echo "StrictModes no" >> /etc/ssh/sshd_config.d/10-sandcastle.conf \
     && echo "AcceptEnv NO_TMUX" >> /etc/ssh/sshd_config.d/10-sandcastle.conf
 
+# openssh-server's postinst generates rsa+ecdsa+ed25519 host keys at build
+# time. Drop them so each sandbox container generates its own ed25519 key
+# on first start (via entrypoint.sh). Avoids every sandbox sharing host
+# keys (which would defeat SSH TOFU) and skips the slow RSA keygen.
+RUN rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+
 LABEL org.opencontainers.image.source="https://github.com/thieso2/sandcastle"
 LABEL org.opencontainers.image.description="Sandcastle sandbox base image — Ubuntu 25.10 with Docker-in-Docker, SSH, and dev tools"
 LABEL org.opencontainers.image.licenses="MIT"

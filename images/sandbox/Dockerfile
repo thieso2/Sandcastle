@@ -48,7 +48,8 @@ RUN printf '# ssh-agent-switcher daemon socket or symlink fallback\nif [ -S "/tm
 COPY entrypoint.sh /entrypoint.sh
 COPY docker-restart.sh /usr/local/bin/docker-restart
 COPY sc-tmux.sh /usr/local/bin/sc-tmux
-RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart /usr/local/bin/sc-tmux
+COPY sc-install-brew.sh /usr/local/bin/sc-install-brew
+RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart /usr/local/bin/sc-tmux /usr/local/bin/sc-install-brew
 
 COPY startchrome.sh /usr/local/bin/google-chrome
 RUN chmod +x /usr/local/bin/google-chrome \
