@@ -1,0 +1,37 @@
+lets work on the image
+right now i get 
+Server: demo (https://demo.sandcastle.rocks)/home/thies/.bashrc: line 2: /home/linuxbrew/.linuxbrew/bin/brew: No such file or directory
+when i connect to my sandbox. 
+i mount home and maybe i installed linuxbrew on one of my boxes. what's a good way? (install linuxbrew by default?)
+
+---
+
+yes - and maybe allow for homebrew to be installed in /opt as well
+
+---
+
+thieso2/sysbox#12 has been fixed a long time ago!
+
+---
+
+fix that.
+
+---
+
+crate an include vm (ubuntu 25) on "ssh sandman" and install a fresh sandcaste with those changes - then validate the fix.
+
+---
+
+use 100.100.218.64
+
+---
+
+continue
+
+---
+
+whats the change to Dockerfile.base
+
+---
+
+yes
