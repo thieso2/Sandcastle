@@ -1,9 +1,9 @@
 class SettingsController < ApplicationController
-  ALLOWED_TABS = %w[profile tokens sandboxes network files].freeze
+  ALLOWED_TABS = %w[profile tokens sandboxes gcp network files].freeze
 
   def show
     @user = Current.user
-    @api_tokens = @user.api_tokens.active.order(created_at: :desc)
+    prepare_settings_context
   end
 
   def update_profile
@@ -12,6 +12,7 @@ class SettingsController < ApplicationController
     if @user.update(profile_params)
       redirect_to_tab(notice: "Profile updated successfully.")
     else
+      prepare_settings_context
       render :show, status: :unprocessable_entity
     end
   end
@@ -117,6 +118,42 @@ class SettingsController < ApplicationController
     redirect_to_tab(alert: e.message)
   end
 
+  def update_gcp_oidc_configs
+    @user = Current.user
+    rows = gcp_oidc_config_rows
+
+    GcpOidcConfig.transaction do
+      rows.each do |row|
+        next if row[:name].blank? && row[:project_number].blank? && row[:project_id].blank?
+
+        if row[:id].present?
+          config = @user.gcp_oidc_configs.find(row[:id])
+          if row[:_destroy] == "1"
+            config.destroy!
+            next
+          end
+        else
+          next if row[:_destroy] == "1"
+
+          config = @user.gcp_oidc_configs.build
+        end
+
+        config.update!(
+          name: row[:name],
+          project_id: row[:project_id],
+          project_number: row[:project_number],
+          workload_identity_pool_id: row[:workload_identity_pool_id],
+          workload_identity_provider_id: row[:workload_identity_provider_id],
+          workload_identity_location: row[:workload_identity_location].presence || "global"
+        )
+      end
+    end
+
+    redirect_to_tab(notice: "GCP identity configs updated.")
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to_tab(alert: e.record.errors.full_messages.join(", ").presence || e.message)
+  end
+
   def delete_injected_file
     @user = Current.user
     @user.injected_files.find(params[:id]).destroy!
@@ -157,7 +194,7 @@ class SettingsController < ApplicationController
       :email_address, :full_name, :github_username,
       :sandbox_archive_retention_days, :terminal_emulator,
       :default_vnc_enabled, :default_mount_home, :default_docker_enabled, :default_data_path,
-      :default_ssh_start_tmux, :default_smb_enabled
+      :default_ssh_start_tmux, :default_smb_enabled, :default_oidc_enabled
     )
   end
 
@@ -167,5 +204,29 @@ class SettingsController < ApplicationController
 
   def smb_password_params
     params.require(:user).permit(:smb_password)
+  end
+
+  def prepare_settings_context
+    @api_tokens = @user.api_tokens.active.order(created_at: :desc)
+    @gcp_oidc_setups = @user.gcp_oidc_configs.order(:name).map do |config|
+      [ config, GcpOidcSetup.new(user: @user, config: config).as_json ]
+    end
+  end
+
+  def gcp_oidc_config_rows
+    raw_rows = params[:gcp_oidc_configs]
+    rows = if raw_rows.is_a?(ActionController::Parameters)
+      raw_rows.to_unsafe_h.sort_by { |index, _| index.to_i }.map(&:last)
+    else
+      Array(raw_rows)
+    end
+
+    rows.map do |row|
+      if row.respond_to?(:to_unsafe_h)
+        row.to_unsafe_h.with_indifferent_access
+      else
+        row.to_h.with_indifferent_access
+      end
+    end
   end
 end

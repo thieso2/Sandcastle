@@ -23,6 +23,7 @@
         { id: "profile",   label: "Profile" },
         { id: "tokens",    label: "API Tokens" },
         { id: "sandboxes", label: "Sandboxes" },
+        { id: "gcp",       label: "GCP" },
         { id: "network",   label: "Network" },
         { id: "files",     label: "Files & Keys" },
       ]
@@ -229,6 +230,14 @@
         </div>
 
         <div>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <%= f.check_box :default_oidc_enabled, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
+            Enable OIDC identity tokens
+          </label>
+          <p class="mt-1 text-xs text-gray-500 ml-6">Allow new sandboxes to mint short-lived identity tokens for cloud workload federation.</p>
+        </div>
+
+        <div>
           <%= f.label :default_data_path, "Default data path", class: "block text-sm font-medium text-gray-700 mb-1" %>
           <%= f.text_field :default_data_path,
                 placeholder: "e.g., . (all user data) or projects",
@@ -369,6 +378,129 @@
         <p><strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd}</code></strong> expands to <code class="bg-gray-100 px-1 rounded font-mono"><%= User::TMUX_CMD %></code> (plain text). <strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd_encoded}</code></strong> is the URL-encoded version (for query parameters).</p>
         <p><strong>Show on:</strong> controls which devices display the link — <code class="bg-gray-100 px-1 rounded font-mono">all</code>, <code class="bg-gray-100 px-1 rounded font-mono">desktop</code>, <code class="bg-gray-100 px-1 rounded font-mono">tablet</code>, or <code class="bg-gray-100 px-1 rounded font-mono">phone</code></p>
       </div>
+    </div>
+  </div>
+
+  <%# ══════ GCP tab ══════ %>
+  <div data-tabs-target="panel" data-tab-id="gcp" role="tabpanel" hidden>
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">GCP Identity Configs</h2>
+      <p class="text-sm text-gray-500 mb-4">Create one reusable Workload Identity config per GCP project. Sandboxes choose one config and add their own service account, scope, and roles.</p>
+
+      <%= form_with url: update_gcp_oidc_configs_settings_path, method: :patch, class: "space-y-4" do %>
+        <%= hidden_field_tag :tab, "gcp" %>
+        <% rows = @gcp_oidc_setups.map(&:first) + [ GcpOidcConfig.new(workload_identity_location: "global") ] %>
+        <% rows.each_with_index do |config, index| %>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
+            <%= hidden_field_tag "gcp_oidc_configs[#{index}][id]", config.id if config.persisted? %>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][name]", config.name,
+                      placeholder: "prod",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Project ID</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][project_id]", config.project_id,
+                      placeholder: "my-gcp-project",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Project number</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][project_number]", config.project_number,
+                      placeholder: "123456789012",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Pool ID</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][workload_identity_pool_id]", config.workload_identity_pool_id,
+                      placeholder: "sandcastle",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Provider ID</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][workload_identity_provider_id]", config.workload_identity_provider_id,
+                      placeholder: "sandcastle",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                <%= hidden_field_tag "gcp_oidc_configs[#{index}][workload_identity_location]", "global" %>
+                <div class="block w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-mono text-gray-700">global</div>
+                <p class="mt-1 text-xs text-gray-500">GCP Workload Identity pools are global.</p>
+              </div>
+            </div>
+
+            <% default_service_account_email = config.default_service_account_email.presence || GcpOidcConfig.default_service_account_email_for(config.project_id) %>
+            <div class="rounded border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+              <div class="text-xs font-medium text-blue-700 mb-1">Default Sandcastle service account</div>
+              <code class="font-mono text-xs break-all"><%= default_service_account_email.presence || "Set a project ID to generate the default service account email." %></code>
+              <p class="mt-1 text-xs text-blue-700">Sandboxes use this read-only service account unless they set a custom override.</p>
+            </div>
+
+            <% if config.persisted? %>
+              <% setup = @gcp_oidc_setups.find { |candidate, _| candidate.id == config.id }&.last %>
+              <% if setup&.dig(:shell).present? %>
+                <% oidc_setup_commands = [
+                  setup[:commands][:enable_apis],
+                  setup[:commands][:create_pool],
+                  setup[:commands][:create_provider]
+                ].compact.join("\n") %>
+                <% role_setup_commands = [
+                  setup[:commands][:create_default_service_account],
+                  *Array(setup[:commands][:grant_default_roles]),
+                  setup[:commands][:bind_service_account]
+                ].compact.join("\n") %>
+
+                <div class="grid grid-cols-1 gap-3">
+                  <% if oidc_setup_commands.present? %>
+                    <div data-controller="clipboard">
+                      <div class="flex items-center justify-between gap-3 mb-1">
+                        <div class="text-xs font-medium text-gray-500">OIDC setup commands</div>
+                        <button type="button"
+                                data-clipboard-target="button"
+                                data-action="clipboard#copy"
+                                class="px-2 py-1 rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-50">
+                          Copy
+                        </button>
+                      </div>
+                      <textarea readonly spellcheck="false" wrap="off"
+                                data-clipboard-target="source"
+                                class="block w-full h-32 overflow-x-auto resize-y rounded border border-gray-200 bg-gray-950 text-gray-100 p-3 text-xs leading-relaxed font-mono"><%= oidc_setup_commands %></textarea>
+                    </div>
+                  <% end %>
+
+                  <% if role_setup_commands.present? %>
+                    <div data-controller="clipboard">
+                      <div class="flex items-center justify-between gap-3 mb-1">
+                        <div class="text-xs font-medium text-gray-500">Default service account, roles, and impersonation</div>
+                        <button type="button"
+                                data-clipboard-target="button"
+                                data-action="clipboard#copy"
+                                class="px-2 py-1 rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-50">
+                          Copy
+                        </button>
+                      </div>
+                      <textarea readonly spellcheck="false" wrap="off"
+                                data-clipboard-target="source"
+                                class="block w-full h-40 overflow-x-auto resize-y rounded border border-gray-200 bg-gray-950 text-gray-100 p-3 text-xs leading-relaxed font-mono"><%= role_setup_commands %></textarea>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+              <label class="inline-flex items-center gap-2 text-sm text-red-700">
+                <%= check_box_tag "gcp_oidc_configs[#{index}][_destroy]", "1", false, class: "rounded border-gray-300 text-red-600 focus:ring-red-500" %>
+                Remove this config
+              </label>
+            <% end %>
+          </div>
+        <% end %>
+
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Save GCP Configs
+        </button>
+      <% end %>
     </div>
   </div>
 

@@ -24,6 +24,112 @@ class SandboxManagerTest < ActiveSupport::TestCase
     assert_equal "running", container.info["State"]["Status"]
   end
 
+  test "create_container_and_start rotates and injects oidc runtime token when enabled" do
+    ENV["SANDCASTLE_HOST"] = "test.sandcastle.example"
+    @sandbox.update!(container_id: nil, status: "pending", oidc_enabled: true)
+
+    @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+
+    @sandbox.reload
+    assert @sandbox.oidc_secret_digest.present?
+    assert @sandbox.oidc_secret_rotated_at.present?
+    container = Docker::Container.get(@sandbox.container_id)
+    assert_includes container.info.dig("Config", "Env"), "GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES=1"
+
+    oidc_exec = DockerMock.exec_calls.find { |call| call[:cmd][2].to_s.include?("/run/sandcastle/oidc-token") }
+    assert oidc_exec, "expected OIDC runtime injection"
+    runtime_token = oidc_exec[:cmd][5]
+    assert_equal @sandbox, Sandbox.authenticate_oidc_runtime_token(runtime_token)
+  ensure
+    ENV.delete("SANDCASTLE_HOST")
+  end
+
+  test "create_container_and_start injects transparent GCP credentials when configured" do
+    ENV["SANDCASTLE_HOST"] = "test.sandcastle.example"
+    config = @user.gcp_oidc_configs.create!(
+      name: "test",
+      project_id: "test-project-123",
+      project_number: "123456789012",
+      workload_identity_pool_id: "sandcastle",
+      workload_identity_provider_id: "sandcastle",
+      workload_identity_location: "global"
+    )
+    @sandbox.update!(
+      container_id: nil,
+      status: "pending",
+      oidc_enabled: true,
+      gcp_oidc_enabled: true,
+      gcp_oidc_config: config,
+      gcp_service_account_email: "sandbox@test-project-123.iam.gserviceaccount.com"
+    )
+
+    @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+
+    container = Docker::Container.get(@sandbox.container_id)
+    env = container.info.dig("Config", "Env")
+    assert_includes env, "GOOGLE_APPLICATION_CREDENTIALS=/etc/sandcastle/gcp-credentials.json"
+    assert_includes env, "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=/etc/sandcastle/gcp-credentials.json"
+    assert_includes env, "CLOUDSDK_CORE_PROJECT=test-project-123"
+    assert_includes env, "GOOGLE_CLOUD_PROJECT=test-project-123"
+
+    gcp_exec = DockerMock.exec_calls.find { |call| call[:cmd][2].to_s.include?("sandcastle-oidc gcp write-config") }
+    assert gcp_exec, "expected GCP credential config injection"
+    assert_equal "//iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/sandcastle/providers/sandcastle", gcp_exec[:cmd][11]
+    assert_equal "sandbox@test-project-123.iam.gserviceaccount.com", gcp_exec[:cmd][12]
+  ensure
+    ENV.delete("SANDCASTLE_HOST")
+  end
+
+  test "create_container_and_start removes oidc runtime files when disabled" do
+    @sandbox.update!(
+      container_id: nil,
+      status: "pending",
+      oidc_enabled: false,
+      oidc_secret_digest: BCrypt::Password.create("old"),
+      oidc_secret_rotated_at: Time.current
+    )
+
+    @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+
+    @sandbox.reload
+    assert_nil @sandbox.oidc_secret_digest
+    assert_nil @sandbox.oidc_secret_rotated_at
+    assert DockerMock.exec_calls.any? { |call| call[:cmd].join(" ").include?("rm -f /run/sandcastle/oidc-token") }
+  end
+
+  test "oidc runtime injection failure aborts oidc-enabled sandbox start" do
+    ENV["SANDCASTLE_HOST"] = "test.sandcastle.example"
+    @sandbox.update!(container_id: nil, status: "pending", oidc_enabled: true)
+    DockerMock.failure_mode = :exec
+
+    assert_raises(SandboxManager::Error) do
+      @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+    end
+    assert_equal "pending", @sandbox.reload.status
+    assert_nil @sandbox.container_id
+    assert_nil @sandbox.oidc_secret_digest
+  ensure
+    ENV.delete("SANDCASTLE_HOST")
+  end
+
+  test "start rotates oidc runtime token and invalidates previous token" do
+    ENV["SANDCASTLE_HOST"] = "test.sandcastle.example"
+    @sandbox.update!(container_id: nil, status: "pending", oidc_enabled: true)
+    @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+    first_token = DockerMock.exec_calls.find { |call| call[:cmd][2].to_s.include?("/run/sandcastle/oidc-token") }[:cmd][5]
+
+    @manager.stop(sandbox: @sandbox)
+    DockerMock.exec_calls.clear
+    @manager.start(sandbox: @sandbox)
+    second_token = DockerMock.exec_calls.find { |call| call[:cmd][2].to_s.include?("/run/sandcastle/oidc-token") }[:cmd][5]
+
+    assert_not_equal first_token, second_token
+    assert_nil Sandbox.authenticate_oidc_runtime_token(first_token)
+    assert_equal @sandbox.reload, Sandbox.authenticate_oidc_runtime_token(second_token)
+  ensure
+    ENV.delete("SANDCASTLE_HOST")
+  end
+
   test "start starts a stopped container" do
     # Create container first
     @sandbox.update!(container_id: nil, status: "pending")

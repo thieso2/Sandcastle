@@ -19,6 +19,8 @@ class SandboxPolicy < ApplicationPolicy
   def purge?                 = owner_or_admin?
   def tailscale_connect?     = owner_only?
   def tailscale_disconnect?  = owner_only?
+  def gcp_oidc_setup?        = owner_only?
+  def gcp_identity?          = owner_only?
   def discover_files?        = owner_only?
   def promote_file?          = owner_only?
 

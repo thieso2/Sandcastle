@@ -2,11 +2,17 @@ class Sandbox < ApplicationRecord
   include ActionView::RecordIdentifier  # For dom_id in Turbo broadcasts
 
   belongs_to :user
+  belongs_to :gcp_oidc_config, optional: true
   has_many :routes, dependent: :destroy
   has_many :container_metrics, dependent: :delete_all
 
+  OIDC_TOKEN_PREFIX = "sc_oidc".freeze
   VNC_GEOMETRIES = %w[1280x900 1366x768 1440x900 1600x900 1920x1080 2560x1440].freeze
   VNC_DEPTHS = [ 8, 16, 24, 32 ].freeze
+  GCP_PRINCIPAL_SCOPES = %w[sandbox user].freeze
+  GCP_SERVICE_ACCOUNT_EMAIL_FORMAT = /\A[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.iam\.gserviceaccount\.com\z/
+
+  before_validation :normalize_gcp_identity
 
   validates :name, presence: true,
     uniqueness: { scope: :user_id, conditions: -> { where.not(status: %w[destroyed archived]) } }
@@ -16,7 +22,11 @@ class Sandbox < ApplicationRecord
   validates :image, presence: true
   validates :vnc_geometry, inclusion: { in: VNC_GEOMETRIES }
   validates :vnc_depth, inclusion: { in: VNC_DEPTHS }
+  validates :gcp_principal_scope, inclusion: { in: GCP_PRINCIPAL_SCOPES }
+  validates :gcp_service_account_email, format: { with: GCP_SERVICE_ACCOUNT_EMAIL_FORMAT, allow_blank: true }
   validate :smb_prerequisites, if: -> { smb_enabled? }
+  validate :validate_gcp_roles
+  validate :validate_gcp_oidc_config_owner
 
   scope :active, -> { where.not(status: %w[destroyed archived]) }
   scope :archived, -> { where(status: "archived") }
@@ -45,6 +55,66 @@ class Sandbox < ApplicationRecord
 
   def smb_enabled?
     smb_enabled
+  end
+
+  def oidc_enabled?
+    oidc_enabled
+  end
+
+  def gcp_oidc_enabled?
+    gcp_oidc_enabled
+  end
+
+  def gcp_roles_list
+    Array(gcp_roles).flat_map { |role| role.to_s.split(/[\n,]/) }
+      .map(&:strip)
+      .reject(&:blank?)
+      .uniq
+  end
+
+  def gcp_oidc_configured?
+    oidc_enabled? &&
+      gcp_oidc_enabled? &&
+      gcp_oidc_config.present? &&
+      effective_gcp_service_account_email.present? &&
+      gcp_oidc_config.configured?
+  end
+
+  def effective_gcp_service_account_email
+    gcp_service_account_email.presence || gcp_oidc_config&.default_service_account_email
+  end
+
+  def rotate_oidc_secret!
+    raw_secret = SecureRandom.hex(32)
+    update!(
+      oidc_secret_digest: BCrypt::Password.create(raw_secret),
+      oidc_secret_rotated_at: Time.current
+    )
+    "#{OIDC_TOKEN_PREFIX}_#{id}_#{raw_secret}"
+  end
+
+  def clear_oidc_secret!
+    update!(oidc_secret_digest: nil, oidc_secret_rotated_at: nil)
+  end
+
+  def oidc_secret_matches?(raw_secret)
+    return false if oidc_secret_digest.blank? || raw_secret.blank?
+
+    BCrypt::Password.new(oidc_secret_digest).is_password?(raw_secret)
+  rescue BCrypt::Errors::InvalidHash
+    false
+  end
+
+  def self.authenticate_oidc_runtime_token(raw_token)
+    parts = raw_token.to_s.split("_", 4)
+    return nil unless parts.length == 4
+    return nil unless parts[0] == "sc" && parts[1] == "oidc"
+
+    sandbox = find_by(id: parts[2])
+    return nil unless sandbox&.oidc_enabled?
+    return nil unless sandbox.oidc_secret_matches?(parts[3])
+
+    sandbox
   end
 
   # Whether SSH logins should auto-attach to a tmux session. Per-sandbox
@@ -97,9 +167,31 @@ class Sandbox < ApplicationRecord
 
   private
 
+  def normalize_gcp_identity
+    self.gcp_principal_scope = gcp_principal_scope.presence || "user"
+    self.gcp_service_account_email = gcp_service_account_email.to_s.strip.presence
+    self.gcp_roles = gcp_roles_list
+  end
+
   def smb_prerequisites
     errors.add(:smb_enabled, "requires Tailscale to be enabled") unless user&.tailscale_enabled?
     errors.add(:smb_enabled, "requires an SMB password to be set in Settings") unless user&.smb_password.present?
+  end
+
+  def validate_gcp_roles
+    gcp_roles_list.each do |role|
+      next if role.match?(/\Aroles\/[A-Za-z0-9_.]+\z/)
+      next if role.match?(/\Aprojects\/[A-Za-z0-9_-]+\/roles\/[A-Za-z0-9_.]+\z/)
+      next if role.match?(/\Aorganizations\/\d+\/roles\/[A-Za-z0-9_.]+\z/)
+
+      errors.add(:gcp_roles, "#{role} must be a predefined or custom IAM role name")
+    end
+  end
+
+  def validate_gcp_oidc_config_owner
+    return if gcp_oidc_config.blank? || user.blank?
+
+    errors.add(:gcp_oidc_config, "must belong to the sandbox owner") if gcp_oidc_config.user_id != user_id
   end
 
   def broadcast_prepend_to_dashboard

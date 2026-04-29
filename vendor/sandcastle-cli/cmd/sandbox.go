@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -16,21 +16,28 @@ import (
 )
 
 var (
-	sandboxImage         string
-	sandboxSnapshot      string
-	sandboxFromSnapshot  string
-	sandboxRestoreLayers string
-	sandboxTailscale     bool
-	sandboxNoConnect     bool
-	sandboxRemove        bool
-	sandboxHome          bool
-	sandboxData          string
-	sandboxNoVNC         bool
-	sandboxVNCGeometry   string
-	sandboxVNCDepth      int
-	sandboxNoDocker      bool
-	sandboxSMB           bool
-	listArchived         bool
+	sandboxImage             string
+	sandboxSnapshot          string
+	sandboxFromSnapshot      string
+	sandboxRestoreLayers     string
+	sandboxTailscale         bool
+	sandboxNoConnect         bool
+	sandboxRemove            bool
+	sandboxHome              bool
+	sandboxData              string
+	sandboxNoVNC             bool
+	sandboxVNCGeometry       string
+	sandboxVNCDepth          int
+	sandboxNoDocker          bool
+	sandboxSMB               bool
+	sandboxOIDC              bool
+	sandboxNoOIDC            bool
+	sandboxGCP               bool
+	sandboxGCPConfig         string
+	sandboxGCPServiceAccount string
+	sandboxGCPScope          string
+	sandboxGCPRoles          []string
+	listArchived             bool
 )
 
 func init() {
@@ -63,6 +70,13 @@ func init() {
 	createCmd.Flags().IntVar(&sandboxVNCDepth, "vnc-depth", 0, "VNC color depth: 8, 16, 24, or 32")
 	createCmd.Flags().BoolVar(&sandboxNoDocker, "no-docker", false, "Disable Docker daemon (DinD) inside sandbox")
 	createCmd.Flags().BoolVar(&sandboxSMB, "smb", false, "Enable SMB file sharing (requires Tailscale and SMB password set via 'sandcastle smb set-password')")
+	createCmd.Flags().BoolVar(&sandboxOIDC, "oidc", false, "Enable sandbox OIDC identity tokens")
+	createCmd.Flags().BoolVar(&sandboxNoOIDC, "no-oidc", false, "Disable sandbox OIDC identity tokens")
+	createCmd.Flags().BoolVar(&sandboxGCP, "gcp", false, "Configure GCP credentials for this sandbox")
+	createCmd.Flags().StringVar(&sandboxGCPConfig, "gcp-config", "", "GCP identity config name or ID")
+	createCmd.Flags().StringVar(&sandboxGCPServiceAccount, "gcp-service-account", "", "GCP service account email to impersonate")
+	createCmd.Flags().StringVar(&sandboxGCPScope, "gcp-scope", "user", "GCP principal scope: user or sandbox")
+	createCmd.Flags().StringArrayVar(&sandboxGCPRoles, "gcp-role", nil, "GCP project IAM role hint; may be repeated")
 }
 
 var createCmd = &cobra.Command{
@@ -142,21 +156,57 @@ Flags explicitly passed on the command line take precedence over environment var
 				restoreLayers = append(restoreLayers, strings.TrimSpace(l))
 			}
 		}
+		if sandboxOIDC && sandboxNoOIDC {
+			return fmt.Errorf("--oidc and --no-oidc are mutually exclusive")
+		}
+		if sandboxNoOIDC && (sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "") {
+			return fmt.Errorf("--no-oidc cannot be used with GCP credential configuration")
+		}
+		if sandboxGCPScope != "sandbox" && sandboxGCPScope != "user" {
+			return fmt.Errorf("--gcp-scope must be sandbox or user")
+		}
+		var oidcEnabled *bool
+		if cmd.Flags().Changed("oidc") {
+			v := true
+			oidcEnabled = &v
+		}
+		if cmd.Flags().Changed("no-oidc") {
+			v := false
+			oidcEnabled = &v
+		}
+		var gcpConfigID int
+		if sandboxGCPConfig != "" {
+			config, err := findGcpConfig(client, sandboxGCPConfig)
+			if err != nil {
+				return err
+			}
+			gcpConfigID = config.ID
+		}
+		if oidcEnabled == nil && (sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "") {
+			v := true
+			oidcEnabled = &v
+		}
 
 		sandbox, err := client.CreateSandbox(api.CreateSandboxRequest{
-			Name:          name,
-			Image:         sandboxImage,
-			FromSnapshot:  fromSnap,
-			RestoreLayers: restoreLayers,
-			Tailscale:     sandboxTailscale,
-			MountHome:     sandboxHome,
-			DataPath:      sandboxData,
-			Temporary:     sandboxRemove,
-			VNCEnabled:    !sandboxNoVNC,
-			VNCGeometry:   sandboxVNCGeometry,
-			VNCDepth:      sandboxVNCDepth,
-			DockerEnabled: !sandboxNoDocker,
-			SMBEnabled:    sandboxSMB,
+			Name:                   name,
+			Image:                  sandboxImage,
+			FromSnapshot:           fromSnap,
+			RestoreLayers:          restoreLayers,
+			Tailscale:              sandboxTailscale,
+			MountHome:              sandboxHome,
+			DataPath:               sandboxData,
+			Temporary:              sandboxRemove,
+			VNCEnabled:             !sandboxNoVNC,
+			VNCGeometry:            sandboxVNCGeometry,
+			VNCDepth:               sandboxVNCDepth,
+			DockerEnabled:          !sandboxNoDocker,
+			SMBEnabled:             sandboxSMB,
+			OIDCEnabled:            oidcEnabled,
+			GCPOIDCEnabled:         sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "",
+			GCPOIDCConfigID:        gcpConfigID,
+			GCPServiceAccountEmail: sandboxGCPServiceAccount,
+			GCPPrincipalScope:      sandboxGCPScope,
+			GCPRoles:               cleanStringList(sandboxGCPRoles),
 		})
 		if err != nil {
 			return err
@@ -207,6 +257,9 @@ Flags explicitly passed on the command line take precedence over environment var
 			}
 			if sandboxSMB {
 				fmt.Println("  SMB:       enabled")
+			}
+			if sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "" {
+				fmt.Println("  GCP:       configured")
 			}
 		}
 
@@ -339,7 +392,7 @@ var listCmd = &cobra.Command{
 			if s.TailscaleIP != "" {
 				tsIP = s.TailscaleIP
 			}
-			created  := s.CreatedAt.Local().Format("2006-01-02 15:04")
+			created := s.CreatedAt.Local().Format("2006-01-02 15:04")
 			imageAge := formatImageAge(s.ImageBuiltAt)
 			if hasRoute {
 				route := ""
@@ -394,7 +447,7 @@ var deleteCmd = &cobra.Command{
 	Use:     "delete <name>",
 	Aliases: []string{"rm", "d"},
 	Short:   "Delete a sandbox",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {
@@ -431,7 +484,7 @@ var startCmd = &cobra.Command{
 	Use:     "start <name>",
 	Aliases: []string{"up"},
 	Short:   "Start a stopped sandbox",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {
@@ -458,7 +511,7 @@ var stopCmd = &cobra.Command{
 	Use:     "stop <name>",
 	Aliases: []string{"dn"},
 	Short:   "Stop a running sandbox",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {

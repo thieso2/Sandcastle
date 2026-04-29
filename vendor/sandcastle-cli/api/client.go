@@ -270,6 +270,46 @@ func (c *Client) UpdateSandbox(id int, req UpdateSandboxRequest) (*Sandbox, erro
 	return &s, err
 }
 
+func (c *Client) ListGcpOidcConfigs() ([]GcpOidcConfig, error) {
+	var configs []GcpOidcConfig
+	err := c.do("GET", "/api/gcp_oidc_configs", nil, &configs)
+	return configs, err
+}
+
+func (c *Client) GetGcpOidcConfig(id int) (*GcpOidcConfig, error) {
+	var config GcpOidcConfig
+	err := c.do("GET", fmt.Sprintf("/api/gcp_oidc_configs/%d", id), nil, &config)
+	return &config, err
+}
+
+func (c *Client) CreateGcpOidcConfig(req GcpOidcConfigRequest) (*GcpOidcConfig, error) {
+	var config GcpOidcConfig
+	err := c.do("POST", "/api/gcp_oidc_configs", req, &config)
+	return &config, err
+}
+
+func (c *Client) UpdateGcpOidcConfig(id int, req GcpOidcConfigRequest) (*GcpOidcConfig, error) {
+	var config GcpOidcConfig
+	err := c.do("PATCH", fmt.Sprintf("/api/gcp_oidc_configs/%d", id), req, &config)
+	return &config, err
+}
+
+func (c *Client) DeleteGcpOidcConfig(id int) error {
+	return c.do("DELETE", fmt.Sprintf("/api/gcp_oidc_configs/%d", id), nil, nil)
+}
+
+func (c *Client) SandboxGcpOidcSetup(id int) (*GcpOidcSetup, error) {
+	var setup GcpOidcSetup
+	err := c.do("GET", fmt.Sprintf("/api/sandboxes/%d/gcp_oidc_setup", id), nil, &setup)
+	return &setup, err
+}
+
+func (c *Client) UpdateSandboxGcpIdentity(id int, req UpdateGcpIdentityRequest) (*GcpIdentityResponse, error) {
+	var response GcpIdentityResponse
+	err := c.do("PATCH", fmt.Sprintf("/api/sandboxes/%d/gcp_identity", id), req, &response)
+	return &response, err
+}
+
 func (c *Client) DestroySandbox(id int) error {
 	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d", id), nil, nil)
 }

@@ -43,6 +43,8 @@ module DockerMock
     private
 
     def setup_mocks
+      Docker.singleton_class.prepend(DockerMethods)
+
       # Mock Docker::Container
       Docker::Container.singleton_class.prepend(ContainerMethods)
       Docker::Container.prepend(ContainerInstanceMethods)
@@ -54,6 +56,17 @@ module DockerMock
       # Mock Docker::Network
       Docker::Network.singleton_class.prepend(NetworkMethods)
       Docker::Network.prepend(NetworkInstanceMethods)
+    end
+  end
+
+  module DockerMethods
+    def info(_opts = {}, _conn = nil)
+      {
+        "Runtimes" => {
+          "runc" => {},
+          "sysbox-runc" => {}
+        }
+      }
     end
   end
 

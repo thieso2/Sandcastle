@@ -1,6 +1,6 @@
 module Api
   class SandboxesController < BaseController
-    before_action :set_sandbox, only: %i[show update destroy start stop rebuild logs connect snapshot restore tailscale_connect tailscale_disconnect service_start service_stop]
+    before_action :set_sandbox, only: %i[show update destroy start stop rebuild logs connect snapshot restore tailscale_connect tailscale_disconnect service_start service_stop gcp_oidc_setup gcp_identity]
     before_action :set_archived_sandbox, only: %i[archive_restore purge]
 
     def index
@@ -42,6 +42,9 @@ module Api
 
       # Build sandbox record (fall back to the user's personal defaults where
       # the request doesn't specify a value)
+      gcp_oidc_enabled = boolean_param(:gcp_oidc_enabled, false)
+      requested_oidc_enabled = boolean_param(:oidc_enabled, current_user.default_oidc_enabled)
+
       sandbox = current_user.sandboxes.build(
         name: params.require(:name),
         status: "pending",
@@ -55,7 +58,13 @@ module Api
         docker_enabled: params.key?(:docker_enabled) ? params[:docker_enabled] : current_user.default_docker_enabled,
         ssh_start_tmux: params.key?(:ssh_start_tmux) ? params[:ssh_start_tmux] : nil,
         temporary: params[:temporary] || false,
-        smb_enabled: params.key?(:smb_enabled) ? params[:smb_enabled] : (current_user.default_smb_enabled && current_user.tailscale_enabled? && current_user.smb_password.present?)
+        smb_enabled: params.key?(:smb_enabled) ? params[:smb_enabled] : (current_user.default_smb_enabled && current_user.tailscale_enabled? && current_user.smb_password.present?),
+        oidc_enabled: requested_oidc_enabled || gcp_oidc_enabled,
+        gcp_oidc_enabled: gcp_oidc_enabled,
+        gcp_oidc_config_id: params[:gcp_oidc_config_id],
+        gcp_service_account_email: params[:gcp_service_account_email],
+        gcp_principal_scope: params[:gcp_principal_scope].presence || "user",
+        gcp_roles: parse_gcp_roles(params[:gcp_roles])
       )
 
       sandbox.save!
@@ -89,8 +98,37 @@ module Api
     end
 
     def update
-      @sandbox.update!(params.permit(:temporary, :name))
+      sandbox_params = params.permit(
+        :temporary, :name, :oidc_enabled,
+        :gcp_oidc_enabled, :gcp_oidc_config_id, :gcp_service_account_email, :gcp_principal_scope
+      ).to_h
+      sandbox_params[:gcp_roles] = parse_gcp_roles(params[:gcp_roles]) if params.key?(:gcp_roles)
+
+      runtime_keys = sandbox_params.keys - %w[name temporary]
+      if @sandbox.status == "running" && runtime_keys.any?
+        render json: { error: "Stop the sandbox before editing settings." }, status: :conflict
+        return
+      end
+
+      @sandbox.update!(sandbox_params)
       render json: sandbox_json(@sandbox)
+    end
+
+    def gcp_oidc_setup
+      render json: GcpOidcSetup.new(user: @sandbox.user, sandbox: @sandbox).as_json
+    end
+
+    def gcp_identity
+      if @sandbox.status == "running"
+        render json: { error: "Stop the sandbox before editing settings." }, status: :conflict
+        return
+      end
+
+      @sandbox.update!(gcp_identity_params)
+      render json: {
+        sandbox: sandbox_json(@sandbox.reload),
+        setup: GcpOidcSetup.new(user: @sandbox.user, sandbox: @sandbox).as_json
+      }
     end
 
     def destroy
@@ -274,6 +312,21 @@ module Api
         vnc_depth: sandbox.vnc_depth,
         docker_enabled: sandbox.docker_enabled,
         smb_enabled: sandbox.smb_enabled,
+        oidc_enabled: sandbox.oidc_enabled,
+        gcp_oidc_enabled: sandbox.gcp_oidc_enabled,
+        gcp_oidc_config_id: sandbox.gcp_oidc_config_id,
+        gcp_oidc_config: sandbox.gcp_oidc_config && {
+          id: sandbox.gcp_oidc_config.id,
+          name: sandbox.gcp_oidc_config.name,
+          project_id: sandbox.gcp_oidc_config.project_id,
+          project_number: sandbox.gcp_oidc_config.project_number,
+          default_service_account_email: sandbox.gcp_oidc_config.default_service_account_email
+        },
+        gcp_service_account_email: sandbox.gcp_service_account_email,
+        effective_gcp_service_account_email: sandbox.effective_gcp_service_account_email,
+        gcp_principal_scope: sandbox.gcp_principal_scope,
+        gcp_roles: sandbox.gcp_roles_list,
+        gcp_oidc_configured: sandbox.gcp_oidc_configured?,
         ssh_start_tmux: sandbox.effective_ssh_start_tmux?,
         routes: sandbox.routes.map { |r| { id: r.id, domain: r.domain, port: r.port, url: r.url } },
         image_version: sandbox.image_version,
@@ -290,6 +343,29 @@ module Api
       end
 
       json
+    end
+
+    def gcp_identity_params
+      attrs = {}
+      attrs[:gcp_oidc_enabled] = boolean_param(:gcp_oidc_enabled, @sandbox.gcp_oidc_enabled?) if params.key?(:gcp_oidc_enabled)
+      attrs[:gcp_oidc_config_id] = params[:gcp_oidc_config_id] if params.key?(:gcp_oidc_config_id)
+      attrs[:gcp_service_account_email] = params[:gcp_service_account_email] if params.key?(:gcp_service_account_email)
+      attrs[:gcp_principal_scope] = params[:gcp_principal_scope].presence || "user" if params.key?(:gcp_principal_scope)
+      attrs[:gcp_roles] = parse_gcp_roles(params[:gcp_roles]) if params.key?(:gcp_roles)
+      attrs
+    end
+
+    def parse_gcp_roles(value)
+      Array(value).flat_map { |role| role.to_s.split(/[\n,]/) }
+        .map(&:strip)
+        .reject(&:blank?)
+        .uniq
+    end
+
+    def boolean_param(key, default)
+      return default unless params.key?(key)
+
+      ActiveModel::Type::Boolean.new.cast(params[key])
     end
   end
 end

@@ -7,6 +7,7 @@ class SandboxesController < ApplicationController
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     @btrfs_available = BtrfsHelper.btrfs?
     @defaults = Current.user
+    @gcp_oidc_configs = Current.user.gcp_oidc_configs.order(:name)
   end
 
   def show
@@ -14,13 +15,17 @@ class SandboxesController < ApplicationController
                            .select { |s| s[:source_sandbox] == @sandbox.name }
     @routes = @sandbox.routes.order(:created_at)
     @btrfs = BtrfsHelper.btrfs?
+    @gcp_oidc_setup = GcpOidcSetup.new(user: @sandbox.user, sandbox: @sandbox).as_json
+    @gcp_oidc_configs = @sandbox.user.gcp_oidc_configs.order(:name)
   end
 
   def update
     sandbox_params = params.require(:sandbox).permit(
       :name, :ssh_start_tmux, :mount_home, :docker_enabled,
-      :vnc_enabled, :vnc_geometry, :vnc_depth, :smb_enabled
-    )
+      :vnc_enabled, :vnc_geometry, :vnc_depth, :smb_enabled, :oidc_enabled,
+      :gcp_oidc_enabled, :gcp_oidc_config_id, :gcp_service_account_email, :gcp_principal_scope
+    ).to_h
+    sandbox_params[:gcp_roles] = parse_gcp_roles(params.dig(:sandbox, :gcp_roles_text)) if params.dig(:sandbox, :gcp_roles_text)
 
     # Only name may be edited while the sandbox is running; everything else
     # needs a rebuild/restart to take effect, so we reject settings edits to
@@ -30,13 +35,15 @@ class SandboxesController < ApplicationController
     end
 
     if @sandbox.update(sandbox_params)
-      notice = sandbox_params.keys == ["name"] ? "Sandbox renamed to #{@sandbox.name}." : "Sandbox settings updated. Changes apply on next rebuild/start."
+      notice = sandbox_params.keys == [ "name" ] ? "Sandbox renamed to #{@sandbox.name}." : "Sandbox settings updated. Changes apply on next rebuild/start."
       redirect_to @sandbox, notice: notice
     else
       @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
                              .select { |s| s[:source_sandbox] == @sandbox.name }
       @routes = @sandbox.routes.order(:created_at)
       @btrfs = BtrfsHelper.btrfs?
+      @gcp_oidc_setup = GcpOidcSetup.new(user: @sandbox.user, sandbox: @sandbox).as_json
+      @gcp_oidc_configs = @sandbox.user.gcp_oidc_configs.order(:name)
       flash.now[:alert] = @sandbox.errors.full_messages.join(", ")
       render :show, status: :unprocessable_entity
     end
@@ -69,6 +76,12 @@ class SandboxesController < ApplicationController
       vnc_depth: Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24,
       docker_enabled: params[:docker_enabled] != "0",
       smb_enabled: params[:smb_enabled] == "1",
+      oidc_enabled: params[:oidc_enabled] == "1" || params[:gcp_oidc_enabled] == "1",
+      gcp_oidc_enabled: params[:gcp_oidc_enabled] == "1",
+      gcp_oidc_config_id: params[:gcp_oidc_config_id].presence,
+      gcp_service_account_email: params[:gcp_service_account_email],
+      gcp_principal_scope: params[:gcp_principal_scope].presence || "user",
+      gcp_roles: parse_gcp_roles(params[:gcp_roles_text]),
       ssh_start_tmux: params[:ssh_start_tmux] == "1",
       temporary: false
     )
@@ -81,11 +94,13 @@ class SandboxesController < ApplicationController
       redirect_to root_path, notice: "Creating sandcastle #{sandbox.name}..."
     else
       @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+      @gcp_oidc_configs = Current.user.gcp_oidc_configs.order(:name)
       flash.now[:alert] = "Failed to create sandbox: #{sandbox.errors.full_messages.join(', ')}"
       render :new, status: :unprocessable_entity
     end
   rescue => e
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+    @gcp_oidc_configs = Current.user.gcp_oidc_configs.order(:name)
     flash.now[:alert] = "Failed to create sandbox: #{e.message}"
     render :new, status: :unprocessable_entity
   end
@@ -293,6 +308,13 @@ class SandboxesController < ApplicationController
   def set_sandbox
     @sandbox = policy_scope(Sandbox).find(params[:id])
     authorize @sandbox
+  end
+
+  def parse_gcp_roles(value)
+    Array(value).flat_map { |role| role.to_s.split(/[\n,]/) }
+      .map(&:strip)
+      .reject(&:blank?)
+      .uniq
   end
 
   def set_archived_sandbox

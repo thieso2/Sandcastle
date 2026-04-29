@@ -103,6 +103,18 @@ class SandboxManager
     # Set SMB password via exec (avoids leaking password in container env/metadata)
     set_smb_password(container, sandbox.user) if sandbox.smb_enabled?
 
+    # Inject the per-sandbox OIDC runtime token via exec so it never appears
+    # in Docker env/metadata.
+    begin
+      setup_oidc_runtime(container, sandbox)
+    rescue Error
+      NetworkManager.new.disconnect_sandbox(sandbox: sandbox) rescue nil
+      container.stop rescue nil
+      container.delete(force: true) rescue nil
+      sandbox.update!(container_id: nil, status: "pending", oidc_secret_digest: nil, oidc_secret_rotated_at: nil)
+      raise
+    end
+
     # Inject per-user files (Claude/Codex creds, dotfiles, etc.)
     inject_files(container, sandbox.user)
 
@@ -189,9 +201,16 @@ class SandboxManager
       # Soft-delete: keep volume on disk, mark as archived.
       # Rename to free the original name for reuse.
       archived_name = "#{Time.current.strftime('%Y%m%d%H%M%S')}-#{sandbox.name}"
-      sandbox.update!(status: "archived", container_id: nil, archived_at: Time.current, name: archived_name)
+      sandbox.update!(
+        status: "archived",
+        container_id: nil,
+        archived_at: Time.current,
+        name: archived_name,
+        oidc_secret_digest: nil,
+        oidc_secret_rotated_at: nil
+      )
     else
-      sandbox.update!(status: "destroyed", container_id: nil)
+      sandbox.update!(status: "destroyed", container_id: nil, oidc_secret_digest: nil, oidc_secret_rotated_at: nil)
     end
 
     # Remove per-user network if this was the last active sandbox
@@ -811,11 +830,111 @@ class SandboxManager
     env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
     env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
     env << "SANDCASTLE_SMB_ENABLED=#{sandbox.smb_enabled? ? '1' : '0'}"
+    env << "GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES=1" if sandbox.oidc_enabled?
+    if sandbox.gcp_oidc_configured?
+      env << "GOOGLE_APPLICATION_CREDENTIALS=#{GcpOidcSetup::CREDENTIALS_PATH}"
+      env << "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=#{GcpOidcSetup::CREDENTIALS_PATH}"
+      if sandbox.gcp_oidc_config.project_id.present?
+        env << "CLOUDSDK_CORE_PROJECT=#{sandbox.gcp_oidc_config.project_id}"
+        env << "GOOGLE_CLOUD_PROJECT=#{sandbox.gcp_oidc_config.project_id}"
+      end
+    end
     env << "SANDCASTLE_HOME_PERSISTED=#{sandbox.mount_home ? '1' : '0'}"
     env << "SANDCASTLE_DATA_PERSISTED=#{sandbox.data_path.present? ? '1' : '0'}"
     env << "SANDCASTLE_DATA_PATH=#{sandbox.data_path}" if sandbox.data_path.present?
     env << "SANDCASTLE_SSH_START_TMUX=#{sandbox.effective_ssh_start_tmux? ? '1' : '0'}"
     env
+  end
+
+  def setup_oidc_runtime(container, sandbox)
+    if sandbox.oidc_enabled?
+      inject_oidc_runtime(container, sandbox, sandbox.rotate_oidc_secret!)
+    else
+      sandbox.clear_oidc_secret! if sandbox.oidc_secret_digest.present? || sandbox.oidc_secret_rotated_at.present?
+      remove_oidc_runtime(container)
+    end
+  rescue Docker::Error::DockerError => e
+    message = "setup_oidc_runtime failed for #{sandbox.full_name}: #{e.message}"
+    Rails.logger.warn(message)
+    raise Error, message if sandbox.oidc_enabled?
+  end
+
+  def inject_oidc_runtime(container, sandbox, runtime_token)
+    endpoint = ENV.fetch("SANDCASTLE_OIDC_TOKEN_ENDPOINT", "http://sandcastle-web:80/internal/oidc/token")
+    script = <<~SH
+      set -e
+      user="$1"
+      runtime_token="$2"
+      issuer="$3"
+      endpoint="$4"
+      sandbox_id="$5"
+      sandbox_name="$6"
+      user_name="$7"
+      gcp_audience="$8"
+      gcp_service_account="$9"
+      gcp_project_id="${10}"
+
+      install -d -m 0755 /run/sandcastle /etc/sandcastle
+      printf '%s' "$runtime_token" > /run/sandcastle/oidc-token
+      chown "$user:$user" /run/sandcastle/oidc-token 2>/dev/null || true
+      chmod 0400 /run/sandcastle/oidc-token
+
+      {
+        printf 'SANDCASTLE_OIDC_ISSUER=%s\\n' "$issuer"
+        printf 'SANDCASTLE_OIDC_TOKEN_ENDPOINT=%s\\n' "$endpoint"
+        printf 'SANDCASTLE_OIDC_TOKEN_FILE=%s\\n' "/run/sandcastle/oidc-token"
+        printf 'SANDCASTLE_OIDC_SANDBOX_ID=%s\\n' "$sandbox_id"
+        printf 'SANDCASTLE_OIDC_SANDBOX_NAME=%s\\n' "$sandbox_name"
+        printf 'SANDCASTLE_OIDC_USER=%s\\n' "$user_name"
+        if [ -n "$gcp_audience" ] && [ -n "$gcp_service_account" ]; then
+          printf 'SANDCASTLE_GCP_WORKLOAD_IDENTITY_PROVIDER=%s\\n' "$gcp_audience"
+          printf 'SANDCASTLE_GCP_SERVICE_ACCOUNT_EMAIL=%s\\n' "$gcp_service_account"
+          printf 'GOOGLE_APPLICATION_CREDENTIALS=%s\\n' "#{GcpOidcSetup::CREDENTIALS_PATH}"
+          printf 'CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=%s\\n' "#{GcpOidcSetup::CREDENTIALS_PATH}"
+          printf 'GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES=1\\n'
+          if [ -n "$gcp_project_id" ]; then
+            printf 'CLOUDSDK_CORE_PROJECT=%s\\n' "$gcp_project_id"
+            printf 'GOOGLE_CLOUD_PROJECT=%s\\n' "$gcp_project_id"
+          fi
+        fi
+      } > /etc/sandcastle/oidc.env
+      chmod 0644 /etc/sandcastle/oidc.env
+
+      if [ -n "$gcp_audience" ] && [ -n "$gcp_service_account" ]; then
+        sandcastle-oidc gcp write-config \
+          --audience "$gcp_audience" \
+          --service-account "$gcp_service_account" \
+          --output "#{GcpOidcSetup::CREDENTIALS_PATH}" >/dev/null
+        chown "$user:$user" "#{GcpOidcSetup::CREDENTIALS_PATH}" 2>/dev/null || true
+        chmod 0600 "#{GcpOidcSetup::CREDENTIALS_PATH}"
+      fi
+    SH
+
+    gcp_setup = GcpOidcSetup.new(user: sandbox.user, sandbox: sandbox)
+    gcp_audience = sandbox.gcp_oidc_configured? ? gcp_setup.audience : ""
+    gcp_service_account = sandbox.gcp_oidc_configured? ? sandbox.effective_gcp_service_account_email : ""
+
+    container.exec([
+      "bash", "-c", script,
+      "_",
+      sandbox.user.name,
+      runtime_token,
+      OidcSigner.issuer,
+      endpoint,
+      sandbox.id.to_s,
+      sandbox.name,
+      sandbox.user.name,
+      gcp_audience.to_s,
+      gcp_service_account.to_s,
+      sandbox.gcp_oidc_config&.project_id.to_s
+    ])
+  end
+
+  def remove_oidc_runtime(container)
+    container.exec([
+      "bash", "-c",
+      "rm -f /run/sandcastle/oidc-token /etc/sandcastle/oidc.env /etc/sandcastle/gcp-credentials.json /run/sandcastle/oidc/gcp.jwt /run/sandcastle/oidc/gcp-executable-cache.json"
+    ])
   end
 
   def container_runtime
@@ -916,8 +1035,8 @@ class SandboxManager
     username = user.name
     password = user.smb_password
     container.exec(
-      ["bash", "-c", "printf '%s\\n%s\\n' \"$0\" \"$0\" | smbpasswd -a -s \"$1\" 2>&1 || echo 'Warning: smbpasswd failed' >&2",
-       password, username]
+      [ "bash", "-c", "printf '%s\\n%s\\n' \"$0\" \"$0\" | smbpasswd -a -s \"$1\" 2>&1 || echo 'Warning: smbpasswd failed' >&2",
+        password, username ]
     )
   rescue Docker::Error::DockerError => e
     Rails.logger.warn("set_smb_password failed for #{user.name}: #{e.message}")

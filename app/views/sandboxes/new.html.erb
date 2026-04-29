@@ -125,6 +125,60 @@
       </label>
 
       <label class="flex items-start gap-3 cursor-pointer">
+        <%= form.check_box :oidc_enabled, checked: @defaults.default_oidc_enabled,
+              class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+        <div class="flex-1">
+          <div class="text-sm font-medium text-gray-900">Enable OIDC identity tokens</div>
+          <p class="text-xs text-gray-500">Allow this sandbox to mint short-lived tokens for cloud workload federation</p>
+        </div>
+      </label>
+
+      <div class="ml-7 space-y-3 border-l border-gray-100 pl-4">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <%= form.check_box :gcp_oidc_enabled,
+                class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+          <div class="flex-1">
+            <div class="text-sm font-medium text-gray-900">Configure GCP credentials</div>
+            <p class="text-xs text-gray-500">Write Google external account credentials automatically when this sandbox starts</p>
+          </div>
+        </label>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="md:col-span-2">
+            <%= form.label :gcp_oidc_config_id, "GCP identity config", class: "block text-xs font-medium text-gray-600 mb-1" %>
+            <%= form.select :gcp_oidc_config_id,
+                  options_for_select([["None", ""]] + @gcp_oidc_configs.map { |config| [config.name, config.id] }),
+                  {},
+                  class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          </div>
+          <div class="md:col-span-2">
+            <%= form.label :gcp_service_account_email, "Custom service account override", class: "block text-xs font-medium text-gray-600 mb-1" %>
+            <%= form.email_field :gcp_service_account_email,
+                  placeholder: "Leave blank for the config default",
+                  class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+            <p class="mt-1 text-xs text-gray-500">Leave blank to use the selected config's default read-only Sandcastle service account.</p>
+          </div>
+          <div>
+            <%= form.label :gcp_principal_scope, "Principal scope", class: "block text-xs font-medium text-gray-600 mb-1" %>
+            <%= form.select :gcp_principal_scope,
+                  options_for_select([["All my sandboxes", "user"], ["This sandbox", "sandbox"]], "user"),
+                  {},
+                  class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          </div>
+          <div>
+            <%= label_tag :gcp_roles_text, "Project roles", class: "block text-xs font-medium text-gray-600 mb-1" %>
+            <%= text_field_tag :gcp_roles_text, nil,
+                  placeholder: "roles/viewer, roles/storage.objectViewer",
+                  class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+          </div>
+        </div>
+
+        <% if @gcp_oidc_configs.empty? %>
+          <p class="text-xs text-amber-700">Add a GCP Identity Config in Settings before starting this sandbox.</p>
+        <% end %>
+      </div>
+
+      <label class="flex items-start gap-3 cursor-pointer">
         <%= form.check_box :ssh_start_tmux, checked: @defaults.default_ssh_start_tmux,
               class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
         <div class="flex-1">

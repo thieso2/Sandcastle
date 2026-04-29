@@ -1,9 +1,7 @@
 require "jwt"
 
-# Signs OIDC ID tokens that external clouds (GCP first, AWS/Azure later)
-# verify against Sandcastle's JWKS endpoint. See
-# /Users/sebastian/.claude/plans/temporal-tinkering-plum.md for the slice's
-# scope and the GCP-side setup.
+# Signs OIDC ID tokens that external clouds verify against Sandcastle's JWKS
+# endpoint.
 class OidcSigner
   class Error < StandardError; end
   class MissingKey < Error; end
@@ -79,6 +77,10 @@ class OidcSigner
       }
 
       JWT.encode(payload, private_key, ALGORITHM, { kid: kid, typ: "JWT" })
+    end
+
+    def subject_for(user:, sandbox:)
+      build_subject(user, sandbox)
     end
 
     # Mostly for tests/debugging. Verifies signature and returns [payload, header].

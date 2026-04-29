@@ -14,8 +14,12 @@ class User < ApplicationRecord
   has_many :injected_files, dependent: :destroy
   has_many :persisted_paths, dependent: :destroy
   has_many :ignored_paths, dependent: :destroy
+  has_many :gcp_oidc_configs, dependent: :destroy
 
   DEFAULT_PERSISTED_PATHS = %w[.claude .codex].freeze
+  CUSTOM_LINK_SHOW_ON_VALUES = %w[all desktop tablet phone].freeze
+  CUSTOM_LINK_TEMPLATE_VARS = %w[user hostname ssh_port sandbox tailscale_ip tmux_cmd tmux_cmd_encoded].freeze
+  TMUX_CMD = "tmux new-session -A -s main".freeze
 
   after_create_commit :seed_default_persisted_paths
 
@@ -80,10 +84,6 @@ class User < ApplicationRecord
     end
   end
 
-  CUSTOM_LINK_SHOW_ON_VALUES = %w[all desktop tablet phone].freeze
-  CUSTOM_LINK_TEMPLATE_VARS = %w[user hostname ssh_port sandbox tailscale_ip tmux_cmd tmux_cmd_encoded].freeze
-  TMUX_CMD = "tmux new-session -A -s main".freeze
-
   # Expands {vars} in a custom-link URL template. Returns nil if any
   # referenced variable resolves to a blank value (e.g. a fresh sandbox
   # whose tailscale_ip isn't assigned yet) — callers skip rendering in
@@ -93,14 +93,14 @@ class User < ApplicationRecord
     missing = false
     expanded = url_template.gsub(/\{(\w+)\}/) do
       value = case $1
-              when "user" then name
-              when "hostname" then hostname
-              when "ssh_port" then sandbox.ssh_port
-              when "sandbox" then sandbox.name
-              when "tailscale_ip" then tailscale_ip
-              when "tmux_cmd" then TMUX_CMD
-              when "tmux_cmd_encoded" then ERB::Util.url_encode(TMUX_CMD)
-              end
+      when "user" then name
+      when "hostname" then hostname
+      when "ssh_port" then sandbox.ssh_port
+      when "sandbox" then sandbox.name
+      when "tailscale_ip" then tailscale_ip
+      when "tmux_cmd" then TMUX_CMD
+      when "tmux_cmd_encoded" then ERB::Util.url_encode(TMUX_CMD)
+      end
       if value.to_s.empty?
         missing = true
         ""

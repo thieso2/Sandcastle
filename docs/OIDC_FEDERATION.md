@@ -2,6 +2,8 @@
 
 Sandcastle can issue short-lived OIDC tokens that identify a specific sandbox. External cloud providers (GCP, AWS, Azure, HashiCorp Vault, …) that support **Workload Identity Federation** can verify these tokens and hand back cloud credentials — **no long-lived cloud keys ever live in a sandbox**.
 
+For the operational GCP setup guide, see [GCP_OIDC_SETUP.md](GCP_OIDC_SETUP.md). This document is the architecture and security reference.
+
 This is the same pattern GitHub Actions uses: the CI runner gets an OIDC token from GitHub, exchanges it at `sts.amazonaws.com` (or GCP's STS), and proceeds with scoped, time-bound access.
 
 ## Why
@@ -22,7 +24,7 @@ OIDC federation sidesteps all of that:
 ```
 ┌─────────────────── SANDBOX ──────────────────┐
 │                                              │
-│  $ sandcastle-token --audience=gcp  ─────────┼──►  POST /oauth/token (per-sandbox secret)
+│  $ sandcastle-oidc token --audience=gcp  ────┼──►  POST /internal/oidc/token
 │                                              │                │
 │                                              │                ▼
 │                                              │       Rails signs an RS256 JWT
@@ -30,7 +32,7 @@ OIDC federation sidesteps all of that:
 │                                              │    ◄───────────┘ returns to sandbox
 │  $ gcloud storage ls                         │
 │    └─ reads cred-config JSON                 │
-│       └─ reads /run/sandcastle/gcp-token  ◄──┼── JWT written by helper
+│       └─ invokes sandcastle-oidc executable ─┼──► fresh JWT on demand
 └──────────────────────────────────────────────┘
                     │
                     │ POST sts.googleapis.com/v1/token
@@ -66,16 +68,17 @@ The boundary is clean:
 | JWT minting with full claim shape | ✅ | `OidcSigner.mint` |
 | Rake tasks: `oidc:gen_key`, `oidc:mint`, `oidc:inspect`, `oidc:discovery`, `oidc:jwks` | ✅ | `lib/tasks/oidc.rake` |
 | Unit + controller tests | ✅ | `test/services/oidc_signer_test.rb`, `test/controllers/oidc_controller_test.rb` |
-| **In-sandbox CLI helper** (`sandcastle token --audience=...`) | ⏳ Next | `vendor/sandcastle-cli` |
-| **Sandbox env injection** (per-sandbox secret + issuer URL) | ⏳ Next | `SandboxManager#container_env` |
-| **Authenticated `/oauth/token` endpoint** | ⏳ Next | New `OidcTokenController` |
-| **Pre-baked cloud cred-configs** in sandbox image | ⏳ Next | `images/sandbox/` |
-| **User-facing guide + UI to generate cloud setup commands** | ⏳ Next | `guide.html.erb`, new settings page |
+| **In-sandbox Go helper** (`sandcastle-oidc token --audience=...`) | ✅ | `images/sandbox/oidc-helper` |
+| **Sandbox runtime secret injection** (per-sandbox secret + issuer URL) | ✅ | `SandboxManager#setup_oidc_runtime` |
+| **Authenticated internal token endpoint** (`POST /internal/oidc/token`) | ✅ | `Internal::OidcTokensController` |
+| **GCP executable cred-config writer + file refresher** | ✅ | `sandcastle-oidc gcp ...` |
+| **GCP setup generation in UI/API/CLI** | ✅ | `GcpOidcSetup`, `sandcastle gcp ...` |
+| **Transparent GCP credential injection** | ✅ | `/etc/sandcastle/gcp-credentials.json` |
 | **Key rotation** (multiple keys in JWKS during rollover) | ⏳ Later | `OidcSigner` |
 | **Audit log** for token issuance | ⏳ Later | New table |
 | **AWS, Azure, Vault** support (same IdP, different cred-configs) | ⏳ Later | docs + helper |
 
-This PR is the **de-risking slice** — it proves Sandcastle's tokens are accepted by real GCP STS end-to-end, including service-account impersonation and a real `bq ls` call. The rest is plumbing.
+The first slice proved Sandcastle's tokens are accepted by real GCP STS end-to-end, including service-account impersonation and a real `bq ls` call. The current slice adds sandbox-side runtime plumbing, setup generation, and transparent GCP credential injection.
 
 ## JWT claim shape
 
@@ -102,33 +105,102 @@ Signed **RS256**, `kid` = first 8 hex chars of `SHA256(public_key_der)`.
 
 | Cloud | Good pin | Use when |
 |---|---|---|
-| Single user, all their sandboxes | `attribute.user == 'alice'` | User has many sandboxes, all should access the same cloud resources |
-| Single sandbox only | `attribute.user == 'alice' && attribute.sandbox == 'web'` | CI/prod-like sandbox isolated from experimental ones |
+| Single user, all their sandboxes | `attribute.user == 'alice'` | Default Sandcastle path; avoids per-sandbox IAM changes and propagation delays |
+| Single sandbox only | `attribute.sandbox_id == '123'` | CI/prod-like sandbox isolated from experimental ones |
 | Any user in an org | *(drop the condition; rely on principalSet)* | Multi-tenant Sandcastle hosts |
 
-## Trying it (GCP)
+## GCP Integration
 
-The full runbook lives in `/docs/OIDC_FEDERATION_GCP.md` (TODO: written alongside the sandbox-side slice). Quick preview:
+Sandcastle now generates the GCP setup data from the web UI and CLI. Create reusable Workload Identity configs in **Settings → GCP**. Each config represents one GCP project/pool/provider and one default read-only service account named `sandcastle-reader@PROJECT_ID.iam.gserviceaccount.com`. Sandboxes select a config and use that default service account automatically unless they explicitly set a custom service account override.
+
+GCP Workload Identity pools use the fixed resource location `global`; Sandcastle does not expose this as a user-editable setting.
+
+CLI config:
+
+```bash
+sandcastle gcp config create prod \
+  --project-id "$GCP_PROJECT" \
+  --project-number "$(gcloud projects describe "$GCP_PROJECT" --format='value(projectNumber)')" \
+  --pool sandcastle \
+  --provider sandcastle
+
+sandcastle gcp config setup prod
+```
+
+Per-sandbox identity:
+
+```bash
+sandcastle gcp configure devbox \
+  --config prod \
+  --scope user
+
+sandcastle gcp setup devbox
+```
+
+The generated setup is equivalent to:
 
 ```bash
 export PROJECT_NUMBER=$(gcloud projects describe $GCP_PROJECT --format='value(projectNumber)')
 export ISSUER="https://$SANDCASTLE_HOST"
+export AUDIENCE="//iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/sandcastle/providers/sandcastle"
 
 # 1. Pool + OIDC provider
 gcloud iam workload-identity-pools create sandcastle --location=global
-gcloud iam workload-identity-pools providers create-oidc sandcastle-prov \
+gcloud iam workload-identity-pools providers create-oidc sandcastle \
     --location=global --workload-identity-pool=sandcastle \
     --issuer-uri="$ISSUER" \
-    --attribute-mapping="google.subject=assertion.sub,attribute.user=assertion.user,attribute.sandbox=assertion.sandbox,attribute.email=assertion.email"
+    --allowed-audiences="$AUDIENCE" \
+    --attribute-mapping="google.subject=assertion.sub,attribute.user=assertion.user,attribute.sandbox=assertion.sandbox,attribute.sandbox_id=string(assertion.sandbox_id)"
 
-# 2. Bind permissions — directly on a resource, or via SA impersonation
-#    (direct is what Google now recommends; impersonation is easier to migrate to)
+# 2. Allow the Sandcastle user principal to impersonate the service account
 gcloud iam service-accounts add-iam-policy-binding my-sa@$GCP_PROJECT.iam.gserviceaccount.com \
     --role=roles/iam.workloadIdentityUser \
-    --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/sandcastle/attribute.user/alice"
+    --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/sandcastle/attribute.user/$SANDCASTLE_USER"
 ```
 
-Once the sandbox-side slice lands, the sandbox will automatically write a fresh JWT to `/run/sandcastle/gcp-token`, and `gcloud storage ls` / `bq ls` / etc. Just Work™.
+Once the setup commands have been run in GCP, Sandcastle writes `/etc/sandcastle/gcp-credentials.json` and exports `GOOGLE_APPLICATION_CREDENTIALS`, `CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE`, `CLOUDSDK_CORE_PROJECT`, `GOOGLE_CLOUD_PROJECT`, and `GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES=1` when the sandbox starts. `gcloud storage ls` / `bq ls` / client libraries can then use the configured service account without any manual setup inside the sandbox.
+
+### Inside an OIDC-enabled sandbox
+
+OIDC is controlled by a user default plus a per-sandbox override, like VNC/SMB/Docker. When enabled, Sandcastle injects a sandbox-scoped runtime token into `/run/sandcastle/oidc-token` and non-secret metadata into `/etc/sandcastle/oidc.env`.
+
+Mint a raw OIDC token:
+
+```bash
+sandcastle-oidc token --audience "$AUDIENCE"
+```
+
+For manual GCP executable-sourced Workload Identity Federation:
+
+```bash
+export AUDIENCE="//iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/sandcastle/providers/sandcastle"
+
+sandcastle-oidc gcp write-config \
+  --audience "$AUDIENCE" \
+  --output ~/.config/gcloud/sandcastle-cred-config.json \
+  --service-account "my-sa@$GCP_PROJECT.iam.gserviceaccount.com"
+
+gcloud auth login --cred-file ~/.config/gcloud/sandcastle-cred-config.json
+```
+
+Sandcastle sets `GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES=1` in OIDC-enabled sandboxes so Google auth libraries can invoke `sandcastle-oidc gcp executable` when they need a fresh subject token. For tooling that only supports file-sourced credentials, keep a token file refreshed explicitly:
+
+```bash
+export AUDIENCE="//iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/sandcastle/providers/sandcastle"
+
+sandcastle-oidc gcp refresh \
+  --audience "$AUDIENCE" \
+  --output-token-file /run/sandcastle/oidc/gcp.jwt
+
+sandcastle-oidc gcp write-config \
+  --audience "$AUDIENCE" \
+  --mode file \
+  --token-file /run/sandcastle/oidc/gcp.jwt \
+  --output ~/.config/gcloud/sandcastle-cred-config.json \
+  --service-account "my-sa@$GCP_PROJECT.iam.gserviceaccount.com"
+
+gcloud auth login --cred-file ~/.config/gcloud/sandcastle-cred-config.json
+```
 
 ## Security model
 
@@ -141,7 +213,7 @@ Once the sandbox-side slice lands, the sandbox will automatically write a fresh 
 ### What the issuer keeps secret
 
 - Private signing key (`OIDC_PRIVATE_KEY_PEM`).
-- *(future)* Per-sandbox shared secrets used to authenticate the `/oauth/token` endpoint.
+- Per-sandbox runtime secrets used to authenticate the internal `/internal/oidc/token` endpoint. Only bcrypt digests are stored in the database.
 
 ### What the cloud provider enforces
 
@@ -151,8 +223,8 @@ Once the sandbox-side slice lands, the sandbox will automatically write a fresh 
 
 ### Blast radius of a compromise
 
-- **Sandbox container compromise**: leaks a token valid for ≤ 15 min, scoped to exactly the cloud permissions the trust policy grants. The token is not reusable to mint other tokens.
-- **Sandcastle web compromise**: an attacker with full Rails code execution can mint tokens for any user/sandbox combination and impersonate them in cloud APIs the user has set up. Same blast radius as gaining write access to the image-build pipeline of GitHub Actions. Mitigation: limit who can access Sandcastle admin, audit-log all `/oauth/token` calls once that lands.
+- **Sandbox container compromise**: leaks the current OIDC token and the sandbox runtime secret. The current token is valid for ≤ 15 min; the runtime secret can mint more tokens for that sandbox until the sandbox is restarted/rebuilt or OIDC is disabled.
+- **Sandcastle web compromise**: an attacker with full Rails code execution can mint tokens for any user/sandbox combination and impersonate them in cloud APIs the user has set up. Same blast radius as gaining write access to the image-build pipeline of GitHub Actions. Mitigation: limit who can access Sandcastle admin, audit-log all `/internal/oidc/token` calls once that lands.
 - **Signing key leak**: attacker can mint tokens indefinitely until rotation. Mitigation: store the PEM the same way production stores `SECRET_KEY_BASE`. Rotation flow will publish two keys in the JWKS during rollover so cloud validators can accept both.
 
 ## Design decisions locked in
@@ -166,12 +238,12 @@ Once the sandbox-side slice lands, the sandbox will automatically write a fresh 
 | Clock skew buffer | `iat = now - 30s` | Absorbs drift without triggering "issued in future" errors |
 | Validation depth (PoC) | End-to-end `bq ls` via SA impersonation | Catches bugs in impersonation URL + attribute mapping |
 
-## Open questions for the next slice
+## Remaining work
 
-- **How does the sandbox authenticate to `/oauth/token`?** Per-sandbox secret injected at container create (GH Actions style) is the leading candidate. Alternative: source-IP-based on the `sandcastle-web` bridge + reverse DNS of container ID.
-- **Do we refresh the token file from a daemon or on demand?** Daemon is safer (always fresh); on-demand is simpler (fewer moving parts in the sandbox).
-- **Opt-in per sandbox, or always-on?** Always-on means every sandbox can mint tokens (cheap — just signing a JWT). Opt-in adds a DB flag but lets users audit exposure.
-- **Audit log schema**: issued_at, user_id, sandbox_id, audience, jti. Query surface for "show me every token minted for my sandbox last week."
+- Background refresh daemon or systemd user service for file-sourced provider token files.
+- Audit log schema: issued_at, user_id, sandbox_id, audience, jti.
+- Key rotation with multiple active JWKS keys during rollover.
+- AWS, Azure, and Vault setup helpers.
 
 ## References
 

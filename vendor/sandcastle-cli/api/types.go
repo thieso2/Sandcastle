@@ -3,27 +3,35 @@ package api
 import "time"
 
 type Sandbox struct {
-	ID               int       `json:"id"`
-	Name             string    `json:"name"`
-	FullName         string    `json:"full_name"`
-	Status           string    `json:"status"`
-	Image            string    `json:"image"`
-	SSHPort          int       `json:"ssh_port,omitempty"`
-	MountHome        bool      `json:"mount_home"`
-	DataPath         string    `json:"data_path,omitempty"`
-	Temporary        bool      `json:"temporary"`
-	Tailscale        bool           `json:"tailscale"`
-	TailscaleIP      string         `json:"tailscale_ip,omitempty"`
-	VNCEnabled       bool           `json:"vnc_enabled"`
-	VNCGeometry      string         `json:"vnc_geometry,omitempty"`
-	VNCDepth         int            `json:"vnc_depth,omitempty"`
-	DockerEnabled    bool           `json:"docker_enabled"`
-	SMBEnabled       bool           `json:"smb_enabled"`
-	Routes           []SandboxRoute `json:"routes"`
-	ConnectCommand   string         `json:"connect_command"`
-	ImageBuiltAt     *time.Time     `json:"image_built_at,omitempty"`
-	CreatedAt        time.Time      `json:"created_at"`
-	ArchivedAt       *time.Time     `json:"archived_at,omitempty"`
+	ID                     int            `json:"id"`
+	Name                   string         `json:"name"`
+	FullName               string         `json:"full_name"`
+	Status                 string         `json:"status"`
+	Image                  string         `json:"image"`
+	SSHPort                int            `json:"ssh_port,omitempty"`
+	MountHome              bool           `json:"mount_home"`
+	DataPath               string         `json:"data_path,omitempty"`
+	Temporary              bool           `json:"temporary"`
+	Tailscale              bool           `json:"tailscale"`
+	TailscaleIP            string         `json:"tailscale_ip,omitempty"`
+	VNCEnabled             bool           `json:"vnc_enabled"`
+	VNCGeometry            string         `json:"vnc_geometry,omitempty"`
+	VNCDepth               int            `json:"vnc_depth,omitempty"`
+	DockerEnabled          bool           `json:"docker_enabled"`
+	SMBEnabled             bool           `json:"smb_enabled"`
+	OIDCEnabled            bool           `json:"oidc_enabled"`
+	GCPOIDCEnabled         bool           `json:"gcp_oidc_enabled"`
+	GCPOIDCConfigID        int            `json:"gcp_oidc_config_id,omitempty"`
+	GCPOIDCConfig          *GcpOidcConfig `json:"gcp_oidc_config,omitempty"`
+	GCPServiceAccountEmail string         `json:"gcp_service_account_email,omitempty"`
+	GCPPrincipalScope      string         `json:"gcp_principal_scope,omitempty"`
+	GCPRoles               []string       `json:"gcp_roles,omitempty"`
+	GCPOIDCConfigured      bool           `json:"gcp_oidc_configured"`
+	Routes                 []SandboxRoute `json:"routes"`
+	ConnectCommand         string         `json:"connect_command"`
+	ImageBuiltAt           *time.Time     `json:"image_built_at,omitempty"`
+	CreatedAt              time.Time      `json:"created_at"`
+	ArchivedAt             *time.Time     `json:"archived_at,omitempty"`
 }
 
 type SandboxRoute struct {
@@ -54,14 +62,14 @@ type User struct {
 }
 
 type Token struct {
-	ID         int        `json:"id"`
-	Name       string     `json:"name"`
-	Prefix     string     `json:"prefix"`
-	MaskedToken string    `json:"masked_token"`
-	RawToken   string     `json:"raw_token,omitempty"`
-	LastUsedAt *time.Time `json:"last_used_at"`
-	ExpiresAt  *time.Time `json:"expires_at"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	Prefix      string     `json:"prefix"`
+	MaskedToken string     `json:"masked_token"`
+	RawToken    string     `json:"raw_token,omitempty"`
+	LastUsedAt  *time.Time `json:"last_used_at"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 type SystemStatus struct {
@@ -123,29 +131,29 @@ type ServerUserCounts struct {
 }
 
 type Snapshot struct {
-	Name          string    `json:"name"`
-	Label         string    `json:"label,omitempty"`
-	SourceSandbox string    `json:"source_sandbox,omitempty"`
-	Layers        []string  `json:"layers,omitempty"`
+	Name          string   `json:"name"`
+	Label         string   `json:"label,omitempty"`
+	SourceSandbox string   `json:"source_sandbox,omitempty"`
+	Layers        []string `json:"layers,omitempty"`
 	// Legacy field for backward compat
-	Image         string    `json:"image,omitempty"`
-	DockerImage   string    `json:"docker_image,omitempty"`
-	DockerSize    int64     `json:"docker_size,omitempty"`
-	HomeSize      int64     `json:"home_size,omitempty"`
-	DataSize      int64     `json:"data_size,omitempty"`
-	TotalSize     int64     `json:"total_size,omitempty"`
+	Image       string `json:"image,omitempty"`
+	DockerImage string `json:"docker_image,omitempty"`
+	DockerSize  int64  `json:"docker_size,omitempty"`
+	HomeSize    int64  `json:"home_size,omitempty"`
+	DataSize    int64  `json:"data_size,omitempty"`
+	TotalSize   int64  `json:"total_size,omitempty"`
 	// Legacy size field
-	Size          int64     `json:"size,omitempty"`
+	Size int64 `json:"size,omitempty"`
 	// Legacy sandbox field
-	Sandbox       string    `json:"sandbox,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
+	Sandbox   string    `json:"sandbox,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type SnapshotRequest struct {
-	Name      string   `json:"name,omitempty"`
-	Label     string   `json:"label,omitempty"`
-	Layers    []string `json:"layers,omitempty"`
-	DataSubdir string  `json:"data_subdir,omitempty"`
+	Name       string   `json:"name,omitempty"`
+	Label      string   `json:"label,omitempty"`
+	Layers     []string `json:"layers,omitempty"`
+	DataSubdir string   `json:"data_subdir,omitempty"`
 }
 
 type CreateSnapshotRequest struct {
@@ -179,25 +187,115 @@ type RouteResponse struct {
 }
 
 type CreateSandboxRequest struct {
-	Name          string   `json:"name"`
-	Image         string   `json:"image,omitempty"`
-	Snapshot      string   `json:"snapshot,omitempty"`
-	FromSnapshot  string   `json:"from_snapshot,omitempty"`
-	RestoreLayers []string `json:"restore_layers,omitempty"`
-	Tailscale     bool     `json:"tailscale,omitempty"`
-	MountHome     bool     `json:"mount_home,omitempty"`
-	DataPath      string   `json:"data_path,omitempty"`
-	Temporary     bool     `json:"temporary,omitempty"`
-	VNCEnabled    bool     `json:"vnc_enabled"`
-	VNCGeometry   string   `json:"vnc_geometry,omitempty"`
-	VNCDepth      int      `json:"vnc_depth,omitempty"`
-	DockerEnabled bool     `json:"docker_enabled"`
-	SMBEnabled    bool     `json:"smb_enabled,omitempty"`
+	Name                   string   `json:"name"`
+	Image                  string   `json:"image,omitempty"`
+	Snapshot               string   `json:"snapshot,omitempty"`
+	FromSnapshot           string   `json:"from_snapshot,omitempty"`
+	RestoreLayers          []string `json:"restore_layers,omitempty"`
+	Tailscale              bool     `json:"tailscale,omitempty"`
+	MountHome              bool     `json:"mount_home,omitempty"`
+	DataPath               string   `json:"data_path,omitempty"`
+	Temporary              bool     `json:"temporary,omitempty"`
+	VNCEnabled             bool     `json:"vnc_enabled"`
+	VNCGeometry            string   `json:"vnc_geometry,omitempty"`
+	VNCDepth               int      `json:"vnc_depth,omitempty"`
+	DockerEnabled          bool     `json:"docker_enabled"`
+	SMBEnabled             bool     `json:"smb_enabled,omitempty"`
+	OIDCEnabled            *bool    `json:"oidc_enabled,omitempty"`
+	GCPOIDCEnabled         bool     `json:"gcp_oidc_enabled,omitempty"`
+	GCPOIDCConfigID        int      `json:"gcp_oidc_config_id,omitempty"`
+	GCPServiceAccountEmail string   `json:"gcp_service_account_email,omitempty"`
+	GCPPrincipalScope      string   `json:"gcp_principal_scope,omitempty"`
+	GCPRoles               []string `json:"gcp_roles,omitempty"`
 }
 
 type UpdateSandboxRequest struct {
-	Temporary *bool   `json:"temporary,omitempty"`
-	Name      *string `json:"name,omitempty"`
+	Temporary              *bool     `json:"temporary,omitempty"`
+	Name                   *string   `json:"name,omitempty"`
+	OIDCEnabled            *bool     `json:"oidc_enabled,omitempty"`
+	GCPOIDCEnabled         *bool     `json:"gcp_oidc_enabled,omitempty"`
+	GCPOIDCConfigID        *int      `json:"gcp_oidc_config_id,omitempty"`
+	GCPServiceAccountEmail *string   `json:"gcp_service_account_email,omitempty"`
+	GCPPrincipalScope      *string   `json:"gcp_principal_scope,omitempty"`
+	GCPRoles               *[]string `json:"gcp_roles,omitempty"`
+}
+
+type GcpOidcConfig struct {
+	ID                         int           `json:"id"`
+	Name                       string        `json:"name"`
+	ProjectID                  string        `json:"project_id,omitempty"`
+	ProjectNumber              string        `json:"project_number,omitempty"`
+	DefaultServiceAccountEmail string        `json:"default_service_account_email,omitempty"`
+	DefaultReadOnlyRoles       []string      `json:"default_read_only_roles,omitempty"`
+	WorkloadIdentityPoolID     string        `json:"workload_identity_pool_id,omitempty"`
+	WorkloadIdentityProviderID string        `json:"workload_identity_provider_id,omitempty"`
+	WorkloadIdentityLocation   string        `json:"workload_identity_location,omitempty"`
+	SandboxCount               int           `json:"sandbox_count,omitempty"`
+	Setup                      *GcpOidcSetup `json:"setup,omitempty"`
+	CreatedAt                  time.Time     `json:"created_at"`
+	UpdatedAt                  time.Time     `json:"updated_at"`
+}
+
+type GcpOidcConfigRequest struct {
+	Name                       string `json:"name,omitempty"`
+	ProjectID                  string `json:"project_id,omitempty"`
+	ProjectNumber              string `json:"project_number,omitempty"`
+	WorkloadIdentityPoolID     string `json:"workload_identity_pool_id,omitempty"`
+	WorkloadIdentityProviderID string `json:"workload_identity_provider_id,omitempty"`
+	WorkloadIdentityLocation   string `json:"workload_identity_location,omitempty"`
+}
+
+type GcpOidcSetup struct {
+	Configured                 bool              `json:"configured"`
+	SandboxConfigured          bool              `json:"sandbox_configured"`
+	Missing                    []string          `json:"missing,omitempty"`
+	Issuer                     string            `json:"issuer,omitempty"`
+	ConfigID                   int               `json:"config_id,omitempty"`
+	ConfigName                 string            `json:"config_name,omitempty"`
+	ProjectID                  string            `json:"project_id,omitempty"`
+	ProjectNumber              string            `json:"project_number,omitempty"`
+	DefaultServiceAccountEmail string            `json:"default_service_account_email,omitempty"`
+	DefaultReadOnlyRoles       []string          `json:"default_read_only_roles,omitempty"`
+	Location                   string            `json:"location,omitempty"`
+	PoolID                     string            `json:"pool_id,omitempty"`
+	ProviderID                 string            `json:"provider_id,omitempty"`
+	ProviderResource           string            `json:"provider_resource,omitempty"`
+	Audience                   string            `json:"audience,omitempty"`
+	AttributeMapping           map[string]string `json:"attribute_mapping,omitempty"`
+	AttributeMappingArg        string            `json:"attribute_mapping_arg,omitempty"`
+	PrincipalScope             string            `json:"principal_scope,omitempty"`
+	Principal                  string            `json:"principal,omitempty"`
+	ServiceAccountEmail        string            `json:"service_account_email,omitempty"`
+	ServiceAccountSource       string            `json:"service_account_source,omitempty"`
+	Roles                      []string          `json:"roles,omitempty"`
+	Commands                   GcpOidcCommands   `json:"commands,omitempty"`
+	Shell                      string            `json:"shell,omitempty"`
+	CredentialConfig           map[string]any    `json:"credential_config,omitempty"`
+	Environment                map[string]string `json:"environment,omitempty"`
+}
+
+type GcpOidcCommands struct {
+	EnableAPIs                  string   `json:"enable_apis,omitempty"`
+	CreateDefaultServiceAccount string   `json:"create_default_service_account,omitempty"`
+	GrantDefaultRoles           []string `json:"grant_default_roles,omitempty"`
+	CreatePool                  string   `json:"create_pool,omitempty"`
+	CreateProvider              string   `json:"create_provider,omitempty"`
+	BindServiceAccount          string   `json:"bind_service_account,omitempty"`
+	GrantRoles                  []string `json:"grant_roles,omitempty"`
+	CreateCredentialConfig      string   `json:"create_credential_config,omitempty"`
+}
+
+type UpdateGcpIdentityRequest struct {
+	GCPOIDCEnabled         *bool     `json:"gcp_oidc_enabled,omitempty"`
+	GCPOIDCConfigID        *int      `json:"gcp_oidc_config_id,omitempty"`
+	GCPServiceAccountEmail *string   `json:"gcp_service_account_email,omitempty"`
+	GCPPrincipalScope      *string   `json:"gcp_principal_scope,omitempty"`
+	GCPRoles               *[]string `json:"gcp_roles,omitempty"`
+}
+
+type GcpIdentityResponse struct {
+	Sandbox Sandbox      `json:"sandbox"`
+	Setup   GcpOidcSetup `json:"setup"`
 }
 
 type CreateTokenRequest struct {
@@ -232,15 +330,15 @@ type TailscaleLoginStatus struct {
 }
 
 type TailscaleStatus struct {
-	Running            bool                `json:"running"`
-	ContainerID        string              `json:"container_id"`
-	Network            string              `json:"network"`
-	ConnectedSandboxes int                 `json:"connected_sandboxes"`
-	TailscaleIP        string              `json:"tailscale_ip"`
-	Hostname           string              `json:"hostname"`
-	Tailnet            string              `json:"tailnet"`
-	Online             bool                `json:"online"`
-	Sandboxes          []TailscaleSandbox  `json:"sandboxes"`
+	Running            bool               `json:"running"`
+	ContainerID        string             `json:"container_id"`
+	Network            string             `json:"network"`
+	ConnectedSandboxes int                `json:"connected_sandboxes"`
+	TailscaleIP        string             `json:"tailscale_ip"`
+	Hostname           string             `json:"hostname"`
+	Tailnet            string             `json:"tailnet"`
+	Online             bool               `json:"online"`
+	Sandboxes          []TailscaleSandbox `json:"sandboxes"`
 }
 
 type TailscaleSandbox struct {
