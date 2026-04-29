@@ -74,6 +74,8 @@ class SandboxManagerTest < ActiveSupport::TestCase
 
     gcp_exec = DockerMock.exec_calls.find { |call| call[:cmd][2].to_s.include?("sandcastle-oidc gcp write-config") }
     assert gcp_exec, "expected GCP credential config injection"
+    assert_includes gcp_exec[:cmd][2], "/etc/profile.d/sandcastle-oidc.sh"
+    assert_includes gcp_exec[:cmd][2], "# >>> sandcastle oidc >>>"
     assert_equal "//iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/sandcastle/providers/sandcastle", gcp_exec[:cmd][11]
     assert_equal "sandbox@test-project-123.iam.gserviceaccount.com", gcp_exec[:cmd][12]
   ensure
@@ -95,6 +97,8 @@ class SandboxManagerTest < ActiveSupport::TestCase
     assert_nil @sandbox.oidc_secret_digest
     assert_nil @sandbox.oidc_secret_rotated_at
     assert DockerMock.exec_calls.any? { |call| call[:cmd].join(" ").include?("rm -f /run/sandcastle/oidc-token") }
+    assert DockerMock.exec_calls.any? { |call| call[:cmd].join(" ").include?("/etc/profile.d/sandcastle-oidc.sh") }
+    assert DockerMock.exec_calls.any? { |call| call[:cmd].join(" ").include?("# >>> sandcastle oidc >>>") }
   end
 
   test "oidc runtime injection failure aborts oidc-enabled sandbox start" do

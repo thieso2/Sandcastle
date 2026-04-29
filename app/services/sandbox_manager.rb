@@ -900,6 +900,31 @@ class SandboxManager
       } > /etc/sandcastle/oidc.env
       chmod 0644 /etc/sandcastle/oidc.env
 
+      cat > /etc/profile.d/sandcastle-oidc.sh <<'PROFILE_EOF'
+# Export Sandcastle OIDC/GCP runtime variables for login shells.
+if [ -f /etc/sandcastle/oidc.env ]; then
+  set -a
+  . /etc/sandcastle/oidc.env
+  set +a
+fi
+PROFILE_EOF
+      chmod 0644 /etc/profile.d/sandcastle-oidc.sh
+
+      tmp_env="$(mktemp)"
+      if [ -f /etc/environment ]; then
+        sed '/^# >>> sandcastle oidc >>>$/,/^# <<< sandcastle oidc <<<$/d' /etc/environment > "$tmp_env"
+      else
+        : > "$tmp_env"
+      fi
+      {
+        printf '# >>> sandcastle oidc >>>\\n'
+        cat /etc/sandcastle/oidc.env
+        printf '# <<< sandcastle oidc <<<\\n'
+      } >> "$tmp_env"
+      cat "$tmp_env" > /etc/environment
+      rm -f "$tmp_env"
+      chmod 0644 /etc/environment
+
       if [ -n "$gcp_audience" ] && [ -n "$gcp_service_account" ]; then
         sandcastle-oidc gcp write-config \
           --audience "$gcp_audience" \
@@ -933,7 +958,7 @@ class SandboxManager
   def remove_oidc_runtime(container)
     container.exec([
       "bash", "-c",
-      "rm -f /run/sandcastle/oidc-token /etc/sandcastle/oidc.env /etc/sandcastle/gcp-credentials.json /run/sandcastle/oidc/gcp.jwt /run/sandcastle/oidc/gcp-executable-cache.json"
+      "rm -f /run/sandcastle/oidc-token /etc/sandcastle/oidc.env /etc/sandcastle/gcp-credentials.json /etc/profile.d/sandcastle-oidc.sh /run/sandcastle/oidc/gcp.jwt /run/sandcastle/oidc/gcp-executable-cache.json; if [ -f /etc/environment ]; then sed -i '/^# >>> sandcastle oidc >>>$/,/^# <<< sandcastle oidc <<<$/d' /etc/environment; fi"
     ])
   end
 
