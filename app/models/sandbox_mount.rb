@@ -26,6 +26,10 @@ class SandboxMount < ApplicationRecord
     storage_mode == "direct"
   end
 
+  def bind_spec
+    "#{source_path}:#{target_path}"
+  end
+
   private
 
   def absolute_paths

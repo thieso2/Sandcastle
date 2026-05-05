@@ -83,6 +83,17 @@ class SandboxMountTest < ActiveSupport::TestCase
     assert_not duplicate.valid?
   end
 
+  test "bind_spec formats source and target paths" do
+    mount = @sandbox.sandbox_mounts.build(
+      mount_type: "home",
+      target_path: "/home/alice",
+      master_path: "/data/users/alice/home",
+      source_path: "/data/reconcile/1/work/home"
+    )
+
+    assert_equal "/data/reconcile/1/work/home:/home/alice", mount.bind_spec
+  end
+
   private
 
   def build_with_logical_path(path)
