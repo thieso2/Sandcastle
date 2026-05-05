@@ -47,3 +47,10 @@ teh sandcastle name shoudl contain teh project name : project:sandcaste
 ---
 
 when starting a terminal in a sandcaste cwd shoule be $HOME not /
+
+---
+
+PATH does not work!
+thies@test-p3:~$ claudebash: command not found: claudethies@test-p3:~$ echo $PATH/usr/local/share/mise/installs/node/lts/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/binthies@test-p3:~$
+
+fix and test!
