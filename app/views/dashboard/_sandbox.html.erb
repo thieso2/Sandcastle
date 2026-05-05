@@ -26,7 +26,7 @@
             end %>">
       </span>
 
-      <%= link_to sandbox.name, sandbox_path(sandbox), class: "font-mono font-medium text-gray-900 hover:text-blue-600 transition-colors" %>
+      <%= link_to sandbox_path(sandbox), class: "font-mono font-medium text-gray-900 hover:text-blue-600 transition-colors" do %><% if sandbox.project_name.present? %><span class="text-gray-400"><%= sandbox.project_name %>:</span><% end %><%= sandbox.name %><% end %>
 
       <%# Job status badge %>
       <% if sandbox.job_in_progress? %>
@@ -258,7 +258,7 @@
   <div id="snap-modal-<%= sandbox.id %>" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50" onclick="if(event.target===this)this.classList.add('hidden')">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
       <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
-        <h3 class="text-base font-semibold text-gray-900">Snapshot — <%= sandbox.name %></h3>
+        <h3 class="text-base font-semibold text-gray-900">Snapshot — <%= sandbox.display_name %></h3>
         <button onclick="document.getElementById('snap-modal-<%= sandbox.id %>').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
       </div>
       <%= form_with url: snapshot_sandbox_path(sandbox), method: :post, class: "px-5 py-4 space-y-3" do |f| %>

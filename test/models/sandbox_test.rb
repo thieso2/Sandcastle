@@ -29,7 +29,7 @@ class SandboxTest < ActiveSupport::TestCase
     assert_equal "projects/demo", sandbox.project_path
   end
 
-  test "hostname and full_name include project name when present" do
+  test "hostname, full_name, and display_name include project name when present" do
     sandbox = @user.sandboxes.build(
       name: "testbox",
       project_name: "alpha",
@@ -39,6 +39,17 @@ class SandboxTest < ActiveSupport::TestCase
 
     assert_equal "testbox-alpha", sandbox.hostname
     assert_equal "alice-testbox-alpha", sandbox.full_name
+    assert_equal "alpha:testbox", sandbox.display_name
+  end
+
+  test "display_name falls back to name when project is absent" do
+    sandbox = @user.sandboxes.build(
+      name: "testbox",
+      status: "pending",
+      image: SandboxManager::DEFAULT_IMAGE
+    )
+
+    assert_equal "testbox", sandbox.display_name
   end
 
   test "name uniqueness is scoped per project" do
