@@ -599,7 +599,7 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.loading = true
 					return m, tea.Batch(m.spinner.Tick, doAction(func() (string, error) {
 						_, err := m.client.StartSandbox(sb.ID)
-						return fmt.Sprintf("%q started", sb.Name), err
+						return fmt.Sprintf("%q started", sb.DisplayName()), err
 					}))
 				}
 			}
@@ -610,7 +610,7 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.loading = true
 					return m, tea.Batch(m.spinner.Tick, doAction(func() (string, error) {
 						_, err := m.client.StopSandbox(sb.ID)
-						return fmt.Sprintf("%q stopped", sb.Name), err
+						return fmt.Sprintf("%q stopped", sb.DisplayName()), err
 					}))
 				}
 			}
@@ -821,7 +821,7 @@ func (m tuiModel) submitCreateForm() (tea.Model, tea.Cmd) {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%q created", sb.Name), nil
+		return fmt.Sprintf("%q created", sb.DisplayName()), nil
 	}))
 }
 
@@ -1072,7 +1072,7 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 		b.WriteString(headerStyle.Render(fmt.Sprintf("  %-22s %-10s %-18s %s", "NAME", "STATUS", "CREATED", "ROUTE")) + "\n")
 
 		for i, sb := range m.sandboxes {
-			name := sb.Name
+			name := sb.DisplayName()
 			if sb.Temporary {
 				name += " ~"
 			}
@@ -1123,7 +1123,7 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 }
 
 func (m tuiModel) viewRoutes(b *strings.Builder) {
-	b.WriteString(headerStyle.Render(fmt.Sprintf("  Routes for %s", m.routeSandbox.Name)) + "\n\n")
+	b.WriteString(headerStyle.Render(fmt.Sprintf("  Routes for %s", m.routeSandbox.DisplayName())) + "\n\n")
 
 	if m.loading {
 		b.WriteString("  " + m.spinner.View() + " Loading routes...\n")
@@ -1257,7 +1257,7 @@ func (m tuiModel) viewCreateProject(b *strings.Builder) {
 }
 
 func (m tuiModel) viewAddRoute(b *strings.Builder) {
-	b.WriteString(headerStyle.Render(fmt.Sprintf("  Add Route to %s", m.routeSandbox.Name)) + "\n\n")
+	b.WriteString(headerStyle.Render(fmt.Sprintf("  Add Route to %s", m.routeSandbox.DisplayName())) + "\n\n")
 	b.WriteString("  Domain: " + m.routeInputs[0].View() + "\n")
 	b.WriteString("  Port:   " + m.routeInputs[1].View() + "\n")
 	b.WriteString("\n")

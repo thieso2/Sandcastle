@@ -30,6 +30,16 @@ type Sandbox struct {
 	ArchivedAt     *time.Time     `json:"archived_at,omitempty"`
 }
 
+// DisplayName returns "<project>:<name>" when the sandbox is bound to a
+// project, else just the sandbox name. Use this anywhere the sandbox is
+// surfaced to a human; keep using Name for identity / API lookups.
+func (s Sandbox) DisplayName() string {
+	if s.ProjectName == "" {
+		return s.Name
+	}
+	return s.ProjectName + ":" + s.Name
+}
+
 type SandboxRoute struct {
 	ID         int    `json:"id"`
 	Domain     string `json:"domain,omitempty"`
