@@ -9,7 +9,7 @@ class Sandbox < ApplicationRecord
   VNC_DEPTHS = [ 8, 16, 24, 32 ].freeze
 
   validates :name, presence: true,
-    uniqueness: { scope: :user_id, conditions: -> { where.not(status: %w[destroyed archived]) } }
+    uniqueness: { scope: [ :user_id, :project_name ], conditions: -> { where.not(status: %w[destroyed archived]) } }
   validates :name, format: { with: /\A[a-z][a-z0-9_-]{0,62}\z/, message: "must be lowercase alphanumeric" },
     unless: -> { status.in?(%w[destroyed archived]) }
   validates :status, inclusion: { in: %w[pending running stopped destroyed archived] }
@@ -35,7 +35,7 @@ class Sandbox < ApplicationRecord
   after_destroy_commit :broadcast_remove_from_dashboard
 
   def full_name
-    "#{user.name}-#{name}"
+    "#{user.name}-#{hostname}"
   end
 
   def hostname
