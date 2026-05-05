@@ -29,7 +29,7 @@ class SandboxTest < ActiveSupport::TestCase
     assert_equal "projects/demo", sandbox.project_path
   end
 
-  test "hostname includes project name when present" do
+  test "hostname and full_name include project name when present" do
     sandbox = @user.sandboxes.build(
       name: "testbox",
       project_name: "alpha",
@@ -38,6 +38,32 @@ class SandboxTest < ActiveSupport::TestCase
     )
 
     assert_equal "testbox-alpha", sandbox.hostname
-    assert_equal "alice-testbox", sandbox.full_name
+    assert_equal "alice-testbox-alpha", sandbox.full_name
+  end
+
+  test "name uniqueness is scoped per project" do
+    @user.sandboxes.create!(
+      name: "tmp",
+      status: "running",
+      image: SandboxManager::DEFAULT_IMAGE,
+      project_name: "alpha"
+    )
+
+    other = @user.sandboxes.build(
+      name: "tmp",
+      status: "running",
+      image: SandboxManager::DEFAULT_IMAGE,
+      project_name: "beta"
+    )
+    assert other.valid?, other.errors.full_messages.inspect
+
+    same = @user.sandboxes.build(
+      name: "tmp",
+      status: "running",
+      image: SandboxManager::DEFAULT_IMAGE,
+      project_name: "alpha"
+    )
+    assert_not same.valid?
+    assert_includes same.errors[:name], "has already been taken"
   end
 end

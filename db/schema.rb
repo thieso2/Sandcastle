@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_05_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -171,7 +171,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_130000) do
     t.index ["job_status"], name: "index_sandboxes_on_job_status"
     t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "(((status)::text <> ALL (ARRAY[('destroyed'::character varying)::text, ('archived'::character varying)::text])) AND (ssh_port IS NOT NULL))"
     t.index ["user_id", "job_status"], name: "index_sandboxes_on_user_id_and_job_status"
-    t.index ["user_id", "name"], name: "index_sandboxes_on_user_id_and_name", unique: true, where: "((status)::text <> ALL (ARRAY[('destroyed'::character varying)::text, ('archived'::character varying)::text]))"
+    t.index ["user_id", "name", "project_name"], name: "index_sandboxes_on_user_id_and_name_and_project_name", unique: true, where: "((status)::text <> ALL (ARRAY[('destroyed'::character varying)::text, ('archived'::character varying)::text]))", nulls_not_distinct: true
     t.index ["user_id"], name: "index_sandboxes_on_user_id"
   end
 
