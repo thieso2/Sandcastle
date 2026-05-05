@@ -46,10 +46,12 @@
                   <%= hidden_field_tag "changes[#{index}][mount_id]", change.mount.id %>
                   <%= hidden_field_tag "changes[#{index}][path]", change.path %>
                   <% if actionable %>
+                    <% apply_label = change.status == "deleted" || change.reason.to_s.include?("deleted in sandbox") ? "Delete from master" : "Use sandbox version" %>
+                    <% apply_action = change.status == "deleted" || change.reason.to_s.include?("deleted in sandbox") ? "delete" : "use_work" %>
                     <%= select_tag "changes[#{index}][action]",
                           options_for_select([
                             [ "Skip", "skip" ],
-                            [ change.status == "deleted" ? "Delete from master" : "Use sandbox version", change.status == "deleted" ? "delete" : "use_work" ]
+                            [ apply_label, apply_action ]
                           ]),
                           class: "text-xs border border-gray-300 rounded px-2 py-1" %>
                   <% else %>

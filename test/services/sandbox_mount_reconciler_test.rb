@@ -71,6 +71,22 @@ class SandboxMountReconcilerTest < ActiveSupport::TestCase
     assert_match "Invalid path", error.message
   end
 
+  test "committed added and deleted changes no longer block destroy" do
+    File.write(File.join(@work, "added.txt"), "new")
+    write_all("deleted.txt", "old")
+    FileUtils.rm_f(File.join(@work, "deleted.txt"))
+
+    reconciler = SandboxMountReconciler.new(@sandbox)
+    assert reconciler.changed?
+
+    reconciler.apply!([
+      { mount_id: @mount.id, path: "added.txt", action: "use_work" },
+      { mount_id: @mount.id, path: "deleted.txt", action: "delete" }
+    ])
+
+    assert_not SandboxMountReconciler.new(@sandbox).changed?
+  end
+
   private
 
   def write_all(path, content)
