@@ -27,3 +27,11 @@ when using a project - add the project by to the container name project:name tha
 ---
 
 i hate if entrypoint does a chown -R as it can be slow!
+
+---
+
+what went wrong when the image was generated - do we not know what UID will be used when the container is launched? (1000)
+
+---
+
+yes
