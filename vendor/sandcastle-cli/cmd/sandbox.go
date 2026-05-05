@@ -28,6 +28,7 @@ var (
 	sandboxProject           string
 	sandboxProjectSubdir     string
 	sandboxData              string
+	sandboxStorage           string
 	sandboxNoVNC             bool
 	sandboxVNCGeometry       string
 	sandboxVNCDepth          int
@@ -71,6 +72,7 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxProjectSubdir, "project-subdir", "", "Mount this subdir as both $HOME and /persisted")
 	createCmd.Flags().StringVar(&sandboxData, "data", "", "Mount user data directory (or subpath) to /persisted (env: SANDCASTLE_DATA)")
 	createCmd.Flags().Lookup("data").NoOptDefVal = "."
+	createCmd.Flags().StringVar(&sandboxStorage, "storage", "direct", "Persistent storage write behavior: direct or snapshot")
 	createCmd.Flags().BoolVar(&sandboxNoVNC, "no-vnc", false, "Disable VNC display server")
 	createCmd.Flags().StringVar(&sandboxVNCGeometry, "vnc-geometry", "", "VNC screen resolution (e.g. 1920x1080)")
 	createCmd.Flags().IntVar(&sandboxVNCDepth, "vnc-depth", 0, "VNC color depth: 8, 16, 24, or 32")
@@ -162,6 +164,9 @@ Flags explicitly passed on the command line take precedence over environment var
 				restoreLayers = append(restoreLayers, strings.TrimSpace(l))
 			}
 		}
+		if sandboxStorage != "direct" && sandboxStorage != "snapshot" {
+			return fmt.Errorf("invalid storage mode %q: must be direct or snapshot", sandboxStorage)
+		}
 		if sandboxOIDC && sandboxNoOIDC {
 			return fmt.Errorf("--oidc and --no-oidc are mutually exclusive")
 		}
@@ -209,6 +214,7 @@ Flags explicitly passed on the command line take precedence over environment var
 			MountHome:              sandboxHome,
 			HomePath:               sandboxHomeSubdir,
 			DataPath:               sandboxData,
+			StorageMode:            sandboxStorage,
 			Temporary:              sandboxRemove,
 			VNCEnabled:             !sandboxNoVNC,
 			VNCGeometry:            sandboxVNCGeometry,
@@ -243,7 +249,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		// Print active options (use local flags — they reflect what was actually requested)
-		if sandboxHome || sandboxHomeSubdir != "" || sandboxProject != "" || sandboxProjectSubdir != "" || sandboxData != "" || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB || sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "" {
+		if sandboxHome || sandboxHomeSubdir != "" || sandboxProject != "" || sandboxProjectSubdir != "" || sandboxData != "" || sandboxStorage != "direct" || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB || sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "" {
 			if sandboxHome {
 				fmt.Println("  Home:      mounted (~/ persisted)")
 			}
@@ -262,6 +268,9 @@ Flags explicitly passed on the command line take precedence over environment var
 					label = "user data root"
 				}
 				fmt.Printf("  Data:      mounted (%s → /persisted)\n", label)
+			}
+			if sandboxStorage != "direct" {
+				fmt.Printf("  Storage:   %s\n", sandboxStorage)
 			}
 			if sandbox.Tailscale {
 				fmt.Println("  Tailscale: enabled")

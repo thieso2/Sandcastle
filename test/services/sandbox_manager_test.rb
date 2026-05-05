@@ -145,6 +145,7 @@ class SandboxManagerTest < ActiveSupport::TestCase
     assert_equal "stopped", @sandbox.reload.status
 
     # Start it again (creates a new container)
+    @manager.define_singleton_method(:ensure_mount_dirs) { |_user, _sandbox| true }
     @manager.start(sandbox: @sandbox)
     @sandbox.reload
     assert_equal "running", @sandbox.status

@@ -47,7 +47,9 @@ module Api
         name: params.require(:name),
         status: "pending",
         image: image,
-        temporary: params[:temporary] || false
+        temporary: params[:temporary] || false,
+        storage_mode: params[:storage_mode].presence || "direct",
+        smb_enabled: params.key?(:smb_enabled) ? boolean_param(:smb_enabled, false) : false
       )
       apply_project_defaults(sandbox, project, project_path: project_path)
       apply_sandbox_overrides(sandbox)
@@ -294,6 +296,7 @@ module Api
         home_path: sandbox.home_path,
         data_path: sandbox.data_path,
         project_path: sandbox.project_path,
+        storage_mode: sandbox.storage_mode,
         temporary: sandbox.temporary,
         tailscale: sandbox.tailscale,
         vnc_enabled: sandbox.vnc_enabled,

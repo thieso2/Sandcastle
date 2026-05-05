@@ -1,7 +1,10 @@
 require "test_helper"
 
 class SandboxTest < ActiveSupport::TestCase
-  setup { @user = users(:one) }
+  setup do
+    @user = users(:one)
+    @sandbox = sandboxes(:alice_running)
+  end
 
   test "rejects combining full home and home_path" do
     sandbox = @user.sandboxes.build(
@@ -76,5 +79,24 @@ class SandboxTest < ActiveSupport::TestCase
     )
     assert_not same.valid?
     assert_includes same.errors[:name], "has already been taken"
+  end
+
+  test "storage mode defaults to direct" do
+    sandbox = @user.sandboxes.build(name: "storage-default", image: SandboxManager::DEFAULT_IMAGE)
+
+    assert_equal "direct", sandbox.storage_mode
+    assert sandbox.valid?, sandbox.errors.full_messages.inspect
+  end
+
+  test "storage mode accepts snapshot" do
+    @sandbox.storage_mode = "snapshot"
+
+    assert @sandbox.valid?, @sandbox.errors.full_messages.inspect
+  end
+
+  test "storage mode rejects unknown values" do
+    @sandbox.storage_mode = "overlay"
+
+    assert_not @sandbox.valid?
   end
 end

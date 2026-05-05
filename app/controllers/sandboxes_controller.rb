@@ -71,7 +71,8 @@ class SandboxesController < ApplicationController
       name: params.require(:name),
       status: "pending",
       image: image,
-      temporary: false
+      temporary: false,
+      storage_mode: params[:storage_mode].presence || "direct"
     )
     apply_project_defaults(sandbox, project, project_path: project_path)
     apply_sandbox_overrides(sandbox)

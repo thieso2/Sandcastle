@@ -214,6 +214,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_06_100000) do
     t.integer "ssh_port"
     t.boolean "ssh_start_tmux"
     t.string "status", default: "pending", null: false
+    t.string "storage_mode", default: "direct", null: false
     t.boolean "tailscale", default: false, null: false
     t.boolean "temporary", default: false, null: false
     t.datetime "updated_at", null: false
@@ -226,6 +227,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_06_100000) do
     t.index ["gcp_oidc_config_id"], name: "index_sandboxes_on_gcp_oidc_config_id"
     t.index ["job_status"], name: "index_sandboxes_on_job_status"
     t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "(((status)::text <> ALL (ARRAY[('destroyed'::character varying)::text, ('archived'::character varying)::text])) AND (ssh_port IS NOT NULL))"
+    t.index ["storage_mode"], name: "index_sandboxes_on_storage_mode"
     t.index ["user_id", "job_status"], name: "index_sandboxes_on_user_id_and_job_status"
     t.index ["user_id", "name", "project_name"], name: "index_sandboxes_on_user_id_and_name_and_project_name", unique: true, where: "((status)::text <> ALL (ARRAY[('destroyed'::character varying)::text, ('archived'::character varying)::text]))", nulls_not_distinct: true
     t.index ["user_id"], name: "index_sandboxes_on_user_id"

@@ -5,7 +5,7 @@ class SandboxManager
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: DEFAULT_IMAGE, tailscale: false, mount_home: false, home_path: nil, data_path: nil, temporary: false)
+  def create(user:, name:, image: DEFAULT_IMAGE, tailscale: false, mount_home: false, home_path: nil, data_path: nil, temporary: false, storage_mode: "direct")
     # Build sandbox record (not saved yet)
     sandbox = user.sandboxes.build(
       name: name,
@@ -14,7 +14,8 @@ class SandboxManager
       mount_home: mount_home,
       home_path: home_path,
       data_path: data_path,
-      temporary: temporary
+      temporary: temporary,
+      storage_mode: storage_mode.presence || "direct"
     )
 
     # Validate before doing expensive operations
