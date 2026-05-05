@@ -1,3 +1,5 @@
+require "shellwords"
+
 class BtrfsHelper
   class Error < StandardError; end
 
@@ -14,7 +16,7 @@ class BtrfsHelper
       parent = File.dirname(snapshot_path)
       FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot -r #{source_path} #{snapshot_path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot -r #{sh(source_path)} #{sh(snapshot_path)}")
       unless status&.success?
         raise Error, "Failed to create BTRFS snapshot #{snapshot_path}: #{output}"
       end
@@ -31,7 +33,7 @@ class BtrfsHelper
     def delete_snapshot(snapshot_path)
       return false unless Dir.exist?(snapshot_path)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume delete #{snapshot_path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume delete #{sh(snapshot_path)}")
       unless status&.success?
         raise Error, "Failed to delete BTRFS snapshot #{snapshot_path}: #{output}"
       end
@@ -48,7 +50,7 @@ class BtrfsHelper
     def subvolume_size(path)
       return 0 unless Dir.exist?(path)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume show #{path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume show #{sh(path)}")
       return 0 unless status&.success?
 
       # Try to parse "Exclusive referenced:" from output
@@ -88,7 +90,7 @@ class BtrfsHelper
       parent = File.dirname(target_path)
       FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot #{snapshot_path} #{target_path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot #{sh(snapshot_path)} #{sh(target_path)}")
       unless status&.success?
         raise Error, "Failed to restore BTRFS snapshot to #{target_path}: #{output}"
       end
@@ -131,7 +133,8 @@ class BtrfsHelper
     def btrfs?(path = DATA_DIR)
       return @is_btrfs if defined?(@is_btrfs)
 
-      is_btrfs_fs = system("stat -f -c %T #{path} 2>/dev/null | grep -q '^btrfs$'")
+      fs_type = `stat -f -c %T #{sh(path)} 2>/dev/null`.strip
+      is_btrfs_fs = fs_type == "btrfs"
       has_sudo = is_btrfs_fs && system("/usr/bin/sudo -n /usr/bin/btrfs --version >/dev/null 2>&1")
       @is_btrfs = has_sudo == true
     rescue StandardError => e
@@ -255,7 +258,7 @@ class BtrfsHelper
     def subvolume?(path)
       return false unless Dir.exist?(path)
 
-      result = system("/usr/bin/sudo /usr/bin/btrfs subvolume show #{path} >/dev/null 2>&1")
+      result = system("/usr/bin/sudo", "-n", "/usr/bin/btrfs", "subvolume", "show", path, out: File::NULL, err: File::NULL)
       result == true
     rescue StandardError => e
       Rails.logger.warn("BTRFS subvolume check failed for #{path}: #{e.message}")
@@ -271,7 +274,7 @@ class BtrfsHelper
       FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
 
       # Create subvolume using sudo with full path
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{sh(path)}")
 
       unless status.success?
         raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
@@ -292,7 +295,7 @@ class BtrfsHelper
       parent = File.dirname(path)
       FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{sh(path)}")
       unless status&.success?
         raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
       end
@@ -306,7 +309,7 @@ class BtrfsHelper
     def ensure_owned(path)
       return if File.stat(path).uid == Process.uid
 
-      run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{path}")
+      run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{sh(path)}")
     end
 
     # Run a command with sudo
@@ -316,6 +319,10 @@ class BtrfsHelper
       [ output, $? ]
     rescue StandardError => e
       [ e.message, nil ]
+    end
+
+    def sh(value)
+      Shellwords.escape(value.to_s)
     end
   end
 end
