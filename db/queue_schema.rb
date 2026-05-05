@@ -165,6 +165,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_06_100000) do
     t.index ["sandbox_id"], name: "index_routes_on_sandbox_id"
   end
 
+  create_table "sandbox_mounts", force: :cascade do |t|
+    t.string "base_path"
+    t.datetime "created_at", null: false
+    t.string "logical_path"
+    t.string "master_path", null: false
+    t.string "mount_type", null: false
+    t.bigint "sandbox_id", null: false
+    t.string "source_path", null: false
+    t.string "state", default: "active", null: false
+    t.string "storage_mode", default: "direct", null: false
+    t.string "target_path", null: false
+    t.datetime "updated_at", null: false
+    t.string "work_path"
+    t.index ["sandbox_id", "mount_type", "logical_path"], name: "index_sandbox_mounts_on_sandbox_type_and_logical_path"
+    t.index ["sandbox_id", "target_path"], name: "index_sandbox_mounts_on_sandbox_id_and_target_path", unique: true
+    t.index ["sandbox_id"], name: "index_sandbox_mounts_on_sandbox_id"
+    t.index ["storage_mode", "state"], name: "index_sandbox_mounts_on_storage_mode_and_state"
+  end
+
   create_table "sandboxes", force: :cascade do |t|
     t.datetime "archived_at"
     t.string "container_id"
@@ -425,6 +444,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_06_100000) do
   add_foreign_key "projects", "gcp_oidc_configs"
   add_foreign_key "projects", "users"
   add_foreign_key "routes", "sandboxes"
+  add_foreign_key "sandbox_mounts", "sandboxes"
   add_foreign_key "sandboxes", "gcp_oidc_configs"
   add_foreign_key "sandboxes", "users"
   add_foreign_key "sessions", "users"
