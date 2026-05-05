@@ -33,6 +33,11 @@ class BtrfsHelper
     def delete_snapshot(snapshot_path)
       return false unless Dir.exist?(snapshot_path)
 
+      # Read-only BTRFS snapshots can fail deletion on some kernels/tools unless
+      # their ro property is cleared first. This is harmless for writable
+      # subvolumes and best-effort for plain directories.
+      run_sudo_command("/usr/bin/btrfs property set -ts #{sh(snapshot_path)} ro false")
+
       output, status = run_sudo_command("/usr/bin/btrfs subvolume delete #{sh(snapshot_path)}")
       unless status&.success?
         raise Error, "Failed to delete BTRFS snapshot #{snapshot_path}: #{output}"
