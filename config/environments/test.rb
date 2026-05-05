@@ -42,6 +42,10 @@ Rails.application.configure do
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
 
+  # Use STDOUT in tests so containerized runs do not depend on bind-mounted
+  # log file ownership matching the in-container UID/GID.
+  config.logger = ActiveSupport::TaggedLogging.logger($stdout)
+
   # Raises error for missing translations.
   # config.i18n.raise_on_missing_translations = true
 

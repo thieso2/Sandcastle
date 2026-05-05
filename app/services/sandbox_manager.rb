@@ -5,13 +5,14 @@ class SandboxManager
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: DEFAULT_IMAGE, tailscale: false, mount_home: false, data_path: nil, temporary: false)
+  def create(user:, name:, image: DEFAULT_IMAGE, tailscale: false, mount_home: false, home_path: nil, data_path: nil, temporary: false)
     # Build sandbox record (not saved yet)
     sandbox = user.sandboxes.build(
       name: name,
       image: image,
       status: "pending",
       mount_home: mount_home,
+      home_path: home_path,
       data_path: data_path,
       temporary: temporary
     )
@@ -56,7 +57,7 @@ class SandboxManager
     container = Docker::Container.create(
       "name" => sandbox.full_name,
       "Image" => sandbox.image,
-      "Hostname" => sandbox.full_name,
+      "Hostname" => sandbox.hostname,
       "Env" => container_env(user, sandbox),
       "Labels" => { "sandcastle.sandbox" => "true" },
       "HostConfig" => {
@@ -129,8 +130,10 @@ class SandboxManager
     # Ensure user base directory is writable (may be root-owned from previous install)
     ensure_dir("#{DATA_DIR}/users/#{user.name}")
 
-    if sandbox.mount_home
-      dir = "#{DATA_DIR}/users/#{user.name}/home"
+    home_dir = sandbox_home_dir(user, sandbox)
+    if home_dir
+      BtrfsHelper.create_user_home_subvolume(user.name, sandbox.home_path) if sandbox.home_persisted?
+      dir = home_dir
       ensure_dir(dir)
       prepare_bind_mount(dir)
     end
@@ -143,7 +146,7 @@ class SandboxManager
       prepare_bind_mount(dir)
     end
     # Per-user persisted paths (e.g. .claude, .codex) — only when full home isn't mounted
-    if !sandbox.mount_home
+    if !sandbox.home_persisted?
       user.persisted_paths.find_each do |pp|
         dir = "#{DATA_DIR}/users/#{user.name}/persisted/#{pp.path}"
         ensure_dir(dir)
@@ -433,10 +436,10 @@ class SandboxManager
     end
 
     # ── Home layer (BTRFS only) ───────────────────────────────────────────────
-    if requested_layers.include?("home") && sandbox.mount_home? && BtrfsHelper.btrfs?
-      home_src  = "#{DATA_DIR}/users/#{user.name}/home"
+    if requested_layers.include?("home") && sandbox.home_persisted? && BtrfsHelper.btrfs?
+      home_src = sandbox_home_dir(user, sandbox)
       home_dest = "#{DATA_DIR}/snapshots/#{user.name}/#{name}/home"
-      if Dir.exist?(home_src)
+      if home_src && Dir.exist?(home_src)
         BtrfsHelper.snapshot_subvolume(home_src, home_dest)
         snap.home_snapshot = home_dest
         snap.home_size     = BtrfsHelper.subvolume_size(home_dest)
@@ -593,9 +596,9 @@ class SandboxManager
 
     # ── Restore home directory ────────────────────────────────────────────────
     if restore_home
-      home_target = "#{DATA_DIR}/users/#{user.name}/home"
+      home_target = sandbox_home_dir(user, sandbox)
       begin
-        BtrfsHelper.restore_subvolume(snap.home_snapshot, home_target)
+        BtrfsHelper.restore_subvolume(snap.home_snapshot, home_target) if home_target
       rescue BtrfsHelper::Error => e
         Rails.logger.warn("Could not restore home snapshot: #{e.message}")
       end
@@ -811,7 +814,8 @@ class SandboxManager
     env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
     env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
     env << "SANDCASTLE_SMB_ENABLED=#{sandbox.smb_enabled? ? '1' : '0'}"
-    env << "SANDCASTLE_HOME_PERSISTED=#{sandbox.mount_home ? '1' : '0'}"
+    env << "SANDCASTLE_HOME_PERSISTED=#{sandbox.home_persisted? ? '1' : '0'}"
+    env << "SANDCASTLE_HOME_PATH=#{sandbox.home_path}" if sandbox.home_path.present?
     env << "SANDCASTLE_DATA_PERSISTED=#{sandbox.data_path.present? ? '1' : '0'}"
     env << "SANDCASTLE_DATA_PATH=#{sandbox.data_path}" if sandbox.data_path.present?
     env << "SANDCASTLE_SSH_START_TMUX=#{sandbox.effective_ssh_start_tmux? ? '1' : '0'}"
@@ -925,20 +929,27 @@ class SandboxManager
 
   def volume_binds(user, sandbox)
     binds = []
-    if sandbox.mount_home
-      binds << "#{DATA_DIR}/users/#{user.name}/home:/home/#{user.name}"
+    if (home_dir = sandbox_home_dir(user, sandbox))
+      binds << "#{home_dir}:/home/#{user.name}"
     end
     if sandbox.data_path.present?
       host_path = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
       binds << "#{host_path}:/persisted"
     end
     # Per-user persisted dotdirs (Claude/Codex auth, etc.) — only when full home isn't mounted
-    if !sandbox.mount_home
+    if !sandbox.home_persisted?
       user.persisted_paths.find_each do |pp|
         host_path = "#{DATA_DIR}/users/#{user.name}/persisted/#{pp.path}"
         binds << "#{host_path}:/home/#{user.name}/#{pp.path}"
       end
     end
     binds
+  end
+
+  def sandbox_home_dir(user, sandbox)
+    return "#{DATA_DIR}/users/#{user.name}/home" if sandbox.mount_home?
+    return if sandbox.home_path.blank?
+
+    "#{DATA_DIR}/users/#{user.name}/home/#{sandbox.home_path}".chomp("/")
   end
 end

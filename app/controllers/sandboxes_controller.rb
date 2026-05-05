@@ -7,6 +7,7 @@ class SandboxesController < ApplicationController
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     @btrfs_available = BtrfsHelper.btrfs?
     @defaults = Current.user
+    @projects = Current.user.projects.order(:name)
   end
 
   def show
@@ -47,11 +48,26 @@ class SandboxesController < ApplicationController
 
     from_snapshot_name = params[:snapshot].presence
 
+    project = Current.user.projects.find_by(id: params[:project_id].presence)
+
     image = if from_snapshot_name.present?
       snap = Snapshot.find_by(user: Current.user, name: from_snapshot_name)
       snap&.docker_image || "sc-snap-#{Current.user.name}:#{from_snapshot_name}"
     else
-      params[:image].presence || SandboxManager::DEFAULT_IMAGE
+      params[:image].presence || project&.image || SandboxManager::DEFAULT_IMAGE
+    end
+
+    project_path = params[:project_path].presence
+    mount_home = project.present? ? false : (params[:mount_home] == "1")
+    home_path = project.present? ? project.path : params[:home_path].presence
+    data_path = project.present? ? project.path : (params[:mount_data] == "1" ? (params[:data_path].presence || ".") : nil)
+    project_name = project&.name
+
+    if project_path.present?
+      mount_home = false
+      home_path = project_path
+      data_path = project_path
+      project_name = File.basename(project_path)
     end
 
     # Build sandbox record
@@ -61,15 +77,17 @@ class SandboxesController < ApplicationController
       name: params.require(:name),
       status: "pending",
       image: image,
-      mount_home: params[:mount_home] == "1",
-      data_path: params[:mount_data] == "1" ? (params[:data_path].presence || ".") : nil,
-      tailscale: params[:tailscale] == "1",
-      vnc_enabled: params[:vnc_enabled] != "0",
-      vnc_geometry: Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900",
-      vnc_depth: Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24,
-      docker_enabled: params[:docker_enabled] != "0",
-      smb_enabled: params[:smb_enabled] == "1",
-      ssh_start_tmux: params[:ssh_start_tmux] == "1",
+      project_name: project_name,
+      mount_home: mount_home,
+      home_path: home_path,
+      data_path: data_path,
+      tailscale: project.present? ? project.tailscale : (params[:tailscale] == "1"),
+      vnc_enabled: project.present? ? project.vnc_enabled : (params[:vnc_enabled] != "0"),
+      vnc_geometry: project.present? ? project.vnc_geometry : (Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900"),
+      vnc_depth: project.present? ? project.vnc_depth : (Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24),
+      docker_enabled: project.present? ? project.docker_enabled : (params[:docker_enabled] != "0"),
+      smb_enabled: project.present? ? project.smb_enabled : (params[:smb_enabled] == "1"),
+      ssh_start_tmux: project.present? ? project.ssh_start_tmux : (params[:ssh_start_tmux] == "1"),
       temporary: false
     )
 
@@ -83,6 +101,7 @@ class SandboxesController < ApplicationController
       @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
       @btrfs_available = BtrfsHelper.btrfs?
       @defaults = Current.user
+      @projects = Current.user.projects.order(:name)
       flash.now[:alert] = "Failed to create sandbox: #{sandbox.errors.full_messages.join(', ')}"
       render :new, status: :unprocessable_entity
     end
@@ -90,6 +109,7 @@ class SandboxesController < ApplicationController
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
     @btrfs_available = BtrfsHelper.btrfs?
     @defaults = Current.user
+    @projects = Current.user.projects.order(:name)
     flash.now[:alert] = "Failed to create sandbox: #{e.message}"
     render :new, status: :unprocessable_entity
   end

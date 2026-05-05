@@ -84,4 +84,13 @@ class SandboxManagerInjectFilesTest < ActiveSupport::TestCase
     refute binds.any? { |b| b.end_with?(":/home/#{@user.name}/.claude") },
       "persisted paths should not be bound separately when full home is bound"
   end
+
+  test "volume_binds mounts a scoped home subdir as home and skips persisted dotdirs" do
+    @user.persisted_paths.find_or_create_by!(path: ".claude")
+    @sandbox.update!(mount_home: false, home_path: "projects/demo")
+
+    binds = @manager.send(:volume_binds, @user, @sandbox)
+    assert binds.any? { |b| b.end_with?("/home/projects/demo:/home/#{@user.name}") }
+    refute binds.any? { |b| b.end_with?(":/home/#{@user.name}/.claude") }
+  end
 end
