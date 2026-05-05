@@ -1,9 +1,9 @@
-<% content_for(:title) { "Logs — #{@sandbox.name} — Sandcastle" } %>
+<% content_for(:title) { "Logs — #{@sandbox.display_name} — Sandcastle" } %>
 
 <div class="max-w-5xl mx-auto px-4 py-8 space-y-4">
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <h1 class="text-2xl font-bold text-gray-900 font-mono"><%= @sandbox.name %></h1>
+      <h1 class="text-2xl font-bold text-gray-900 font-mono"><% if @sandbox.project_name.present? %><span class="text-gray-400"><%= @sandbox.project_name %>:</span><% end %><%= @sandbox.name %></h1>
       <span class="text-sm text-gray-500">logs</span>
     </div>
     <div class="flex items-center gap-3">

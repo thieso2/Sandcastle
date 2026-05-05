@@ -43,6 +43,11 @@ class Sandbox < ApplicationRecord
     "#{name}-#{project_name}"
   end
 
+  def display_name
+    return name if project_name.blank?
+    "#{project_name}:#{name}"
+  end
+
   def connect_command
     "sandcastle connect #{name}"
   end
