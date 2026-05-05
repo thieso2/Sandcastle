@@ -42,6 +42,20 @@ if [ -d /persisted ] && [ "$(stat -c %u /persisted 2>/dev/null)" != "$USER_UID" 
     (chown -R "$USERNAME:$USERNAME" /persisted 2>/dev/null || true) &
 fi
 
+# Ensure ~/.local exists and is user-owned so mise can write state to
+# ~/.local/state/mise/tracked-configs on every prompt. Run mkdir as the
+# user (not root) so every intermediate directory is correctly owned —
+# `install -d` would create intermediates with default (root) ownership.
+runuser -u "$USERNAME" -- mkdir -p \
+    "/home/$USERNAME/.local/bin" \
+    "/home/$USERNAME/.local/state" 2>/dev/null || true
+# Repair pre-existing root-owned .local from sandboxes built before this
+# fix. Only the directory itself is wrong; contents are user-owned. One
+# inode chown — no -R walk.
+if [ -d "/home/$USERNAME/.local" ] && [ "$(stat -c %u "/home/$USERNAME/.local")" = "0" ]; then
+    chown "$USERNAME:$USERNAME" "/home/$USERNAME/.local" 2>/dev/null || true
+fi
+
 # Seed Claude Code into the user's $HOME if not already present. The base
 # image ships the binary at /opt/claude/claude (off $PATH); each user gets
 # their own copy at ~/.local/bin/claude. Because $HOME is bind-mounted from
@@ -51,7 +65,6 @@ fi
 CLAUDE_SRC="/opt/claude/claude"
 CLAUDE_DST="/home/$USERNAME/.local/bin/claude"
 if [ -x "$CLAUDE_SRC" ] && [ ! -e "$CLAUDE_DST" ]; then
-    install -d -o "$USERNAME" -g "$USERNAME" -m 0755 "/home/$USERNAME/.local/bin" 2>/dev/null || true
     install -o "$USERNAME" -g "$USERNAME" -m 0755 "$CLAUDE_SRC" "$CLAUDE_DST" 2>/dev/null || \
         echo "WARNING: could not seed $CLAUDE_DST from $CLAUDE_SRC" >&2
 fi
