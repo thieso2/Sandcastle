@@ -102,6 +102,29 @@ class BtrfsHelper
       raise Error, "Snapshot restore failed: #{e.message}"
     end
 
+    # Ensure a path is a BTRFS subvolume suitable as a snapshot source.
+    # If the path does not exist, create it as a subvolume. If it already
+    # exists as a plain directory, fail rather than hiding that future snapshot
+    # operations would not actually work.
+    def ensure_subvolume!(path, description: "path")
+      raise Error, "BTRFS is not available" unless btrfs?
+
+      if subvolume?(path)
+        ensure_owned(path)
+        return true
+      end
+
+      if Dir.exist?(path)
+        raise Error, "#{description} must be a BTRFS subvolume for snapshot storage: #{path}"
+      end
+
+      create_subvolume!(path)
+    rescue Error
+      raise
+    rescue StandardError => e
+      raise Error, "Failed to ensure BTRFS subvolume #{path}: #{e.message}"
+    end
+
     # Check if a path is on a BTRFS filesystem AND we can run sudo btrfs commands.
     # Inside containers, the bind mount preserves the BTRFS filesystem type but
     # sudo is not available, so BTRFS operations would silently fail.
@@ -204,6 +227,30 @@ class BtrfsHelper
       end
     end
 
+    def create_user_persisted_subvolume(username, path)
+      create_user_subvolume(username)
+
+      persisted_dir = "#{DATA_DIR}/users/#{username}/persisted/#{path}".chomp("/")
+
+      if btrfs?
+        if subvolume?(persisted_dir)
+          ensure_owned(persisted_dir)
+          return true
+        end
+
+        if Dir.exist?(persisted_dir)
+          ensure_owned(persisted_dir)
+          return false
+        end
+
+        create_subvolume(persisted_dir)
+      else
+        FileUtils.mkdir_p(persisted_dir) unless Dir.exist?(persisted_dir)
+        ensure_owned(persisted_dir)
+        false
+      end
+    end
+
     # Check if a path is a BTRFS subvolume
     def subvolume?(path)
       return false unless Dir.exist?(path)
@@ -239,6 +286,20 @@ class BtrfsHelper
       # Fall back to regular directory
       FileUtils.mkdir_p(path) unless Dir.exist?(path)
       false
+    end
+
+    def create_subvolume!(path)
+      parent = File.dirname(path)
+      FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
+
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{path}")
+      unless status&.success?
+        raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
+      end
+
+      ensure_owned(path)
+      Rails.logger.info("Created BTRFS subvolume: #{path}")
+      true
     end
 
     # Ensure the path is owned by the current process user

@@ -42,4 +42,38 @@ class SandboxMountBuilderTest < ActiveSupport::TestCase
 
     assert_nil records.find { |r| r[:logical_path] == path }
   end
+
+  test "builds snapshot mount paths from direct mounts" do
+    @sandbox.id ||= 123
+    @sandbox.storage_mode = "snapshot"
+    @sandbox.mount_home = true
+    @sandbox.data_path = "projects/app"
+
+    records = SandboxMountBuilder.new(user: @user, sandbox: @sandbox).mount_attributes
+
+    home = records.find { |r| r[:mount_type] == "home" }
+    assert_equal "snapshot", home[:storage_mode]
+    assert_equal "#{SandboxMountBuilder::DATA_DIR}/sandbox_mounts/#{@sandbox.id}/base/home", home[:base_path]
+    assert_equal "#{SandboxMountBuilder::DATA_DIR}/sandbox_mounts/#{@sandbox.id}/work/home", home[:work_path]
+    assert_equal home[:work_path], home[:source_path]
+
+    data = records.find { |r| r[:mount_type] == "data" }
+    assert_equal "#{SandboxMountBuilder::DATA_DIR}/sandbox_mounts/#{@sandbox.id}/base/data", data[:base_path]
+    assert_equal "#{SandboxMountBuilder::DATA_DIR}/sandbox_mounts/#{@sandbox.id}/work/data", data[:source_path]
+  end
+
+  test "builds nested snapshot paths for persisted path mounts" do
+    path = ".config/tool"
+    @user.persisted_paths.create!(path: path)
+    @sandbox.storage_mode = "snapshot"
+    @sandbox.mount_home = false
+    @sandbox.data_path = nil
+
+    records = SandboxMountBuilder.new(user: @user, sandbox: @sandbox).mount_attributes
+
+    record = records.find { |r| r[:logical_path] == path }
+    assert_equal "snapshot", record[:storage_mode]
+    assert_equal "#{SandboxMountBuilder::DATA_DIR}/sandbox_mounts/#{@sandbox.id}/base/persisted/#{path}", record[:base_path]
+    assert_equal "#{SandboxMountBuilder::DATA_DIR}/sandbox_mounts/#{@sandbox.id}/work/persisted/#{path}", record[:source_path]
+  end
 end
