@@ -238,6 +238,7 @@ class SandboxManager
         oidc_secret_rotated_at: nil
       )
     else
+      cleanup_snapshot_mounts(sandbox)
       sandbox.update!(status: "destroyed", container_id: nil, oidc_secret_digest: nil, oidc_secret_rotated_at: nil)
     end
 
@@ -1147,5 +1148,22 @@ PROFILE_EOF
     end
   rescue BtrfsHelper::Error => e
     raise Error, e.message
+  end
+
+  def cleanup_snapshot_mounts(sandbox)
+    sandbox.sandbox_mounts.where(storage_mode: "snapshot").find_each do |mount|
+      [ mount.work_path, mount.base_path ].compact.each do |path|
+        next unless Dir.exist?(path)
+
+        if BtrfsHelper.subvolume?(path)
+          BtrfsHelper.delete_snapshot(path)
+        else
+          FileUtils.rm_rf(path)
+        end
+      end
+      mount.update!(state: "discarded")
+    end
+  rescue BtrfsHelper::Error => e
+    Rails.logger.warn("cleanup_snapshot_mounts failed for sandbox #{sandbox.id}: #{e.message}")
   end
 end

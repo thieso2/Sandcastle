@@ -1,0 +1,76 @@
+<% content_for(:title) { "Reconcile #{@sandbox.name} — Sandcastle" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+  <div>
+    <%= link_to sandbox_path(@sandbox), class: "text-sm text-blue-600 hover:text-blue-700" do %>
+      &larr; Back to <%= @sandbox.name %>
+    <% end %>
+    <h1 class="text-2xl font-bold text-gray-900 mt-4">Reconcile Changes</h1>
+    <p class="text-sm text-gray-500 mt-1">Review snapshot storage changes before writing them to the master copy.</p>
+  </div>
+
+  <% if @sandbox.status != "stopped" %>
+    <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 text-sm">
+      Stop this sandbox before committing or discarding snapshot storage changes.
+    </div>
+  <% end %>
+
+  <% if @changes.empty? %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 text-center">
+      <p class="text-sm text-gray-600">No differences found between the snapshot branch and master storage.</p>
+    </div>
+  <% else %>
+    <%= form_with url: reconcile_apply_sandbox_path(@sandbox), method: :post, class: "space-y-4" do %>
+      <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th class="text-left px-4 py-2 font-medium text-gray-700">Mount</th>
+              <th class="text-left px-4 py-2 font-medium text-gray-700">Path</th>
+              <th class="text-left px-4 py-2 font-medium text-gray-700">Status</th>
+              <th class="text-left px-4 py-2 font-medium text-gray-700">Reason</th>
+              <th class="text-left px-4 py-2 font-medium text-gray-700">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% @changes.each_with_index do |change, index| %>
+              <% actionable = %w[added modified deleted conflict].include?(change.status) %>
+              <tr>
+                <td class="px-4 py-2 text-xs text-gray-600"><%= change.mount.mount_type %></td>
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 break-all"><%= change.path %></td>
+                <td class="px-4 py-2">
+                  <span class="inline-block px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-800"><%= change.status.humanize %></span>
+                </td>
+                <td class="px-4 py-2 text-xs text-gray-500"><%= change.reason %></td>
+                <td class="px-4 py-2">
+                  <%= hidden_field_tag "changes[#{index}][mount_id]", change.mount.id %>
+                  <%= hidden_field_tag "changes[#{index}][path]", change.path %>
+                  <% if actionable %>
+                    <%= select_tag "changes[#{index}][action]",
+                          options_for_select([
+                            [ "Skip", "skip" ],
+                            [ change.status == "deleted" ? "Delete from master" : "Use sandbox version", change.status == "deleted" ? "delete" : "use_work" ]
+                          ]),
+                          class: "text-xs border border-gray-300 rounded px-2 py-1" %>
+                  <% else %>
+                    <span class="text-xs text-gray-400">No action</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="flex items-center justify-end">
+        <%= submit_tag "Commit Selected", class: "px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700" %>
+      </div>
+    <% end %>
+
+    <%= button_to "Discard Snapshot Changes",
+          reconcile_discard_sandbox_path(@sandbox),
+          method: :post,
+          data: { confirm: "Discard all snapshot storage changes for #{@sandbox.name}?" },
+          class: "px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700" %>
+  <% end %>
+</div>

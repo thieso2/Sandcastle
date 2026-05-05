@@ -1,5 +1,5 @@
 class SandboxesController < ApplicationController
-  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :rebuild, :retry, :logs, :metrics, :discover_files, :promote_file ]
+  before_action :set_sandbox, only: [ :show, :update, :destroy, :start, :stop, :rebuild, :retry, :logs, :metrics, :discover_files, :promote_file, :reconcile, :reconcile_apply, :reconcile_discard ]
   before_action :set_archived_sandbox, only: [ :archive_restore, :purge ]
 
   def new
@@ -138,6 +138,12 @@ class SandboxesController < ApplicationController
   def destroy
     if @sandbox.job_in_progress?
       redirect_to root_path, alert: "Operation already in progress"
+      return
+    end
+
+    if @sandbox.sandbox_mounts.where(storage_mode: "snapshot", state: "active").exists? &&
+        SandboxMountReconciler.new(@sandbox).changed?
+      redirect_to reconcile_sandbox_path(@sandbox), alert: "Review or discard snapshot storage changes before destroying this sandbox."
       return
     end
 
@@ -284,6 +290,33 @@ class SandboxesController < ApplicationController
     redirect_back fallback_location: sandbox_path(@sandbox), alert: e.message
   end
 
+  def reconcile
+    @changes = SandboxMountReconciler.new(@sandbox).changes
+  end
+
+  def reconcile_apply
+    unless @sandbox.status == "stopped"
+      redirect_to reconcile_sandbox_path(@sandbox), alert: "Stop the sandbox before committing snapshot storage changes."
+      return
+    end
+
+    selections = reconcile_selections
+    SandboxMountReconciler.new(@sandbox).apply!(selections)
+    redirect_to reconcile_sandbox_path(@sandbox), notice: "Selected changes committed."
+  rescue ArgumentError => e
+    redirect_to reconcile_sandbox_path(@sandbox), alert: e.message
+  end
+
+  def reconcile_discard
+    unless @sandbox.status == "stopped"
+      redirect_to reconcile_sandbox_path(@sandbox), alert: "Stop the sandbox before discarding snapshot storage changes."
+      return
+    end
+
+    SandboxMountReconciler.new(@sandbox).discard!
+    redirect_to sandbox_path(@sandbox), notice: "Snapshot storage changes discarded."
+  end
+
   def retry
     return unless @sandbox.job_failed?
 
@@ -353,5 +386,16 @@ class SandboxesController < ApplicationController
   def set_archived_sandbox
     @sandbox = Current.user.sandboxes.archived.find(params[:id])
     authorize @sandbox, :archive_restore?
+  end
+
+  def reconcile_selections
+    raw = params.fetch(:changes, {})
+    raw.values.map do |change|
+      {
+        mount_id: change[:mount_id],
+        path: change[:path],
+        action: change[:action]
+      }
+    end
   end
 end

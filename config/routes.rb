@@ -57,6 +57,9 @@ Rails.application.routes.draw do
       post :snapshot, controller: "snapshots", action: "create_for_sandbox"
       get :discover_files
       post :promote_file
+      get :reconcile
+      post :reconcile_apply
+      post :reconcile_discard
     end
     resources :routes, only: [ :create, :destroy ]
   end
