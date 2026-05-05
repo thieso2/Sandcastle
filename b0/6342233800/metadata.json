@@ -3,7 +3,7 @@
   "checkpoint_id": "b06342233800",
   "strategy": "manual-commit",
   "branch": "feat/projects",
-  "checkpoints_count": 7,
+  "checkpoints_count": 8,
   "files_touched": [
     ".env.example",
     "app/controllers/api/projects_controller.rb",
@@ -48,13 +48,19 @@
       "transcript": "/b0/6342233800/0/full.jsonl",
       "content_hash": "/b0/6342233800/0/content_hash.txt",
       "prompt": "/b0/6342233800/0/prompt.txt"
+    },
+    {
+      "metadata": "/b0/6342233800/1/metadata.json",
+      "transcript": "/b0/6342233800/1/full.jsonl",
+      "content_hash": "/b0/6342233800/1/content_hash.txt",
+      "prompt": "/b0/6342233800/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 22633339,
-    "cache_creation_tokens": 0,
-    "cache_read_tokens": 21035264,
-    "output_tokens": 76308,
-    "api_call_count": 146
+    "input_tokens": 22633360,
+    "cache_creation_tokens": 49033,
+    "cache_read_tokens": 21452199,
+    "output_tokens": 82607,
+    "api_call_count": 157
   }
 }
