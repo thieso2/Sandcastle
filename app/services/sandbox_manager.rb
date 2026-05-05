@@ -25,6 +25,7 @@ class SandboxManager
 
     # Now safe to save
     sandbox.save!
+    sync_mount_records(user, sandbox)
 
     # Pull image
     ensure_image(image)
@@ -165,6 +166,7 @@ class SandboxManager
         prepare_bind_mount(dir)
       end
     end
+    sync_mount_records(user, sandbox) if sandbox.persisted?
   rescue Errno::EACCES, Errno::ENOENT => e
     raise Error, "Failed to create mount directories: #{e.message}"
   end
@@ -1095,5 +1097,49 @@ PROFILE_EOF
     return if sandbox.home_path.blank?
 
     "#{DATA_DIR}/users/#{user.name}/home/#{sandbox.home_path}".chomp("/")
+  end
+
+  def sync_mount_records(user, sandbox)
+    return unless sandbox.persisted?
+
+    records = []
+
+    if sandbox.mount_home
+      home_path = "#{DATA_DIR}/users/#{user.name}/home"
+      records << {
+        mount_type: "home",
+        logical_path: nil,
+        target_path: "/home/#{user.name}",
+        master_path: home_path,
+        source_path: home_path
+      }
+    end
+
+    if sandbox.data_path.present?
+      data_path = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
+      records << {
+        mount_type: "data",
+        logical_path: sandbox.data_path,
+        target_path: "/persisted",
+        master_path: data_path,
+        source_path: data_path
+      }
+    end
+
+    if !sandbox.mount_home
+      user.persisted_paths.find_each do |pp|
+        path = "#{DATA_DIR}/users/#{user.name}/persisted/#{pp.path}"
+        records << {
+          mount_type: "persisted_path",
+          logical_path: pp.path,
+          target_path: "/home/#{user.name}/#{pp.path}",
+          master_path: path,
+          source_path: path
+        }
+      end
+    end
+
+    sandbox.sandbox_mounts.destroy_all
+    records.each { |attrs| sandbox.sandbox_mounts.create!(attrs) }
   end
 end
