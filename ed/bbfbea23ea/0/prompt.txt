@@ -23,3 +23,7 @@ where can i cretae a Project?
 ---
 
 when using a project - add the project by to the container name project:name that allows one "temp" container per project.
+
+---
+
+i hate if entrypoint does a chown -R as it can be slow!
