@@ -267,9 +267,13 @@ fi
 if command -v ttyd &>/dev/null; then
     touch /var/log/ttyd-tmux.log /var/log/ttyd-shell.log
     chown "$USERNAME:$USERNAME" /var/log/ttyd-tmux.log /var/log/ttyd-shell.log
-    su -s /bin/bash "$USERNAME" -c \
+    # `su -l` (login shell) so HOME is set and the spawned tmux/bash inherits
+    # cwd=$HOME instead of /. Without -l the cwd would be wherever entrypoint
+    # is running from (i.e. /), and the first tmux session would pin its
+    # initial window's cwd to /.
+    su -l -s /bin/bash "$USERNAME" -c \
         "ttyd -W -m 0 -p 7681 tmux new-session -A -s main &>/var/log/ttyd-tmux.log &"
-    su -s /bin/bash "$USERNAME" -c \
+    su -l -s /bin/bash "$USERNAME" -c \
         "ttyd -W -m 1 -p 7682 bash -l &>/var/log/ttyd-shell.log &"
 fi
 
