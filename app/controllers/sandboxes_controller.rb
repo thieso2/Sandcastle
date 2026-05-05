@@ -99,12 +99,16 @@ class SandboxesController < ApplicationController
       redirect_to root_path, notice: "Creating sandcastle #{sandbox.name}..."
     else
       @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+      @btrfs_available = BtrfsHelper.btrfs?
+      @defaults = Current.user
       @projects = Current.user.projects.order(:name)
       flash.now[:alert] = "Failed to create sandbox: #{sandbox.errors.full_messages.join(', ')}"
       render :new, status: :unprocessable_entity
     end
   rescue => e
     @snapshots = SandboxManager.new.list_snapshots(user: Current.user)
+    @btrfs_available = BtrfsHelper.btrfs?
+    @defaults = Current.user
     @projects = Current.user.projects.order(:name)
     flash.now[:alert] = "Failed to create sandbox: #{e.message}"
     render :new, status: :unprocessable_entity
