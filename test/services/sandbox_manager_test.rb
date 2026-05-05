@@ -201,4 +201,17 @@ class SandboxManagerTest < ActiveSupport::TestCase
     assert ensure_called,
       "SandboxManager#start must call ensure_mount_dirs for data_path sandboxes too"
   end
+
+  test "start calls ensure_mount_dirs for sandboxes with home_path to reset bind-mount permissions" do
+    @sandbox.update!(home_path: "projects/demo", mount_home: false, status: "stopped", container_id: nil)
+
+    ensure_called = false
+    manager = Class.new(SandboxManager) {
+      define_method(:ensure_mount_dirs) { |_user, _sandbox| ensure_called = true }
+    }.new
+    manager.start(sandbox: @sandbox)
+
+    assert ensure_called,
+      "SandboxManager#start must call ensure_mount_dirs for home_path sandboxes too"
+  end
 end

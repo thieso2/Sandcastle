@@ -32,12 +32,31 @@ module Api
       from_snapshot_name = params[:from_snapshot].presence || params[:snapshot].presence
       restore_layers     = params[:restore_layers].present? ? Array(params[:restore_layers]) : nil
 
+      project = if params[:project_id].present?
+        current_user.projects.find(params[:project_id])
+      elsif params[:project_name].present?
+        current_user.projects.find_by!(name: params[:project_name])
+      end
+
       image = if from_snapshot_name.present?
         # Try to find DB record first
         snap = Snapshot.find_by(user: current_user, name: from_snapshot_name)
         snap&.docker_image || "sc-snap-#{current_user.name}:#{from_snapshot_name}"
       else
-        params[:image].presence || SandboxManager::DEFAULT_IMAGE
+        params[:image].presence || project&.image || SandboxManager::DEFAULT_IMAGE
+      end
+
+      project_path = params[:project_path].presence
+      mount_home = project.present? ? false : (params.key?(:mount_home) ? params[:mount_home] : current_user.default_mount_home)
+      home_path = project.present? ? project.path : params[:home_path].presence
+      data_path = project.present? ? project.path : (params.key?(:data_path) ? params[:data_path] : current_user.default_data_path)
+      project_name = project&.name
+
+      if project_path.present?
+        mount_home = false
+        home_path = project_path
+        data_path = project_path
+        project_name = File.basename(project_path)
       end
 
       # Build sandbox record (fall back to the user's personal defaults where
@@ -46,16 +65,18 @@ module Api
         name: params.require(:name),
         status: "pending",
         image: image,
-        mount_home: params.key?(:mount_home) ? params[:mount_home] : current_user.default_mount_home,
-        data_path: params.key?(:data_path) ? params[:data_path] : current_user.default_data_path,
-        tailscale: params.fetch(:tailscale) { current_user.tailscale_enabled? },
-        vnc_enabled: params.key?(:vnc_enabled) ? params[:vnc_enabled] : current_user.default_vnc_enabled,
-        vnc_geometry: params[:vnc_geometry] || "1280x900",
-        vnc_depth: params[:vnc_depth]&.to_i || 24,
-        docker_enabled: params.key?(:docker_enabled) ? params[:docker_enabled] : current_user.default_docker_enabled,
-        ssh_start_tmux: params.key?(:ssh_start_tmux) ? params[:ssh_start_tmux] : nil,
+        project_name: project_name,
+        mount_home: mount_home,
+        home_path: home_path,
+        data_path: data_path,
+        tailscale: project.present? ? project.tailscale : params.fetch(:tailscale) { current_user.tailscale_enabled? },
+        vnc_enabled: project.present? ? project.vnc_enabled : (params.key?(:vnc_enabled) ? params[:vnc_enabled] : current_user.default_vnc_enabled),
+        vnc_geometry: project.present? ? project.vnc_geometry : (params[:vnc_geometry] || "1280x900"),
+        vnc_depth: project.present? ? project.vnc_depth : (params[:vnc_depth]&.to_i || 24),
+        docker_enabled: project.present? ? project.docker_enabled : (params.key?(:docker_enabled) ? params[:docker_enabled] : current_user.default_docker_enabled),
+        ssh_start_tmux: project.present? ? project.ssh_start_tmux : (params.key?(:ssh_start_tmux) ? params[:ssh_start_tmux] : nil),
         temporary: params[:temporary] || false,
-        smb_enabled: params.key?(:smb_enabled) ? params[:smb_enabled] : (current_user.default_smb_enabled && current_user.tailscale_enabled? && current_user.smb_password.present?)
+        smb_enabled: project.present? ? project.smb_enabled : (params.key?(:smb_enabled) ? params[:smb_enabled] : (current_user.default_smb_enabled && current_user.tailscale_enabled? && current_user.smb_password.present?))
       )
 
       sandbox.save!
@@ -65,10 +86,10 @@ module Api
         want_home = restore_layers.nil? || restore_layers.include?("home")
         want_data = restore_layers.nil? || restore_layers.include?("data")
 
-        if want_home && snap.home_snapshot.present? && BtrfsHelper.btrfs?
+        if want_home && snap.home_snapshot.present? && sandbox.home_persisted? && BtrfsHelper.btrfs?
           manager.ensure_mount_dirs(current_user, sandbox)
-          home_target = "#{SandboxManager::DATA_DIR}/users/#{current_user.name}/home"
-          BtrfsHelper.restore_subvolume(snap.home_snapshot, home_target) rescue nil
+          home_target = manager.sandbox_home_dir(current_user, sandbox)
+          BtrfsHelper.restore_subvolume(snap.home_snapshot, home_target) rescue nil if home_target
         end
 
         if want_data && snap.data_snapshot.present? && BtrfsHelper.btrfs?
@@ -263,10 +284,14 @@ module Api
         id: sandbox.id,
         name: sandbox.name,
         full_name: sandbox.full_name,
+        hostname: sandbox.hostname,
         status: sandbox.status,
         image: sandbox.image,
+        project_name: sandbox.project_name,
         mount_home: sandbox.mount_home,
+        home_path: sandbox.home_path,
         data_path: sandbox.data_path,
+        project_path: sandbox.project_path,
         temporary: sandbox.temporary,
         tailscale: sandbox.tailscale,
         vnc_enabled: sandbox.vnc_enabled,

@@ -35,7 +35,8 @@ export DEV_HOST="${DEV_HOST:-localhost}"
 # Pick a UID/GID for the in-container sandcastle user. Default to the host
 # user's IDs so bind-mounted source files stay owned by you on disk. If the
 # outer environment uses a restricted user namespace (e.g. Sysbox), the
-# production default of 220568 would exceed the range and fail with EINVAL
+# the old production default of 220568 can exceed the supported range and fail
+# with EINVAL on some Docker volume backends
 # on chown/setgroups — the host UID is always within range.
 if [ -z "${SANDCASTLE_UID:-}" ]; then
   if [ -r /proc/self/uid_map ]; then
@@ -47,8 +48,8 @@ if [ -z "${SANDCASTLE_UID:-}" ]; then
     fi
   fi
 fi
-export SANDCASTLE_UID="${SANDCASTLE_UID:-220568}"
-export SANDCASTLE_GID="${SANDCASTLE_GID:-220568}"
+export SANDCASTLE_UID="${SANDCASTLE_UID:-22051}"
+export SANDCASTLE_GID="${SANDCASTLE_GID:-22051}"
 
 echo "Starting development environment with live reload..."
 echo "  DEV_HOST=${DEV_HOST}  DOCKER_GID=${DOCKER_GID}  SANDCASTLE_UID=${SANDCASTLE_UID}"

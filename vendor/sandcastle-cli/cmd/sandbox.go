@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -24,6 +24,9 @@ var (
 	sandboxNoConnect     bool
 	sandboxRemove        bool
 	sandboxHome          bool
+	sandboxHomeSubdir    string
+	sandboxProject       string
+	sandboxProjectSubdir string
 	sandboxData          string
 	sandboxNoVNC         bool
 	sandboxVNCGeometry   string
@@ -56,6 +59,9 @@ func init() {
 	createCmd.Flags().BoolVarP(&sandboxNoConnect, "no-connect", "n", false, "Don't connect after creation")
 	createCmd.Flags().BoolVar(&sandboxRemove, "rm", false, "Delete sandbox on exit (env: SANDCASTLE_RM)")
 	createCmd.Flags().BoolVar(&sandboxHome, "home", false, "Mount persistent home directory (env: SANDCASTLE_HOME)")
+	createCmd.Flags().StringVar(&sandboxHomeSubdir, "home-subdir", "", "Mount this subdir of persistent home as $HOME")
+	createCmd.Flags().StringVar(&sandboxProject, "project", "", "Create the sandbox from a saved project preset")
+	createCmd.Flags().StringVar(&sandboxProjectSubdir, "project-subdir", "", "Mount this subdir as both $HOME and /persisted")
 	createCmd.Flags().StringVar(&sandboxData, "data", "", "Mount user data directory (or subpath) to /persisted (env: SANDCASTLE_DATA)")
 	createCmd.Flags().Lookup("data").NoOptDefVal = "."
 	createCmd.Flags().BoolVar(&sandboxNoVNC, "no-vnc", false, "Disable VNC display server")
@@ -143,13 +149,21 @@ Flags explicitly passed on the command line take precedence over environment var
 			}
 		}
 
-		sandbox, err := client.CreateSandbox(api.CreateSandboxRequest{
+		if sandboxHome && sandboxHomeSubdir != "" {
+			return fmt.Errorf("--home and --home-subdir are mutually exclusive")
+		}
+		if sandboxProject != "" && sandboxProjectSubdir != "" {
+			return fmt.Errorf("--project and --project-subdir cannot be combined")
+		}
+
+		req := api.CreateSandboxRequest{
 			Name:          name,
 			Image:         sandboxImage,
 			FromSnapshot:  fromSnap,
 			RestoreLayers: restoreLayers,
 			Tailscale:     sandboxTailscale,
 			MountHome:     sandboxHome,
+			HomePath:      sandboxHomeSubdir,
 			DataPath:      sandboxData,
 			Temporary:     sandboxRemove,
 			VNCEnabled:    !sandboxNoVNC,
@@ -157,7 +171,17 @@ Flags explicitly passed on the command line take precedence over environment var
 			VNCDepth:      sandboxVNCDepth,
 			DockerEnabled: !sandboxNoDocker,
 			SMBEnabled:    sandboxSMB,
-		})
+		}
+		if sandboxProject != "" {
+			req.ProjectName = sandboxProject
+		}
+		if sandboxProjectSubdir != "" {
+			req.ProjectPath = sandboxProjectSubdir
+			req.HomePath = ""
+			req.MountHome = false
+			req.DataPath = ""
+		}
+		sandbox, err := client.CreateSandbox(req)
 		if err != nil {
 			return err
 		}
@@ -169,9 +193,18 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		// Print active options (use local flags — they reflect what was actually requested)
-		if sandboxHome || sandboxData != "" || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB {
+		if sandboxHome || sandboxHomeSubdir != "" || sandboxProject != "" || sandboxProjectSubdir != "" || sandboxData != "" || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB {
 			if sandboxHome {
 				fmt.Println("  Home:      mounted (~/ persisted)")
+			}
+			if sandboxHomeSubdir != "" {
+				fmt.Printf("  Home:      mounted (%s → $HOME)\n", sandboxHomeSubdir)
+			}
+			if sandboxProject != "" {
+				fmt.Printf("  Project:   %s\n", sandboxProject)
+			}
+			if sandboxProjectSubdir != "" {
+				fmt.Printf("  Project:   %s (scoped home + persisted)\n", sandboxProjectSubdir)
 			}
 			if sandboxData != "" {
 				label := sandboxData
@@ -339,7 +372,7 @@ var listCmd = &cobra.Command{
 			if s.TailscaleIP != "" {
 				tsIP = s.TailscaleIP
 			}
-			created  := s.CreatedAt.Local().Format("2006-01-02 15:04")
+			created := s.CreatedAt.Local().Format("2006-01-02 15:04")
 			imageAge := formatImageAge(s.ImageBuiltAt)
 			if hasRoute {
 				route := ""
@@ -394,7 +427,7 @@ var deleteCmd = &cobra.Command{
 	Use:     "delete <name>",
 	Aliases: []string{"rm", "d"},
 	Short:   "Delete a sandbox",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {
@@ -431,7 +464,7 @@ var startCmd = &cobra.Command{
 	Use:     "start <name>",
 	Aliases: []string{"up"},
 	Short:   "Start a stopped sandbox",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {
@@ -458,7 +491,7 @@ var stopCmd = &cobra.Command{
 	Use:     "stop <name>",
 	Aliases: []string{"dn"},
 	Short:   "Stop a running sandbox",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
 		if err != nil {

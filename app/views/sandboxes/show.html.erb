@@ -139,6 +139,9 @@
         <div class="space-y-1 text-xs font-mono bg-gray-50 border border-gray-200 rounded p-3">
           <div><span class="text-gray-500">macOS:</span> smb://&lt;tailscale-ip&gt;/home</div>
           <div><span class="text-gray-500">Windows:</span> \\&lt;tailscale-ip&gt;\home</div>
+          <% if @sandbox.home_persisted? %>
+            <div><span class="text-gray-500">home:</span> smb://&lt;tailscale-ip&gt;/home <%= "(#{@sandbox.home_path})" if @sandbox.home_path.present? %></div>
+          <% end %>
           <% if @sandbox.data_path.present? %>
             <div><span class="text-gray-500">persisted:</span> smb://&lt;tailscale-ip&gt;/persisted</div>
           <% end %>

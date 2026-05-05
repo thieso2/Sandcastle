@@ -173,6 +173,37 @@ class BtrfsHelper
       end
     end
 
+    # Create a BTRFS subvolume for a user's home directory or one of its subdirs
+    def create_user_home_subvolume(username, home_path = nil)
+      create_user_subvolume(username)
+
+      home_dir = if home_path.present?
+        "#{DATA_DIR}/users/#{username}/home/#{home_path}".chomp("/")
+      else
+        "#{DATA_DIR}/users/#{username}/home"
+      end
+
+      if btrfs?
+        if subvolume?(home_dir)
+          Rails.logger.debug("Home directory is already a BTRFS subvolume: #{home_dir}")
+          ensure_owned(home_dir)
+          return true
+        end
+
+        if Dir.exist?(home_dir)
+          Rails.logger.info("Fixing ownership of existing home directory: #{home_dir}")
+          ensure_owned(home_dir)
+          return false
+        end
+
+        create_subvolume(home_dir)
+      else
+        FileUtils.mkdir_p(home_dir) unless Dir.exist?(home_dir)
+        ensure_owned(home_dir)
+        false
+      end
+    end
+
     # Check if a path is a BTRFS subvolume
     def subvolume?(path)
       return false unless Dir.exist?(path)

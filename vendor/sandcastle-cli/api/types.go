@@ -3,27 +3,31 @@ package api
 import "time"
 
 type Sandbox struct {
-	ID               int       `json:"id"`
-	Name             string    `json:"name"`
-	FullName         string    `json:"full_name"`
-	Status           string    `json:"status"`
-	Image            string    `json:"image"`
-	SSHPort          int       `json:"ssh_port,omitempty"`
-	MountHome        bool      `json:"mount_home"`
-	DataPath         string    `json:"data_path,omitempty"`
-	Temporary        bool      `json:"temporary"`
-	Tailscale        bool           `json:"tailscale"`
-	TailscaleIP      string         `json:"tailscale_ip,omitempty"`
-	VNCEnabled       bool           `json:"vnc_enabled"`
-	VNCGeometry      string         `json:"vnc_geometry,omitempty"`
-	VNCDepth         int            `json:"vnc_depth,omitempty"`
-	DockerEnabled    bool           `json:"docker_enabled"`
-	SMBEnabled       bool           `json:"smb_enabled"`
-	Routes           []SandboxRoute `json:"routes"`
-	ConnectCommand   string         `json:"connect_command"`
-	ImageBuiltAt     *time.Time     `json:"image_built_at,omitempty"`
-	CreatedAt        time.Time      `json:"created_at"`
-	ArchivedAt       *time.Time     `json:"archived_at,omitempty"`
+	ID             int            `json:"id"`
+	Name           string         `json:"name"`
+	FullName       string         `json:"full_name"`
+	Hostname       string         `json:"hostname,omitempty"`
+	Status         string         `json:"status"`
+	Image          string         `json:"image"`
+	SSHPort        int            `json:"ssh_port,omitempty"`
+	ProjectName    string         `json:"project_name,omitempty"`
+	MountHome      bool           `json:"mount_home"`
+	HomePath       string         `json:"home_path,omitempty"`
+	DataPath       string         `json:"data_path,omitempty"`
+	ProjectPath    string         `json:"project_path,omitempty"`
+	Temporary      bool           `json:"temporary"`
+	Tailscale      bool           `json:"tailscale"`
+	TailscaleIP    string         `json:"tailscale_ip,omitempty"`
+	VNCEnabled     bool           `json:"vnc_enabled"`
+	VNCGeometry    string         `json:"vnc_geometry,omitempty"`
+	VNCDepth       int            `json:"vnc_depth,omitempty"`
+	DockerEnabled  bool           `json:"docker_enabled"`
+	SMBEnabled     bool           `json:"smb_enabled"`
+	Routes         []SandboxRoute `json:"routes"`
+	ConnectCommand string         `json:"connect_command"`
+	ImageBuiltAt   *time.Time     `json:"image_built_at,omitempty"`
+	CreatedAt      time.Time      `json:"created_at"`
+	ArchivedAt     *time.Time     `json:"archived_at,omitempty"`
 }
 
 type SandboxRoute struct {
@@ -54,14 +58,14 @@ type User struct {
 }
 
 type Token struct {
-	ID         int        `json:"id"`
-	Name       string     `json:"name"`
-	Prefix     string     `json:"prefix"`
-	MaskedToken string    `json:"masked_token"`
-	RawToken   string     `json:"raw_token,omitempty"`
-	LastUsedAt *time.Time `json:"last_used_at"`
-	ExpiresAt  *time.Time `json:"expires_at"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID          int        `json:"id"`
+	Name        string     `json:"name"`
+	Prefix      string     `json:"prefix"`
+	MaskedToken string     `json:"masked_token"`
+	RawToken    string     `json:"raw_token,omitempty"`
+	LastUsedAt  *time.Time `json:"last_used_at"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 type SystemStatus struct {
@@ -123,29 +127,29 @@ type ServerUserCounts struct {
 }
 
 type Snapshot struct {
-	Name          string    `json:"name"`
-	Label         string    `json:"label,omitempty"`
-	SourceSandbox string    `json:"source_sandbox,omitempty"`
-	Layers        []string  `json:"layers,omitempty"`
+	Name          string   `json:"name"`
+	Label         string   `json:"label,omitempty"`
+	SourceSandbox string   `json:"source_sandbox,omitempty"`
+	Layers        []string `json:"layers,omitempty"`
 	// Legacy field for backward compat
-	Image         string    `json:"image,omitempty"`
-	DockerImage   string    `json:"docker_image,omitempty"`
-	DockerSize    int64     `json:"docker_size,omitempty"`
-	HomeSize      int64     `json:"home_size,omitempty"`
-	DataSize      int64     `json:"data_size,omitempty"`
-	TotalSize     int64     `json:"total_size,omitempty"`
+	Image       string `json:"image,omitempty"`
+	DockerImage string `json:"docker_image,omitempty"`
+	DockerSize  int64  `json:"docker_size,omitempty"`
+	HomeSize    int64  `json:"home_size,omitempty"`
+	DataSize    int64  `json:"data_size,omitempty"`
+	TotalSize   int64  `json:"total_size,omitempty"`
 	// Legacy size field
-	Size          int64     `json:"size,omitempty"`
+	Size int64 `json:"size,omitempty"`
 	// Legacy sandbox field
-	Sandbox       string    `json:"sandbox,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
+	Sandbox   string    `json:"sandbox,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type SnapshotRequest struct {
-	Name      string   `json:"name,omitempty"`
-	Label     string   `json:"label,omitempty"`
-	Layers    []string `json:"layers,omitempty"`
-	DataSubdir string  `json:"data_subdir,omitempty"`
+	Name       string   `json:"name,omitempty"`
+	Label      string   `json:"label,omitempty"`
+	Layers     []string `json:"layers,omitempty"`
+	DataSubdir string   `json:"data_subdir,omitempty"`
 }
 
 type CreateSnapshotRequest struct {
@@ -184,8 +188,12 @@ type CreateSandboxRequest struct {
 	Snapshot      string   `json:"snapshot,omitempty"`
 	FromSnapshot  string   `json:"from_snapshot,omitempty"`
 	RestoreLayers []string `json:"restore_layers,omitempty"`
+	ProjectID     int      `json:"project_id,omitempty"`
+	ProjectName   string   `json:"project_name,omitempty"`
+	ProjectPath   string   `json:"project_path,omitempty"`
 	Tailscale     bool     `json:"tailscale,omitempty"`
 	MountHome     bool     `json:"mount_home,omitempty"`
+	HomePath      string   `json:"home_path,omitempty"`
 	DataPath      string   `json:"data_path,omitempty"`
 	Temporary     bool     `json:"temporary,omitempty"`
 	VNCEnabled    bool     `json:"vnc_enabled"`
@@ -198,6 +206,34 @@ type CreateSandboxRequest struct {
 type UpdateSandboxRequest struct {
 	Temporary *bool   `json:"temporary,omitempty"`
 	Name      *string `json:"name,omitempty"`
+}
+
+type Project struct {
+	ID            int       `json:"id"`
+	Name          string    `json:"name"`
+	Path          string    `json:"path"`
+	Image         string    `json:"image"`
+	Tailscale     bool      `json:"tailscale"`
+	VNCEnabled    bool      `json:"vnc_enabled"`
+	VNCGeometry   string    `json:"vnc_geometry,omitempty"`
+	VNCDepth      int       `json:"vnc_depth,omitempty"`
+	DockerEnabled bool      `json:"docker_enabled"`
+	SMBEnabled    bool      `json:"smb_enabled"`
+	SSHStartTmux  bool      `json:"ssh_start_tmux"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type CreateProjectRequest struct {
+	Name          string `json:"name"`
+	Path          string `json:"path"`
+	Image         string `json:"image,omitempty"`
+	Tailscale     bool   `json:"tailscale,omitempty"`
+	VNCEnabled    bool   `json:"vnc_enabled"`
+	VNCGeometry   string `json:"vnc_geometry,omitempty"`
+	VNCDepth      int    `json:"vnc_depth,omitempty"`
+	DockerEnabled bool   `json:"docker_enabled"`
+	SMBEnabled    bool   `json:"smb_enabled,omitempty"`
+	SSHStartTmux  bool   `json:"ssh_start_tmux"`
 }
 
 type CreateTokenRequest struct {
@@ -232,15 +268,15 @@ type TailscaleLoginStatus struct {
 }
 
 type TailscaleStatus struct {
-	Running            bool                `json:"running"`
-	ContainerID        string              `json:"container_id"`
-	Network            string              `json:"network"`
-	ConnectedSandboxes int                 `json:"connected_sandboxes"`
-	TailscaleIP        string              `json:"tailscale_ip"`
-	Hostname           string              `json:"hostname"`
-	Tailnet            string              `json:"tailnet"`
-	Online             bool                `json:"online"`
-	Sandboxes          []TailscaleSandbox  `json:"sandboxes"`
+	Running            bool               `json:"running"`
+	ContainerID        string             `json:"container_id"`
+	Network            string             `json:"network"`
+	ConnectedSandboxes int                `json:"connected_sandboxes"`
+	TailscaleIP        string             `json:"tailscale_ip"`
+	Hostname           string             `json:"hostname"`
+	Tailnet            string             `json:"tailnet"`
+	Online             bool               `json:"online"`
+	Sandboxes          []TailscaleSandbox `json:"sandboxes"`
 }
 
 type TailscaleSandbox struct {
