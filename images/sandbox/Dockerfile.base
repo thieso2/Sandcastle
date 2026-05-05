@@ -162,6 +162,17 @@ RUN echo "MISE_DATA_DIR=/usr/local/share/mise" >> /etc/environment \
     && echo "alias ycodex='codex --dangerously-bypass-approvals-and-sandbox'" >> /etc/bash.bashrc \
     && echo "alias dps='docker ps --format \"table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.State}}\t{{.Status}}\"'" >> /etc/bash.bashrc
 
+# Prepend $HOME/.local/bin to PATH for every user. Home is bind-mounted from
+# the host so /etc/skel/.profile (Ubuntu's default) never lands in $HOME and
+# the user's local-bin would otherwise be off PATH. /etc/profile.d/ covers
+# login shells; the same line in /etc/bash.bashrc covers non-login interactive
+# bash shells.
+RUN printf 'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) PATH="$HOME/.local/bin:$PATH" ;; esac\n' \
+        > /etc/profile.d/sandcastle-path.sh \
+    && chmod 0644 /etc/profile.d/sandcastle-path.sh \
+    && printf 'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) PATH="$HOME/.local/bin:$PATH" ;; esac\n' \
+        >> /etc/bash.bashrc
+
 # SSH configuration (key-only auth) — use drop-in config for Ubuntu 25.10 compatibility
 # StrictModes no: the home dir is bind-mounted from the host.  Sysbox user-
 # namespace UID remapping means it appears owned by nobody (not the sandbox
