@@ -1,0 +1,167 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "b06342233800",
+  "session_id": "019df935-f813-7cf3-8d83-20c1dc261589",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-05T18:19:32.970268935Z",
+  "branch": "feat/projects",
+  "checkpoints_count": 7,
+  "files_touched": [
+    ".env.example",
+    "app/controllers/api/projects_controller.rb",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/projects_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/models/project.rb",
+    "app/models/sandbox.rb",
+    "app/models/user.rb",
+    "app/policies/project_policy.rb",
+    "app/services/btrfs_helper.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/projects/new.html.erb",
+    "app/views/sandboxes/new.html.erb",
+    "app/views/sandboxes/show.html.erb",
+    "config/environments/test.rb",
+    "config/routes.rb",
+    "db/migrate/20260505120000_add_home_path_to_sandboxes.rb",
+    "db/migrate/20260505123000_create_projects.rb",
+    "db/migrate/20260505130000_add_project_name_to_sandboxes.rb",
+    "db/queue_schema.rb",
+    "db/schema.rb",
+    "docker-compose.dev.yml",
+    "docker-compose.local.yml",
+    "mise.toml",
+    "test/application_system_test_case.rb",
+    "test/models/project_test.rb",
+    "test/models/sandbox_test.rb",
+    "test/services/sandbox_manager_inject_files_test.rb",
+    "test/services/sandbox_manager_test.rb",
+    "test/system/sandbox_lifecycle_test.rb",
+    "vendor/sandcastle-cli/api/client.go",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/project.go",
+    "vendor/sandcastle-cli/cmd/sandbox.go",
+    "vendor/sandcastle-cli/cmd/tui.go"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.4",
+  "turn_id": "ac361eb12fba",
+  "token_usage": {
+    "input_tokens": 22633339,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21035264,
+    "output_tokens": 76308,
+    "api_call_count": 146
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-05T18:19:32.893308481Z",
+    "agent_lines": 1096,
+    "agent_removed": 212,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 25,
+    "total_committed": 1096,
+    "total_lines_changed": 1333,
+    "agent_percentage": 98.1245311327832,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 689,
+      "user_lines_removed": 25,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".codex/agents/entire-search.toml": 23,
+        ".codex/config.toml": 3,
+        ".codex/hooks.json": 40,
+        ".gemini/agents/entire-search.md": 28,
+        ".gemini/settings.json": 141,
+        ".github/hooks/entire.json": 61,
+        ".opencode/plugins/entire.ts": 177,
+        "app/controllers/api/sandboxes_controller.rb": 19,
+        "app/controllers/sandboxes_controller.rb": 14,
+        "app/models/sandbox.rb": 54,
+        "app/services/btrfs_helper.rb": 31,
+        "app/services/sandbox_manager.rb": 24,
+        "app/views/dashboard/_sandbox.html.erb": 8,
+        "app/views/sandboxes/new.html.erb": 57,
+        "app/views/sandboxes/show.html.erb": 3,
+        "db/migrate/20260505120000_add_home_path_to_sandboxes.rb": 5,
+        "tmp/pids/server.pid": 1
+      },
+      "user_removed_per_file": {
+        "app/controllers/api/sandboxes_controller.rb": 5,
+        "app/controllers/sandboxes_controller.rb": 2,
+        "app/services/sandbox_manager.rb": 13,
+        "app/views/dashboard/_sandbox.html.erb": 3,
+        "app/views/sandboxes/new.html.erb": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1676,
+      "agent_lines_removed": 126,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1729,
+      "agent_lines_removed": 127,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1783,
+      "agent_lines_removed": 224,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1783,
+      "agent_lines_removed": 224,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1783,
+      "agent_lines_removed": 224,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 71549,
+      "agent_lines_removed": 237,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    }
+  ]
+}

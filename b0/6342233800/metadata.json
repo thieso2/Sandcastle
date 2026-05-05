@@ -1,0 +1,60 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "b06342233800",
+  "strategy": "manual-commit",
+  "branch": "feat/projects",
+  "checkpoints_count": 7,
+  "files_touched": [
+    ".env.example",
+    "app/controllers/api/projects_controller.rb",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/controllers/projects_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/models/project.rb",
+    "app/models/sandbox.rb",
+    "app/models/user.rb",
+    "app/policies/project_policy.rb",
+    "app/services/btrfs_helper.rb",
+    "app/services/sandbox_manager.rb",
+    "app/views/dashboard/_sandbox.html.erb",
+    "app/views/projects/new.html.erb",
+    "app/views/sandboxes/new.html.erb",
+    "app/views/sandboxes/show.html.erb",
+    "config/environments/test.rb",
+    "config/routes.rb",
+    "db/migrate/20260505120000_add_home_path_to_sandboxes.rb",
+    "db/migrate/20260505123000_create_projects.rb",
+    "db/migrate/20260505130000_add_project_name_to_sandboxes.rb",
+    "db/queue_schema.rb",
+    "db/schema.rb",
+    "docker-compose.dev.yml",
+    "docker-compose.local.yml",
+    "mise.toml",
+    "test/application_system_test_case.rb",
+    "test/models/project_test.rb",
+    "test/models/sandbox_test.rb",
+    "test/services/sandbox_manager_inject_files_test.rb",
+    "test/services/sandbox_manager_test.rb",
+    "test/system/sandbox_lifecycle_test.rb",
+    "vendor/sandcastle-cli/api/client.go",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/project.go",
+    "vendor/sandcastle-cli/cmd/sandbox.go",
+    "vendor/sandcastle-cli/cmd/tui.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b0/6342233800/0/metadata.json",
+      "transcript": "/b0/6342233800/0/full.jsonl",
+      "content_hash": "/b0/6342233800/0/content_hash.txt",
+      "prompt": "/b0/6342233800/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 22633339,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 21035264,
+    "output_tokens": 76308,
+    "api_call_count": 146
+  }
+}

@@ -1,0 +1,29 @@
+add a feature to mount a subpath of my unix home to the container as $HOME - i want to share the  home for projects but not globally. add some ui (als cmd line params and tui) to create projects a project would have a defines subdir in both persisted and home.
+
+---
+
+a project will also hold all other defaults for a new sandbox.
+
+---
+
+if a sandcaste is in a project the hostname shoudl be <sandcastle_name>-<projectname> so i can see it clearly in teh prompt.
+
+---
+
+add e2e test, run and fix them - make sure it works.
+
+---
+
+what would fix the t helpers init-data and init-traefik still exit non-zero in this machine because of volume chown error?
+
+---
+
+could it be just taht theres a problem with the hight number? verify
+
+---
+
+use and env for deploy and test to use 22051 as UID/GID and rerun the tests.
+
+---
+
+yes
