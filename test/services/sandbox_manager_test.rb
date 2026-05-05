@@ -324,4 +324,50 @@ class SandboxManagerTest < ActiveSupport::TestCase
     assert ensure_called,
       "SandboxManager#start must call ensure_mount_dirs for home_path sandboxes too"
   end
+
+  test "sync_mount_records records direct home and data mounts" do
+    @sandbox.update!(mount_home: true, data_path: "projects/app")
+
+    @manager.send(:sync_mount_records, @user, @sandbox)
+
+    mounts = @sandbox.sandbox_mounts.order(:target_path).to_a
+    assert_equal 2, mounts.size
+
+    data = mounts.find { |m| m.mount_type == "data" }
+    assert_equal "direct", data.storage_mode
+    assert_equal "projects/app", data.logical_path
+    assert_equal "/persisted", data.target_path
+    assert_equal "#{SandboxManager::DATA_DIR}/users/#{@user.name}/data/projects/app", data.master_path
+    assert_equal data.master_path, data.source_path
+
+    home = mounts.find { |m| m.mount_type == "home" }
+    assert_equal "/home/#{@user.name}", home.target_path
+    assert_equal "#{SandboxManager::DATA_DIR}/users/#{@user.name}/home", home.source_path
+  end
+
+  test "sync_mount_records records persisted paths when home is not mounted" do
+    path = ".tool-#{SecureRandom.hex(4)}"
+    @user.persisted_paths.create!(path: path)
+    @sandbox.update!(mount_home: false, data_path: nil)
+
+    @manager.send(:sync_mount_records, @user, @sandbox)
+
+    mount = @sandbox.sandbox_mounts.find_by!(logical_path: path)
+    assert_equal "persisted_path", mount.mount_type
+    assert_equal "/home/#{@user.name}/#{path}", mount.target_path
+    assert_equal "#{SandboxManager::DATA_DIR}/users/#{@user.name}/persisted/#{path}", mount.source_path
+  end
+
+  test "volume_binds uses sandbox mount records when present" do
+    @sandbox.sandbox_mounts.create!(
+      mount_type: "home",
+      target_path: "/home/#{@user.name}",
+      master_path: "/data/users/#{@user.name}/home",
+      source_path: "/data/reconcile/#{@sandbox.id}/work/home"
+    )
+
+    binds = @manager.send(:volume_binds, @user, @sandbox)
+
+    assert_equal [ "/data/reconcile/#{@sandbox.id}/work/home:/home/#{@user.name}" ], binds
+  end
 end

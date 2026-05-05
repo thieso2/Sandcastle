@@ -1074,6 +1074,9 @@ PROFILE_EOF
   end
 
   def volume_binds(user, sandbox)
+    mounts = sandbox.sandbox_mounts.to_a
+    return mounts.map { |mount| "#{mount.source_path}:#{mount.target_path}" } if mounts.any?
+
     binds = []
     if (home_dir = sandbox_home_dir(user, sandbox))
       binds << "#{home_dir}:/home/#{user.name}"
