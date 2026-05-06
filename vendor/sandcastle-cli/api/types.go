@@ -414,6 +414,30 @@ type TailscaleSandbox struct {
 	IP   string `json:"ip"`
 }
 
+type DNSStatus struct {
+	Suffix              string      `json:"suffix"`
+	Network             string      `json:"network"`
+	TailscaleIP         string      `json:"tailscale_ip"`
+	ResolverIP          string      `json:"resolver_ip"`
+	ResolverContainerID string      `json:"resolver_container_id"`
+	ResolverRunning     bool        `json:"resolver_running"`
+	HostsPath           string      `json:"hosts_path"`
+	Records             []DNSRecord `json:"records"`
+	Skipped             []DNSSkip   `json:"skipped"`
+}
+
+type DNSRecord struct {
+	Name      string `json:"name"`
+	IP        string `json:"ip"`
+	SandboxID int    `json:"sandbox_id"`
+}
+
+type DNSSkip struct {
+	Name      string `json:"name"`
+	Reason    string `json:"reason"`
+	SandboxID int    `json:"sandbox_id"`
+}
+
 type APIError struct {
 	Error string `json:"error"`
 }

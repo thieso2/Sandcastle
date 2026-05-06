@@ -8,6 +8,7 @@ class SandboxRestoreJob < ApplicationJob
 
     begin
       SandboxManager.new.restore_from_archive(sandbox: sandbox)
+      DnsManager.publish_best_effort(sandbox.user) if sandbox.user.tailscale_enabled?
       sandbox.finish_job
     rescue => e
       Rails.logger.error("SandboxRestoreJob failed: #{e.message}\n#{e.backtrace.join("\n")}")

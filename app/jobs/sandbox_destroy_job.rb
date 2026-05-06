@@ -16,7 +16,9 @@ class SandboxDestroyJob < ApplicationJob
     end
 
     begin
+      user = sandbox.user
       SandboxManager.new.destroy(sandbox: sandbox, archive: archive)
+      DnsManager.publish_best_effort(user) if user.tailscale_enabled?
       sandbox.finish_job
 
     rescue => e

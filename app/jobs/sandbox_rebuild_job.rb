@@ -6,6 +6,7 @@ class SandboxRebuildJob < ApplicationJob
 
     begin
       SandboxManager.new.rebuild(sandbox: sandbox)
+      DnsManager.publish_best_effort(sandbox.user) if sandbox.user.tailscale_enabled?
       sandbox.finish_job
     rescue => e
       Rails.logger.error("SandboxRebuildJob failed: #{e.message}\n#{e.backtrace.join("\n")}")

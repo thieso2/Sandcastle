@@ -34,6 +34,12 @@ class ContainerSyncJob < ApplicationJob
     rescue => e
       Rails.logger.error("ContainerSyncJob: VNC cleanup failed: #{e.message}")
     end
+
+    begin
+      DnsManager.new.reconcile_all
+    rescue => e
+      Rails.logger.error("ContainerSyncJob: DNS reconcile failed: #{e.message}")
+    end
   end
 
   private

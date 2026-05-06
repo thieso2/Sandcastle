@@ -62,6 +62,7 @@ class TailscaleManager
       tailscale_network: network_name,
       tailscale_subnet: subnet
     )
+    ensure_dns_resolver(user)
     user
   rescue Docker::Error::DockerError => e
     cleanup_on_failure(user)
@@ -81,6 +82,7 @@ class TailscaleManager
       tailscale_network: network_name
     )
     save_auth_key(user, auth_key)
+    ensure_dns_resolver(user)
     user
   rescue Docker::Error::DockerError => e
     cleanup_on_failure(user)
@@ -145,6 +147,7 @@ class TailscaleManager
       when "Running"
         Rails.cache.delete(cache_key)
         user.update!(tailscale_state: "enabled", tailscale_auto_connect: true)
+        ensure_dns_resolver(user)
         ip_out = container.exec([ "tailscale", "ip", "--4" ])
         tailscale_ip = ip_out.first.first&.strip if ip_out.first.any?
         return {
@@ -182,6 +185,7 @@ class TailscaleManager
       disconnect_sandbox(sandbox: sandbox)
     end
 
+    cleanup_dns_resolver(user)
     cleanup_sidecar(user)
 
     user.update!(
@@ -273,6 +277,7 @@ class TailscaleManager
     end
 
     sandbox.update!(tailscale: true)
+    ensure_dns_resolver(user)
     sandbox
   rescue Error
     raise
@@ -294,6 +299,7 @@ class TailscaleManager
     end
 
     sandbox.update!(tailscale: false)
+    publish_dns(user) if user.tailscale_enabled?
     sandbox
   rescue Docker::Error::DockerError => e
     raise Error, "Failed to disconnect sandbox from Tailscale: #{e.message}"
@@ -320,6 +326,24 @@ class TailscaleManager
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, auth_key)
     File.chmod(0o600, path)
+  end
+
+  def ensure_dns_resolver(user)
+    DnsManager.new.ensure_resolver(user: user)
+  rescue => e
+    Rails.logger.warn("TailscaleManager: DNS resolver setup for #{user.name} failed: #{e.message}")
+  end
+
+  def publish_dns(user)
+    DnsManager.new.publish(user: user)
+  rescue => e
+    Rails.logger.warn("TailscaleManager: DNS publish for #{user.name} failed: #{e.message}")
+  end
+
+  def cleanup_dns_resolver(user)
+    DnsManager.new.cleanup(user)
+  rescue => e
+    Rails.logger.warn("TailscaleManager: DNS cleanup for #{user.name} failed: #{e.message}")
   end
 
   def delete_auth_key(user)
