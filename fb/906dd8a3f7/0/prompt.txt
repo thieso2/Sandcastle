@@ -1,0 +1,5 @@
+in the tmux.conf - when createing a new shell always do in in the currect working dir.
+
+---
+
+also alswy insert a new window rtight to the currect by default

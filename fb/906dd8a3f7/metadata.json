@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "fb906dd8a3f7",
+  "strategy": "manual-commit",
+  "branch": "feat/projects-crud-and-filter",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "images/sandbox/tmux.conf"
+  ],
+  "sessions": [
+    {
+      "metadata": "/fb/906dd8a3f7/0/metadata.json",
+      "transcript": "/fb/906dd8a3f7/0/full.jsonl",
+      "content_hash": "/fb/906dd8a3f7/0/content_hash.txt",
+      "prompt": "/fb/906dd8a3f7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 22,
+    "cache_creation_tokens": 19233,
+    "cache_read_tokens": 210629,
+    "output_tokens": 1515,
+    "api_call_count": 7
+  }
+}
