@@ -16,6 +16,17 @@
     <% end %>
   </div>
 
+  <% if @projects.any? %>
+    <div class="mb-4 flex items-center gap-2 text-sm">
+      <span class="text-gray-500">Project:</span>
+      <%= link_to "All", root_path, class: "px-3 py-1 rounded-full #{@selected_project.nil? ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
+      <%= link_to "(none)", root_path(project: "(none)"), class: "px-3 py-1 rounded-full font-mono #{@selected_project == '(none)' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
+      <% @projects.each do |project| %>
+        <%= link_to project.name, root_path(project: project.name), class: "px-3 py-1 rounded-full font-mono #{@selected_project == project.name ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}" %>
+      <% end %>
+    </div>
+  <% end %>
+
   <%# Active sandboxes. The empty state is a sibling, hidden via CSS when
       #sandboxes has at least one child so Turbo Stream removes reveal it
       without a page reload. %>

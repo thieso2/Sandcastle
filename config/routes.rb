@@ -60,7 +60,7 @@ Rails.application.routes.draw do
     end
     resources :routes, only: [ :create, :destroy ]
   end
-  resources :projects, only: [ :new, :create, :destroy ]
+  resources :projects, only: [ :new, :create, :edit, :update, :destroy ]
 
   resources :snapshots, only: [ :index, :destroy ], param: :name do
     member do

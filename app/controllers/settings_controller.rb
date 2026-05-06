@@ -1,5 +1,5 @@
 class SettingsController < ApplicationController
-  ALLOWED_TABS = %w[profile tokens sandboxes gcp network files].freeze
+  ALLOWED_TABS = %w[profile tokens sandboxes gcp projects network files].freeze
 
   def show
     @user = Current.user
@@ -192,9 +192,7 @@ class SettingsController < ApplicationController
   def profile_params
     params.require(:user).permit(
       :email_address, :full_name, :github_username,
-      :sandbox_archive_retention_days, :terminal_emulator,
-      :default_vnc_enabled, :default_mount_home, :default_docker_enabled, :default_data_path,
-      :default_ssh_start_tmux, :default_smb_enabled, :default_oidc_enabled
+      :sandbox_archive_retention_days, :terminal_emulator
     )
   end
 
@@ -208,6 +206,7 @@ class SettingsController < ApplicationController
 
   def prepare_settings_context
     @api_tokens = @user.api_tokens.active.order(created_at: :desc)
+    @projects = @user.projects.default_first
     @gcp_oidc_setups = @user.gcp_oidc_configs.order(:name).map do |config|
       [ config, GcpOidcSetup.new(user: @user, config: config).as_json ]
     end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_06_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -124,10 +124,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
 
   create_table "projects", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "data_path"
+    t.boolean "default_project", default: false, null: false
     t.boolean "docker_enabled", default: true, null: false
+    t.bigint "gcp_oidc_config_id"
+    t.boolean "gcp_oidc_enabled", default: false, null: false
+    t.string "gcp_principal_scope", default: "user", null: false
+    t.jsonb "gcp_roles", default: [], null: false
+    t.string "gcp_service_account_email"
+    t.string "home_path"
     t.string "image", default: "ghcr.io/thieso2/sandcastle-sandbox:latest", null: false
+    t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
-    t.string "path", null: false
+    t.boolean "oidc_enabled", default: false, null: false
+    t.string "path"
     t.boolean "smb_enabled", default: false, null: false
     t.boolean "ssh_start_tmux", default: true, null: false
     t.boolean "tailscale", default: false, null: false
@@ -136,6 +146,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
     t.integer "vnc_depth", default: 24, null: false
     t.boolean "vnc_enabled", default: true, null: false
     t.string "vnc_geometry", default: "1280x900", null: false
+    t.index ["gcp_oidc_config_id"], name: "index_projects_on_gcp_oidc_config_id"
+    t.index ["user_id", "default_project"], name: "index_projects_on_user_id_default_project", unique: true, where: "(default_project = true)"
     t.index ["user_id", "name"], name: "index_projects_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_projects_on_user_id"
   end
@@ -291,6 +303,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
   add_foreign_key "invites", "users", column: "invited_by_id"
   add_foreign_key "oauth_identities", "users"
   add_foreign_key "persisted_paths", "users"
+  add_foreign_key "projects", "gcp_oidc_configs"
   add_foreign_key "projects", "users"
   add_foreign_key "routes", "sandboxes"
   add_foreign_key "sandboxes", "gcp_oidc_configs"

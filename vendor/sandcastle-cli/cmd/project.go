@@ -19,6 +19,11 @@ var (
 	projectNoDocker     bool
 	projectSMB          bool
 	projectSSHStartTmux bool
+	projectOIDC         bool
+	projectGCP          bool
+	projectGCPConfig    string
+	projectGCPScope     string
+	projectGCPRoles     []string
 )
 
 func init() {
@@ -36,6 +41,11 @@ func init() {
 	projectCreateCmd.Flags().BoolVar(&projectNoDocker, "no-docker", false, "Disable Docker by default")
 	projectCreateCmd.Flags().BoolVar(&projectSMB, "smb", false, "Enable SMB by default")
 	projectCreateCmd.Flags().BoolVar(&projectSSHStartTmux, "ssh-start-tmux", true, "Start tmux on SSH login by default")
+	projectCreateCmd.Flags().BoolVar(&projectOIDC, "oidc", false, "Enable OIDC identity tokens by default")
+	projectCreateCmd.Flags().BoolVar(&projectGCP, "gcp", false, "Configure GCP credentials by default")
+	projectCreateCmd.Flags().StringVar(&projectGCPConfig, "gcp-config", "", "GCP identity config name or ID")
+	projectCreateCmd.Flags().StringVar(&projectGCPScope, "gcp-scope", "user", "GCP principal scope: user or sandbox")
+	projectCreateCmd.Flags().StringArrayVar(&projectGCPRoles, "gcp-role", nil, "GCP project IAM role hint; may be repeated")
 }
 
 var projectCmd = &cobra.Command{
@@ -100,17 +110,34 @@ var projectCreateCmd = &cobra.Command{
 			return err
 		}
 
+		var gcpConfigID int
+		if projectGCPConfig != "" {
+			config, err := findGcpConfig(client, projectGCPConfig)
+			if err != nil {
+				return err
+			}
+			gcpConfigID = config.ID
+		}
+		if projectGCPScope != "sandbox" && projectGCPScope != "user" {
+			return fmt.Errorf("--gcp-scope must be sandbox or user")
+		}
+
 		project, err := client.CreateProject(api.CreateProjectRequest{
-			Name:          args[0],
-			Path:          projectPath,
-			Image:         projectImage,
-			Tailscale:     projectTailscale,
-			VNCEnabled:    !projectNoVNC,
-			VNCGeometry:   projectVNCGeometry,
-			VNCDepth:      projectVNCDepth,
-			DockerEnabled: !projectNoDocker,
-			SMBEnabled:    projectSMB,
-			SSHStartTmux:  projectSSHStartTmux,
+			Name:              args[0],
+			Path:              projectPath,
+			Image:             projectImage,
+			Tailscale:         projectTailscale,
+			VNCEnabled:        !projectNoVNC,
+			VNCGeometry:       projectVNCGeometry,
+			VNCDepth:          projectVNCDepth,
+			DockerEnabled:     !projectNoDocker,
+			SMBEnabled:        projectSMB,
+			SSHStartTmux:      projectSSHStartTmux,
+			OIDCEnabled:       projectOIDC || projectGCP || projectGCPConfig != "",
+			GCPOIDCEnabled:    projectGCP || projectGCPConfig != "",
+			GCPOIDCConfigID:   gcpConfigID,
+			GCPPrincipalScope: projectGCPScope,
+			GCPRoles:          cleanStringList(projectGCPRoles),
 		})
 		if err != nil {
 			return err

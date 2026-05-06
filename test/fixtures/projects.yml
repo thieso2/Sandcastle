@@ -1,0 +1,25 @@
+alice_web:
+  user: one
+  name: web
+  path: projects/web
+  image: ghcr.io/thieso2/sandcastle-sandbox:latest
+  vnc_geometry: 1280x900
+  vnc_depth: 24
+  vnc_enabled: true
+  docker_enabled: true
+  ssh_start_tmux: true
+  tailscale: false
+  smb_enabled: false
+
+bob_api:
+  user: two
+  name: api
+  path: projects/api
+  image: ghcr.io/thieso2/sandcastle-sandbox:latest
+  vnc_geometry: 1280x900
+  vnc_depth: 24
+  vnc_enabled: true
+  docker_enabled: true
+  ssh_start_tmux: true
+  tailscale: false
+  smb_enabled: false

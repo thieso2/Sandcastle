@@ -23,6 +23,7 @@ class User < ApplicationRecord
   TMUX_CMD = "tmux new-session -A -s main".freeze
 
   after_create_commit :seed_default_persisted_paths
+  after_create_commit :seed_default_project
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
   normalizes :name, with: ->(n) { n.strip.downcase }
@@ -76,6 +77,10 @@ class User < ApplicationRecord
     @effective_archive_retention_days_fallback ||= Setting.instance.sandbox_archive_retention_days || 30
   end
 
+  def default_project
+    projects.find_by(default_project: true) || Project.create_default_for!(self)
+  end
+
   def all_ssh_keys_text
     keys = ssh_keys.presence&.filter_map { |k| k["key"].presence }
     if keys.present?
@@ -118,6 +123,12 @@ class User < ApplicationRecord
     DEFAULT_PERSISTED_PATHS.each do |p|
       persisted_paths.create(path: p)
     end
+  end
+
+  def seed_default_project
+    Project.create_default_for!(self)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+    nil
   end
 
   def validate_ssh_keys

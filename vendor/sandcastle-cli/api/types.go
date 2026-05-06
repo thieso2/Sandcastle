@@ -317,31 +317,51 @@ type GcpIdentityResponse struct {
 }
 
 type Project struct {
-	ID            int       `json:"id"`
-	Name          string    `json:"name"`
-	Path          string    `json:"path"`
-	Image         string    `json:"image"`
-	Tailscale     bool      `json:"tailscale"`
-	VNCEnabled    bool      `json:"vnc_enabled"`
-	VNCGeometry   string    `json:"vnc_geometry,omitempty"`
-	VNCDepth      int       `json:"vnc_depth,omitempty"`
-	DockerEnabled bool      `json:"docker_enabled"`
-	SMBEnabled    bool      `json:"smb_enabled"`
-	SSHStartTmux  bool      `json:"ssh_start_tmux"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID                     int            `json:"id"`
+	Name                   string         `json:"name"`
+	Path                   string         `json:"path"`
+	Image                  string         `json:"image"`
+	Tailscale              bool           `json:"tailscale"`
+	VNCEnabled             bool           `json:"vnc_enabled"`
+	VNCGeometry            string         `json:"vnc_geometry,omitempty"`
+	VNCDepth               int            `json:"vnc_depth,omitempty"`
+	DockerEnabled          bool           `json:"docker_enabled"`
+	SMBEnabled             bool           `json:"smb_enabled"`
+	SSHStartTmux           bool           `json:"ssh_start_tmux"`
+	DefaultProject         bool           `json:"default_project"`
+	MountHome              bool           `json:"mount_home"`
+	HomePath               string         `json:"home_path,omitempty"`
+	DataPath               string         `json:"data_path,omitempty"`
+	OIDCEnabled            bool           `json:"oidc_enabled"`
+	GCPOIDCEnabled         bool           `json:"gcp_oidc_enabled"`
+	GCPOIDCConfigID        int            `json:"gcp_oidc_config_id,omitempty"`
+	GCPOIDCConfig          *GcpOidcConfig `json:"gcp_oidc_config,omitempty"`
+	GCPServiceAccountEmail string         `json:"gcp_service_account_email,omitempty"`
+	GCPPrincipalScope      string         `json:"gcp_principal_scope,omitempty"`
+	GCPRoles               []string       `json:"gcp_roles,omitempty"`
+	CreatedAt              time.Time      `json:"created_at"`
 }
 
 type CreateProjectRequest struct {
-	Name          string `json:"name"`
-	Path          string `json:"path"`
-	Image         string `json:"image,omitempty"`
-	Tailscale     bool   `json:"tailscale,omitempty"`
-	VNCEnabled    bool   `json:"vnc_enabled"`
-	VNCGeometry   string `json:"vnc_geometry,omitempty"`
-	VNCDepth      int    `json:"vnc_depth,omitempty"`
-	DockerEnabled bool   `json:"docker_enabled"`
-	SMBEnabled    bool   `json:"smb_enabled,omitempty"`
-	SSHStartTmux  bool   `json:"ssh_start_tmux"`
+	Name                   string   `json:"name"`
+	Path                   string   `json:"path"`
+	Image                  string   `json:"image,omitempty"`
+	Tailscale              bool     `json:"tailscale,omitempty"`
+	VNCEnabled             bool     `json:"vnc_enabled"`
+	VNCGeometry            string   `json:"vnc_geometry,omitempty"`
+	VNCDepth               int      `json:"vnc_depth,omitempty"`
+	DockerEnabled          bool     `json:"docker_enabled"`
+	SMBEnabled             bool     `json:"smb_enabled,omitempty"`
+	SSHStartTmux           bool     `json:"ssh_start_tmux"`
+	MountHome              bool     `json:"mount_home,omitempty"`
+	HomePath               string   `json:"home_path,omitempty"`
+	DataPath               string   `json:"data_path,omitempty"`
+	OIDCEnabled            bool     `json:"oidc_enabled,omitempty"`
+	GCPOIDCEnabled         bool     `json:"gcp_oidc_enabled,omitempty"`
+	GCPOIDCConfigID        int      `json:"gcp_oidc_config_id,omitempty"`
+	GCPServiceAccountEmail string   `json:"gcp_service_account_email,omitempty"`
+	GCPPrincipalScope      string   `json:"gcp_principal_scope,omitempty"`
+	GCPRoles               []string `json:"gcp_roles,omitempty"`
 }
 
 type CreateTokenRequest struct {

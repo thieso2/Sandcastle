@@ -1,7 +1,7 @@
 require "test_helper"
 
 class SandboxOidcTest < ActiveSupport::TestCase
-  test "user and sandbox OIDC defaults are disabled" do
+  test "default project and sandbox OIDC defaults are disabled" do
     user = User.create!(
       name: "charlie",
       email_address: "charlie@example.com",
@@ -10,7 +10,7 @@ class SandboxOidcTest < ActiveSupport::TestCase
     )
     sandbox = user.sandboxes.create!(name: "cloudbox", image: SandboxManager::DEFAULT_IMAGE)
 
-    assert_not user.default_oidc_enabled
+    assert_not user.default_project.oidc_enabled
     assert_not sandbox.oidc_enabled
   end
 

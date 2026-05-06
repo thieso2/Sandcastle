@@ -11,7 +11,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "PATCH update_profile updates default oidc setting" do
+  test "PATCH update_profile ignores legacy sandbox defaults" do
     patch update_profile_settings_path, params: {
       user: {
         email_address: @user.email_address,
@@ -21,7 +21,7 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to settings_path(anchor: "sandboxes")
-    assert @user.reload.default_oidc_enabled
+    assert_not @user.reload.default_oidc_enabled
   end
 
   test "PATCH update_gcp_oidc_configs creates reusable configs" do

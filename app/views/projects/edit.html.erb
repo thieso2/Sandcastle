@@ -1,0 +1,10 @@
+<% content_for(:title) { "Edit Project — #{@project.name}" } %>
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Edit Project — <span class="font-mono"><%= @project.name %></span></h1>
+    <p class="text-gray-500 mt-1">Changes apply to sandboxes created from this project after saving.</p>
+  </div>
+
+  <%= render "form" %>
+</div>
