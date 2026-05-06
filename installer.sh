@@ -246,16 +246,19 @@ setup_bashrc_path() {
 }
 
 # ═══ install_prerequisites ════════════════════════════════════════════════════
-# Install required host tools: zstd (for backup/restore), rsync (for data copy)
+# Install required host tools for the installer and embedded Dockyard runtime.
 
 install_prerequisites() {
   local missing=()
-  command -v zstd >/dev/null 2>&1  || missing+=("zstd")
-  command -v rsync >/dev/null 2>&1 || missing+=("rsync")
+  command -v curl >/dev/null 2>&1     || missing+=("curl")
+  command -v iptables >/dev/null 2>&1 || missing+=("iptables")
+  command -v rsync >/dev/null 2>&1    || missing+=("rsync")
+  command -v zstd >/dev/null 2>&1     || missing+=("zstd")
   if [ ${#missing[@]} -gt 0 ]; then
     info "Installing prerequisites: ${missing[*]}..."
-    apt-get install -y "${missing[@]}" >/dev/null 2>&1 \
-      || warn "Failed to install ${missing[*]} — backup/restore may not work"
+    apt-get update >/dev/null
+    apt-get install -y "${missing[@]}" >/dev/null \
+      || die "Failed to install required prerequisites: ${missing[*]}"
     ok "Prerequisites installed: ${missing[*]}"
   fi
 }
@@ -3347,6 +3350,9 @@ cmd_install() {
   echo ""
   echo -e "${BLUE}═══ Sandcastle Installer ═══${NC}"
   echo ""
+
+  install_prerequisites
+
   info "Available images (${ARCH}):"
   show_image_info "sandcastle"
   show_image_info "sandcastle-sandbox"
