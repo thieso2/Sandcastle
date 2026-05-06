@@ -4,12 +4,25 @@ require "test_helper"
 
 class SandboxProvisionJobTest < ActiveJob::TestCase
   setup do
+    @data_dir = Dir.mktmpdir("sandcastle-provision-job-test-")
+    @original_data_dirs = {
+      SandboxManager => SandboxManager::DATA_DIR,
+      BtrfsHelper => BtrfsHelper::DATA_DIR,
+      SandboxMountBuilder => SandboxMountBuilder::DATA_DIR
+    }
+    @original_data_dirs.each { |klass, dir| replace_data_dir(klass, dir, @data_dir) }
+
     @user = users(:thies)
     @sandbox = @user.sandboxes.create!(
       name: "test-provision",
       image: "ghcr.io/thieso2/sandcastle-sandbox:latest"
     )
     DockerMock.reset!
+  end
+
+  teardown do
+    @original_data_dirs&.each { |klass, dir| replace_data_dir(klass, klass::DATA_DIR, dir) }
+    FileUtils.rm_rf(@data_dir) if @data_dir
   end
 
   test "successfully provisions sandbox" do
@@ -73,5 +86,12 @@ class SandboxProvisionJobTest < ActiveJob::TestCase
     @sandbox.reload
     assert_equal "running", @sandbox.status
     assert ts_connected, "TailscaleManager#connect_sandbox should have been called"
+  end
+
+  private
+
+  def replace_data_dir(klass, _current, replacement)
+    klass.send(:remove_const, :DATA_DIR)
+    klass.const_set(:DATA_DIR, replacement)
   end
 end
