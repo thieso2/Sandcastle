@@ -23,6 +23,7 @@
         { id: "profile",   label: "Profile" },
         { id: "tokens",    label: "API Tokens" },
         { id: "sandboxes", label: "Sandboxes" },
+        { id: "projects",  label: "Projects" },
         { id: "network",   label: "Network" },
         { id: "files",     label: "Files & Keys" },
       ]
@@ -369,6 +370,50 @@
         <p><strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd}</code></strong> expands to <code class="bg-gray-100 px-1 rounded font-mono"><%= User::TMUX_CMD %></code> (plain text). <strong><code class="bg-gray-100 px-1 rounded font-mono">{tmux_cmd_encoded}</code></strong> is the URL-encoded version (for query parameters).</p>
         <p><strong>Show on:</strong> controls which devices display the link — <code class="bg-gray-100 px-1 rounded font-mono">all</code>, <code class="bg-gray-100 px-1 rounded font-mono">desktop</code>, <code class="bg-gray-100 px-1 rounded font-mono">tablet</code>, or <code class="bg-gray-100 px-1 rounded font-mono">phone</code></p>
       </div>
+    </div>
+  </div>
+
+  <%# ══════ Projects tab ══════ %>
+  <div data-tabs-target="panel" data-tab-id="projects" role="tabpanel" hidden>
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Projects</h2>
+        <%= link_to "New Project", new_project_path, class: "px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors" %>
+      </div>
+      <p class="text-sm text-gray-600 mb-4">Saved sandbox presets — pick a project on the New Sandbox page to reuse its scoped home/data path and defaults.</p>
+
+      <% if @projects.any? %>
+        <ul class="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+          <% @projects.each do |project| %>
+            <li class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50">
+              <div class="min-w-0 flex-1">
+                <div class="font-mono font-medium text-gray-900"><%= project.name %></div>
+                <div class="text-xs text-gray-500 mt-0.5">
+                  <code class="bg-gray-100 px-1 rounded font-mono"><%= project.path %></code>
+                  · <%= project.image %>
+                  <% flags = [] %>
+                  <% flags << "tailscale" if project.tailscale %>
+                  <% flags << "vnc" if project.vnc_enabled %>
+                  <% flags << "docker" if project.docker_enabled %>
+                  <% flags << "smb" if project.smb_enabled %>
+                  <% flags << "tmux" if project.ssh_start_tmux %>
+                  <% if flags.any? %>· <%= flags.join(", ") %><% end %>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <%= link_to "Edit", edit_project_path(project), class: "px-3 py-1 text-sm text-gray-700 bg-gray-100 rounded hover:bg-gray-200" %>
+                <%= button_to "Delete", project_path(project), method: :delete,
+                      data: { turbo_confirm: "Delete project #{project.name}? Existing sandboxes are unaffected." },
+                      class: "px-3 py-1 text-sm text-red-700 bg-red-50 rounded hover:bg-red-100 border-0 cursor-pointer" %>
+              </div>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <div class="text-sm text-gray-500 py-6 text-center border border-dashed border-gray-200 rounded-lg">
+          No projects yet. Click <strong>New Project</strong> to save your first sandbox preset.
+        </div>
+      <% end %>
     </div>
   </div>
 

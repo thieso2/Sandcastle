@@ -1,9 +1,10 @@
 class SettingsController < ApplicationController
-  ALLOWED_TABS = %w[profile tokens sandboxes network files].freeze
+  ALLOWED_TABS = %w[profile tokens sandboxes projects network files].freeze
 
   def show
     @user = Current.user
     @api_tokens = @user.api_tokens.active.order(created_at: :desc)
+    @projects = @user.projects.order(:name)
   end
 
   def update_profile
