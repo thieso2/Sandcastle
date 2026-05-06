@@ -1,4 +1,4 @@
-<% content_for(:title) { "#{@sandbox.name} — Sandcastle" } %>
+<% content_for(:title) { "#{@sandbox.display_name} — Sandcastle" } %>
 
 <div class="max-w-3xl mx-auto px-4 py-6 sm:py-8 space-y-4 sm:space-y-6">
   <%# Header %>
@@ -7,7 +7,7 @@
       <div class="flex items-center gap-2 sm:gap-3 flex-wrap" data-controller="inline-edit">
         <span class="inline-block w-3 h-3 rounded-full shrink-0 <%= @sandbox.status == 'running' ? 'bg-green-500' : @sandbox.status == 'stopped' ? 'bg-yellow-500' : 'bg-gray-400' %>"></span>
         <h1 class="text-xl sm:text-2xl font-bold text-gray-900 font-mono break-all" data-inline-edit-target="display">
-          <%= @sandbox.name %>
+          <% if @sandbox.project_name.present? %><span class="text-gray-400"><%= @sandbox.project_name %>:</span><% end %><%= @sandbox.name %>
           <button data-action="click->inline-edit#edit" class="ml-1 text-gray-400 hover:text-gray-600 align-middle" title="Rename">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 inline">
               <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L3.22 10.303a.75.75 0 0 0-.178.311l-.93 3.255a.75.75 0 0 0 .926.926l3.255-.93a.75.75 0 0 0 .311-.178l7.79-7.79a1.75 1.75 0 0 0 0-2.475l-.906-.906ZM11.72 3.22a.25.25 0 0 1 .354 0l.905.906a.25.25 0 0 1 0 .354l-7.79 7.79-1.596.456.455-1.597 7.672-7.91Z" />
@@ -99,7 +99,7 @@
 
       <div class="ml-auto">
         <%= button_to "Destroy", sandbox_path(@sandbox), method: :delete,
-              data: { confirm: "Destroy #{@sandbox.name}? This cannot be undone." },
+              data: { confirm: "Destroy #{@sandbox.display_name}? This cannot be undone." },
               class: "px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors" %>
       </div>
     </div>
@@ -139,6 +139,9 @@
         <div class="space-y-1 text-xs font-mono bg-gray-50 border border-gray-200 rounded p-3">
           <div><span class="text-gray-500">macOS:</span> smb://&lt;tailscale-ip&gt;/home</div>
           <div><span class="text-gray-500">Windows:</span> \\&lt;tailscale-ip&gt;\home</div>
+          <% if @sandbox.home_persisted? %>
+            <div><span class="text-gray-500">home:</span> smb://&lt;tailscale-ip&gt;/home <%= "(#{@sandbox.home_path})" if @sandbox.home_path.present? %></div>
+          <% end %>
           <% if @sandbox.data_path.present? %>
             <div><span class="text-gray-500">persisted:</span> smb://&lt;tailscale-ip&gt;/persisted</div>
           <% end %>

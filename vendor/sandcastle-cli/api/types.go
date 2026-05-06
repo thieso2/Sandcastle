@@ -6,11 +6,15 @@ type Sandbox struct {
 	ID                     int            `json:"id"`
 	Name                   string         `json:"name"`
 	FullName               string         `json:"full_name"`
+	Hostname               string         `json:"hostname,omitempty"`
 	Status                 string         `json:"status"`
 	Image                  string         `json:"image"`
 	SSHPort                int            `json:"ssh_port,omitempty"`
+	ProjectName            string         `json:"project_name,omitempty"`
 	MountHome              bool           `json:"mount_home"`
+	HomePath               string         `json:"home_path,omitempty"`
 	DataPath               string         `json:"data_path,omitempty"`
+	ProjectPath            string         `json:"project_path,omitempty"`
 	Temporary              bool           `json:"temporary"`
 	Tailscale              bool           `json:"tailscale"`
 	TailscaleIP            string         `json:"tailscale_ip,omitempty"`
@@ -32,6 +36,16 @@ type Sandbox struct {
 	ImageBuiltAt           *time.Time     `json:"image_built_at,omitempty"`
 	CreatedAt              time.Time      `json:"created_at"`
 	ArchivedAt             *time.Time     `json:"archived_at,omitempty"`
+}
+
+// DisplayName returns "<project>:<name>" when the sandbox is bound to a
+// project, else just the sandbox name. Use this anywhere the sandbox is
+// surfaced to a human; keep using Name for identity / API lookups.
+func (s Sandbox) DisplayName() string {
+	if s.ProjectName == "" {
+		return s.Name
+	}
+	return s.ProjectName + ":" + s.Name
 }
 
 type SandboxRoute struct {
@@ -192,8 +206,12 @@ type CreateSandboxRequest struct {
 	Snapshot               string   `json:"snapshot,omitempty"`
 	FromSnapshot           string   `json:"from_snapshot,omitempty"`
 	RestoreLayers          []string `json:"restore_layers,omitempty"`
+	ProjectID              int      `json:"project_id,omitempty"`
+	ProjectName            string   `json:"project_name,omitempty"`
+	ProjectPath            string   `json:"project_path,omitempty"`
 	Tailscale              bool     `json:"tailscale,omitempty"`
 	MountHome              bool     `json:"mount_home,omitempty"`
+	HomePath               string   `json:"home_path,omitempty"`
 	DataPath               string   `json:"data_path,omitempty"`
 	Temporary              bool     `json:"temporary,omitempty"`
 	VNCEnabled             bool     `json:"vnc_enabled"`
@@ -296,6 +314,34 @@ type UpdateGcpIdentityRequest struct {
 type GcpIdentityResponse struct {
 	Sandbox Sandbox      `json:"sandbox"`
 	Setup   GcpOidcSetup `json:"setup"`
+}
+
+type Project struct {
+	ID            int       `json:"id"`
+	Name          string    `json:"name"`
+	Path          string    `json:"path"`
+	Image         string    `json:"image"`
+	Tailscale     bool      `json:"tailscale"`
+	VNCEnabled    bool      `json:"vnc_enabled"`
+	VNCGeometry   string    `json:"vnc_geometry,omitempty"`
+	VNCDepth      int       `json:"vnc_depth,omitempty"`
+	DockerEnabled bool      `json:"docker_enabled"`
+	SMBEnabled    bool      `json:"smb_enabled"`
+	SSHStartTmux  bool      `json:"ssh_start_tmux"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type CreateProjectRequest struct {
+	Name          string `json:"name"`
+	Path          string `json:"path"`
+	Image         string `json:"image,omitempty"`
+	Tailscale     bool   `json:"tailscale,omitempty"`
+	VNCEnabled    bool   `json:"vnc_enabled"`
+	VNCGeometry   string `json:"vnc_geometry,omitempty"`
+	VNCDepth      int    `json:"vnc_depth,omitempty"`
+	DockerEnabled bool   `json:"docker_enabled"`
+	SMBEnabled    bool   `json:"smb_enabled,omitempty"`
+	SSHStartTmux  bool   `json:"ssh_start_tmux"`
 }
 
 type CreateTokenRequest struct {

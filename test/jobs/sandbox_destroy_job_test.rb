@@ -56,7 +56,7 @@ class SandboxDestroyJobTest < ActiveJob::TestCase
     @sandbox.update!(status: "archived", archived_at: Time.current)
 
     perform_enqueued_jobs do
-      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id)
+      SandboxDestroyJob.perform_later(sandbox_id: @sandbox.id, archive: true)
     end
 
     @sandbox.reload

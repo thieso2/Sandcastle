@@ -40,7 +40,7 @@ services:
           level: INFO
         EOF
         fi
-        chown -R 220568:220568 /data
+        chown -R ${SANDCASTLE_UID:-22051}:${SANDCASTLE_GID:-22051} /data
 
   postgres:
     image: postgres:18
@@ -62,7 +62,7 @@ services:
     image: busybox
     volumes:
       - sandcastle-data:/data
-    command: sh -c "mkdir -p /data/users /data/sandboxes && chown -R 220568:220568 /data"
+    command: sh -c "mkdir -p /data/users /data/sandboxes && chown -R ${SANDCASTLE_UID:-22051}:${SANDCASTLE_GID:-22051} /data"
 
   web:
     image: sandcastle:local
@@ -73,6 +73,8 @@ services:
         BUILD_GIT_SHA: "${BUILD_GIT_SHA:-local}"
         BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY:-false}"
         BUILD_DATE: "${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+        SANDCASTLE_UID: ${SANDCASTLE_UID:-22051}
+        SANDCASTLE_GID: ${SANDCASTLE_GID:-22051}
     container_name: sandcastle-web
     command: ["./bin/rails", "server", "-b", "0.0.0.0", "-p", "80"]
     group_add:
@@ -116,6 +118,8 @@ services:
         BUILD_GIT_SHA: "${BUILD_GIT_SHA:-local}"
         BUILD_GIT_DIRTY: "${BUILD_GIT_DIRTY:-false}"
         BUILD_DATE: "${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+        SANDCASTLE_UID: ${SANDCASTLE_UID:-22051}
+        SANDCASTLE_GID: ${SANDCASTLE_GID:-22051}
     container_name: sandcastle-worker
     command: ["bundle", "exec", "rake", "solid_queue:start"]
     group_add:

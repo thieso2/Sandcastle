@@ -29,30 +29,31 @@ if [ -n "$SSH_KEY" ]; then
     fi
 fi
 
-# Set correct ownership and permissions on the home directory.
-# chown -R covers .ssh, .local, and anything else created above.
-# The host ensures 777 on the mount point before container start (via sudo
-# chmod in SandboxManager#prepare_bind_mount), so the sandbox user can always
-# write ~/.Xauthority, .ssh, etc.
-#
-# On BTRFS bind mounts with Sysbox ID-mapped mounts, chmod/chown may fail
-# with EOVERFLOW ("Value too large for defined data type"). This is a known
-# Sysbox bug (thieso2/sysbox#12). Log the error visibly but don't crash —
-# the host has already set 777 on the mount point.
-if ! chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/tmp/chown-home.err; then
-    echo "WARNING: chown /home/$USERNAME failed: $(cat /tmp/chown-home.err | head -1)" >&2
-    echo "  This is likely BTRFS + Sysbox ID-mapped mount issue (thieso2/sysbox#12)" >&2
+# Ownership of bind-mounted $HOME and /persisted is handled by Sysbox's
+# ID-mapped mounts — the host UID is remapped transparently so files appear
+# correctly owned inside the container. No recursive chown needed on the
+# happy path. A cheap stat guard falls back to the old recursive chown if
+# the top-level dir still looks wrong (e.g. pre-idmap sysbox versions).
+USER_UID="$(id -u "$USERNAME")"
+if [ "$(stat -c %u "/home/$USERNAME" 2>/dev/null)" != "$USER_UID" ]; then
+    (chown -R "$USERNAME:$USERNAME" "/home/$USERNAME" 2>/dev/null || true) &
 fi
-if ! chmod 777 "/home/$USERNAME" 2>/tmp/chmod-home.err; then
-    echo "WARNING: chmod /home/$USERNAME failed: $(cat /tmp/chmod-home.err | head -1)" >&2
-    echo "  This is likely BTRFS + Sysbox ID-mapped mount issue (thieso2/sysbox#12)" >&2
+if [ -d /persisted ] && [ "$(stat -c %u /persisted 2>/dev/null)" != "$USER_UID" ]; then
+    (chown -R "$USERNAME:$USERNAME" /persisted 2>/dev/null || true) &
 fi
 
-# Fix ownership on persisted data volume. Multiple sandboxes can share the
-# same user's data path, each with a different Sysbox UID mapping. Run in
-# background to avoid delaying SSH readiness.
-if [ -d /persisted ]; then
-    (chown -R "$USERNAME:$USERNAME" /persisted 2>/dev/null || true) &
+# Ensure ~/.local exists and is user-owned so mise can write state to
+# ~/.local/state/mise/tracked-configs on every prompt. Run mkdir as the
+# user (not root) so every intermediate directory is correctly owned —
+# `install -d` would create intermediates with default (root) ownership.
+runuser -u "$USERNAME" -- mkdir -p \
+    "/home/$USERNAME/.local/bin" \
+    "/home/$USERNAME/.local/state" 2>/dev/null || true
+# Repair pre-existing root-owned .local from sandboxes built before this
+# fix. Only the directory itself is wrong; contents are user-owned. One
+# inode chown — no -R walk.
+if [ -d "/home/$USERNAME/.local" ] && [ "$(stat -c %u "/home/$USERNAME/.local")" = "0" ]; then
+    chown "$USERNAME:$USERNAME" "/home/$USERNAME/.local" 2>/dev/null || true
 fi
 
 # Seed Claude Code into the user's $HOME if not already present. The base
@@ -64,7 +65,6 @@ fi
 CLAUDE_SRC="/opt/claude/claude"
 CLAUDE_DST="/home/$USERNAME/.local/bin/claude"
 if [ -x "$CLAUDE_SRC" ] && [ ! -e "$CLAUDE_DST" ]; then
-    install -d -o "$USERNAME" -g "$USERNAME" -m 0755 "/home/$USERNAME/.local/bin" 2>/dev/null || true
     install -o "$USERNAME" -g "$USERNAME" -m 0755 "$CLAUDE_SRC" "$CLAUDE_DST" 2>/dev/null || \
         echo "WARNING: could not seed $CLAUDE_DST from $CLAUDE_SRC" >&2
 fi
@@ -127,8 +127,12 @@ if [ -d /etc/ssh/sshd_config.d ] && ! grep -qs '^AcceptEnv NO_TMUX' /etc/ssh/ssh
     echo "AcceptEnv NO_TMUX" >> /etc/ssh/sshd_config.d/20-sandcastle-env.conf
 fi
 
-# Generate SSH host keys if missing
-ssh-keygen -A
+# Generate SSH host keys if missing. Only ed25519 — modern clients prefer
+# it and skipping RSA saves 1-3s of keygen on every container start.
+# `ssh-keygen -A` generates all key types; we generate a single one instead.
+if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
+    ssh-keygen -q -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N "" < /dev/null
+fi
 
 # Generate login banner with sandbox configuration
 # Resolve values at container start, bake them into the profile script.
@@ -263,9 +267,13 @@ fi
 if command -v ttyd &>/dev/null; then
     touch /var/log/ttyd-tmux.log /var/log/ttyd-shell.log
     chown "$USERNAME:$USERNAME" /var/log/ttyd-tmux.log /var/log/ttyd-shell.log
-    su -s /bin/bash "$USERNAME" -c \
+    # `su -l` (login shell) so HOME is set and the spawned tmux/bash inherits
+    # cwd=$HOME instead of /. Without -l the cwd would be wherever entrypoint
+    # is running from (i.e. /), and the first tmux session would pin its
+    # initial window's cwd to /.
+    su -l -s /bin/bash "$USERNAME" -c \
         "ttyd -W -m 0 -p 7681 tmux new-session -A -s main &>/var/log/ttyd-tmux.log &"
-    su -s /bin/bash "$USERNAME" -c \
+    su -l -s /bin/bash "$USERNAME" -c \
         "ttyd -W -m 1 -p 7682 bash -l &>/var/log/ttyd-shell.log &"
 fi
 

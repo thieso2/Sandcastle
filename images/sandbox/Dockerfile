@@ -63,11 +63,23 @@ RUN SAS_VERSION="v1.0.1.1-tc" \
 RUN printf '# ssh-agent-switcher daemon socket or symlink fallback\nif [ -S "/tmp/ssh-agent.${USER}" ]; then\n    export SSH_AUTH_SOCK="/tmp/ssh-agent.${USER}"\nelif [ -S "$HOME/.ssh/agent_sock" ]; then\n    export SSH_AUTH_SOCK="$HOME/.ssh/agent_sock"\nfi\n' \
        > /etc/profile.d/ssh-agent.sh
 
+# Prepend $HOME/.local/bin to PATH for every user. Home is bind-mounted from
+# the host, so /etc/skel/.profile (Ubuntu's default home for this rule) never
+# lands in $HOME and the user's local-bin would otherwise be off PATH.
+# /etc/profile.d/ covers login shells; the same line in /etc/bash.bashrc
+# covers non-login interactive bash shells.
+RUN printf 'case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac\n' \
+       > /etc/profile.d/sandcastle-path.sh \
+    && chmod 0644 /etc/profile.d/sandcastle-path.sh \
+    && printf '\n# sandcastle: $HOME/.local/bin on PATH for non-login interactive shells\ncase ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac\n' \
+       >> /etc/bash.bashrc
+
 COPY entrypoint.sh /entrypoint.sh
 COPY docker-restart.sh /usr/local/bin/docker-restart
 COPY sc-tmux.sh /usr/local/bin/sc-tmux
+COPY sc-install-brew.sh /usr/local/bin/sc-install-brew
 COPY --from=oidc-helper-builder /build/sandcastle-oidc /usr/local/bin/sandcastle-oidc
-RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart /usr/local/bin/sc-tmux /usr/local/bin/sandcastle-oidc
+RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart /usr/local/bin/sc-tmux /usr/local/bin/sc-install-brew /usr/local/bin/sandcastle-oidc
 
 COPY startchrome.sh /usr/local/bin/google-chrome
 RUN chmod +x /usr/local/bin/google-chrome \

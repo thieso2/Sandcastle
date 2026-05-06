@@ -264,6 +264,28 @@ func (c *Client) CreateSandbox(req CreateSandboxRequest) (*Sandbox, error) {
 	return &s, err
 }
 
+func (c *Client) ListProjects() ([]Project, error) {
+	var projects []Project
+	err := c.do("GET", "/api/projects", nil, &projects)
+	return projects, err
+}
+
+func (c *Client) GetProject(id int) (*Project, error) {
+	var project Project
+	err := c.do("GET", fmt.Sprintf("/api/projects/%d", id), nil, &project)
+	return &project, err
+}
+
+func (c *Client) CreateProject(req CreateProjectRequest) (*Project, error) {
+	var project Project
+	err := c.do("POST", "/api/projects", map[string]any{"project": req}, &project)
+	return &project, err
+}
+
+func (c *Client) DestroyProject(id int) error {
+	return c.do("DELETE", fmt.Sprintf("/api/projects/%d", id), nil, nil)
+}
+
 func (c *Client) UpdateSandbox(id int, req UpdateSandboxRequest) (*Sandbox, error) {
 	var s Sandbox
 	err := c.do("PATCH", fmt.Sprintf("/api/sandboxes/%d", id), req, &s)

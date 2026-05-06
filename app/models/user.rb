@@ -11,6 +11,7 @@ class User < ApplicationRecord
   has_many :sandboxes, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
   has_many :oauth_identities, dependent: :destroy
+  has_many :projects, dependent: :destroy
   has_many :injected_files, dependent: :destroy
   has_many :persisted_paths, dependent: :destroy
   has_many :ignored_paths, dependent: :destroy

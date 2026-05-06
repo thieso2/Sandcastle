@@ -15,7 +15,7 @@ class Sandbox < ApplicationRecord
   before_validation :normalize_gcp_identity
 
   validates :name, presence: true,
-    uniqueness: { scope: :user_id, conditions: -> { where.not(status: %w[destroyed archived]) } }
+    uniqueness: { scope: [ :user_id, :project_name ], conditions: -> { where.not(status: %w[destroyed archived]) } }
   validates :name, format: { with: /\A[a-z][a-z0-9_-]{0,62}\z/, message: "must be lowercase alphanumeric" },
     unless: -> { status.in?(%w[destroyed archived]) }
   validates :status, inclusion: { in: %w[pending running stopped destroyed archived] }
@@ -27,6 +27,13 @@ class Sandbox < ApplicationRecord
   validate :smb_prerequisites, if: -> { smb_enabled? }
   validate :validate_gcp_roles
   validate :validate_gcp_oidc_config_owner
+  validate :validate_data_path
+  validate :validate_home_path
+  validate :validate_home_mount_options
+  validate :validate_project_name
+
+  before_validation :normalize_mount_paths
+  before_validation :normalize_project_name
 
   scope :active, -> { where.not(status: %w[destroyed archived]) }
   scope :archived, -> { where(status: "archived") }
@@ -38,7 +45,17 @@ class Sandbox < ApplicationRecord
   after_destroy_commit :broadcast_remove_from_dashboard
 
   def full_name
-    "#{user.name}-#{name}"
+    "#{user.name}-#{hostname}"
+  end
+
+  def hostname
+    return name if project_name.blank?
+    "#{name}-#{project_name}"
+  end
+
+  def display_name
+    return name if project_name.blank?
+    "#{project_name}:#{name}"
   end
 
   def connect_command
@@ -117,6 +134,15 @@ class Sandbox < ApplicationRecord
     sandbox
   end
 
+  def home_persisted?
+    mount_home? || home_path.present?
+  end
+
+  def project_path
+    return unless home_path.present? && data_path.present?
+    home_path == data_path ? home_path : nil
+  end
+
   # Whether SSH logins should auto-attach to a tmux session. Per-sandbox
   # override (nullable) wins; otherwise falls back to the user's default.
   def effective_ssh_start_tmux?
@@ -171,6 +197,57 @@ class Sandbox < ApplicationRecord
     self.gcp_principal_scope = gcp_principal_scope.presence || "user"
     self.gcp_service_account_email = gcp_service_account_email.to_s.strip.presence
     self.gcp_roles = gcp_roles_list
+  end
+
+  def normalize_mount_paths
+    self.data_path = normalize_mount_path(data_path, allow_root: true)
+    self.home_path = normalize_mount_path(home_path, allow_root: false)
+  end
+
+  def normalize_project_name
+    self.project_name = project_name.to_s.strip.presence
+  end
+
+  def normalize_mount_path(value, allow_root:)
+    path = value.to_s.strip.chomp("/")
+    return nil if path.blank?
+    return "." if allow_root && path == "."
+    path
+  end
+
+  def validate_data_path
+    validate_mount_path(:data_path, allow_root: true)
+  end
+
+  def validate_home_path
+    validate_mount_path(:home_path, allow_root: false)
+  end
+
+  def validate_mount_path(attribute, allow_root:)
+    value = public_send(attribute)
+    return if value.blank?
+    return if allow_root && value == "."
+
+    if value.start_with?("/")
+      errors.add(attribute, "must be relative")
+      return
+    end
+
+    if value.split("/").any? { |seg| seg.blank? || seg == "." || seg == ".." }
+      errors.add(attribute, "must not contain .., ., or empty segments")
+    end
+  end
+
+  def validate_home_mount_options
+    return unless mount_home? && home_path.present?
+    errors.add(:home_path, "cannot be combined with full home mount")
+  end
+
+  def validate_project_name
+    return if project_name.blank?
+    unless project_name.match?(/\A[a-z][a-z0-9_-]{0,62}\z/)
+      errors.add(:project_name, "must be lowercase alphanumeric")
+    end
   end
 
   def smb_prerequisites

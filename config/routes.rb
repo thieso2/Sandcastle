@@ -60,6 +60,7 @@ Rails.application.routes.draw do
     end
     resources :routes, only: [ :create, :destroy ]
   end
+  resources :projects, only: [ :new, :create, :destroy ]
 
   resources :snapshots, only: [ :index, :destroy ], param: :name do
     member do
@@ -118,6 +119,7 @@ Rails.application.routes.draw do
 
   namespace :api do
     get "archived_sandboxes", to: "sandboxes#archived_index"
+    resources :projects, only: [ :index, :show, :create, :destroy ]
     resources :sandboxes do
       member do
         post :start

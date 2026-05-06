@@ -42,7 +42,6 @@ var (
 	headerStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("75"))
-
 )
 
 // ---------- views ----------
@@ -53,6 +52,7 @@ const (
 	viewSandboxes tuiView = iota
 	viewRoutes
 	viewCreateSandbox
+	viewCreateProject
 	viewAddRoute
 	viewConfirmDelete
 	viewServers
@@ -138,23 +138,27 @@ type tuiModel struct {
 	routeCursor  int
 
 	// create sandbox form
-	createFields   []formField
-	createCursor   int
-	snapshots      []api.Snapshot // cached for snapshot name completion
+	createFields []formField
+	createCursor int
+	snapshots    []api.Snapshot // cached for snapshot name completion
+
+	// create project form
+	projectFields []formField
+	projectCursor int
 
 	// add route
-	routeInputs    [2]textinput.Model // domain, port
-	routeFocusIdx  int
+	routeInputs   [2]textinput.Model // domain, port
+	routeFocusIdx int
 
 	// confirm delete
 	deleteTarget string
 	deleteID     int
 
 	// server management
-	servers       []serverEntry
-	serverCursor  int
-	addServerInputs [2]textinput.Model // URL, alias
-	addServerFocus  int
+	servers           []serverEntry
+	serverCursor      int
+	addServerInputs   [2]textinput.Model // URL, alias
+	addServerFocus    int
 	addServerInsecure bool
 
 	// device auth login
@@ -176,9 +180,9 @@ type tuiModel struct {
 }
 
 type serverEntry struct {
-	alias   string
-	url     string
-	active  bool
+	alias    string
+	url      string
+	active   bool
 	hasToken bool
 }
 
@@ -195,10 +199,13 @@ const (
 	cfName = iota
 	cfImage
 	cfSnapshot
+	cfProject
 	cfDocker
 	cfVNC
 	cfTailscale
 	cfHome
+	cfHomeSubdir
+	cfProjectSubdir
 	cfData
 	cfSMB
 	cfTemporary
@@ -210,13 +217,40 @@ func buildCreateFields() []formField {
 		{label: "Name", kind: fieldText, input: makeTextInput("leave empty for auto-generated name", 45)},
 		{label: "Image", kind: fieldText, input: makeTextInput("ghcr.io/thieso2/sandcastle-sandbox:latest", 55)},
 		{label: "Snapshot", kind: fieldText, input: makeTextInput("snapshot name to restore from", 45)},
+		{label: "Project", kind: fieldText, input: makeTextInput("saved project preset name", 45)},
 		{label: "Docker", kind: fieldBool, boolVal: true, defBool: true},
 		{label: "VNC", kind: fieldBool, boolVal: true, defBool: true},
 		{label: "Tailscale", kind: fieldBool, boolVal: false, defBool: false},
 		{label: "Home", kind: fieldBool, boolVal: false, defBool: false},
+		{label: "Home subdir", kind: fieldText, input: makeTextInput("subdir mounted as $HOME", 45)},
+		{label: "Project subdir", kind: fieldText, input: makeTextInput("subdir mounted as $HOME and /persisted", 45)},
 		{label: "Data path", kind: fieldText, input: makeTextInput("subpath or . for root (empty = none)", 45)},
 		{label: "SMB", kind: fieldBool, boolVal: false, defBool: false},
 		{label: "Temporary", kind: fieldBool, boolVal: false, defBool: false},
+	}
+}
+
+const (
+	pfName = iota
+	pfPath
+	pfImage
+	pfDocker
+	pfVNC
+	pfTailscale
+	pfSMB
+	pfSSHStartTmux
+)
+
+func buildProjectFields() []formField {
+	return []formField{
+		{label: "Name", kind: fieldText, input: makeTextInput("project preset name", 45)},
+		{label: "Path", kind: fieldText, input: makeTextInput("subdir mounted as $HOME and /persisted", 55)},
+		{label: "Image", kind: fieldText, input: makeTextInput("ghcr.io/thieso2/sandcastle-sandbox:latest", 55)},
+		{label: "Docker", kind: fieldBool, boolVal: true, defBool: true},
+		{label: "VNC", kind: fieldBool, boolVal: true, defBool: true},
+		{label: "Tailscale", kind: fieldBool, boolVal: false, defBool: false},
+		{label: "SMB", kind: fieldBool, boolVal: false, defBool: false},
+		{label: "SSH tmux", kind: fieldBool, boolVal: true, defBool: true},
 	}
 }
 
@@ -292,11 +326,12 @@ func newTUI(client *api.Client) tuiModel {
 	portInput.CharLimit = 5
 
 	return tuiModel{
-		client:       client,
-		spinner:      s,
-		loading:      true,
-		createFields: buildCreateFields(),
-		routeInputs:  [2]textinput.Model{domainInput, portInput},
+		client:        client,
+		spinner:       s,
+		loading:       true,
+		createFields:  buildCreateFields(),
+		projectFields: buildProjectFields(),
+		routeInputs:   [2]textinput.Model{domainInput, portInput},
 	}
 }
 
@@ -474,6 +509,8 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateRoutes(msg)
 	case viewCreateSandbox:
 		return m.updateCreate(msg)
+	case viewCreateProject:
+		return m.updateCreateProject(msg)
 	case viewAddRoute:
 		return m.updateAddRoute(msg)
 	case viewConfirmDelete:
@@ -517,6 +554,12 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, loadSnapshots(m.client))
 			}
 			return m, tea.Batch(cmds...)
+		case key.Matches(msg, key.NewBinding(key.WithKeys("g"))):
+			m.view = viewCreateProject
+			m.projectFields = buildProjectFields()
+			m.projectCursor = 0
+			m.projectFields[0].input.Focus()
+			return m, m.projectFields[0].input.Cursor.BlinkCmd()
 		case key.Matches(msg, key.NewBinding(key.WithKeys("r"))):
 			if len(m.sandboxes) > 0 {
 				m.loading = true
@@ -556,7 +599,7 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.loading = true
 					return m, tea.Batch(m.spinner.Tick, doAction(func() (string, error) {
 						_, err := m.client.StartSandbox(sb.ID)
-						return fmt.Sprintf("%q started", sb.Name), err
+						return fmt.Sprintf("%q started", sb.DisplayName()), err
 					}))
 				}
 			}
@@ -567,7 +610,7 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.loading = true
 					return m, tea.Batch(m.spinner.Tick, doAction(func() (string, error) {
 						_, err := m.client.StopSandbox(sb.ID)
-						return fmt.Sprintf("%q stopped", sb.Name), err
+						return fmt.Sprintf("%q stopped", sb.DisplayName()), err
 					}))
 				}
 			}
@@ -744,16 +787,28 @@ func (m tuiModel) submitCreateForm() (tea.Model, tea.Cmd) {
 		image = "ghcr.io/thieso2/sandcastle-sandbox:latest"
 	}
 	snapshot := strings.TrimSpace(m.createFields[cfSnapshot].input.Value())
+	project := strings.TrimSpace(m.createFields[cfProject].input.Value())
+	homePath := strings.TrimSpace(m.createFields[cfHomeSubdir].input.Value())
+	projectPath := strings.TrimSpace(m.createFields[cfProjectSubdir].input.Value())
 	dataPath := strings.TrimSpace(m.createFields[cfData].input.Value())
+
+	if project != "" && projectPath != "" {
+		m.feedback = "project preset and project subdir cannot be combined"
+		m.feedErr = true
+		return m, nil
+	}
 
 	req := api.CreateSandboxRequest{
 		Name:          name,
 		Image:         image,
 		FromSnapshot:  snapshot,
+		ProjectName:   project,
 		DockerEnabled: m.createFields[cfDocker].boolVal,
 		VNCEnabled:    m.createFields[cfVNC].boolVal,
 		Tailscale:     m.createFields[cfTailscale].boolVal,
 		MountHome:     m.createFields[cfHome].boolVal,
+		HomePath:      homePath,
+		ProjectPath:   projectPath,
 		DataPath:      dataPath,
 		SMBEnabled:    m.createFields[cfSMB].boolVal,
 		Temporary:     m.createFields[cfTemporary].boolVal,
@@ -766,7 +821,107 @@ func (m tuiModel) submitCreateForm() (tea.Model, tea.Cmd) {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%q created", sb.Name), nil
+		return fmt.Sprintf("%q created", sb.DisplayName()), nil
+	}))
+}
+
+func (m tuiModel) projectFocusField(idx int) (tuiModel, tea.Cmd) {
+	for i := range m.projectFields {
+		if m.projectFields[i].kind == fieldText {
+			m.projectFields[i].input.Blur()
+		}
+	}
+	m.projectCursor = idx
+	if m.projectFields[idx].kind == fieldText {
+		m.projectFields[idx].input.Focus()
+		return m, m.projectFields[idx].input.Cursor.BlinkCmd()
+	}
+	return m, nil
+}
+
+func (m tuiModel) updateCreateProject(msg tea.Msg) (tea.Model, tea.Cmd) {
+	f := &m.projectFields[m.projectCursor]
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEsc:
+			m.view = viewSandboxes
+			m.feedback = ""
+			return m, nil
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+		case tea.KeyUp:
+			if m.projectCursor > 0 {
+				return m.projectFocusField(m.projectCursor - 1)
+			}
+			return m, nil
+		case tea.KeyDown, tea.KeyTab:
+			if m.projectCursor < len(m.projectFields)-1 {
+				return m.projectFocusField(m.projectCursor + 1)
+			}
+			return m, nil
+		case tea.KeyShiftTab:
+			if m.projectCursor > 0 {
+				return m.projectFocusField(m.projectCursor - 1)
+			}
+			return m, nil
+		case tea.KeyEnter:
+			if f.kind == fieldBool {
+				f.boolVal = !f.boolVal
+				return m, nil
+			}
+			return m.submitCreateProjectForm()
+		case tea.KeyCtrlS:
+			return m.submitCreateProjectForm()
+		}
+
+		if f.kind == fieldBool && msg.String() == " " {
+			f.boolVal = !f.boolVal
+			return m, nil
+		}
+	}
+
+	if f.kind == fieldText {
+		var cmd tea.Cmd
+		f.input, cmd = f.input.Update(msg)
+		return m, cmd
+	}
+	return m, nil
+}
+
+func (m tuiModel) submitCreateProjectForm() (tea.Model, tea.Cmd) {
+	name := strings.TrimSpace(m.projectFields[pfName].input.Value())
+	path := strings.TrimSpace(m.projectFields[pfPath].input.Value())
+	image := strings.TrimSpace(m.projectFields[pfImage].input.Value())
+	if image == "" {
+		image = "ghcr.io/thieso2/sandcastle-sandbox:latest"
+	}
+	if name == "" || path == "" {
+		m.feedback = "name and path are required"
+		m.feedErr = true
+		return m, nil
+	}
+
+	req := api.CreateProjectRequest{
+		Name:          name,
+		Path:          path,
+		Image:         image,
+		DockerEnabled: m.projectFields[pfDocker].boolVal,
+		VNCEnabled:    m.projectFields[pfVNC].boolVal,
+		Tailscale:     m.projectFields[pfTailscale].boolVal,
+		SMBEnabled:    m.projectFields[pfSMB].boolVal,
+		SSHStartTmux:  m.projectFields[pfSSHStartTmux].boolVal,
+	}
+
+	m.view = viewSandboxes
+	m.loading = true
+	return m, tea.Batch(m.spinner.Tick, doAction(func() (string, error) {
+		project, err := m.client.CreateProject(req)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("project %q created", project.Name), nil
 	}))
 }
 
@@ -871,6 +1026,8 @@ func (m tuiModel) View() string {
 		m.viewRoutes(&b)
 	case viewCreateSandbox:
 		m.viewCreate(&b)
+	case viewCreateProject:
+		m.viewCreateProject(&b)
 	case viewAddRoute:
 		m.viewAddRoute(&b)
 	case viewConfirmDelete:
@@ -915,7 +1072,7 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 		b.WriteString(headerStyle.Render(fmt.Sprintf("  %-22s %-10s %-18s %s", "NAME", "STATUS", "CREATED", "ROUTE")) + "\n")
 
 		for i, sb := range m.sandboxes {
-			name := sb.Name
+			name := sb.DisplayName()
 			if sb.Temporary {
 				name += " ~"
 			}
@@ -961,12 +1118,12 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("  enter connect  c create  s start  x stop  d destroy  r routes  S servers  P prefs  R refresh  q quit"))
+	b.WriteString(helpStyle.Render("  enter connect  c create sandbox  g create project  s start  x stop  d destroy  r routes  S servers  P prefs  R refresh  q quit"))
 	b.WriteString("\n")
 }
 
 func (m tuiModel) viewRoutes(b *strings.Builder) {
-	b.WriteString(headerStyle.Render(fmt.Sprintf("  Routes for %s", m.routeSandbox.Name)) + "\n\n")
+	b.WriteString(headerStyle.Render(fmt.Sprintf("  Routes for %s", m.routeSandbox.DisplayName())) + "\n\n")
 
 	if m.loading {
 		b.WriteString("  " + m.spinner.View() + " Loading routes...\n")
@@ -1065,8 +1222,42 @@ func (m tuiModel) viewCreate(b *strings.Builder) {
 	b.WriteString("\n")
 }
 
+func (m tuiModel) viewCreateProject(b *strings.Builder) {
+	b.WriteString(headerStyle.Render("  Create Project") + "\n\n")
+	b.WriteString(helpStyle.Render("  Save a reusable preset with a scoped $HOME and /persisted path.") + "\n\n")
+
+	for i, f := range m.projectFields {
+		active := i == m.projectCursor
+		label := formLabelStyle.Render(f.label)
+		if active {
+			label = formLabelActiveStyle.Render(f.label)
+		}
+
+		cursor := "  "
+		if active {
+			cursor = "> "
+		}
+
+		switch f.kind {
+		case fieldText:
+			b.WriteString(fmt.Sprintf("%s%s %s", cursor, label, f.input.View()))
+		case fieldBool:
+			check := checkOff
+			if f.boolVal {
+				check = checkOn
+			}
+			b.WriteString(fmt.Sprintf("%s%s %s", cursor, label, check))
+		}
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\n")
+	b.WriteString(helpStyle.Render("  arrows/tab navigate  space toggle  ctrl+s create  esc cancel"))
+	b.WriteString("\n")
+}
+
 func (m tuiModel) viewAddRoute(b *strings.Builder) {
-	b.WriteString(headerStyle.Render(fmt.Sprintf("  Add Route to %s", m.routeSandbox.Name)) + "\n\n")
+	b.WriteString(headerStyle.Render(fmt.Sprintf("  Add Route to %s", m.routeSandbox.DisplayName())) + "\n\n")
 	b.WriteString("  Domain: " + m.routeInputs[0].View() + "\n")
 	b.WriteString("  Port:   " + m.routeInputs[1].View() + "\n")
 	b.WriteString("\n")
