@@ -418,11 +418,18 @@ var listCmd = &cobra.Command{
 				break
 			}
 		}
+		dnsNames := dnsNamesBySandboxID(client)
+		hasDNS := len(dnsNames) > 0
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		if hasRoute {
+		switch {
+		case hasRoute && hasDNS:
+			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tROUTE\tDNS\tTAILSCALE IP\tIMAGE AGE")
+		case hasRoute:
 			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tROUTE\tTAILSCALE IP\tIMAGE AGE")
-		} else {
+		case hasDNS:
+			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tDNS\tTAILSCALE IP\tIMAGE AGE")
+		default:
 			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tTAILSCALE IP\tIMAGE AGE")
 		}
 		for _, s := range sandboxes {
@@ -436,7 +443,19 @@ var listCmd = &cobra.Command{
 			}
 			created := s.CreatedAt.Local().Format("2006-01-02 15:04")
 			imageAge := formatImageAge(s.ImageBuiltAt)
-			if hasRoute {
+			dnsName := dnsNames[s.ID]
+			switch {
+			case hasRoute && hasDNS:
+				route := ""
+				if len(s.Routes) > 0 {
+					parts := make([]string, len(s.Routes))
+					for i, r := range s.Routes {
+						parts[i] = fmt.Sprintf("%s (:%d)", r.URL, r.Port)
+					}
+					route = strings.Join(parts, ", ")
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, route, dnsName, tsIP, imageAge)
+			case hasRoute:
 				route := ""
 				if len(s.Routes) > 0 {
 					parts := make([]string, len(s.Routes))
@@ -446,13 +465,31 @@ var listCmd = &cobra.Command{
 					route = strings.Join(parts, ", ")
 				}
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, route, tsIP, imageAge)
-			} else {
+			case hasDNS:
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, dnsName, tsIP, imageAge)
+			default:
 				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, tsIP, imageAge)
 			}
 		}
 		w.Flush()
 		return nil
 	},
+}
+
+func dnsNamesBySandboxID(client *api.Client) map[int]string {
+	status, err := client.DNSStatus()
+	if err != nil || status == nil || len(status.Records) == 0 {
+		return nil
+	}
+
+	names := make(map[int]string, len(status.Records))
+	for _, record := range status.Records {
+		if record.SandboxID == 0 || record.Name == "" {
+			continue
+		}
+		names[record.SandboxID] = record.Name
+	}
+	return names
 }
 
 var archiveRestoreCmd = &cobra.Command{

@@ -293,7 +293,7 @@ func dnsLabel(s string) string {
 }
 
 func installResolver(suffix, resolverIP string) error {
-	content := fmt.Sprintf("%s\n# Server: %s\nnameserver %s\n", resolverMarker, suffix, resolverIP)
+	content := fmt.Sprintf("%s\n# Server: %s\nnameserver %s\nsearch_order 1\n", resolverMarker, suffix, resolverIP)
 	tmp, err := os.CreateTemp("", "sandcastle-resolver-*")
 	if err != nil {
 		return err
