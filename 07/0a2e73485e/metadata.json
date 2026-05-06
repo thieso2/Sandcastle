@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "070a2e73485e",
+  "strategy": "manual-commit",
+  "branch": "codex/dns-implementation",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "app/controllers/api/dns_controller.rb",
+    "app/controllers/api/sandboxes_controller.rb",
+    "app/jobs/container_sync_job.rb",
+    "app/jobs/sandbox_destroy_job.rb",
+    "app/jobs/sandbox_provision_job.rb",
+    "app/jobs/sandbox_rebuild_job.rb",
+    "app/jobs/sandbox_restore_job.rb",
+    "app/jobs/sandbox_start_job.rb",
+    "app/jobs/sandbox_stop_job.rb",
+    "app/services/dns_manager.rb",
+    "app/services/tailscale_manager.rb",
+    "config/routes.rb",
+    "vendor/sandcastle-cli/api/client.go",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/dns.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/07/0a2e73485e/0/metadata.json",
+      "transcript": "/07/0a2e73485e/0/full.jsonl",
+      "content_hash": "/07/0a2e73485e/0/content_hash.txt",
+      "prompt": "/07/0a2e73485e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 17145360,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 16367616,
+    "output_tokens": 60994,
+    "api_call_count": 147
+  }
+}

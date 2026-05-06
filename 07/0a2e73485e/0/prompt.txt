@@ -1,0 +1,58 @@
+i want that that sandcastle cli maintains /etc/hosts so that i can ping sandcastle.project and don't need to remember tailscale ip adresses. whats the best ways to do this on my mac. any btter way that /etc/hosts (needs sudo).
+
+---
+
+could the sandcaste rails instance not provide this resolver?
+
+---
+
+the sandcaste installer could add a local resolver that is shipped with sandcastle?
+
+---
+
+we could run a resolver in the tailscale sidecar!
+
+---
+
+can i have a format shoudl be <scandcaste>.<project>.<sandcaste-instance-name> would that work? can i add .<sandcaste-instance-name> to my search patch?
+
+---
+
+how would hostnames get published to dns?
+
+---
+
+why not use tailscale hostname and magicdns with split?
+
+---
+
+full implementation!
+
+---
+
+i donÄt use tailscale magic dns - can i still do this?
+
+---
+
+lets go without magic DNS for now. that way we don't even need splitdns, rright`? (by using # /etc/resolver/castlebox
+  nameserver 100.x.y.z)?
+
+---
+
+create an full implementation plan
+
+---
+
+add a feature to the CLI to set and modify the searchpath in dns so that i can ping without full domains.
+
+---
+
+Implement the plan.
+
+---
+
+run a full test on incus on 100.100.218.64
+
+---
+
+try ssh again  ssh 100.100.218.64 uptime worked!
