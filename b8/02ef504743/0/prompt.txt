@@ -1,0 +1,1 @@
+add teh dns name to sc tui
