@@ -44,7 +44,7 @@ class DnsManager
   end
 
   def publish(user:)
-    FileUtils.mkdir_p(dns_dir(user))
+    ensure_dir(dns_dir(user))
     write_corefile(user)
     write_hosts(user)
   rescue => e
@@ -240,8 +240,61 @@ class DnsManager
 
   def atomic_write(path, content)
     tmp = "#{path}.tmp"
-    File.write(tmp, content)
-    File.rename(tmp, path)
+    begin
+      File.write(tmp, content)
+      File.rename(tmp, path)
+    rescue Errno::EACCES
+      docker_chown(File.dirname(path))
+      File.write(tmp, content)
+      File.rename(tmp, path)
+    end
+  ensure
+    File.delete(tmp) if tmp && File.exist?(tmp)
+  end
+
+  def ensure_dir(path)
+    FileUtils.mkdir_p(path)
+  rescue Errno::EACCES
+    docker_chown(File.dirname(path))
+    FileUtils.mkdir_p(path)
+  end
+
+  def docker_chown(path)
+    return if system("/usr/bin/sudo", "-n", "/usr/bin/chown", "#{Process.uid}:#{Process.gid}", path) &&
+              system("/usr/bin/sudo", "-n", "/usr/bin/chmod", "755", path)
+
+    docker_run_fix(path, "sh", "-c", "chown #{Process.uid}:#{Process.gid} /mnt && chmod 755 /mnt")
+  end
+
+  def docker_run_fix(host_path, *cmd)
+    image = fix_image
+    container = Docker::Container.create(
+      "Image" => image,
+      "Cmd" => cmd,
+      "HostConfig" => { "Binds" => [ "#{host_path}:/mnt" ] }
+    )
+    container.start
+    result = container.wait(30)
+    exit_code = result&.dig("StatusCode") || -1
+    raise Error, "docker_run_fix failed (exit #{exit_code}) for #{host_path}: #{cmd.join(' ')}" unless exit_code == 0
+  ensure
+    container&.delete(force: true) rescue nil
+  end
+
+  def fix_image
+    %w[busybox:latest alpine:latest].each do |image|
+      begin
+        return image if Docker::Image.get(image)
+      rescue Docker::Error::DockerError
+        next
+      end
+    end
+
+    images = Docker::Image.all
+    raise Error, "No local images available for docker_run_fix" if images.empty?
+
+    tags = images.first.info["RepoTags"]
+    tags&.first || images.first.id
   end
 
   def dns_dir(user)
