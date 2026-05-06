@@ -124,6 +124,7 @@ class SandboxManagerTest < ActiveSupport::TestCase
 
     @manager.stop(sandbox: @sandbox)
     DockerMock.exec_calls.clear
+    @manager.define_singleton_method(:ensure_mount_dirs) { |_user, _sandbox| true }
     @manager.start(sandbox: @sandbox)
     second_token = DockerMock.exec_calls.find { |call| call[:cmd][2].to_s.include?("/run/sandcastle/oidc-token") }[:cmd][5]
 
