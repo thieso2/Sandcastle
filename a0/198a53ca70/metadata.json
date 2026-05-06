@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a0198a53ca70",
+  "strategy": "manual-commit",
+  "branch": "feat/projects-crud-and-filter",
+  "checkpoints_count": 2,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/a0/198a53ca70/0/metadata.json",
+      "transcript": "/a0/198a53ca70/0/full.jsonl",
+      "content_hash": "/a0/198a53ca70/0/content_hash.txt",
+      "prompt": "/a0/198a53ca70/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 47,
+    "cache_creation_tokens": 42211,
+    "cache_read_tokens": 1910455,
+    "output_tokens": 12555,
+    "api_call_count": 32
+  }
+}
