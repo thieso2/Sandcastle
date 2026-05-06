@@ -7,6 +7,7 @@ class SandboxStopJob < ApplicationJob
 
     begin
       SandboxManager.new.stop(sandbox: sandbox)
+      DnsManager.publish_best_effort(sandbox.user) if sandbox.user.tailscale_enabled?
       sandbox.finish_job
 
     rescue => e

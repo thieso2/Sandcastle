@@ -98,6 +98,7 @@ module Api
       end
 
       @sandbox.update!(sandbox_params)
+      DnsManager.publish_best_effort(@sandbox.user) if @sandbox.user.tailscale_enabled?
       render json: sandbox_json(@sandbox)
     end
 

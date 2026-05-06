@@ -551,6 +551,20 @@ func (c *Client) TailscaleDisconnect(sandboxID int) (*Sandbox, error) {
 	return &s, err
 }
 
+// DNS
+
+func (c *Client) DNSStatus() (*DNSStatus, error) {
+	var s DNSStatus
+	err := c.do("GET", "/api/dns/status", nil, &s)
+	return &s, err
+}
+
+func (c *Client) DNSReconcile() (*DNSStatus, error) {
+	var s DNSStatus
+	err := c.do("POST", "/api/dns/reconcile", nil, &s)
+	return &s, err
+}
+
 // SMB
 
 func (c *Client) SmbSetPassword(password string) error {

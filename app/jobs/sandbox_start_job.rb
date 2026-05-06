@@ -7,6 +7,7 @@ class SandboxStartJob < ApplicationJob
 
     begin
       SandboxManager.new.start(sandbox: sandbox)
+      DnsManager.publish_best_effort(sandbox.user) if sandbox.user.tailscale_enabled?
       sandbox.finish_job
     rescue => e
       Rails.logger.error("SandboxStartJob failed: #{e.message}\n#{e.backtrace.join("\n")}")

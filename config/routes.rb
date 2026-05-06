@@ -163,6 +163,10 @@ Rails.application.routes.draw do
     resource :smb, only: [], controller: "smb" do
       patch :set_password
     end
+    resource :dns, only: [], controller: "dns" do
+      get :status
+      post :reconcile
+    end
     resources :gcp_oidc_configs, only: [ :index, :show, :create, :update, :destroy ]
   end
 

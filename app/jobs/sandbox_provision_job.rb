@@ -24,12 +24,14 @@ class SandboxProvisionJob < ApplicationJob
       end
 
       sandbox.update!(status: "running")
+      DnsManager.publish_best_effort(sandbox.user) if sandbox.user.tailscale_enabled?
       sandbox.finish_job
 
     rescue => e
       Rails.logger.error("SandboxProvisionJob failed: #{e.message}\n#{e.backtrace.join("\n")}")
       sandbox.fail_job("Failed to create: #{e.message}")
       sandbox.update!(status: "destroyed")
+      DnsManager.publish_best_effort(sandbox.user) if sandbox.user.tailscale_enabled?
 
       raise # Re-raise for Solid Queue retry
     end
