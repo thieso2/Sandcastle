@@ -3,12 +3,9 @@ class DashboardController < ApplicationController
     scope = policy_scope(Sandbox).includes(:user, :routes)
     @projects = Current.user.projects.order(:name)
     @selected_project = params[:project].presence
-    case @selected_project
-    when nil
-      # all
-    when "(none)"
+    if @selected_project == "(none)"
       scope = scope.where(project_name: [ nil, "" ])
-    else
+    elsif @selected_project
       scope = scope.where(project_name: @selected_project)
     end
     @sandboxes = scope.order(:project_name, :name)
