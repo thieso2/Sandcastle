@@ -94,6 +94,10 @@ type routesLoadedMsg struct {
 	err    error
 }
 
+type dnsLoadedMsg struct {
+	names map[int]string
+}
+
 type snapshotsLoadedMsg struct {
 	snapshots []api.Snapshot
 	err       error
@@ -131,6 +135,7 @@ type tuiModel struct {
 
 	// sandbox list
 	sandboxes []api.Sandbox
+	dnsNames  map[int]string
 
 	// routes
 	routeSandbox *api.Sandbox
@@ -336,7 +341,7 @@ func newTUI(client *api.Client) tuiModel {
 }
 
 func (m tuiModel) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, loadSandboxes(m.client))
+	return tea.Batch(m.spinner.Tick, loadSandboxes(m.client), loadDNS(m.client))
 }
 
 // ---------- commands ----------
@@ -359,6 +364,23 @@ func loadSnapshots(client *api.Client) tea.Cmd {
 	return func() tea.Msg {
 		snapshots, err := client.ListSnapshots()
 		return snapshotsLoadedMsg{snapshots, err}
+	}
+}
+
+func loadDNS(client *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		status, err := client.DNSStatus()
+		if err != nil || status == nil {
+			return dnsLoadedMsg{names: nil}
+		}
+		names := make(map[int]string, len(status.Records))
+		for _, r := range status.Records {
+			if r.SandboxID == 0 || r.Name == "" {
+				continue
+			}
+			names[r.SandboxID] = r.Name
+		}
+		return dnsLoadedMsg{names: names}
 	}
 }
 
@@ -415,6 +437,10 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err == nil {
 			m.snapshots = msg.snapshots
 		}
+		return m, nil
+
+	case dnsLoadedMsg:
+		m.dnsNames = msg.names
 		return m, nil
 
 	case routesLoadedMsg:
@@ -499,7 +525,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewRoutes && m.routeSandbox != nil {
 			return m, tea.Batch(m.spinner.Tick, loadRoutes(m.client, m.routeSandbox.ID))
 		}
-		return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client))
+		return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client), loadDNS(m.client))
 	}
 
 	switch m.view {
@@ -572,7 +598,7 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("R"))):
 			m.loading = true
 			m.feedback = ""
-			return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client))
+			return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client), loadDNS(m.client))
 		case key.Matches(msg, key.NewBinding(key.WithKeys("S"))):
 			m.servers = loadServerList()
 			m.serverCursor = 0
@@ -1068,8 +1094,13 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 	if len(m.sandboxes) == 0 {
 		b.WriteString("  No sandboxes. Press c to create one.\n")
 	} else {
+		hasDNS := len(m.dnsNames) > 0
 		// Header
-		b.WriteString(headerStyle.Render(fmt.Sprintf("  %-22s %-10s %-18s %s", "NAME", "STATUS", "CREATED", "ROUTE")) + "\n")
+		if hasDNS {
+			b.WriteString(headerStyle.Render(fmt.Sprintf("  %-22s %-10s %-18s %-25s %s", "NAME", "STATUS", "CREATED", "DNS", "ROUTE")) + "\n")
+		} else {
+			b.WriteString(headerStyle.Render(fmt.Sprintf("  %-22s %-10s %-18s %s", "NAME", "STATUS", "CREATED", "ROUTE")) + "\n")
+		}
 
 		for i, sb := range m.sandboxes {
 			name := sb.DisplayName()
@@ -1103,11 +1134,24 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 				}
 			}
 
-			line := fmt.Sprintf("  %-22s %-10s %-18s %s", name, st, created, route)
-			if i == m.cursor {
-				// Re-render with selection styling — pad to width
-				padded := fmt.Sprintf("  %-22s %-20s %-18s %-30s", name, sb.Status, created, route)
-				line = selectedStyle.Render(padded)
+			dns := m.dnsNames[sb.ID]
+			if len(dns) > 25 {
+				dns = dns[:24] + "…"
+			}
+
+			var line string
+			if hasDNS {
+				line = fmt.Sprintf("  %-22s %-10s %-18s %-25s %s", name, st, created, dns, route)
+				if i == m.cursor {
+					padded := fmt.Sprintf("  %-22s %-20s %-18s %-25s %-30s", name, sb.Status, created, dns, route)
+					line = selectedStyle.Render(padded)
+				}
+			} else {
+				line = fmt.Sprintf("  %-22s %-10s %-18s %s", name, st, created, route)
+				if i == m.cursor {
+					padded := fmt.Sprintf("  %-22s %-20s %-18s %-30s", name, sb.Status, created, route)
+					line = selectedStyle.Render(padded)
+				}
 			}
 			b.WriteString(line + "\n")
 		}
