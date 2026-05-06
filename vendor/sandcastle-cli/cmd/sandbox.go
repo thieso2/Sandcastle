@@ -412,64 +412,64 @@ var listCmd = &cobra.Command{
 		}
 
 		hasRoute := false
+		hasProject := false
 		for _, s := range sandboxes {
 			if len(s.Routes) > 0 {
 				hasRoute = true
-				break
+			}
+			if s.ProjectName != "" {
+				hasProject = true
 			}
 		}
 		dnsNames := dnsNamesBySandboxID(client)
 		hasDNS := len(dnsNames) > 0
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		switch {
-		case hasRoute && hasDNS:
-			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tROUTE\tDNS\tTAILSCALE IP\tIMAGE AGE")
-		case hasRoute:
-			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tROUTE\tTAILSCALE IP\tIMAGE AGE")
-		case hasDNS:
-			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tDNS\tTAILSCALE IP\tIMAGE AGE")
-		default:
-			fmt.Fprintln(w, "NAME\tSTATUS\tCREATED\tTAILSCALE IP\tIMAGE AGE")
+
+		headers := []string{"NAME"}
+		if hasProject {
+			headers = append(headers, "PROJECT")
 		}
+		headers = append(headers, "STATUS", "CREATED")
+		if hasRoute {
+			headers = append(headers, "ROUTE")
+		}
+		if hasDNS {
+			headers = append(headers, "DNS")
+		}
+		headers = append(headers, "TAILSCALE IP", "IMAGE AGE")
+		fmt.Fprintln(w, strings.Join(headers, "\t"))
+
 		for _, s := range sandboxes {
-			name := s.DisplayName()
+			name := s.Name
 			if s.Temporary {
 				name += " (temp)"
 			}
-			tsIP := ""
-			if s.TailscaleIP != "" {
-				tsIP = s.TailscaleIP
-			}
+			tsIP := s.TailscaleIP
 			created := s.CreatedAt.Local().Format("2006-01-02 15:04")
 			imageAge := formatImageAge(s.ImageBuiltAt)
-			dnsName := dnsNames[s.ID]
-			switch {
-			case hasRoute && hasDNS:
-				route := ""
-				if len(s.Routes) > 0 {
-					parts := make([]string, len(s.Routes))
-					for i, r := range s.Routes {
-						parts[i] = fmt.Sprintf("%s (:%d)", r.URL, r.Port)
-					}
-					route = strings.Join(parts, ", ")
-				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, route, dnsName, tsIP, imageAge)
-			case hasRoute:
-				route := ""
-				if len(s.Routes) > 0 {
-					parts := make([]string, len(s.Routes))
-					for i, r := range s.Routes {
-						parts[i] = fmt.Sprintf("%s (:%d)", r.URL, r.Port)
-					}
-					route = strings.Join(parts, ", ")
-				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, route, tsIP, imageAge)
-			case hasDNS:
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, dnsName, tsIP, imageAge)
-			default:
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", name, s.Status, created, tsIP, imageAge)
+
+			cols := []string{name}
+			if hasProject {
+				cols = append(cols, s.ProjectName)
 			}
+			cols = append(cols, s.Status, created)
+			if hasRoute {
+				route := ""
+				if len(s.Routes) > 0 {
+					parts := make([]string, len(s.Routes))
+					for i, r := range s.Routes {
+						parts[i] = fmt.Sprintf("%s (:%d)", r.URL, r.Port)
+					}
+					route = strings.Join(parts, ", ")
+				}
+				cols = append(cols, route)
+			}
+			if hasDNS {
+				cols = append(cols, dnsNames[s.ID])
+			}
+			cols = append(cols, tsIP, imageAge)
+			fmt.Fprintln(w, strings.Join(cols, "\t"))
 		}
 		w.Flush()
 		return nil
