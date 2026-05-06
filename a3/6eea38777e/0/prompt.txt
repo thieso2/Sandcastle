@@ -1,0 +1,160 @@
+commit and release new version!
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main % sudo cat /etc/resolver/sandman                                               [main]  (iom-eph-thies-cfe9)
+# Managed by sandcastle dns
+# Server: sandman
+nameserver 10.206.10.5
+~/Projects/SaaS-Bonn/cloud/main % sc ls                                                                        [main]  (iom-eph-thies-cfe9)
+Server: demo (https://demo.sandcastle.rocks)
+NAME        STATUS   CREATED           TAILSCALE IP  IMAGE AGE
+p4:test     running  2026-05-06 06:18  10.206.10.3   5h ago
+io26:tubu   running  2026-05-06 10:27  10.206.10.6   3h ago
+pages       running  2026-04-25 08:57  10.206.10.9   18h ago
+sandcastle  running  2026-04-20 09:51  10.206.10.4   16d ago
+~/Projects/SaaS-Bonn/cloud/main % ping pages.sandman                                                           [main]  (iom-eph-thies-cfe9)
+ping: cannot resolve pages.sandman: Unknown host
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main % ping pages.sandboxes.sandman                                                 [main]  (iom-eph-thies-cfe9)
+ping: cannot resolve pages.sandboxes.sandman: Unknown host
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main %   sc dns status                                                              [main]  (iom-eph-thies-cfe9)
+Server: demo (https://demo.sandcastle.rocks)
+Suffix:            sandman
+Resolver IP:       10.206.10.5
+Tailscale IP:      100.86.117.84
+Resolver running:  true
+Network:           sc-ts-net-thies
+Hosts file:        /sandcastle/data/users/thies/dns/hosts
+macOS resolver:    not installed
+
+NAME                          IP
+sandcastle.sandboxes.sandman  10.206.10.4
+pages.sandboxes.sandman       10.206.10.9
+test.p4.sandman               10.206.10.3
+tubu.io26.sandman             10.206.10.6
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main %   scutil --dns | grep -A6 sandman                                            [main]  (iom-eph-thies-cfe9)
+  search domain[1] : sandman
+  nameserver[0] : 10.10.2.254
+  if_index : 11 (en0)
+  flags    : Request A records
+  reach    : 0x00020002 (Reachable,Directly Reachable Address)
+
+resolver #2
+--
+  domain   : sandman
+  nameserver[0] : 10.206.10.5
+  flags    : Request A records
+  reach    : 0x00000003 (Reachable,Transient Connection)
+
+DNS configuration (for scoped queries)
+
+--
+  search domain[1] : sandman
+  nameserver[0] : 10.10.2.254
+  if_index : 11 (en0)
+  flags    : Scoped, Request A records
+  reach    : 0x00020002 (Reachable,Directly Reachable Address)
+
+resolver #2
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main %   dig @10.206.10.5 pages.sandboxes.sandman                                   [main]  (iom-eph-thies-cfe9)
+
+; <<>> DiG 9.10.6 <<>> @10.206.10.5 pages.sandboxes.sandman
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 12746
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;pages.sandboxes.sandman.    IN    A
+
+;; ANSWER SECTION:
+pages.sandboxes.sandman. 15    IN    A    10.206.10.9
+
+;; Query time: 23 msec
+;; SERVER: 10.206.10.5#53(10.206.10.5)
+;; WHEN: Wed May 06 15:47:03 CEST 2026
+;; MSG SIZE  rcvd: 91
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main %  scutil --dns | grep -A6 sandman                                             [main]  (iom-eph-thies-cfe9)
+  domain   : sandman
+  nameserver[0] : 10.206.10.5
+  flags    : Request A records
+  reach    : 0x00000003 (Reachable,Transient Connection)
+
+DNS configuration (for scoped queries)
+
+~/Projects/SaaS-Bonn/cloud/main % ping pages.sandboxes.sandman                                                 [main]  (iom-eph-thies-cfe9)
+ping: cannot resolve pages.sandboxes.sandman: Unknown host
+~/Projects/SaaS-Bonn/cloud/main %                                                                              [main]  (iom-eph-thies-cfe9)
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main % ping pages.sandboxes.sandman                                                 [main]  (iom-eph-thies-cfe9)
+ping: cannot resolve pages.sandboxes.sandman: Unknown host
+~/Projects/SaaS-Bonn/cloud/main % ping pages.sandboxes.sandman.                                                [main]  (iom-eph-thies-cfe9)
+PING pages.sandboxes.sandman (10.206.10.9): 56 data bytes
+64 bytes from 10.206.10.9: icmp_seq=0 ttl=63 time=21.922 ms
+^C
+--- pages.sandboxes.sandman ping statistics ---
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main %   sudo killall -HUP mDNSResponder                                            [main]  (iom-eph-thies-cfe9)
+~/Projects/SaaS-Bonn/cloud/main % sudo dscacheutil -flushcache                                                 [main]  (iom-eph-thies-cfe9)
+~/Projects/SaaS-Bonn/cloud/main % sudo killall -HUP mDNSResponder                                              [main]  (iom-eph-thies-cfe9)
+~/Projects/SaaS-Bonn/cloud/main % ping pages.sandboxes.sandman                                                 [main]  (iom-eph-thies-cfe9)
+ping: cannot resolve pages.sandboxes.sandman: Unknown host
+~/Projects/SaaS-Bonn/cloud/main %                                                                              [main]  (iom-eph-thies-cfe9)
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main %  scutil --dns | grep -A8 sandman                                             [main]  (iom-eph-thies-cfe9)
+  domain   : sandman
+  nameserver[0] : 10.206.10.5
+  flags    : Request A records
+  reach    : 0x00000003 (Reachable,Transient Connection)
+  order    : 1
+
+DNS configuration (for scoped queries)
+
+resolver #1
+
+---
+
++ sudo dscacheutil -flushcache
++ sudo killall -HUP mDNSResponder
++ dscacheutil -q host -a name pages.sandboxes.sandman
++ dns-sd -G v4 pages.sandboxes.sandman
+DATE: ---Wed 06 May 2026---
+15:54:45.946  ...STARTING...
+Timestamp     A/R  Flags         IF  Hostname                               Address                                      TTL
+15:54:45.947  Add  40000002       0  pages.sandboxes.sandman.tc42.uk.       0.0.0.0                                      2090   No Such Record
+
+---
+
+~/Projects/SaaS-Bonn/cloud/main % sc ls                                                                        [main]  (iom-eph-thies-cfe9)
+Server: demo (https://demo.sandcastle.rocks)
+NAME        STATUS   CREATED           TAILSCALE IP  IMAGE AGE
+p4:test     running  2026-05-06 06:18  10.206.10.3   5h ago
+io26:tubu   running  2026-05-06 10:27  10.206.10.6   3h ago
+pages       running  2026-04-25 08:57  10.206.10.9   19h ago
+sandcastle  running  2026-04-20 09:51  10.206.10.4   16d ago
+shold also output teh host and domainname of the dns record generated.

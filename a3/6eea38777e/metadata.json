@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a36eea38777e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "vendor/sandcastle-cli/cmd/dns.go",
+    "vendor/sandcastle-cli/cmd/sandbox.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a3/6eea38777e/0/metadata.json",
+      "transcript": "/a3/6eea38777e/0/full.jsonl",
+      "content_hash": "/a3/6eea38777e/0/content_hash.txt",
+      "prompt": "/a3/6eea38777e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 4258506,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 4063744,
+    "output_tokens": 12878,
+    "api_call_count": 35
+  }
+}
