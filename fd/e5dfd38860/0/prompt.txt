@@ -1,0 +1,43 @@
+how do i enable the new dns feature?
+
+---
+
+Error Analysis Request:
+
+EXCEPTION: DnsManager::Error
+MESSAGE: Failed to publish DNS for thies: Permission denied @ rb_sysopen - /sandcastle/data/users/thies/dns/Corefile.tmp
+SEVERITY: error
+SOURCE: application.action_dispatch
+STATUS: Unresolved
+
+OCCURRENCES: 1 total
+First seen: 2026-05-06T10:19:19Z
+Last seen: 2026-05-06T10:19:19Z
+
+MOST RECENT OCCURRENCE:
+Timestamp: 2026-05-06T10:19:19Z
+Context:
+  controller: #&lt;Api::DnsController&gt;
+
+BACKTRACE:
+1. [PROJECT_ROOT]/app/services/dns_manager.rb:51 in `DnsManager#publish`
+2. [PROJECT_ROOT]/app/controllers/api/dns_controller.rb:9 in `Api::DnsController#reconcile`
+3. [GEM_ROOT]/gems/actionpack-8.1.3/lib/action_controller/metal/basic_implicit_render.rb:8 in `ActionController::BasicImplicitRender#send_action`
+
+Please analyze this error and suggest:
+1. Root cause of the error
+2. Potential fixes
+3. Any patterns or anti-patterns you notice
+4. Recommendations for preventing similar errors
+
+---
+
+this is a legacy install id is 220568 not 22051 - where is 22051 used?
+
+---
+
+fix this in code - will redeploy!
+
+---
+
+whe does the resolver live - ist this it's own container?
