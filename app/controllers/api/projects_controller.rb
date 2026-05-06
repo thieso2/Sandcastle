@@ -4,7 +4,7 @@ module Api
 
     def index
       authorize Project
-      render json: policy_scope(Project).order(:name).map { |project| project_json(project) }
+      render json: policy_scope(Project).default_first.map { |project| project_json(project) }
     end
 
     def show
@@ -19,6 +19,11 @@ module Api
     end
 
     def destroy
+      if @project.default_project?
+        render json: { error: "Default project cannot be deleted." }, status: :conflict
+        return
+      end
+
       @project.destroy!
       render json: { status: "deleted" }
     end
@@ -33,8 +38,11 @@ module Api
     def project_params
       params.require(:project).permit(
         :name, :path, :image, :tailscale, :vnc_enabled, :vnc_geometry,
-        :vnc_depth, :docker_enabled, :smb_enabled, :ssh_start_tmux
-      )
+        :vnc_depth, :docker_enabled, :smb_enabled, :ssh_start_tmux,
+        :mount_home, :home_path, :data_path, :oidc_enabled, :gcp_oidc_enabled,
+        :gcp_oidc_config_id, :gcp_service_account_email, :gcp_principal_scope,
+        gcp_roles: []
+      ).to_h
     end
 
     def project_json(project)
@@ -50,6 +58,23 @@ module Api
         docker_enabled: project.docker_enabled,
         smb_enabled: project.smb_enabled,
         ssh_start_tmux: project.ssh_start_tmux,
+        default_project: project.default_project,
+        mount_home: project.mount_home,
+        home_path: project.home_path,
+        data_path: project.data_path,
+        oidc_enabled: project.oidc_enabled,
+        gcp_oidc_enabled: project.gcp_oidc_enabled,
+        gcp_oidc_config_id: project.gcp_oidc_config_id,
+        gcp_oidc_config: project.gcp_oidc_config && {
+          id: project.gcp_oidc_config.id,
+          name: project.gcp_oidc_config.name,
+          project_id: project.gcp_oidc_config.project_id,
+          project_number: project.gcp_oidc_config.project_number,
+          default_service_account_email: project.gcp_oidc_config.default_service_account_email
+        },
+        gcp_service_account_email: project.gcp_service_account_email,
+        gcp_principal_scope: project.gcp_principal_scope,
+        gcp_roles: project.gcp_roles_list,
         created_at: project.created_at
       }
     end

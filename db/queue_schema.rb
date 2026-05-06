@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_06_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -50,6 +50,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
     t.index ["code"], name: "index_device_codes_on_code", unique: true
     t.index ["user_code"], name: "index_device_codes_on_user_code"
     t.index ["user_id"], name: "index_device_codes_on_user_id"
+  end
+
+  create_table "gcp_oidc_configs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "default_service_account_email"
+    t.string "name", null: false
+    t.string "project_id"
+    t.string "project_number", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.string "workload_identity_location", default: "global", null: false
+    t.string "workload_identity_pool_id", null: false
+    t.string "workload_identity_provider_id", null: false
+    t.index ["user_id", "name"], name: "index_gcp_oidc_configs_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_gcp_oidc_configs_on_user_id"
+    t.check_constraint "workload_identity_location::text = 'global'::text", name: "chk_gcp_oidc_configs_location_global"
   end
 
   create_table "ignored_paths", force: :cascade do |t|
@@ -108,10 +124,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
 
   create_table "projects", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "data_path"
+    t.boolean "default_project", default: false, null: false
     t.boolean "docker_enabled", default: true, null: false
+    t.bigint "gcp_oidc_config_id"
+    t.boolean "gcp_oidc_enabled", default: false, null: false
+    t.string "gcp_principal_scope", default: "user", null: false
+    t.jsonb "gcp_roles", default: [], null: false
+    t.string "gcp_service_account_email"
+    t.string "home_path"
     t.string "image", default: "ghcr.io/thieso2/sandcastle-sandbox:latest", null: false
+    t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
-    t.string "path", null: false
+    t.boolean "oidc_enabled", default: false, null: false
+    t.string "path"
     t.boolean "smb_enabled", default: false, null: false
     t.boolean "ssh_start_tmux", default: true, null: false
     t.boolean "tailscale", default: false, null: false
@@ -120,6 +146,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
     t.integer "vnc_depth", default: 24, null: false
     t.boolean "vnc_enabled", default: true, null: false
     t.string "vnc_geometry", default: "1280x900", null: false
+    t.index ["gcp_oidc_config_id"], name: "index_projects_on_gcp_oidc_config_id"
+    t.index ["user_id", "default_project"], name: "index_projects_on_user_id_default_project", unique: true, where: "(default_project = true)"
     t.index ["user_id", "name"], name: "index_projects_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_projects_on_user_id"
   end
@@ -143,6 +171,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
     t.datetime "created_at", null: false
     t.string "data_path"
     t.boolean "docker_enabled", default: true, null: false
+    t.bigint "gcp_oidc_config_id"
+    t.boolean "gcp_oidc_enabled", default: false, null: false
+    t.string "gcp_principal_scope", default: "user", null: false
+    t.jsonb "gcp_roles", default: [], null: false
+    t.string "gcp_service_account_email"
     t.string "home_path"
     t.string "image", default: "ghcr.io/thieso2/sandcastle-sandbox:latest", null: false
     t.datetime "image_built_at"
@@ -153,6 +186,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
     t.string "job_status"
     t.boolean "mount_home", default: false, null: false
     t.string "name", null: false
+    t.boolean "oidc_enabled", default: false, null: false
+    t.string "oidc_secret_digest"
+    t.datetime "oidc_secret_rotated_at"
     t.boolean "persistent_volume", default: false, null: false
     t.string "project_name"
     t.boolean "smb_enabled", default: false, null: false
@@ -167,6 +203,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
     t.string "vnc_geometry", default: "1280x900", null: false
     t.string "volume_path"
     t.index ["container_id"], name: "index_sandboxes_on_container_id", unique: true
+    t.index ["gcp_oidc_config_id"], name: "index_sandboxes_on_gcp_oidc_config_id"
     t.index ["job_status"], name: "index_sandboxes_on_job_status"
     t.index ["ssh_port"], name: "index_sandboxes_on_ssh_port", unique: true, where: "(((status)::text <> ALL (ARRAY[('destroyed'::character varying)::text, ('archived'::character varying)::text])) AND (ssh_port IS NOT NULL))"
     t.index ["user_id", "job_status"], name: "index_sandboxes_on_user_id_and_job_status"
@@ -346,6 +383,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
     t.string "default_data_path"
     t.boolean "default_docker_enabled", default: true
     t.boolean "default_mount_home", default: false
+    t.boolean "default_oidc_enabled", default: false, null: false
     t.boolean "default_smb_enabled", default: true, null: false
     t.boolean "default_ssh_start_tmux", default: true, null: false
     t.boolean "default_vnc_enabled", default: true
@@ -378,13 +416,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_05_200000) do
   add_foreign_key "container_metrics", "sandboxes"
   add_foreign_key "device_codes", "api_tokens"
   add_foreign_key "device_codes", "users"
+  add_foreign_key "gcp_oidc_configs", "users"
   add_foreign_key "ignored_paths", "users"
   add_foreign_key "injected_files", "users"
   add_foreign_key "invites", "users", column: "invited_by_id"
   add_foreign_key "oauth_identities", "users"
   add_foreign_key "persisted_paths", "users"
+  add_foreign_key "projects", "gcp_oidc_configs"
   add_foreign_key "projects", "users"
   add_foreign_key "routes", "sandboxes"
+  add_foreign_key "sandboxes", "gcp_oidc_configs"
   add_foreign_key "sandboxes", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "snapshots", "users"

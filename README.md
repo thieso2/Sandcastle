@@ -56,6 +56,10 @@ sandcastle ssh my-dev
 sandcastle destroy my-dev
 ```
 
+## Cloud Identity
+
+Sandcastle can inject short-lived GCP credentials into sandboxes using OIDC and Workload Identity Federation. See [GCP OIDC Setup](docs/GCP_OIDC_SETUP.md) for the admin workflow, and [OIDC Federation](docs/OIDC_FEDERATION.md) for the architecture and security model.
+
 ## CLI Configuration
 
 The CLI stores its configuration in `~/.sandcastle/config.yaml`. You can set default preferences so you don't have to pass flags on every `sandcastle create`.

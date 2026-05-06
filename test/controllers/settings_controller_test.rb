@@ -11,6 +11,84 @@ class SettingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "PATCH update_profile ignores legacy sandbox defaults" do
+    patch update_profile_settings_path, params: {
+      user: {
+        email_address: @user.email_address,
+        default_oidc_enabled: "1"
+      },
+      tab: "sandboxes"
+    }
+
+    assert_redirected_to settings_path(anchor: "sandboxes")
+    assert_not @user.reload.default_oidc_enabled
+  end
+
+  test "PATCH update_gcp_oidc_configs creates reusable configs" do
+    patch update_gcp_oidc_configs_settings_path, params: {
+      tab: "gcp",
+      gcp_oidc_configs: {
+        "0" => {
+          name: "prod",
+          project_id: "test-project-123",
+          project_number: "123456789012",
+          workload_identity_pool_id: "sandcastle",
+          workload_identity_provider_id: "sandcastle",
+          workload_identity_location: "global"
+        }
+      }
+    }
+
+    assert_redirected_to settings_path(anchor: "gcp")
+    config = @user.gcp_oidc_configs.find_by!(name: "prod")
+    assert_equal "test-project-123", config.project_id
+    assert_equal "123456789012", config.project_number
+  end
+
+  test "GET show renders GCP config impersonation setup command" do
+    ENV["SANDCASTLE_HOST"] = "sandcastle.example.com"
+    @user.gcp_oidc_configs.create!(
+      name: "prod",
+      project_id: "test-project-123",
+      project_number: "123456789012",
+      workload_identity_pool_id: "sandcastle",
+      workload_identity_provider_id: "sandcastle"
+    )
+
+    get settings_path(anchor: "gcp")
+
+    assert_response :success
+    assert_includes @response.body, "roles/iam.workloadIdentityUser"
+    assert_includes @response.body, "attribute.user/alice"
+  ensure
+    ENV.delete("SANDCASTLE_HOST")
+  end
+
+  test "PATCH update_gcp_oidc_configs removes selected configs" do
+    config = @user.gcp_oidc_configs.create!(
+      name: "prod",
+      project_id: "test-project-123",
+      project_number: "123456789012",
+      workload_identity_pool_id: "sandcastle",
+      workload_identity_provider_id: "sandcastle"
+    )
+
+    patch update_gcp_oidc_configs_settings_path, params: {
+      tab: "gcp",
+      gcp_oidc_configs: {
+        "0" => {
+          id: config.id,
+          name: config.name,
+          project_number: config.project_number,
+          _destroy: "1"
+        }
+      }
+    }
+
+    assert_redirected_to settings_path(anchor: "gcp")
+    assert_nil @user.gcp_oidc_configs.find_by(id: config.id)
+  end
+
   test "PATCH update_persisted_paths replaces the user's persisted paths" do
     @user.persisted_paths.find_or_create_by!(path: ".claude")
     patch update_persisted_paths_settings_path, params: {

@@ -91,6 +91,7 @@ services:
       RAILS_ENV: production
       RAILS_SHOW_DETAILED_ERRORS: "true"
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      OIDC_PRIVATE_KEY_PEM: ${OIDC_PRIVATE_KEY_PEM:-}
       SANDCASTLE_HOST: dev.sand
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: mkcert
@@ -133,6 +134,7 @@ services:
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      OIDC_PRIVATE_KEY_PEM: ${OIDC_PRIVATE_KEY_PEM:-}
       SANDCASTLE_HOST: dev.sand
       SANDCASTLE_DATA_DIR: /data
       SANDCASTLE_TLS_MODE: mkcert

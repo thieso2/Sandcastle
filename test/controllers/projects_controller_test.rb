@@ -49,6 +49,17 @@ class ProjectsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to settings_path(anchor: "projects")
   end
 
+  test "DELETE destroy rejects the default project" do
+    default_project = @user.default_project
+
+    assert_no_difference -> { Project.count } do
+      delete project_path(default_project)
+    end
+
+    assert_redirected_to settings_path(anchor: "projects")
+    assert_equal "Default project cannot be deleted.", flash[:alert]
+  end
+
   test "DELETE destroy returns 404 for another user's project" do
     delete project_path(@other_project)
     assert_response :not_found

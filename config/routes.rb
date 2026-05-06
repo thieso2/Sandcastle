@@ -24,6 +24,7 @@ Rails.application.routes.draw do
     patch :update_ssh_keys
     patch :update_persisted_paths
     patch :update_injected_files
+    patch :update_gcp_oidc_configs
     delete "injected_files/:id", action: :delete_injected_file, as: :delete_injected_file
     post :generate_token
     delete "revoke_token/:id", action: :revoke_token, as: :revoke_token
@@ -132,6 +133,8 @@ Rails.application.routes.draw do
         delete :purge
         post :tailscale_connect
         delete :tailscale_disconnect
+        get :gcp_oidc_setup
+        patch :gcp_identity
         post "services/:service/start", action: :service_start, as: :service_start
         post "services/:service/stop", action: :service_stop, as: :service_stop
       end
@@ -157,9 +160,19 @@ Rails.application.routes.draw do
     resource :smb, only: [], controller: "smb" do
       patch :set_password
     end
+    resources :gcp_oidc_configs, only: [ :index, :show, :create, :update, :destroy ]
+  end
+
+  namespace :internal do
+    post "/oidc/token" => "oidc_tokens#create"
   end
 
   get "guide", to: "pages#guide"
+
+  # OIDC identity-provider endpoints — public. Used by external clouds
+  # (GCP, AWS, Azure) to verify JWTs Sandcastle mints for sandbox workloads.
+  get "/.well-known/openid-configuration" => "oidc#discovery", as: :oidc_discovery
+  get "/oauth/jwks"                       => "oidc#jwks",      as: :oidc_jwks
 
   get "up" => "rails/health#show", as: :rails_health_check
 end

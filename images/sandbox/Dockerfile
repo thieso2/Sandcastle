@@ -2,6 +2,12 @@
 # Changes here (entrypoint, config, scripts) build in seconds.
 # To rebuild the base: trigger the "Rebuild Sandbox Base Image" workflow
 # or change files in images/sandbox/base/.
+FROM golang:1.26-alpine AS oidc-helper-builder
+WORKDIR /build
+COPY oidc-helper/ .
+RUN go test ./... \
+    && CGO_ENABLED=0 go build -ldflags="-s -w" -o sandcastle-oidc .
+
 FROM ghcr.io/thieso2/sandcastle-sandbox-base:latest
 
 ARG SANDCASTLE_VERSION=dev
@@ -26,6 +32,18 @@ RUN apt-mark hold docker-ce docker-ce-cli containerd.io docker-buildx-plugin doc
     && curl -fsSL "https://github.com/opencontainers/runc/releases/download/${RUNC_VERSION}/runc.${ARCH}" \
        -o /usr/bin/runc \
     && chmod +x /usr/bin/runc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Google Cloud CLI. Sandcastle injects external-account credentials for GCP
+# sandboxes, and gcloud picks them up through CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE.
+RUN apt-get update \
+    && apt-get install -y apt-transport-https ca-certificates gnupg curl \
+    && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+       | gpg --batch --yes --dearmor -o /usr/share/keyrings/cloud.google.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+       > /etc/apt/sources.list.d/google-cloud-sdk.list \
+    && apt-get update \
+    && apt-get install -y google-cloud-cli \
     && rm -rf /var/lib/apt/lists/*
 
 # Bake version into the image
@@ -60,7 +78,8 @@ COPY entrypoint.sh /entrypoint.sh
 COPY docker-restart.sh /usr/local/bin/docker-restart
 COPY sc-tmux.sh /usr/local/bin/sc-tmux
 COPY sc-install-brew.sh /usr/local/bin/sc-install-brew
-RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart /usr/local/bin/sc-tmux /usr/local/bin/sc-install-brew
+COPY --from=oidc-helper-builder /build/sandcastle-oidc /usr/local/bin/sandcastle-oidc
+RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart /usr/local/bin/sc-tmux /usr/local/bin/sc-install-brew /usr/local/bin/sandcastle-oidc
 
 COPY startchrome.sh /usr/local/bin/google-chrome
 RUN chmod +x /usr/local/bin/google-chrome \

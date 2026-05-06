@@ -23,6 +23,7 @@
         { id: "profile",   label: "Profile" },
         { id: "tokens",    label: "API Tokens" },
         { id: "sandboxes", label: "Sandboxes" },
+        { id: "gcp",       label: "GCP" },
         { id: "projects",  label: "Projects" },
         { id: "network",   label: "Network" },
         { id: "files",     label: "Files & Keys" },
@@ -180,67 +181,10 @@
 
   <%# ══════ Sandboxes tab ══════ %>
   <div data-tabs-target="panel" data-tab-id="sandboxes" role="tabpanel" hidden>
-    <%# ── Sandbox Defaults Section ── %>
     <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">Sandbox Defaults</h2>
-      <p class="text-sm text-gray-500 mb-4">
-        Pre-checked options on the "Create Sandcastle" form. You can still
-        override any of these when creating an individual sandbox.
-      </p>
-
-      <%= form_with model: @user, url: update_profile_settings_path, method: :patch, class: "space-y-4" do |f| %>
-        <div>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <%= f.check_box :default_vnc_enabled, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
-            Enable VNC display server
-          </label>
-          <p class="mt-1 text-xs text-gray-500 ml-6">Start a virtual display (Xvnc) for GUI apps and browser access.</p>
-        </div>
-
-        <div>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <%= f.check_box :default_mount_home, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
-            Mount persistent home directory
-          </label>
-          <p class="mt-1 text-xs text-gray-500 ml-6">Persist <code class="bg-gray-100 px-1 rounded font-mono">~/</code> across sandboxes.</p>
-        </div>
-
-        <div>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <%= f.check_box :default_docker_enabled, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
-            Start Docker daemon (DinD)
-          </label>
-          <p class="mt-1 text-xs text-gray-500 ml-6">Enables Docker-in-Docker inside each new sandbox.</p>
-        </div>
-
-        <div>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <%= f.check_box :default_ssh_start_tmux, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
-            Start tmux on SSH login
-          </label>
-          <p class="mt-1 text-xs text-gray-500 ml-6">When SSHing in, automatically attach to a shared <code class="bg-gray-100 px-1 rounded font-mono">tmux</code> session so your work survives disconnects.</p>
-        </div>
-
-        <div>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-            <%= f.check_box :default_smb_enabled, class: "rounded border-gray-300 text-blue-600 focus:ring-blue-500" %>
-            Enable SMB file sharing
-          </label>
-          <p class="mt-1 text-xs text-gray-500 ml-6">Mount home/persisted as a network drive via SMB3 over Tailscale. Requires Tailscale enabled and an SMB password set in the Network tab.</p>
-        </div>
-
-        <div>
-          <%= f.label :default_data_path, "Default data path", class: "block text-sm font-medium text-gray-700 mb-1" %>
-          <%= f.text_field :default_data_path,
-                placeholder: "e.g., . (all user data) or projects",
-                class: "block w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono" %>
-          <p class="mt-1 text-xs text-gray-500">Mount this directory to <code class="bg-gray-100 px-1 rounded font-mono">/persisted</code> in new sandboxes. Leave blank to disable.</p>
-        </div>
-
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-          Save Defaults
-        </button>
-      <% end %>
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">Sandbox Defaults</h2>
+      <p class="text-sm text-gray-500 mb-4">Sandbox defaults now live on projects. Edit your default project to change the options used when no project is selected.</p>
+      <%= link_to "Edit Default Project", edit_project_path(@user.default_project), class: "inline-flex px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm" %>
     </div>
 
     <%# ── Terminal Section ── %>
@@ -373,6 +317,129 @@
     </div>
   </div>
 
+  <%# ══════ GCP tab ══════ %>
+  <div data-tabs-target="panel" data-tab-id="gcp" role="tabpanel" hidden>
+    <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-2">GCP Identity Configs</h2>
+      <p class="text-sm text-gray-500 mb-4">Create one reusable Workload Identity config per GCP project. Sandboxes choose one config and add their own service account, scope, and roles.</p>
+
+      <%= form_with url: update_gcp_oidc_configs_settings_path, method: :patch, class: "space-y-4" do %>
+        <%= hidden_field_tag :tab, "gcp" %>
+        <% rows = @gcp_oidc_setups.map(&:first) + [ GcpOidcConfig.new(workload_identity_location: "global") ] %>
+        <% rows.each_with_index do |config, index| %>
+          <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
+            <%= hidden_field_tag "gcp_oidc_configs[#{index}][id]", config.id if config.persisted? %>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][name]", config.name,
+                      placeholder: "prod",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Project ID</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][project_id]", config.project_id,
+                      placeholder: "my-gcp-project",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Project number</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][project_number]", config.project_number,
+                      placeholder: "123456789012",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Pool ID</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][workload_identity_pool_id]", config.workload_identity_pool_id,
+                      placeholder: "sandcastle",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Provider ID</label>
+                <%= text_field_tag "gcp_oidc_configs[#{index}][workload_identity_provider_id]", config.workload_identity_provider_id,
+                      placeholder: "sandcastle",
+                      class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Location</label>
+                <%= hidden_field_tag "gcp_oidc_configs[#{index}][workload_identity_location]", "global" %>
+                <div class="block w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-mono text-gray-700">global</div>
+                <p class="mt-1 text-xs text-gray-500">GCP Workload Identity pools are global.</p>
+              </div>
+            </div>
+
+            <% default_service_account_email = config.default_service_account_email.presence || GcpOidcConfig.default_service_account_email_for(config.project_id) %>
+            <div class="rounded border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+              <div class="text-xs font-medium text-blue-700 mb-1">Default Sandcastle service account</div>
+              <code class="font-mono text-xs break-all"><%= default_service_account_email.presence || "Set a project ID to generate the default service account email." %></code>
+              <p class="mt-1 text-xs text-blue-700">Sandboxes use this read-only service account unless they set a custom override.</p>
+            </div>
+
+            <% if config.persisted? %>
+              <% setup = @gcp_oidc_setups.find { |candidate, _| candidate.id == config.id }&.last %>
+              <% if setup&.dig(:shell).present? %>
+                <% oidc_setup_commands = [
+                  setup[:commands][:enable_apis],
+                  setup[:commands][:create_pool],
+                  setup[:commands][:create_provider]
+                ].compact.join("\n") %>
+                <% role_setup_commands = [
+                  setup[:commands][:create_default_service_account],
+                  *Array(setup[:commands][:grant_default_roles]),
+                  setup[:commands][:bind_service_account]
+                ].compact.join("\n") %>
+
+                <div class="grid grid-cols-1 gap-3">
+                  <% if oidc_setup_commands.present? %>
+                    <div data-controller="clipboard">
+                      <div class="flex items-center justify-between gap-3 mb-1">
+                        <div class="text-xs font-medium text-gray-500">OIDC setup commands</div>
+                        <button type="button"
+                                data-clipboard-target="button"
+                                data-action="clipboard#copy"
+                                class="px-2 py-1 rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-50">
+                          Copy
+                        </button>
+                      </div>
+                      <textarea readonly spellcheck="false" wrap="off"
+                                data-clipboard-target="source"
+                                class="block w-full h-32 overflow-x-auto resize-y rounded border border-gray-200 bg-gray-950 text-gray-100 p-3 text-xs leading-relaxed font-mono"><%= oidc_setup_commands %></textarea>
+                    </div>
+                  <% end %>
+
+                  <% if role_setup_commands.present? %>
+                    <div data-controller="clipboard">
+                      <div class="flex items-center justify-between gap-3 mb-1">
+                        <div class="text-xs font-medium text-gray-500">Default service account, roles, and impersonation</div>
+                        <button type="button"
+                                data-clipboard-target="button"
+                                data-action="clipboard#copy"
+                                class="px-2 py-1 rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-50">
+                          Copy
+                        </button>
+                      </div>
+                      <textarea readonly spellcheck="false" wrap="off"
+                                data-clipboard-target="source"
+                                class="block w-full h-40 overflow-x-auto resize-y rounded border border-gray-200 bg-gray-950 text-gray-100 p-3 text-xs leading-relaxed font-mono"><%= role_setup_commands %></textarea>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+              <label class="inline-flex items-center gap-2 text-sm text-red-700">
+                <%= check_box_tag "gcp_oidc_configs[#{index}][_destroy]", "1", false, class: "rounded border-gray-300 text-red-600 focus:ring-red-500" %>
+                Remove this config
+              </label>
+            <% end %>
+          </div>
+        <% end %>
+
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+          Save GCP Configs
+        </button>
+      <% end %>
+    </div>
+  </div>
+
   <%# ══════ Projects tab ══════ %>
   <div data-tabs-target="panel" data-tab-id="projects" role="tabpanel" hidden>
     <div class="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
@@ -387,9 +454,14 @@
           <% @projects.each do |project| %>
             <li class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-gray-50">
               <div class="min-w-0 flex-1">
-                <div class="font-mono font-medium text-gray-900"><%= project.name %></div>
+                <div class="font-mono font-medium text-gray-900">
+                  <%= project.name %>
+                  <% if project.default_project? %>
+                    <span class="ml-2 rounded bg-blue-50 px-2 py-0.5 text-xs font-sans text-blue-700">default</span>
+                  <% end %>
+                </div>
                 <div class="text-xs text-gray-500 mt-0.5">
-                  <code class="bg-gray-100 px-1 rounded font-mono"><%= project.path %></code>
+                  <code class="bg-gray-100 px-1 rounded font-mono"><%= project.path.presence || "no project path" %></code>
                   · <%= project.image %>
                   <% flags = [] %>
                   <% flags << "tailscale" if project.tailscale %>
@@ -402,9 +474,11 @@
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <%= link_to "Edit", edit_project_path(project), class: "px-3 py-1 text-sm text-gray-700 bg-gray-100 rounded hover:bg-gray-200" %>
-                <%= button_to "Delete", project_path(project), method: :delete,
-                      data: { turbo_confirm: "Delete project #{project.name}? Existing sandboxes are unaffected." },
-                      class: "px-3 py-1 text-sm text-red-700 bg-red-50 rounded hover:bg-red-100 border-0 cursor-pointer" %>
+                <% unless project.default_project? %>
+                  <%= button_to "Delete", project_path(project), method: :delete,
+                        data: { turbo_confirm: "Delete project #{project.name}? Existing sandboxes are unaffected." },
+                        class: "px-3 py-1 text-sm text-red-700 bg-red-50 rounded hover:bg-red-100 border-0 cursor-pointer" %>
+                <% end %>
               </div>
             </li>
           <% end %>

@@ -1,4 +1,6 @@
 <%= form_with model: @project, class: "space-y-6" do |form| %>
+  <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
+
   <div class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
     <h2 class="text-lg font-semibold text-gray-900">Project</h2>
 
@@ -9,7 +11,7 @@
 
     <div>
       <%= form.label :path, "Project Subdir", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= form.text_field :path, required: true, placeholder: "e.g., projects/myapp", class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+      <%= form.text_field :path, required: !@project.default_project?, placeholder: @project.default_project? ? "Optional for default project" : "e.g., projects/myapp", class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
       <p class="mt-1 text-xs text-gray-500">This subdir will be mounted as both <code class="bg-gray-100 px-1 rounded font-mono">$HOME</code> and <code class="bg-gray-100 px-1 rounded font-mono">/persisted</code> for sandboxes created from the project.</p>
     </div>
 
@@ -21,6 +23,26 @@
 
   <div class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
     <h2 class="text-lg font-semibold text-gray-900">Defaults</h2>
+
+    <% if @project.default_project? %>
+      <label class="flex items-start gap-3 cursor-pointer">
+        <%= form.check_box :mount_home, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+        <div class="flex-1">
+          <div class="text-sm font-medium text-gray-900">Mount persistent home directory</div>
+          <p class="text-xs text-gray-500">Applies when a sandbox is created without selecting a named project.</p>
+        </div>
+      </label>
+
+      <div>
+        <%= form.label :home_path, "Home Subdir", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= form.text_field :home_path, placeholder: "e.g., projects/myapp", class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+      </div>
+
+      <div>
+        <%= form.label :data_path, "Data Subpath", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= form.text_field :data_path, placeholder: "e.g., . or projects", class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+      </div>
+    <% end %>
 
     <label class="flex items-start gap-3 cursor-pointer">
       <%= form.check_box :tailscale, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
@@ -68,6 +90,52 @@
         <div class="text-sm font-medium text-gray-900">Enable SMB file sharing</div>
       </div>
     </label>
+  </div>
+
+  <div class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+    <h2 class="text-lg font-semibold text-gray-900">Cloud Identity</h2>
+
+    <label class="flex items-start gap-3 cursor-pointer">
+      <%= form.check_box :oidc_enabled, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+      <div class="flex-1">
+        <div class="text-sm font-medium text-gray-900">Enable OIDC identity tokens</div>
+      </div>
+    </label>
+
+    <label class="flex items-start gap-3 cursor-pointer">
+      <%= form.check_box :gcp_oidc_enabled, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+      <div class="flex-1">
+        <div class="text-sm font-medium text-gray-900">Configure GCP credentials</div>
+      </div>
+    </label>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="md:col-span-2">
+        <%= form.label :gcp_oidc_config_id, "GCP identity config", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= form.select :gcp_oidc_config_id,
+              options_for_select([["None", ""]] + (@gcp_oidc_configs || []).map { |config| [config.name, config.id] }, @project.gcp_oidc_config_id),
+              {},
+              class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+      </div>
+
+      <div class="md:col-span-2">
+        <%= form.label :gcp_service_account_email, "Custom service account override", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= form.email_field :gcp_service_account_email, placeholder: "Leave blank for config default", class: "w-full px-3 py-2 border border-gray-300 rounded-lg font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+      </div>
+
+      <div>
+        <%= form.label :gcp_principal_scope, "Principal scope", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= form.select :gcp_principal_scope,
+              options_for_select([["All my sandboxes", "user"], ["Each sandbox", "sandbox"]], @project.gcp_principal_scope.presence || "user"),
+              {},
+              class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+      </div>
+
+      <div>
+        <%= label_tag "project_gcp_roles_text", "Project roles", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= text_field_tag "project[gcp_roles_text]", @project.gcp_roles_list.join(", "), id: "project_gcp_roles_text", placeholder: "roles/viewer, roles/storage.objectViewer", class: "w-full px-3 py-2 border border-gray-300 rounded-lg font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+      </div>
+    </div>
   </div>
 
   <div class="flex items-center justify-between pt-4">

@@ -468,6 +468,7 @@ DEPENDENCIES
   image_processing (~> 1.2)
   importmap-rails
   jbuilder
+  jwt (~> 3.1)
   mission_control-jobs
   omniauth (~> 2.1)
   omniauth-github (~> 2.0)

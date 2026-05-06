@@ -16,24 +16,31 @@ import (
 )
 
 var (
-	sandboxImage         string
-	sandboxSnapshot      string
-	sandboxFromSnapshot  string
-	sandboxRestoreLayers string
-	sandboxTailscale     bool
-	sandboxNoConnect     bool
-	sandboxRemove        bool
-	sandboxHome          bool
-	sandboxHomeSubdir    string
-	sandboxProject       string
-	sandboxProjectSubdir string
-	sandboxData          string
-	sandboxNoVNC         bool
-	sandboxVNCGeometry   string
-	sandboxVNCDepth      int
-	sandboxNoDocker      bool
-	sandboxSMB           bool
-	listArchived         bool
+	sandboxImage             string
+	sandboxSnapshot          string
+	sandboxFromSnapshot      string
+	sandboxRestoreLayers     string
+	sandboxTailscale         bool
+	sandboxNoConnect         bool
+	sandboxRemove            bool
+	sandboxHome              bool
+	sandboxHomeSubdir        string
+	sandboxProject           string
+	sandboxProjectSubdir     string
+	sandboxData              string
+	sandboxNoVNC             bool
+	sandboxVNCGeometry       string
+	sandboxVNCDepth          int
+	sandboxNoDocker          bool
+	sandboxSMB               bool
+	sandboxOIDC              bool
+	sandboxNoOIDC            bool
+	sandboxGCP               bool
+	sandboxGCPConfig         string
+	sandboxGCPServiceAccount string
+	sandboxGCPScope          string
+	sandboxGCPRoles          []string
+	listArchived             bool
 )
 
 func init() {
@@ -69,6 +76,13 @@ func init() {
 	createCmd.Flags().IntVar(&sandboxVNCDepth, "vnc-depth", 0, "VNC color depth: 8, 16, 24, or 32")
 	createCmd.Flags().BoolVar(&sandboxNoDocker, "no-docker", false, "Disable Docker daemon (DinD) inside sandbox")
 	createCmd.Flags().BoolVar(&sandboxSMB, "smb", false, "Enable SMB file sharing (requires Tailscale and SMB password set via 'sandcastle smb set-password')")
+	createCmd.Flags().BoolVar(&sandboxOIDC, "oidc", false, "Enable sandbox OIDC identity tokens")
+	createCmd.Flags().BoolVar(&sandboxNoOIDC, "no-oidc", false, "Disable sandbox OIDC identity tokens")
+	createCmd.Flags().BoolVar(&sandboxGCP, "gcp", false, "Configure GCP credentials for this sandbox")
+	createCmd.Flags().StringVar(&sandboxGCPConfig, "gcp-config", "", "GCP identity config name or ID")
+	createCmd.Flags().StringVar(&sandboxGCPServiceAccount, "gcp-service-account", "", "GCP service account email to impersonate")
+	createCmd.Flags().StringVar(&sandboxGCPScope, "gcp-scope", "user", "GCP principal scope: user or sandbox")
+	createCmd.Flags().StringArrayVar(&sandboxGCPRoles, "gcp-role", nil, "GCP project IAM role hint; may be repeated")
 }
 
 var createCmd = &cobra.Command{
@@ -148,6 +162,36 @@ Flags explicitly passed on the command line take precedence over environment var
 				restoreLayers = append(restoreLayers, strings.TrimSpace(l))
 			}
 		}
+		if sandboxOIDC && sandboxNoOIDC {
+			return fmt.Errorf("--oidc and --no-oidc are mutually exclusive")
+		}
+		if sandboxNoOIDC && (sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "") {
+			return fmt.Errorf("--no-oidc cannot be used with GCP credential configuration")
+		}
+		if sandboxGCPScope != "sandbox" && sandboxGCPScope != "user" {
+			return fmt.Errorf("--gcp-scope must be sandbox or user")
+		}
+		var oidcEnabled *bool
+		if cmd.Flags().Changed("oidc") {
+			v := true
+			oidcEnabled = &v
+		}
+		if cmd.Flags().Changed("no-oidc") {
+			v := false
+			oidcEnabled = &v
+		}
+		var gcpConfigID int
+		if sandboxGCPConfig != "" {
+			config, err := findGcpConfig(client, sandboxGCPConfig)
+			if err != nil {
+				return err
+			}
+			gcpConfigID = config.ID
+		}
+		if oidcEnabled == nil && (sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "") {
+			v := true
+			oidcEnabled = &v
+		}
 
 		if sandboxHome && sandboxHomeSubdir != "" {
 			return fmt.Errorf("--home and --home-subdir are mutually exclusive")
@@ -157,20 +201,26 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		req := api.CreateSandboxRequest{
-			Name:          name,
-			Image:         sandboxImage,
-			FromSnapshot:  fromSnap,
-			RestoreLayers: restoreLayers,
-			Tailscale:     sandboxTailscale,
-			MountHome:     sandboxHome,
-			HomePath:      sandboxHomeSubdir,
-			DataPath:      sandboxData,
-			Temporary:     sandboxRemove,
-			VNCEnabled:    !sandboxNoVNC,
-			VNCGeometry:   sandboxVNCGeometry,
-			VNCDepth:      sandboxVNCDepth,
-			DockerEnabled: !sandboxNoDocker,
-			SMBEnabled:    sandboxSMB,
+			Name:                   name,
+			Image:                  sandboxImage,
+			FromSnapshot:           fromSnap,
+			RestoreLayers:          restoreLayers,
+			Tailscale:              sandboxTailscale,
+			MountHome:              sandboxHome,
+			HomePath:               sandboxHomeSubdir,
+			DataPath:               sandboxData,
+			Temporary:              sandboxRemove,
+			VNCEnabled:             !sandboxNoVNC,
+			VNCGeometry:            sandboxVNCGeometry,
+			VNCDepth:               sandboxVNCDepth,
+			DockerEnabled:          !sandboxNoDocker,
+			SMBEnabled:             sandboxSMB,
+			OIDCEnabled:            oidcEnabled,
+			GCPOIDCEnabled:         sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "",
+			GCPOIDCConfigID:        gcpConfigID,
+			GCPServiceAccountEmail: sandboxGCPServiceAccount,
+			GCPPrincipalScope:      sandboxGCPScope,
+			GCPRoles:               cleanStringList(sandboxGCPRoles),
 		}
 		if sandboxProject != "" {
 			req.ProjectName = sandboxProject
@@ -193,7 +243,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		// Print active options (use local flags — they reflect what was actually requested)
-		if sandboxHome || sandboxHomeSubdir != "" || sandboxProject != "" || sandboxProjectSubdir != "" || sandboxData != "" || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB {
+		if sandboxHome || sandboxHomeSubdir != "" || sandboxProject != "" || sandboxProjectSubdir != "" || sandboxData != "" || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB || sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "" {
 			if sandboxHome {
 				fmt.Println("  Home:      mounted (~/ persisted)")
 			}
@@ -240,6 +290,9 @@ Flags explicitly passed on the command line take precedence over environment var
 			}
 			if sandboxSMB {
 				fmt.Println("  SMB:       enabled")
+			}
+			if sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "" {
+				fmt.Println("  GCP:       configured")
 			}
 		}
 

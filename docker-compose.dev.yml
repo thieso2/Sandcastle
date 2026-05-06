@@ -134,6 +134,7 @@ services:
       PORT: 80
       BINDING: 0.0.0.0
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      OIDC_PRIVATE_KEY_PEM: ${OIDC_PRIVATE_KEY_PEM:-}
       SANDCASTLE_HOST: ${DEV_HOST:-localhost}
       SANDCASTLE_OPEN_ROUTING: "true"
       SANDCASTLE_TAILSCALE_USERSPACE: "true"
@@ -195,6 +196,7 @@ services:
     environment:
       RAILS_ENV: development
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:-deadbeef}
+      OIDC_PRIVATE_KEY_PEM: ${OIDC_PRIVATE_KEY_PEM:-}
       SANDCASTLE_HOST: ${DEV_HOST:-localhost}
       SANDCASTLE_TAILSCALE_USERSPACE: "true"
       SANDCASTLE_DATA_DIR: /data
