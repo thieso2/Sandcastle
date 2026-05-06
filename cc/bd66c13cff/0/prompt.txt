@@ -54,3 +54,7 @@ PATH does not work!
 thies@test-p3:~$ claudebash: command not found: claudethies@test-p3:~$ echo $PATH/usr/local/share/mise/installs/node/lts/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/binthies@test-p3:~$
 
 fix and test!
+
+---
+
+add a project CRUD in the user settings! also add a project filter to the dashboard WEB-UI.
