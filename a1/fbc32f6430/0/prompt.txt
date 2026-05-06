@@ -1,0 +1,3 @@
+~/Projects/SaaS-Bonn/cloud/cloud-IO2605 % sc ls                                                                                          [IO2605]  (iom-eph-thies-cfe9)Server: demo (https://demo.sandcastle.rocks)NAME        STATUS   CREATED           DNS                           TAILSCALE IP  IMAGE AGEp4:test     running  2026-05-06 06:18  test.p4.sandman               10.206.10.3   7h agoio26:tubu   running  2026-05-06 10:27  tubu.io26.sandman             10.206.10.6   5h agopages       running  2026-04-25 08:57  pages.sandboxes.sandman       10.206.10.9   20h agosandcastle  running  2026-04-20 09:51  sandcastle.sandboxes.sandman  10.206.10.4   16d ago
+
+add a extra coklumn PROJECT and split NAME and PROJECT
