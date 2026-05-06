@@ -127,6 +127,28 @@
                 class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
           <p class="mt-1 text-xs text-gray-500">Leave empty for the root data directory, or specify a subpath</p>
         </div>
+
+        <div>
+          <%= form.label :storage_mode, "Write Behavior", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <% storage_options = [
+               [ "Write directly to persistent storage", "direct" ],
+               @btrfs_available ?
+                 [ "Review changes before committing", "snapshot" ] :
+                 [ "Review changes before committing", "snapshot", { disabled: true } ]
+             ] %>
+          <%= form.select :storage_mode,
+                options_for_select(storage_options, "direct"),
+                {},
+                class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
+          <p class="mt-1 text-xs text-gray-500">
+            Direct writes update the master copy immediately.
+            <% if @btrfs_available %>
+              Review mode will use a writable snapshot branch for mounted storage.
+            <% else %>
+              Review mode requires BTRFS support on the data filesystem.
+            <% end %>
+          </p>
+        </div>
       </div>
     </div>
 

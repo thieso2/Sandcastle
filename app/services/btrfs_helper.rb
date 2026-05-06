@@ -1,3 +1,5 @@
+require "shellwords"
+
 class BtrfsHelper
   class Error < StandardError; end
 
@@ -14,7 +16,7 @@ class BtrfsHelper
       parent = File.dirname(snapshot_path)
       FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot -r #{source_path} #{snapshot_path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot -r #{sh(source_path)} #{sh(snapshot_path)}")
       unless status&.success?
         raise Error, "Failed to create BTRFS snapshot #{snapshot_path}: #{output}"
       end
@@ -31,7 +33,12 @@ class BtrfsHelper
     def delete_snapshot(snapshot_path)
       return false unless Dir.exist?(snapshot_path)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume delete #{snapshot_path}")
+      # Read-only BTRFS snapshots can fail deletion on some kernels/tools unless
+      # their ro property is cleared first. This is harmless for writable
+      # subvolumes and best-effort for plain directories.
+      run_sudo_command("/usr/bin/btrfs property set -ts #{sh(snapshot_path)} ro false")
+
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume delete #{sh(snapshot_path)}")
       unless status&.success?
         raise Error, "Failed to delete BTRFS snapshot #{snapshot_path}: #{output}"
       end
@@ -48,7 +55,7 @@ class BtrfsHelper
     def subvolume_size(path)
       return 0 unless Dir.exist?(path)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume show #{path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume show #{sh(path)}")
       return 0 unless status&.success?
 
       # Try to parse "Exclusive referenced:" from output
@@ -88,7 +95,7 @@ class BtrfsHelper
       parent = File.dirname(target_path)
       FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot #{snapshot_path} #{target_path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot #{sh(snapshot_path)} #{sh(target_path)}")
       unless status&.success?
         raise Error, "Failed to restore BTRFS snapshot to #{target_path}: #{output}"
       end
@@ -102,13 +109,37 @@ class BtrfsHelper
       raise Error, "Snapshot restore failed: #{e.message}"
     end
 
+    # Ensure a path is a BTRFS subvolume suitable as a snapshot source.
+    # If the path does not exist, create it as a subvolume. If it already
+    # exists as a plain directory, fail rather than hiding that future snapshot
+    # operations would not actually work.
+    def ensure_subvolume!(path, description: "path")
+      raise Error, "BTRFS is not available" unless btrfs?
+
+      if subvolume?(path)
+        ensure_owned(path)
+        return true
+      end
+
+      if Dir.exist?(path)
+        raise Error, "#{description} must be a BTRFS subvolume for snapshot storage: #{path}"
+      end
+
+      create_subvolume!(path)
+    rescue Error
+      raise
+    rescue StandardError => e
+      raise Error, "Failed to ensure BTRFS subvolume #{path}: #{e.message}"
+    end
+
     # Check if a path is on a BTRFS filesystem AND we can run sudo btrfs commands.
     # Inside containers, the bind mount preserves the BTRFS filesystem type but
     # sudo is not available, so BTRFS operations would silently fail.
     def btrfs?(path = DATA_DIR)
       return @is_btrfs if defined?(@is_btrfs)
 
-      is_btrfs_fs = system("stat -f -c %T #{path} 2>/dev/null | grep -q '^btrfs$'")
+      fs_type = `stat -f -c %T #{sh(path)} 2>/dev/null`.strip
+      is_btrfs_fs = fs_type == "btrfs"
       has_sudo = is_btrfs_fs && system("/usr/bin/sudo -n /usr/bin/btrfs --version >/dev/null 2>&1")
       @is_btrfs = has_sudo == true
     rescue StandardError => e
@@ -204,11 +235,35 @@ class BtrfsHelper
       end
     end
 
+    def create_user_persisted_subvolume(username, path)
+      create_user_subvolume(username)
+
+      persisted_dir = "#{DATA_DIR}/users/#{username}/persisted/#{path}".chomp("/")
+
+      if btrfs?
+        if subvolume?(persisted_dir)
+          ensure_owned(persisted_dir)
+          return true
+        end
+
+        if Dir.exist?(persisted_dir)
+          ensure_owned(persisted_dir)
+          return false
+        end
+
+        create_subvolume(persisted_dir)
+      else
+        FileUtils.mkdir_p(persisted_dir) unless Dir.exist?(persisted_dir)
+        ensure_owned(persisted_dir)
+        false
+      end
+    end
+
     # Check if a path is a BTRFS subvolume
     def subvolume?(path)
       return false unless Dir.exist?(path)
 
-      result = system("/usr/bin/sudo /usr/bin/btrfs subvolume show #{path} >/dev/null 2>&1")
+      result = system("/usr/bin/sudo", "-n", "/usr/bin/btrfs", "subvolume", "show", path, out: File::NULL, err: File::NULL)
       result == true
     rescue StandardError => e
       Rails.logger.warn("BTRFS subvolume check failed for #{path}: #{e.message}")
@@ -224,7 +279,7 @@ class BtrfsHelper
       FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
 
       # Create subvolume using sudo with full path
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{path}")
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{sh(path)}")
 
       unless status.success?
         raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
@@ -241,11 +296,25 @@ class BtrfsHelper
       false
     end
 
+    def create_subvolume!(path)
+      parent = File.dirname(path)
+      FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
+
+      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{sh(path)}")
+      unless status&.success?
+        raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
+      end
+
+      ensure_owned(path)
+      Rails.logger.info("Created BTRFS subvolume: #{path}")
+      true
+    end
+
     # Ensure the path is owned by the current process user
     def ensure_owned(path)
       return if File.stat(path).uid == Process.uid
 
-      run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{path}")
+      run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{sh(path)}")
     end
 
     # Run a command with sudo
@@ -255,6 +324,10 @@ class BtrfsHelper
       [ output, $? ]
     rescue StandardError => e
       [ e.message, nil ]
+    end
+
+    def sh(value)
+      Shellwords.escape(value.to_s)
     end
   end
 end

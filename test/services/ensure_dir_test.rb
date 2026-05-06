@@ -20,28 +20,27 @@ class EnsureDirTest < ActiveSupport::TestCase
   end
 
   test "ensure_dir self-heals when parent is not writable" do
-    # Create parent dir, then make it unwritable
     parent = File.join(@testdir, "users", "thies")
     FileUtils.mkdir_p(parent)
-    FileUtils.chmod(0o555, parent)
-
-    # Verify mkdir would fail
     child = File.join(parent, "some-subdir")
-    assert_raises(Errno::EACCES) { FileUtils.mkdir_p(child) }
 
-    # ensure_dir should catch EACCES and attempt docker_chown.
-    # In test env the mock container doesn't actually fix permissions,
-    # so the second mkdir_p will also fail. Verify the flow is correct
-    # by checking that the Error mentions docker_run_fix.
+    calls = 0
+    original_mkdir_p = FileUtils.method(:mkdir_p)
+    FileUtils.define_singleton_method(:mkdir_p) do |path, *args, **kwargs|
+      calls += 1 if path == child
+      raise Errno::EACCES, path if path == child
+
+      original_mkdir_p.call(path, *args, **kwargs)
+    end
+
     error = assert_raises(Errno::EACCES, SandboxManager::Error) do
       @manager.send(:ensure_dir, child)
     end
-    # The flow tried: mkdir_p → EACCES → docker_chown → mkdir_p again
-    # With mock Docker it can't actually fix perms, so second mkdir_p fails too
+
+    assert_equal 2, calls, "ensure_dir should retry mkdir_p after docker_chown"
     assert error.is_a?(Errno::EACCES) || error.is_a?(SandboxManager::Error)
   ensure
-    # Restore permissions so teardown can clean up
-    FileUtils.chmod(0o755, parent) if parent && Dir.exist?(parent)
+    FileUtils.define_singleton_method(:mkdir_p, original_mkdir_p) if original_mkdir_p
   end
 
   test "docker_run_fix creates container with correct bind mount" do

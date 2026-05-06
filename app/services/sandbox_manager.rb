@@ -5,7 +5,7 @@ class SandboxManager
 
   class Error < StandardError; end
 
-  def create(user:, name:, image: DEFAULT_IMAGE, tailscale: false, mount_home: false, home_path: nil, data_path: nil, temporary: false)
+  def create(user:, name:, image: DEFAULT_IMAGE, tailscale: false, mount_home: false, home_path: nil, data_path: nil, temporary: false, storage_mode: "direct")
     # Build sandbox record (not saved yet)
     sandbox = user.sandboxes.build(
       name: name,
@@ -14,7 +14,8 @@ class SandboxManager
       mount_home: mount_home,
       home_path: home_path,
       data_path: data_path,
-      temporary: temporary
+      temporary: temporary,
+      storage_mode: storage_mode.presence || "direct"
     )
 
     # Validate before doing expensive operations
@@ -25,6 +26,11 @@ class SandboxManager
 
     # Now safe to save
     sandbox.save!
+    sync_mount_records(user, sandbox)
+    if sandbox.storage_mode == "snapshot"
+      prepare_snapshot_mounts(sandbox)
+      sandbox.sandbox_mounts.reload.each { |mount| prepare_bind_mount(mount.source_path) }
+    end
 
     # Pull image
     ensure_image(image)
@@ -144,29 +150,48 @@ class SandboxManager
 
     home_dir = sandbox_home_dir(user, sandbox)
     if home_dir
-      BtrfsHelper.create_user_home_subvolume(user.name, sandbox.home_path) if sandbox.home_persisted?
-      dir = home_dir
-      ensure_dir(dir)
-      prepare_bind_mount(dir)
+      if sandbox.storage_mode == "snapshot"
+        BtrfsHelper.ensure_subvolume!(home_dir, description: "home directory")
+      else
+        BtrfsHelper.create_user_home_subvolume(user.name, sandbox.home_path) if sandbox.home_persisted?
+        ensure_dir(home_dir)
+        prepare_bind_mount(home_dir)
+      end
     end
     if sandbox.data_path.present?
       # Create BTRFS subvolume for data directory if on BTRFS
       BtrfsHelper.create_user_data_subvolume(user.name, sandbox.data_path)
 
       dir = "#{DATA_DIR}/users/#{user.name}/data/#{sandbox.data_path}".chomp("/")
-      ensure_dir(dir)
-      prepare_bind_mount(dir)
+      if sandbox.storage_mode == "snapshot"
+        BtrfsHelper.ensure_subvolume!(dir, description: "data directory")
+      else
+        ensure_dir(dir)
+        prepare_bind_mount(dir)
+      end
     end
     # Per-user persisted paths (e.g. .claude, .codex) — only when full home isn't mounted
     if !sandbox.home_persisted?
       user.persisted_paths.find_each do |pp|
         dir = "#{DATA_DIR}/users/#{user.name}/persisted/#{pp.path}"
-        ensure_dir(dir)
-        prepare_bind_mount(dir)
+        if sandbox.storage_mode == "snapshot"
+          BtrfsHelper.ensure_subvolume!(dir, description: "persisted path #{pp.path}")
+        else
+          BtrfsHelper.create_user_persisted_subvolume(user.name, pp.path)
+          ensure_dir(dir)
+          prepare_bind_mount(dir)
+        end
       end
+    end
+    if sandbox.persisted?
+      sync_mount_records(user, sandbox)
+      prepare_snapshot_mounts(sandbox) if sandbox.storage_mode == "snapshot"
+      sandbox.sandbox_mounts.reload.each { |mount| prepare_bind_mount(mount.source_path) }
     end
   rescue Errno::EACCES, Errno::ENOENT => e
     raise Error, "Failed to create mount directories: #{e.message}"
+  rescue BtrfsHelper::Error => e
+    raise Error, "Failed to prepare snapshot storage: #{e.message}"
   end
 
   def destroy(sandbox:, archive: false)
@@ -213,6 +238,7 @@ class SandboxManager
         oidc_secret_rotated_at: nil
       )
     else
+      cleanup_snapshot_mounts(sandbox)
       sandbox.update!(status: "destroyed", container_id: nil, oidc_secret_digest: nil, oidc_secret_rotated_at: nil)
     end
 
@@ -1072,6 +1098,9 @@ PROFILE_EOF
   end
 
   def volume_binds(user, sandbox)
+    mounts = sandbox.sandbox_mounts.to_a
+    return mounts.map(&:bind_spec) if mounts.any?
+
     binds = []
     if (home_dir = sandbox_home_dir(user, sandbox))
       binds << "#{home_dir}:/home/#{user.name}"
@@ -1095,5 +1124,46 @@ PROFILE_EOF
     return if sandbox.home_path.blank?
 
     "#{DATA_DIR}/users/#{user.name}/home/#{sandbox.home_path}".chomp("/")
+  end
+
+  def sync_mount_records(user, sandbox)
+    return unless sandbox.persisted?
+
+    records = SandboxMountBuilder.new(user: user, sandbox: sandbox).mount_attributes
+
+    sandbox.sandbox_mounts.destroy_all
+    records.each { |attrs| sandbox.sandbox_mounts.create!(attrs) }
+  end
+
+  def prepare_snapshot_mounts(sandbox)
+    raise Error, "Snapshot storage requires BTRFS support" unless BtrfsHelper.btrfs?
+
+    sandbox.sandbox_mounts.where(storage_mode: "snapshot").find_each do |mount|
+      unless BtrfsHelper.subvolume?(mount.master_path)
+        raise Error, "#{mount.mount_type} source is not a BTRFS subvolume: #{mount.master_path}"
+      end
+
+      BtrfsHelper.snapshot_subvolume(mount.master_path, mount.base_path) unless Dir.exist?(mount.base_path)
+      BtrfsHelper.restore_subvolume(mount.base_path, mount.work_path) unless Dir.exist?(mount.work_path)
+    end
+  rescue BtrfsHelper::Error => e
+    raise Error, e.message
+  end
+
+  def cleanup_snapshot_mounts(sandbox)
+    sandbox.sandbox_mounts.where(storage_mode: "snapshot").find_each do |mount|
+      [ mount.work_path, mount.base_path ].compact.each do |path|
+        next unless Dir.exist?(path)
+
+        if BtrfsHelper.subvolume?(path)
+          BtrfsHelper.delete_snapshot(path)
+        else
+          FileUtils.rm_rf(path)
+        end
+      end
+      mount.update!(state: "discarded")
+    end
+  rescue BtrfsHelper::Error => e
+    Rails.logger.warn("cleanup_snapshot_mounts failed for sandbox #{sandbox.id}: #{e.message}")
   end
 end

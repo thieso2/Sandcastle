@@ -5,10 +5,12 @@ class Sandbox < ApplicationRecord
   belongs_to :gcp_oidc_config, optional: true
   has_many :routes, dependent: :destroy
   has_many :container_metrics, dependent: :delete_all
+  has_many :sandbox_mounts, dependent: :destroy
 
   OIDC_TOKEN_PREFIX = "sc_oidc".freeze
   VNC_GEOMETRIES = %w[1280x900 1366x768 1440x900 1600x900 1920x1080 2560x1440].freeze
   VNC_DEPTHS = [ 8, 16, 24, 32 ].freeze
+  STORAGE_MODES = %w[direct snapshot].freeze
   GCP_PRINCIPAL_SCOPES = %w[sandbox user].freeze
   GCP_SERVICE_ACCOUNT_EMAIL_FORMAT = /\A[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.iam\.gserviceaccount\.com\z/
 
@@ -19,6 +21,7 @@ class Sandbox < ApplicationRecord
   validates :name, format: { with: /\A[a-z][a-z0-9_-]{0,62}\z/, message: "must be lowercase alphanumeric" },
     unless: -> { status.in?(%w[destroyed archived]) }
   validates :status, inclusion: { in: %w[pending running stopped destroyed archived] }
+  validates :storage_mode, inclusion: { in: STORAGE_MODES }
   validates :image, presence: true
   validates :vnc_geometry, inclusion: { in: VNC_GEOMETRIES }
   validates :vnc_depth, inclusion: { in: VNC_DEPTHS }

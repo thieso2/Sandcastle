@@ -15,6 +15,7 @@ type Sandbox struct {
 	HomePath               string         `json:"home_path,omitempty"`
 	DataPath               string         `json:"data_path,omitempty"`
 	ProjectPath            string         `json:"project_path,omitempty"`
+	StorageMode            string         `json:"storage_mode,omitempty"`
 	Temporary              bool           `json:"temporary"`
 	Tailscale              bool           `json:"tailscale"`
 	TailscaleIP            string         `json:"tailscale_ip,omitempty"`
@@ -213,6 +214,7 @@ type CreateSandboxRequest struct {
 	MountHome              bool     `json:"mount_home,omitempty"`
 	HomePath               string   `json:"home_path,omitempty"`
 	DataPath               string   `json:"data_path,omitempty"`
+	StorageMode            string   `json:"storage_mode,omitempty"`
 	Temporary              bool     `json:"temporary,omitempty"`
 	VNCEnabled             bool     `json:"vnc_enabled"`
 	VNCGeometry            string   `json:"vnc_geometry,omitempty"`
