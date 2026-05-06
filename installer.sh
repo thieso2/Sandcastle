@@ -4005,12 +4005,16 @@ INITDB
 
     if [ "$FRESH_INSTALL" = true ]; then
       info "Waiting for app to be ready..."
+      local health_url="https://${SANDCASTLE_HOST}:${SANDCASTLE_HTTPS_PORT}/up"
+      local app_ready=false
       for i in $(seq 1 30); do
-        if curl -sfk https://localhost:${SANDCASTLE_HTTPS_PORT}/up >/dev/null 2>&1; then
+        if curl -sfk "$health_url" >/dev/null 2>&1; then
+          app_ready=true
           break
         fi
         sleep 2
       done
+      [ "$app_ready" = true ] || die "App did not become ready at $health_url"
 
       info "Seeding database..."
       $DOCKER compose exec -T \
