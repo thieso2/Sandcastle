@@ -28,11 +28,16 @@ class CaddyCertificateAuthority
     return if File.exist?(cert_path) && File.exist?(key_path)
 
     FileUtils.mkdir_p(dir, mode: 0o700)
-    key = OpenSSL::PKey::RSA.new(4096)
-    cert = build_certificate(key)
+    File.open(lock_path, File::RDWR | File::CREAT, 0o600) do |lock|
+      lock.flock(File::LOCK_EX)
+      return true if File.exist?(cert_path) && File.exist?(key_path)
 
-    atomic_write(key_path, key.to_pem, mode: 0o600)
-    atomic_write(cert_path, cert.to_pem, mode: 0o644)
+      key = OpenSSL::PKey::RSA.new(4096)
+      cert = build_certificate(key)
+
+      atomic_write(key_path, key.to_pem, mode: 0o600)
+      atomic_write(cert_path, cert.to_pem, mode: 0o644)
+    end
     true
   rescue OpenSSL::OpenSSLError, SystemCallError => e
     raise Error, "failed to prepare Caddy certificate authority: #{e.message}"
@@ -55,6 +60,7 @@ class CaddyCertificateAuthority
 
   def cert_path = File.join(dir, CERT_FILE)
   def key_path = File.join(dir, KEY_FILE)
+  def lock_path = File.join(dir, ".root-ca.lock")
 
   def build_certificate(key)
     cert = OpenSSL::X509::Certificate.new

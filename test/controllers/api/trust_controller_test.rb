@@ -23,4 +23,20 @@ class Api::TrustControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Sandcastle Caddy Root CA", response.parsed_body["name"]
     assert_includes response.parsed_body["pem"], "BEGIN CERTIFICATE"
   end
+
+  test "root_ca reports certificate authority preparation failures as unavailable" do
+    original = CaddyCertificateAuthority.method(:root_certificate_pem)
+    CaddyCertificateAuthority.define_singleton_method(:root_certificate_pem) do
+      raise CaddyCertificateAuthority::Error, "failed to prepare Caddy certificate authority: Permission denied"
+    end
+
+    begin
+      get "/api/trust/root_ca", headers: @headers
+    ensure
+      CaddyCertificateAuthority.define_singleton_method(:root_certificate_pem, original)
+    end
+
+    assert_response :service_unavailable
+    assert_includes response.parsed_body["error"], "failed to prepare Caddy certificate authority"
+  end
 end
