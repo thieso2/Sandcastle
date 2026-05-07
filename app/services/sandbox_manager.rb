@@ -862,6 +862,8 @@ class SandboxManager
     env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
     env << "SANDCASTLE_CADDY_ENABLED=#{sandbox.caddy_enabled? ? '1' : '0'}"
     env << "SANDCASTLE_DNS_NAME=#{DnsManager.new.hostname_for(sandbox)}"
+    alias_names = SandboxAlias.expanded_names_for(sandbox)
+    env << "SANDCASTLE_DNS_ALIASES=#{alias_names.join(',')}" if alias_names.any?
     env << "SANDCASTLE_SMB_ENABLED=#{sandbox.smb_enabled? ? '1' : '0'}"
     env << "GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES=1" if sandbox.oidc_enabled?
     if sandbox.gcp_oidc_configured?

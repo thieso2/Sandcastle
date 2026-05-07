@@ -22,6 +22,24 @@ class SandboxAlias < ApplicationRecord
     end
   end
 
+  # Every form a sandbox should TLS-cover for its aliases — each alias FQDN
+  # expanded into all cumulative left-prefixes. For alias `admin` on sandbox
+  # `tubu` (FQDN admin.tubu.sc.sandman), returns:
+  #   ["admin", "admin.tubu", "admin.tubu.sc", "admin.tubu.sc.sandman"]
+  # Wildcards from the sandbox's own FQDN cover everything but the bare
+  # leftmost form (`admin`); SandboxManager passes this list as
+  # SANDCASTLE_DNS_ALIASES so the in-sandbox Caddy adds explicit SANs and
+  # listeners.
+  def self.expanded_names_for(sandbox)
+    sandbox.aliases.flat_map { |a| expand_left_prefixes(a.fqdn) }.compact.uniq
+  end
+
+  def self.expand_left_prefixes(fqdn)
+    return [] if fqdn.blank?
+    parts = fqdn.split(".")
+    (1..parts.size).map { |i| parts[0...i].join(".") }
+  end
+
   private
 
   def normalize

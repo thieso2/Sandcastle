@@ -11,6 +11,7 @@ module Api
       if a.save
         DnsManager.publish_best_effort(@sandbox.user)
         SandboxCertificateRefreshJob.perform_later(@sandbox.id) if defined?(SandboxCertificateRefreshJob)
+        SandboxCaddyReloadJob.perform_later(@sandbox.id) if defined?(SandboxCaddyReloadJob)
         render json: alias_json(a), status: :created
       else
         render json: { error: a.errors.full_messages.join(", ") }, status: :unprocessable_entity
@@ -22,6 +23,7 @@ module Api
       a.destroy!
       DnsManager.publish_best_effort(@sandbox.user)
       SandboxCertificateRefreshJob.perform_later(@sandbox.id) if defined?(SandboxCertificateRefreshJob)
+      SandboxCaddyReloadJob.perform_later(@sandbox.id) if defined?(SandboxCaddyReloadJob)
       render json: { status: "removed" }
     rescue ActiveRecord::RecordNotFound
       render json: { error: "Alias not found" }, status: :not_found

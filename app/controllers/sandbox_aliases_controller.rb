@@ -9,6 +9,7 @@ class SandboxAliasesController < ApplicationController
     if a.save
       DnsManager.publish_best_effort(@sandbox.user)
       SandboxCertificateRefreshJob.perform_later(@sandbox.id) if defined?(SandboxCertificateRefreshJob)
+      SandboxCaddyReloadJob.perform_later(@sandbox.id) if defined?(SandboxCaddyReloadJob)
       redirect_to sandbox_path(@sandbox), notice: "Alias added."
     else
       redirect_to sandbox_path(@sandbox), alert: a.errors.full_messages.to_sentence
@@ -20,6 +21,7 @@ class SandboxAliasesController < ApplicationController
     a.destroy!
     DnsManager.publish_best_effort(@sandbox.user)
     SandboxCertificateRefreshJob.perform_later(@sandbox.id) if defined?(SandboxCertificateRefreshJob)
+    SandboxCaddyReloadJob.perform_later(@sandbox.id) if defined?(SandboxCaddyReloadJob)
     redirect_to sandbox_path(@sandbox), notice: "Alias removed."
   rescue ActiveRecord::RecordNotFound
     redirect_to sandbox_path(@sandbox), alert: "Alias not found."

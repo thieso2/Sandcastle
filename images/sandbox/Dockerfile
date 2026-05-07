@@ -79,8 +79,9 @@ COPY entrypoint.sh /entrypoint.sh
 COPY docker-restart.sh /usr/local/bin/docker-restart
 COPY sc-tmux.sh /usr/local/bin/sc-tmux
 COPY sc-install-brew.sh /usr/local/bin/sc-install-brew
+COPY sc-caddy-reconfigure.sh /usr/local/bin/sc-caddy-reconfigure
 COPY --from=oidc-helper-builder /build/sandcastle-oidc /usr/local/bin/sandcastle-oidc
-RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart /usr/local/bin/sc-tmux /usr/local/bin/sc-install-brew /usr/local/bin/sandcastle-oidc
+RUN chmod +x /entrypoint.sh /usr/local/bin/docker-restart /usr/local/bin/sc-tmux /usr/local/bin/sc-install-brew /usr/local/bin/sc-caddy-reconfigure /usr/local/bin/sandcastle-oidc
 
 COPY startchrome.sh /usr/local/bin/google-chrome
 RUN chmod +x /usr/local/bin/google-chrome \

@@ -390,43 +390,18 @@ CADDY_ENABLED="${SANDCASTLE_CADDY_ENABLED:-0}"
 CADDY_DNS_NAME="${SANDCASTLE_DNS_NAME:-}"
 if [ "$CADDY_ENABLED" = "1" ] && [ -n "$CADDY_DNS_NAME" ]; then
     if command -v caddy &>/dev/null && command -v mkcert &>/dev/null; then
-        install -d -m 0755 /etc/sandcastle/caddy/certs /var/log/caddy /var/lib/caddy /etc/caddy
-        if [ ! -f /etc/sandcastle/caddy/mkcert/rootCA.pem ] || [ ! -f /etc/sandcastle/caddy/mkcert/rootCA-key.pem ]; then
-            install -d -m 0700 /etc/sandcastle/caddy/mkcert
-        fi
-        export CAROOT=/etc/sandcastle/caddy/mkcert
-        mkcert \
-            -cert-file /etc/sandcastle/caddy/certs/sandbox.pem \
-            -key-file /etc/sandcastle/caddy/certs/sandbox-key.pem \
-            "$CADDY_DNS_NAME" "*.$CADDY_DNS_NAME" \
-            &>/var/log/caddy/mkcert.log || true
-
-        if [ -f /etc/sandcastle/caddy/certs/sandbox.pem ] && [ -f /etc/sandcastle/caddy/certs/sandbox-key.pem ]; then
-            cat > /etc/caddy/Caddyfile <<CADDYFILE
-http://$CADDY_DNS_NAME, http://*.$CADDY_DNS_NAME {
-    log {
-        output file /var/log/caddy/access.log
-    }
-    reverse_proxy 127.0.0.1:3000 [::1]:3000 localhost:3000 {
-        lb_try_duration 5s
-        lb_try_interval 250ms
-    }
-}
-
-https://$CADDY_DNS_NAME, https://*.$CADDY_DNS_NAME {
-    tls /etc/sandcastle/caddy/certs/sandbox.pem /etc/sandcastle/caddy/certs/sandbox-key.pem
-    log {
-        output file /var/log/caddy/access.log
-    }
-    reverse_proxy 127.0.0.1:3000 [::1]:3000 localhost:3000 {
-        lb_try_duration 5s
-        lb_try_interval 250ms
-    }
-}
-CADDYFILE
-            caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &>/var/log/caddy/caddy.log &
+        # sc-caddy-reconfigure builds the SAN list and Caddyfile from
+        # SANDCASTLE_DNS_NAME and SANDCASTLE_DNS_ALIASES. The same script is
+        # docker-exec'd by Rails when aliases change so Caddy can hot-reload
+        # without a sandbox restart.
+        if /usr/local/bin/sc-caddy-reconfigure; then
+            if [ -f /etc/sandcastle/caddy/certs/sandbox.pem ] && [ -f /etc/sandcastle/caddy/certs/sandbox-key.pem ]; then
+                caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &>/var/log/caddy/caddy.log &
+            else
+                echo "Caddy disabled: mkcert did not create certificate files" >&2
+            fi
         else
-            echo "Caddy disabled: mkcert did not create certificate files" >&2
+            echo "Caddy disabled: sc-caddy-reconfigure failed" >&2
         fi
     else
         echo "Caddy disabled: caddy or mkcert is not installed" >&2
