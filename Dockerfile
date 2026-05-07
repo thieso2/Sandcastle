@@ -95,7 +95,16 @@ RUN install -m 0755 -d /etc/apt/keyrings && \
 RUN groupadd --system --gid ${SANDCASTLE_GID} sandcastle && \
     useradd sandcastle --uid ${SANDCASTLE_UID} --gid ${SANDCASTLE_GID} --create-home --shell /bin/bash && \
     groupadd --system docker && \
-    usermod -aG docker sandcastle
+    usermod -aG docker sandcastle && \
+    install -d -o ${SANDCASTLE_UID} -g ${SANDCASTLE_GID} -m 0755 \
+      /data /data/users /data/sandboxes /data/snapshots /data/wetty \
+      /data/traefik /data/traefik/dynamic \
+      /sandcastle /sandcastle/data /sandcastle/data/users /sandcastle/data/sandboxes \
+      /sandcastle/data/snapshots /sandcastle/data/wetty \
+      /sandcastle/data/traefik /sandcastle/data/traefik/dynamic && \
+    install -d -o ${SANDCASTLE_UID} -g ${SANDCASTLE_GID} -m 0700 \
+      /data/certs /data/certs/caddy \
+      /sandcastle/data/certs /sandcastle/data/certs/caddy
 
 # Switch to development bundle config
 ENV RAILS_ENV="development" \
@@ -126,6 +135,16 @@ CMD ["./bin/dev"]
 
 # ── Final production stage: thin layer on pre-built base ─────────────────────
 FROM ghcr.io/thieso2/sandcastle-base:latest
+
+RUN install -d -o sandcastle -g sandcastle -m 0755 \
+      /data /data/users /data/sandboxes /data/snapshots /data/wetty \
+      /data/traefik /data/traefik/dynamic \
+      /sandcastle /sandcastle/data /sandcastle/data/users /sandcastle/data/sandboxes \
+      /sandcastle/data/snapshots /sandcastle/data/wetty \
+      /sandcastle/data/traefik /sandcastle/data/traefik/dynamic && \
+    install -d -o sandcastle -g sandcastle -m 0700 \
+      /data/certs /data/certs/caddy \
+      /sandcastle/data/certs /sandcastle/data/certs/caddy
 
 USER 220568:220568
 

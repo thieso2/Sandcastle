@@ -34,6 +34,15 @@ RUN groupadd --system --gid 220568 sandcastle && \
     useradd sandcastle --uid 220568 --gid 220568 --create-home --shell /bin/bash && \
     groupadd --system docker && \
     usermod -aG docker sandcastle && \
+    install -d -o sandcastle -g sandcastle -m 0755 \
+      /data /data/users /data/sandboxes /data/snapshots /data/wetty \
+      /data/traefik /data/traefik/dynamic \
+      /sandcastle /sandcastle/data /sandcastle/data/users /sandcastle/data/sandboxes \
+      /sandcastle/data/snapshots /sandcastle/data/wetty \
+      /sandcastle/data/traefik /sandcastle/data/traefik/dynamic && \
+    install -d -o sandcastle -g sandcastle -m 0700 \
+      /data/certs /data/certs/caddy \
+      /sandcastle/data/certs /sandcastle/data/certs/caddy && \
     printf 'sandcastle ALL=(root) NOPASSWD: /usr/bin/btrfs subvolume *\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chmod\nsandcastle ALL=(root) NOPASSWD: /usr/bin/chown\n' > /etc/sudoers.d/sandcastle && \
     chmod 0440 /etc/sudoers.d/sandcastle
 

@@ -14,7 +14,7 @@ class BtrfsHelper
       return false unless Dir.exist?(source_path)
 
       parent = File.dirname(snapshot_path)
-      FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
+      mkdir_p(parent)
 
       output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot -r #{sh(source_path)} #{sh(snapshot_path)}")
       unless status&.success?
@@ -93,7 +93,7 @@ class BtrfsHelper
       end
 
       parent = File.dirname(target_path)
-      FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
+      mkdir_p(parent)
 
       output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot #{sh(snapshot_path)} #{sh(target_path)}")
       unless status&.success?
@@ -170,7 +170,7 @@ class BtrfsHelper
 
         create_subvolume(user_dir)
       else
-        FileUtils.mkdir_p(user_dir) unless Dir.exist?(user_dir)
+        mkdir_p(user_dir)
         ensure_owned(user_dir)
         false
       end
@@ -198,7 +198,7 @@ class BtrfsHelper
 
         create_subvolume(data_dir)
       else
-        FileUtils.mkdir_p(data_dir) unless Dir.exist?(data_dir)
+        mkdir_p(data_dir)
         ensure_owned(data_dir)
         false
       end
@@ -229,7 +229,7 @@ class BtrfsHelper
 
         create_subvolume(home_dir)
       else
-        FileUtils.mkdir_p(home_dir) unless Dir.exist?(home_dir)
+        mkdir_p(home_dir)
         ensure_owned(home_dir)
         false
       end
@@ -253,7 +253,7 @@ class BtrfsHelper
 
         create_subvolume(persisted_dir)
       else
-        FileUtils.mkdir_p(persisted_dir) unless Dir.exist?(persisted_dir)
+        mkdir_p(persisted_dir)
         ensure_owned(persisted_dir)
         false
       end
@@ -276,7 +276,7 @@ class BtrfsHelper
     def create_subvolume(path)
       # Ensure parent directory exists
       parent = File.dirname(path)
-      FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
+      mkdir_p(parent)
 
       # Create subvolume using sudo with full path
       output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{sh(path)}")
@@ -292,13 +292,13 @@ class BtrfsHelper
     rescue StandardError => e
       Rails.logger.error("Failed to create BTRFS subvolume #{path}: #{e.message}")
       # Fall back to regular directory
-      FileUtils.mkdir_p(path) unless Dir.exist?(path)
+      mkdir_p(path)
       false
     end
 
     def create_subvolume!(path)
       parent = File.dirname(path)
-      FileUtils.mkdir_p(parent) unless Dir.exist?(parent)
+      mkdir_p(parent)
 
       output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{sh(path)}")
       unless status&.success?
@@ -314,7 +314,23 @@ class BtrfsHelper
     def ensure_owned(path)
       return if File.stat(path).uid == Process.uid
 
-      run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{sh(path)}")
+      _output, status = run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{sh(path)}")
+      return if status&.success?
+
+      PermissionRepair.chown_chmod(path, uid: Process.uid, gid: Process.gid)
+    rescue PermissionRepair::Error => e
+      raise Error, "Failed to repair ownership for #{path}: #{e.message}"
+    end
+
+    def mkdir_p(path)
+      return if Dir.exist?(path)
+
+      FileUtils.mkdir_p(path)
+    rescue Errno::EACCES
+      PermissionRepair.chown_chmod(File.dirname(path), uid: Process.uid, gid: Process.gid, mode: 0o755)
+      FileUtils.mkdir_p(path)
+    rescue PermissionRepair::Error => e
+      raise Error, "Failed to repair parent directory for #{path}: #{e.message}"
     end
 
     # Run a command with sudo

@@ -53,6 +53,15 @@ class EnsureDirTest < ActiveSupport::TestCase
       "docker_run_fix should clean up its container"
   end
 
+  test "docker_run_fix uses host user namespace for host-visible chown" do
+    @manager.send(:docker_run_fix, @testdir, "true")
+
+    host_config = DockerMock.created_options.last.fetch("HostConfig")
+    assert_equal "host", host_config.fetch("UsernsMode")
+    assert_equal "none", host_config.fetch("NetworkMode")
+    assert_equal [ "#{@testdir}:/mnt" ], host_config.fetch("Binds")
+  end
+
   test "fix_image returns busybox when available" do
     image = @manager.send(:fix_image)
     assert_equal "busybox:latest", image
