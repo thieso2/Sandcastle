@@ -206,6 +206,7 @@ const (
 	cfSnapshot
 	cfProject
 	cfDocker
+	cfCaddy
 	cfVNC
 	cfTailscale
 	cfHome
@@ -224,6 +225,7 @@ func buildCreateFields() []formField {
 		{label: "Snapshot", kind: fieldText, input: makeTextInput("snapshot name to restore from", 45)},
 		{label: "Project", kind: fieldText, input: makeTextInput("saved project preset name", 45)},
 		{label: "Docker", kind: fieldBool, boolVal: true, defBool: true},
+		{label: "Caddy", kind: fieldBool, boolVal: false, defBool: false},
 		{label: "VNC", kind: fieldBool, boolVal: true, defBool: true},
 		{label: "Tailscale", kind: fieldBool, boolVal: false, defBool: false},
 		{label: "Home", kind: fieldBool, boolVal: false, defBool: false},
@@ -240,6 +242,7 @@ const (
 	pfPath
 	pfImage
 	pfDocker
+	pfCaddy
 	pfVNC
 	pfTailscale
 	pfSMB
@@ -252,6 +255,7 @@ func buildProjectFields() []formField {
 		{label: "Path", kind: fieldText, input: makeTextInput("subdir mounted as $HOME and /persisted", 55)},
 		{label: "Image", kind: fieldText, input: makeTextInput("ghcr.io/thieso2/sandcastle-sandbox:latest", 55)},
 		{label: "Docker", kind: fieldBool, boolVal: true, defBool: true},
+		{label: "Caddy", kind: fieldBool, boolVal: false, defBool: false},
 		{label: "VNC", kind: fieldBool, boolVal: true, defBool: true},
 		{label: "Tailscale", kind: fieldBool, boolVal: false, defBool: false},
 		{label: "SMB", kind: fieldBool, boolVal: false, defBool: false},
@@ -839,6 +843,10 @@ func (m tuiModel) submitCreateForm() (tea.Model, tea.Cmd) {
 		SMBEnabled:    m.createFields[cfSMB].boolVal,
 		Temporary:     m.createFields[cfTemporary].boolVal,
 	}
+	if m.createFields[cfCaddy].boolVal {
+		v := true
+		req.CaddyEnabled = &v
+	}
 
 	m.view = viewSandboxes
 	m.loading = true
@@ -934,6 +942,7 @@ func (m tuiModel) submitCreateProjectForm() (tea.Model, tea.Cmd) {
 		Path:          path,
 		Image:         image,
 		DockerEnabled: m.projectFields[pfDocker].boolVal,
+		CaddyEnabled:  m.projectFields[pfCaddy].boolVal,
 		VNCEnabled:    m.projectFields[pfVNC].boolVal,
 		Tailscale:     m.projectFields[pfTailscale].boolVal,
 		SMBEnabled:    m.projectFields[pfSMB].boolVal,

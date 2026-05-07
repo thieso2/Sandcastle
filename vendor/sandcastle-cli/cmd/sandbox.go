@@ -33,6 +33,7 @@ var (
 	sandboxVNCGeometry       string
 	sandboxVNCDepth          int
 	sandboxNoDocker          bool
+	sandboxCaddy             bool
 	sandboxSMB               bool
 	sandboxOIDC              bool
 	sandboxNoOIDC            bool
@@ -77,6 +78,7 @@ func init() {
 	createCmd.Flags().StringVar(&sandboxVNCGeometry, "vnc-geometry", "", "VNC screen resolution (e.g. 1920x1080)")
 	createCmd.Flags().IntVar(&sandboxVNCDepth, "vnc-depth", 0, "VNC color depth: 8, 16, 24, or 32")
 	createCmd.Flags().BoolVar(&sandboxNoDocker, "no-docker", false, "Disable Docker daemon (DinD) inside sandbox")
+	createCmd.Flags().BoolVar(&sandboxCaddy, "caddy", false, "Enable Caddy reverse proxy inside sandbox")
 	createCmd.Flags().BoolVar(&sandboxSMB, "smb", false, "Enable SMB file sharing (requires Tailscale and SMB password set via 'sandcastle smb set-password')")
 	createCmd.Flags().BoolVar(&sandboxOIDC, "oidc", false, "Enable sandbox OIDC identity tokens")
 	createCmd.Flags().BoolVar(&sandboxNoOIDC, "no-oidc", false, "Disable sandbox OIDC identity tokens")
@@ -217,6 +219,11 @@ Flags explicitly passed on the command line take precedence over environment var
 			v := true
 			oidcEnabled = &v
 		}
+		var caddyEnabled *bool
+		if cmd.Flags().Changed("caddy") {
+			v := sandboxCaddy
+			caddyEnabled = &v
+		}
 
 		if sandboxHome && sandboxHomeSubdir != "" {
 			return fmt.Errorf("--home and --home-subdir are mutually exclusive")
@@ -240,6 +247,7 @@ Flags explicitly passed on the command line take precedence over environment var
 			VNCGeometry:            sandboxVNCGeometry,
 			VNCDepth:               sandboxVNCDepth,
 			DockerEnabled:          !sandboxNoDocker,
+			CaddyEnabled:           caddyEnabled,
 			SMBEnabled:             sandboxSMB,
 			OIDCEnabled:            oidcEnabled,
 			GCPOIDCEnabled:         sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "",

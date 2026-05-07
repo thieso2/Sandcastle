@@ -23,6 +23,7 @@ type Sandbox struct {
 	VNCGeometry            string         `json:"vnc_geometry,omitempty"`
 	VNCDepth               int            `json:"vnc_depth,omitempty"`
 	DockerEnabled          bool           `json:"docker_enabled"`
+	CaddyEnabled           bool           `json:"caddy_enabled"`
 	SMBEnabled             bool           `json:"smb_enabled"`
 	OIDCEnabled            bool           `json:"oidc_enabled"`
 	GCPOIDCEnabled         bool           `json:"gcp_oidc_enabled"`
@@ -225,6 +226,7 @@ type CreateSandboxRequest struct {
 	VNCGeometry            string   `json:"vnc_geometry,omitempty"`
 	VNCDepth               int      `json:"vnc_depth,omitempty"`
 	DockerEnabled          bool     `json:"docker_enabled"`
+	CaddyEnabled           *bool    `json:"caddy_enabled,omitempty"`
 	SMBEnabled             bool     `json:"smb_enabled,omitempty"`
 	OIDCEnabled            *bool    `json:"oidc_enabled,omitempty"`
 	GCPOIDCEnabled         bool     `json:"gcp_oidc_enabled,omitempty"`
@@ -333,6 +335,7 @@ type Project struct {
 	VNCGeometry            string         `json:"vnc_geometry,omitempty"`
 	VNCDepth               int            `json:"vnc_depth,omitempty"`
 	DockerEnabled          bool           `json:"docker_enabled"`
+	CaddyEnabled           bool           `json:"caddy_enabled"`
 	SMBEnabled             bool           `json:"smb_enabled"`
 	SSHStartTmux           bool           `json:"ssh_start_tmux"`
 	DefaultProject         bool           `json:"default_project"`
@@ -358,6 +361,7 @@ type CreateProjectRequest struct {
 	VNCGeometry            string   `json:"vnc_geometry,omitempty"`
 	VNCDepth               int      `json:"vnc_depth,omitempty"`
 	DockerEnabled          bool     `json:"docker_enabled"`
+	CaddyEnabled           bool     `json:"caddy_enabled,omitempty"`
 	SMBEnabled             bool     `json:"smb_enabled,omitempty"`
 	SSHStartTmux           bool     `json:"ssh_start_tmux"`
 	MountHome              bool     `json:"mount_home,omitempty"`

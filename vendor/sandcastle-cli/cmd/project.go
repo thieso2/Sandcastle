@@ -17,6 +17,7 @@ var (
 	projectVNCGeometry  string
 	projectVNCDepth     int
 	projectNoDocker     bool
+	projectCaddy        bool
 	projectSMB          bool
 	projectSSHStartTmux bool
 	projectOIDC         bool
@@ -39,6 +40,7 @@ func init() {
 	projectCreateCmd.Flags().StringVar(&projectVNCGeometry, "vnc-geometry", "", "Default VNC screen resolution")
 	projectCreateCmd.Flags().IntVar(&projectVNCDepth, "vnc-depth", 0, "Default VNC color depth")
 	projectCreateCmd.Flags().BoolVar(&projectNoDocker, "no-docker", false, "Disable Docker by default")
+	projectCreateCmd.Flags().BoolVar(&projectCaddy, "caddy", false, "Enable Caddy reverse proxy by default")
 	projectCreateCmd.Flags().BoolVar(&projectSMB, "smb", false, "Enable SMB by default")
 	projectCreateCmd.Flags().BoolVar(&projectSSHStartTmux, "ssh-start-tmux", true, "Start tmux on SSH login by default")
 	projectCreateCmd.Flags().BoolVar(&projectOIDC, "oidc", false, "Enable OIDC identity tokens by default")
@@ -87,6 +89,9 @@ var projectListCmd = &cobra.Command{
 			if p.Tailscale {
 				services = append(services, "tailscale")
 			}
+			if p.CaddyEnabled {
+				services = append(services, "caddy")
+			}
 			if p.SMBEnabled {
 				services = append(services, "smb")
 			}
@@ -131,6 +136,7 @@ var projectCreateCmd = &cobra.Command{
 			VNCGeometry:       projectVNCGeometry,
 			VNCDepth:          projectVNCDepth,
 			DockerEnabled:     !projectNoDocker,
+			CaddyEnabled:      projectCaddy,
 			SMBEnabled:        projectSMB,
 			SSHStartTmux:      projectSSHStartTmux,
 			OIDCEnabled:       projectOIDC || projectGCP || projectGCPConfig != "",
