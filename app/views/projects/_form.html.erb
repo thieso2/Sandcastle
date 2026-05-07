@@ -59,6 +59,14 @@
     </label>
 
     <label class="flex items-start gap-3 cursor-pointer">
+      <%= form.check_box :caddy_enabled, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+      <div class="flex-1">
+        <div class="text-sm font-medium text-gray-900">Start Caddy reverse proxy</div>
+        <p class="text-xs text-gray-500">Proxy HTTP and HTTPS on ports 80/443 to localhost:3000 with mkcert certificates for the sandbox DNS name and wildcard.</p>
+      </div>
+    </label>
+
+    <label class="flex items-start gap-3 cursor-pointer">
       <%= form.check_box :ssh_start_tmux, class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
       <div class="flex-1">
         <div class="text-sm font-medium text-gray-900">Start tmux on SSH login</div>

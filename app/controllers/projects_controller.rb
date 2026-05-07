@@ -10,6 +10,7 @@ class ProjectsController < ApplicationController
       vnc_geometry: defaults.vnc_geometry,
       vnc_depth: defaults.vnc_depth,
       docker_enabled: defaults.docker_enabled,
+      caddy_enabled: defaults.caddy_enabled,
       smb_enabled: defaults.smb_enabled,
       ssh_start_tmux: defaults.ssh_start_tmux
     )
@@ -64,7 +65,7 @@ class ProjectsController < ApplicationController
   def project_params
     params.require(:project).permit(
       :name, :path, :image, :tailscale, :vnc_enabled, :vnc_geometry,
-      :vnc_depth, :docker_enabled, :smb_enabled, :ssh_start_tmux,
+      :vnc_depth, :docker_enabled, :caddy_enabled, :smb_enabled, :ssh_start_tmux,
       :mount_home, :home_path, :data_path, :oidc_enabled, :gcp_oidc_enabled,
       :gcp_oidc_config_id, :gcp_service_account_email, :gcp_principal_scope,
       :gcp_roles_text

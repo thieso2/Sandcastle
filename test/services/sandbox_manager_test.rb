@@ -11,6 +11,7 @@ class SandboxManagerTest < ActiveSupport::TestCase
   end
 
   test "create_container_and_start creates and starts container" do
+    ENV["SANDCASTLE_NAME"] = "test-castle"
     @sandbox.update!(container_id: nil, status: "pending")
 
     @manager.create_container_and_start(sandbox: @sandbox, user: @user)
@@ -22,6 +23,24 @@ class SandboxManagerTest < ActiveSupport::TestCase
     # Verify container exists in mock
     container = Docker::Container.get(@sandbox.container_id)
     assert_equal "running", container.info["State"]["Status"]
+    assert_equal "devbox.sandboxes.test-castle", container.info.dig("Config", "Hostname")
+  ensure
+    ENV.delete("SANDCASTLE_NAME")
+  end
+
+  test "create_container_and_start uses project dns name as container hostname" do
+    ENV["SANDCASTLE_NAME"] = "test-castle"
+    @sandbox.update!(container_id: nil, status: "pending", project_name: "alpha", caddy_enabled: true)
+
+    @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+
+    container = Docker::Container.get(@sandbox.reload.container_id)
+    assert_equal "devbox.alpha.test-castle", container.info.dig("Config", "Hostname")
+    assert_equal @sandbox.full_name, container.info.dig("Config", "name")
+    assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_CADDY_ENABLED=1"
+    assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_DNS_NAME=devbox.alpha.test-castle"
+  ensure
+    ENV.delete("SANDCASTLE_NAME")
   end
 
   test "create_container_and_start rotates and injects oidc runtime token when enabled" do

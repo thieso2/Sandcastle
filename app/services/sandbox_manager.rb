@@ -63,7 +63,7 @@ class SandboxManager
     container = Docker::Container.create(
       "name" => sandbox.full_name,
       "Image" => sandbox.image,
-      "Hostname" => sandbox.hostname,
+      "Hostname" => DnsManager.new.hostname_for(sandbox) || sandbox.hostname,
       "Env" => container_env(user, sandbox),
       "Labels" => { "sandcastle.sandbox" => "true" },
       "HostConfig" => {
@@ -858,6 +858,8 @@ class SandboxManager
     env << "SANDCASTLE_VNC_GEOMETRY=#{sandbox.vnc_geometry}"
     env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
     env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
+    env << "SANDCASTLE_CADDY_ENABLED=#{sandbox.caddy_enabled? ? '1' : '0'}"
+    env << "SANDCASTLE_DNS_NAME=#{DnsManager.new.hostname_for(sandbox)}"
     env << "SANDCASTLE_SMB_ENABLED=#{sandbox.smb_enabled? ? '1' : '0'}"
     env << "GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES=1" if sandbox.oidc_enabled?
     if sandbox.gcp_oidc_configured?

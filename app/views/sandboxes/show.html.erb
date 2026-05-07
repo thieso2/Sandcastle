@@ -299,6 +299,15 @@
           </label>
 
           <label class="flex items-start gap-3 <%= 'cursor-pointer' if editable %>">
+            <%= f.check_box :caddy_enabled,
+                  class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-gray-900">Start Caddy reverse proxy</div>
+              <p class="text-xs text-gray-500">Serve HTTP/HTTPS for the sandbox DNS name and wildcard, proxying to localhost:3000.</p>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 <%= 'cursor-pointer' if editable %>">
             <%= f.check_box :oidc_enabled,
                   class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
             <div class="flex-1">

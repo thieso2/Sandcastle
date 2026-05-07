@@ -20,6 +20,7 @@
          vnc_geometry: project.vnc_geometry,
          vnc_depth: project.vnc_depth,
          docker_enabled: project.docker_enabled,
+         caddy_enabled: project.caddy_enabled,
          smb_enabled: project.smb_enabled,
          ssh_start_tmux: project.ssh_start_tmux,
          oidc_enabled: project.oidc_enabled,
@@ -219,6 +220,16 @@
         </div>
       </label>
 
+      <label class="flex items-start gap-3 cursor-pointer">
+        <%= form.check_box :caddy_enabled, checked: @defaults.caddy_enabled,
+              id: "sandbox_caddy_enabled",
+              class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
+        <div class="flex-1">
+          <div class="text-sm font-medium text-gray-900">Start Caddy reverse proxy</div>
+          <p class="text-xs text-gray-500">Serve the sandbox DNS name and wildcard on ports 80/443 and proxy to localhost:3000.</p>
+        </div>
+      </label>
+
       <div class="ml-7 space-y-3 border-l border-gray-100 pl-4">
         <label class="flex items-start gap-3 cursor-pointer">
           <%= form.check_box :gcp_oidc_enabled,
@@ -381,6 +392,7 @@
   var dataPathInput = document.getElementById("sandbox_data_path");
   var tailscaleCheckbox = document.getElementById("sandbox_tailscale");
   var dockerCheckbox = document.getElementById("sandbox_docker_enabled");
+  var caddyCheckbox = document.getElementById("sandbox_caddy_enabled");
   var oidcCheckbox = document.getElementById("sandbox_oidc_enabled");
   var gcpCheckbox = document.getElementById("sandbox_gcp_oidc_enabled");
   var gcpConfigSelect = document.getElementById("sandbox_gcp_oidc_config_id");
@@ -427,6 +439,7 @@
     applyValue(dataPathInput, defaults.data_path === "." ? "" : defaults.data_path);
     applyCheckbox(tailscaleCheckbox, defaults.tailscale);
     applyCheckbox(dockerCheckbox, defaults.docker_enabled);
+    applyCheckbox(caddyCheckbox, defaults.caddy_enabled);
     applyCheckbox(oidcCheckbox, defaults.oidc_enabled || defaults.gcp_oidc_enabled);
     applyCheckbox(gcpCheckbox, defaults.gcp_oidc_enabled);
     applySelectValue(gcpConfigSelect, defaults.gcp_oidc_config_id);

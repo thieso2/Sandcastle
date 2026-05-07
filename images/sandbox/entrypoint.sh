@@ -277,6 +277,42 @@ if command -v ttyd &>/dev/null; then
         "ttyd -W -m 1 -p 7682 bash -l &>/var/log/ttyd-shell.log &"
 fi
 
+# Start Caddy as an in-sandbox HTTP/HTTPS reverse proxy.
+# The sandbox DNS resolver publishes both $SANDCASTLE_DNS_NAME and
+# *.$SANDCASTLE_DNS_NAME, so Caddy serves both and forwards to app port 3000.
+CADDY_ENABLED="${SANDCASTLE_CADDY_ENABLED:-0}"
+CADDY_DNS_NAME="${SANDCASTLE_DNS_NAME:-}"
+if [ "$CADDY_ENABLED" = "1" ] && [ -n "$CADDY_DNS_NAME" ]; then
+    if command -v caddy &>/dev/null && command -v mkcert &>/dev/null; then
+        install -d -m 0755 /etc/sandcastle/caddy/certs /var/log/caddy /var/lib/caddy /etc/caddy
+        export CAROOT=/etc/sandcastle/caddy/mkcert
+        mkcert -install &>/var/log/caddy/mkcert-install.log || true
+        mkcert \
+            -cert-file /etc/sandcastle/caddy/certs/sandbox.pem \
+            -key-file /etc/sandcastle/caddy/certs/sandbox-key.pem \
+            "$CADDY_DNS_NAME" "*.$CADDY_DNS_NAME" \
+            &>/var/log/caddy/mkcert.log || true
+
+        if [ -f /etc/sandcastle/caddy/certs/sandbox.pem ] && [ -f /etc/sandcastle/caddy/certs/sandbox-key.pem ]; then
+            cat > /etc/caddy/Caddyfile <<CADDYFILE
+http://$CADDY_DNS_NAME, http://*.$CADDY_DNS_NAME {
+    reverse_proxy 127.0.0.1:3000
+}
+
+https://$CADDY_DNS_NAME, https://*.$CADDY_DNS_NAME {
+    tls /etc/sandcastle/caddy/certs/sandbox.pem /etc/sandcastle/caddy/certs/sandbox-key.pem
+    reverse_proxy 127.0.0.1:3000
+}
+CADDYFILE
+            caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &>/var/log/caddy/caddy.log &
+        else
+            echo "Caddy disabled: mkcert did not create certificate files" >&2
+        fi
+    else
+        echo "Caddy disabled: caddy or mkcert is not installed" >&2
+    fi
+fi
+
 # Set up and start Samba for SMB file sharing (SMB3-only, no NetBIOS).
 # Accessible via the sandbox's Tailscale IP on port 445: smb://<ip>/home or smb://<ip>/persisted
 SMB_ENABLED="${SANDCASTLE_SMB_ENABLED:-0}"

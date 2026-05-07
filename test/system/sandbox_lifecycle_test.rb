@@ -5,7 +5,15 @@ require "application_system_test_case"
 class SandboxLifecycleTest < ApplicationSystemTestCase
   setup do
     @user = users(:thies)
+    @original_ensure_mount_dirs = SandboxManager.instance_method(:ensure_mount_dirs)
+    SandboxManager.define_method(:ensure_mount_dirs) { |_user, _sandbox| true }
+    ENV["SANDCASTLE_NAME"] = "test-castle"
     DockerMock.reset!
+  end
+
+  teardown do
+    SandboxManager.define_method(:ensure_mount_dirs, @original_ensure_mount_dirs)
+    ENV.delete("SANDCASTLE_NAME")
   end
 
   test "creating a sandbox from a saved project sets a project-specific hostname" do
@@ -37,7 +45,7 @@ class SandboxLifecycleTest < ApplicationSystemTestCase
     assert_equal "promptbox-alpha", sandbox.hostname
 
     container = Docker::Container.get(sandbox.container_id)
-    assert_equal "promptbox-alpha", container.json.dig("Config", "Hostname")
+    assert_equal "promptbox.alpha.test-castle", container.json.dig("Config", "Hostname")
     assert_equal sandbox.full_name, container.json.dig("Config", "name")
   end
 

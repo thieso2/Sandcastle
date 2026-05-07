@@ -86,7 +86,7 @@ module Api
 
     def update
       sandbox_params = params.permit(
-        :temporary, :name, :oidc_enabled,
+        :temporary, :name, :oidc_enabled, :caddy_enabled,
         :gcp_oidc_enabled, :gcp_oidc_config_id, :gcp_service_account_email, :gcp_principal_scope
       ).to_h
       sandbox_params[:gcp_roles] = parse_gcp_roles(params[:gcp_roles]) if params.key?(:gcp_roles)
@@ -304,6 +304,7 @@ module Api
         vnc_geometry: sandbox.vnc_geometry,
         vnc_depth: sandbox.vnc_depth,
         docker_enabled: sandbox.docker_enabled,
+        caddy_enabled: sandbox.caddy_enabled,
         smb_enabled: sandbox.smb_enabled,
         oidc_enabled: sandbox.oidc_enabled,
         gcp_oidc_enabled: sandbox.gcp_oidc_enabled,
@@ -380,6 +381,7 @@ module Api
         sandbox.vnc_geometry = params[:vnc_geometry].presence || defaults.vnc_geometry
         sandbox.vnc_depth = params[:vnc_depth]&.to_i || defaults.vnc_depth
         sandbox.docker_enabled = boolean_param(:docker_enabled, defaults.docker_enabled)
+        sandbox.caddy_enabled = boolean_param(:caddy_enabled, defaults.caddy_enabled)
         sandbox.ssh_start_tmux = params.key?(:ssh_start_tmux) ? boolean_param(:ssh_start_tmux, defaults.ssh_start_tmux) : defaults.ssh_start_tmux
         sandbox.smb_enabled = boolean_param(:smb_enabled, defaults.smb_enabled)
         return
@@ -400,6 +402,7 @@ module Api
       sandbox.gcp_service_account_email = params[:gcp_service_account_email] if params.key?(:gcp_service_account_email)
       sandbox.gcp_principal_scope = params[:gcp_principal_scope].presence || sandbox.gcp_principal_scope if params.key?(:gcp_principal_scope)
       sandbox.gcp_roles = parse_gcp_roles(params[:gcp_roles]) if params.key?(:gcp_roles)
+      sandbox.caddy_enabled = boolean_param(:caddy_enabled, sandbox.caddy_enabled?) if params.key?(:caddy_enabled)
     end
 
     def boolean_param(key, default)

@@ -41,6 +41,7 @@ class Project < ApplicationRecord
       vnc_geometry: "1280x900",
       vnc_depth: 24,
       docker_enabled: user.default_docker_enabled.nil? ? true : user.default_docker_enabled,
+      caddy_enabled: false,
       smb_enabled: user.default_smb_enabled && user.tailscale_enabled? && user.smb_password.present?,
       ssh_start_tmux: user.default_ssh_start_tmux.nil? ? true : user.default_ssh_start_tmux,
       default_project: true,
@@ -61,6 +62,7 @@ class Project < ApplicationRecord
     sandbox.vnc_geometry = vnc_geometry
     sandbox.vnc_depth = vnc_depth
     sandbox.docker_enabled = docker_enabled
+    sandbox.caddy_enabled = caddy_enabled
     sandbox.smb_enabled = smb_enabled
     sandbox.ssh_start_tmux = ssh_start_tmux
     sandbox.oidc_enabled = oidc_enabled || gcp_oidc_enabled

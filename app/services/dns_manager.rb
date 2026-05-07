@@ -29,6 +29,7 @@ class DnsManager
       resolver_container_id: container&.id&.[](0..11),
       resolver_running: container_running,
       hosts_path: hosts_path(user),
+      zone_path: zone_path(user),
       records: records_for(user).map { |r| { name: r.name, ip: r.ip, sandbox_id: r.sandbox_id } },
       skipped: skipped_for(user).map { |r| { name: r.name, reason: r.reason, sandbox_id: r.sandbox_id } }
     }
@@ -46,6 +47,7 @@ class DnsManager
   def publish(user:)
     ensure_dir(dns_dir(user))
     write_corefile(user)
+    write_zone(user)
     write_hosts(user)
   rescue => e
     raise Error, "Failed to publish DNS for #{user.name}: #{e.message}"
@@ -103,6 +105,10 @@ class DnsManager
     name = ENV.fetch("SANDCASTLE_NAME", "").presence || Socket.gethostname
     slug = dns_label(name)
     slug.presence || "sandcastle"
+  end
+
+  def hostname_for(sandbox)
+    fqdn_for(sandbox)
   end
 
   private
@@ -165,11 +171,7 @@ class DnsManager
   def write_corefile(user)
     content = <<~CORE
       #{suffix}:53 {
-        hosts /data/hosts {
-          ttl 15
-          reload 5s
-          fallthrough
-        }
+        file /data/#{zone_file_name} #{suffix}
         errors
         log
       }
@@ -184,9 +186,31 @@ class DnsManager
   def write_hosts(user)
     skipped_ids = skipped_for(user).select { |r| r.reason == "duplicate DNS name" }.map(&:sandbox_id).to_set
     lines = records_for(user).reject { |r| skipped_ids.include?(r.sandbox_id) }.map do |record|
-      "#{record.ip} #{record.name}"
+      "#{record.ip} #{record.name} *.#{record.name}"
     end
     atomic_write(hosts_path(user), "#{lines.join("\n")}\n")
+  end
+
+  def write_zone(user)
+    skipped_ids = skipped_for(user).select { |r| r.reason == "duplicate DNS name" }.map(&:sandbox_id).to_set
+    zone_records = records_for(user).reject { |r| skipped_ids.include?(r.sandbox_id) }
+    serial = Time.now.utc.strftime("%Y%m%d%H").to_i
+
+    lines = [
+      "$ORIGIN #{suffix}.",
+      "$TTL 15",
+      "@ IN SOA ns.#{suffix}. hostmaster.#{suffix}. ( #{serial} 15 15 60 15 )",
+      "@ IN NS ns.#{suffix}.",
+      "ns IN A 127.0.0.1"
+    ]
+
+    zone_records.each do |record|
+      relative = record.name.delete_suffix(".#{suffix}")
+      lines << "#{relative} IN A #{record.ip}"
+      lines << "*.#{relative} IN A #{record.ip}"
+    end
+
+    atomic_write(zone_path(user), "#{lines.join("\n")}\n")
   end
 
   def fqdn_for(sandbox)
@@ -307,6 +331,14 @@ class DnsManager
 
   def corefile_path(user)
     File.join(dns_dir(user), "Corefile")
+  end
+
+  def zone_path(user)
+    File.join(dns_dir(user), zone_file_name)
+  end
+
+  def zone_file_name
+    "db.#{suffix}"
   end
 
   def container_name(user)

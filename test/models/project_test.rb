@@ -30,6 +30,7 @@ class ProjectTest < ActiveSupport::TestCase
       path: "projects/myproj",
       image: "ghcr.io/thieso2/sandcastle-sandbox:latest",
       docker_enabled: false,
+      caddy_enabled: true,
       vnc_enabled: false,
       tailscale: true,
       smb_enabled: false,
@@ -44,6 +45,7 @@ class ProjectTest < ActiveSupport::TestCase
     assert_equal "projects/myproj", sandbox.data_path
     assert_equal project.image, sandbox.image
     assert_equal project.docker_enabled, sandbox.docker_enabled
+    assert sandbox.caddy_enabled
   end
 
   test "default project can omit path and applies user-wide defaults" do

@@ -23,6 +23,7 @@ class SandboxesController < ApplicationController
   def update
     sandbox_params = params.require(:sandbox).permit(
       :name, :ssh_start_tmux, :mount_home, :docker_enabled,
+      :caddy_enabled,
       :vnc_enabled, :vnc_geometry, :vnc_depth, :smb_enabled, :oidc_enabled,
       :gcp_oidc_enabled, :gcp_oidc_config_id, :gcp_service_account_email, :gcp_principal_scope
     ).to_h
@@ -371,6 +372,7 @@ class SandboxesController < ApplicationController
       sandbox.vnc_geometry = Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900"
       sandbox.vnc_depth = Sandbox::VNC_DEPTHS.include?(params[:vnc_depth].to_i) ? params[:vnc_depth].to_i : 24
       sandbox.docker_enabled = params[:docker_enabled] != "0"
+      sandbox.caddy_enabled = params[:caddy_enabled] == "1"
       sandbox.smb_enabled = params[:smb_enabled] == "1"
       sandbox.ssh_start_tmux = params[:ssh_start_tmux] == "1"
       return
@@ -386,6 +388,7 @@ class SandboxesController < ApplicationController
     sandbox.gcp_service_account_email = params[:gcp_service_account_email] if params.key?(:gcp_service_account_email)
     sandbox.gcp_principal_scope = params[:gcp_principal_scope].presence || sandbox.gcp_principal_scope
     sandbox.gcp_roles = parse_gcp_roles(params[:gcp_roles_text]) if params.key?(:gcp_roles_text)
+    sandbox.caddy_enabled = params[:caddy_enabled] == "1" if params.key?(:caddy_enabled)
   end
 
   def set_archived_sandbox

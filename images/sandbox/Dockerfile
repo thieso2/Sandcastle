@@ -27,6 +27,7 @@ ARG CACHE_DATE=0
 RUN apt-mark hold docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin \
     && for i in 1 2 3; do apt-get update && break || sleep 5; done \
     && apt-get upgrade -y \
+    && apt-get install -y caddy mkcert libnss3-tools \
     && RUNC_VERSION="v1.1.15" \
     && ARCH=$(dpkg --print-architecture) \
     && curl -fsSL "https://github.com/opencontainers/runc/releases/download/${RUNC_VERSION}/runc.${ARCH}" \
@@ -93,7 +94,7 @@ LABEL org.opencontainers.image.description="Sandcastle sandbox image — Ubuntu 
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.version="${SANDCASTLE_VERSION}"
 
-EXPOSE 22 5900 6080 7681 7682
+EXPOSE 22 80 443 5900 6080 7681 7682
 EXPOSE 60000-61000/udp
 
 ENTRYPOINT ["/entrypoint.sh"]

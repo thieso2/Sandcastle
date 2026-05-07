@@ -38,7 +38,7 @@ module Api
     def project_params
       params.require(:project).permit(
         :name, :path, :image, :tailscale, :vnc_enabled, :vnc_geometry,
-        :vnc_depth, :docker_enabled, :smb_enabled, :ssh_start_tmux,
+        :vnc_depth, :docker_enabled, :caddy_enabled, :smb_enabled, :ssh_start_tmux,
         :mount_home, :home_path, :data_path, :oidc_enabled, :gcp_oidc_enabled,
         :gcp_oidc_config_id, :gcp_service_account_email, :gcp_principal_scope,
         gcp_roles: []
@@ -56,6 +56,7 @@ module Api
         vnc_geometry: project.vnc_geometry,
         vnc_depth: project.vnc_depth,
         docker_enabled: project.docker_enabled,
+        caddy_enabled: project.caddy_enabled,
         smb_enabled: project.smb_enabled,
         ssh_start_tmux: project.ssh_start_tmux,
         default_project: project.default_project,

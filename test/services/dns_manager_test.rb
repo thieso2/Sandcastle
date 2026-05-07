@@ -24,7 +24,7 @@ class DnsManagerTest < ActiveSupport::TestCase
       repaired_path = parent
     end
 
-    File.stub(:write, lambda { |target, content|
+    File.define_singleton_method(:write) do |target, content|
       if target == tmp && writes.zero?
         writes += 1
         raise Errno::EACCES, target
@@ -32,8 +32,12 @@ class DnsManagerTest < ActiveSupport::TestCase
 
       writes += 1
       original_write.call(target, content)
-    }) do
+    end
+
+    begin
       @manager.send(:atomic_write, path, "dns config")
+    ensure
+      File.define_singleton_method(:write, original_write)
     end
 
     assert_equal @testdir, repaired_path
@@ -56,6 +60,28 @@ class DnsManagerTest < ActiveSupport::TestCase
 
     assert_equal dns_dir, ensured
     assert File.exist?(File.join(dns_dir, "Corefile"))
+    assert File.exist?(File.join(dns_dir, "db.#{@manager.suffix}"))
     assert File.exist?(File.join(dns_dir, "hosts"))
+  end
+
+  test "publish writes wildcard zone records for sandbox dns names" do
+    user = users(:one)
+    dns_dir = File.join(@testdir, "users", user.name, "dns")
+
+    @manager.define_singleton_method(:dns_dir) { |_u| dns_dir }
+    @manager.define_singleton_method(:ensure_dir) { |path| FileUtils.mkdir_p(path) }
+    @manager.define_singleton_method(:suffix) { "test-castle" }
+    @manager.define_singleton_method(:records_for) do |_u|
+      [ DnsManager::Record.new(name: "devbox.alpha.test-castle", ip: "100.64.0.8", sandbox_id: 123) ]
+    end
+    @manager.define_singleton_method(:skipped_for) { |_u| [] }
+
+    @manager.publish(user: user)
+
+    zone = File.read(File.join(dns_dir, "db.test-castle"))
+    hosts = File.read(File.join(dns_dir, "hosts"))
+    assert_includes zone, "devbox.alpha IN A 100.64.0.8"
+    assert_includes zone, "*.devbox.alpha IN A 100.64.0.8"
+    assert_includes hosts, "100.64.0.8 devbox.alpha.test-castle *.devbox.alpha.test-castle"
   end
 end

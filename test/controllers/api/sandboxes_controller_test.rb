@@ -23,6 +23,7 @@ class Api::SandboxesControllerTest < ActionDispatch::IntegrationTest
       vnc_geometry: "1280x900",
       vnc_depth: 24,
       docker_enabled: true,
+      caddy_enabled: true,
       ssh_start_tmux: true,
       oidc_enabled: true,
       gcp_oidc_enabled: true,
@@ -46,6 +47,8 @@ class Api::SandboxesControllerTest < ActionDispatch::IntegrationTest
     assert_equal project.path, sandbox.data_path
     assert sandbox.oidc_enabled?
     assert sandbox.gcp_oidc_enabled?
+    assert sandbox.caddy_enabled?
     assert_equal config, sandbox.gcp_oidc_config
+    assert_equal true, response.parsed_body["caddy_enabled"]
   end
 end

@@ -7,6 +7,7 @@ alice_web:
   vnc_depth: 24
   vnc_enabled: true
   docker_enabled: true
+  caddy_enabled: false
   ssh_start_tmux: true
   tailscale: false
   smb_enabled: false
@@ -20,6 +21,7 @@ bob_api:
   vnc_depth: 24
   vnc_enabled: true
   docker_enabled: true
+  caddy_enabled: false
   ssh_start_tmux: true
   tailscale: false
   smb_enabled: false
