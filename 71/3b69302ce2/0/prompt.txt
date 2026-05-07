@@ -1,0 +1,29 @@
+on my sandcaste on sandman (ssh 100.100.218.64)
+sudo /sandcastle/dockyard/bin/docker ps
+when i create a new sandbox in project io26 the OIDC is not working - so the secrets are not injected into the container from OIDC.
+verify the problem, then fix it!
+
+---
+
+the OIDC_PRIVATE_KEY_PEM would be per sandcastle user / maybe ever per project, right?
+
+---
+
+so it would be stored an an encryted secret in global settings?
+
+---
+
+so it would be stored an an encryted secret in global settings?
+
+---
+
+all files belonging to a sandcastle need to be in "$SANDCASTLE_HOME"
+
+---
+
+what abount /run/sandcastle/oidc-token ? 
+also when editing things in dockyard.sh always edit in the master repo (../dockyard) and put to dockyards git. (remember in CLAUDE.md)
+
+---
+
+continue
