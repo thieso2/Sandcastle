@@ -169,8 +169,11 @@ class DnsManager
   end
 
   def write_corefile(user)
+    template_blocks = published_records_for(user).map { |record| template_block_for(record) }.join
     content = <<~CORE
       #{suffix}:53 {
+        reload 2s
+      #{template_blocks.chomp}
         file /data/#{zone_file_name} #{suffix}
         errors
         log
@@ -184,16 +187,14 @@ class DnsManager
   end
 
   def write_hosts(user)
-    skipped_ids = skipped_for(user).select { |r| r.reason == "duplicate DNS name" }.map(&:sandbox_id).to_set
-    lines = records_for(user).reject { |r| skipped_ids.include?(r.sandbox_id) }.map do |record|
+    lines = published_records_for(user).map do |record|
       "#{record.ip} #{record.name} *.#{record.name}"
     end
     atomic_write(hosts_path(user), "#{lines.join("\n")}\n")
   end
 
   def write_zone(user)
-    skipped_ids = skipped_for(user).select { |r| r.reason == "duplicate DNS name" }.map(&:sandbox_id).to_set
-    zone_records = records_for(user).reject { |r| skipped_ids.include?(r.sandbox_id) }
+    zone_records = published_records_for(user)
     serial = Time.now.utc.strftime("%Y%m%d%H").to_i
 
     lines = [
@@ -211,6 +212,22 @@ class DnsManager
     end
 
     atomic_write(zone_path(user), "#{lines.join("\n")}\n")
+  end
+
+  def published_records_for(user)
+    skipped_ids = skipped_for(user).select { |r| r.reason == "duplicate DNS name" }.map(&:sandbox_id).to_set
+    records_for(user).reject { |r| skipped_ids.include?(r.sandbox_id) }
+  end
+
+  def template_block_for(record)
+    escaped_name = Regexp.escape(record.name)
+    <<~TEMPLATE.indent(2)
+      template IN A #{suffix} {
+        match ^([^.]+\\.)?#{escaped_name}\\.$
+        answer "{{ .Name }} 15 IN A #{record.ip}"
+        fallthrough
+      }
+    TEMPLATE
   end
 
   def fqdn_for(sandbox)

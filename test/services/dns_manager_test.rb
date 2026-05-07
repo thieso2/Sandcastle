@@ -64,7 +64,7 @@ class DnsManagerTest < ActiveSupport::TestCase
     assert File.exist?(File.join(dns_dir, "hosts"))
   end
 
-  test "publish writes wildcard zone records for sandbox dns names" do
+  test "publish writes wildcard template and zone records for sandbox dns names" do
     user = users(:one)
     dns_dir = File.join(@testdir, "users", user.name, "dns")
 
@@ -80,6 +80,11 @@ class DnsManagerTest < ActiveSupport::TestCase
 
     zone = File.read(File.join(dns_dir, "db.test-castle"))
     hosts = File.read(File.join(dns_dir, "hosts"))
+    corefile = File.read(File.join(dns_dir, "Corefile"))
+    assert_includes corefile, "reload 2s"
+    assert_includes corefile, "template IN A test-castle"
+    assert_includes corefile, 'match ^([^.]+\.)?devbox\.alpha\.test\-castle\.$'
+    assert_includes corefile, 'answer "{{ .Name }} 15 IN A 100.64.0.8"'
     assert_includes zone, "devbox.alpha IN A 100.64.0.8"
     assert_includes zone, "*.devbox.alpha IN A 100.64.0.8"
     assert_includes hosts, "100.64.0.8 devbox.alpha.test-castle *.devbox.alpha.test-castle"
