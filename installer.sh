@@ -850,8 +850,69 @@ __ADMIN_EOF__
   ok "sandcastle-admin installed to $bin_dir"
 }
 
-# ═══ setup_login_banner ══════════════════════════════════════════════════
-# Create a login banner showing Sandcastle version and info
+# ═══ login banner/settings ═══════════════════════════════════════════════
+# Create a short login banner and a full non-secret settings inventory.
+
+setting_status() {
+  if [ -n "$1" ]; then
+    printf 'configured\n'
+  else
+    printf 'not configured\n'
+  fi
+}
+
+write_login_settings_file() {
+  local settings_dir="/etc/sandcastle"
+  local settings_file="${settings_dir}/settings"
+  local version="unknown"
+
+  [ -f /etc/sandcastle-version ] && version="$(cat /etc/sandcastle-version)"
+
+  mkdir -p "$settings_dir"
+  {
+    printf '# Sandcastle settings (non-secret)\n'
+    printf '# Generated %s\n' "$(date -Iseconds)"
+    printf 'version: %s\n' "$version"
+    printf 'config: %s\n' "${SANDCASTLE_HOME}/etc/sandcastle.env"
+    printf 'runtime env: %s\n' "${SANDCASTLE_HOME}/.env"
+    printf 'home: %s\n' "$SANDCASTLE_HOME"
+    printf 'app image: %s\n' "$APP_IMAGE"
+    printf 'sandbox image: %s\n' "$SANDBOX_IMAGE"
+    printf 'system user: %s\n' "$SANDCASTLE_USER"
+    printf 'system group: %s\n' "$SANDCASTLE_GROUP"
+    printf 'uid: %s\n' "$SANDCASTLE_UID"
+    printf 'gid: %s\n' "$SANDCASTLE_GID"
+    printf 'name: %s\n' "${SANDCASTLE_NAME:-$(hostname -s 2>/dev/null || echo sandcastle)}"
+    printf 'host: %s\n' "$SANDCASTLE_HOST"
+    printf 'tls mode: %s\n' "$SANDCASTLE_TLS_MODE"
+    printf 'http port: %s\n' "$SANDCASTLE_HTTP_PORT"
+    printf 'https port: %s\n' "$SANDCASTLE_HTTPS_PORT"
+    printf 'admin user: %s\n' "$SANDCASTLE_ADMIN_USER"
+    printf 'admin email: %s\n' "${SANDCASTLE_ADMIN_EMAIL:-}"
+    printf 'admin ssh key: %s\n' "$(setting_status "${SANDCASTLE_ADMIN_SSH_KEY:-}")"
+    printf 'acme email: %s\n' "${ACME_EMAIL:-}"
+    printf 'dockyard root: %s\n' "$DOCKYARD_ROOT"
+    printf 'dockyard prefix: %s\n' "$DOCKYARD_DOCKER_PREFIX"
+    printf 'private net: %s\n' "$SANDCASTLE_PRIVATE_NET"
+    printf 'bridge cidr: %s\n' "$DOCKYARD_BRIDGE_CIDR"
+    printf 'fixed cidr: %s\n' "$DOCKYARD_FIXED_CIDR"
+    printf 'pool base: %s\n' "$DOCKYARD_POOL_BASE"
+    printf 'pool size: %s\n' "$DOCKYARD_POOL_SIZE"
+    printf 'docker socket: %s\n' "${DOCKER_SOCK:-}"
+    printf 'docker gid: %s\n' "${DOCKER_GID:-988}"
+    printf 'github oauth: %s\n' "$(setting_status "${GITHUB_CLIENT_ID:-}")"
+    printf 'google oauth: %s\n' "$(setting_status "${GOOGLE_CLIENT_ID:-}")"
+    printf 'secret key base: %s\n' "$(setting_status "${SECRET_KEY_BASE:-}")"
+    printf 'database password: %s\n' "$(setting_status "${DB_PASSWORD:-}")"
+    printf 'rails encryption keys: %s\n' "$(setting_status "${AR_ENCRYPTION_PRIMARY_KEY:-}")"
+    printf 'oidc signing key: %s\n' "$(setting_status "${OIDC_PRIVATE_KEY_PEM:-}")"
+    printf 'created user: %s\n' "${CREATED_USER:-false}"
+    printf 'created group: %s\n' "${CREATED_GROUP:-false}"
+  } > "$settings_file"
+
+  chmod 0644 "$settings_file"
+  wrote "$settings_file"
+}
 
 setup_login_banner() {
   local profile_d="/etc/profile.d/sandcastle-banner.sh"
@@ -859,36 +920,64 @@ setup_login_banner() {
   info "Setting up login banner..."
 
   cat > "$profile_d" <<'BANNER_SCRIPT'
-#!/bin/bash
+#!/bin/sh
 # Sandcastle login banner
 
-# Only show on interactive shells
-[[ $- == *i* ]] || return 0
+case "$-" in
+  *i*) ;;
+  *) return 0 2>/dev/null || exit 0 ;;
+esac
 
-# Skip if already shown in this session
-[[ -n "${SANDCASTLE_BANNER_SHOWN:-}" ]] && return 0
+if [ -n "${SANDCASTLE_BANNER_SHOWN:-}" ]; then
+  return 0 2>/dev/null || exit 0
+fi
 export SANDCASTLE_BANNER_SHOWN=1
 
-# Get version from image build metadata
-if [ -f /etc/sandcastle-version ]; then
-  VERSION=$(cat /etc/sandcastle-version)
-else
-  VERSION="unknown"
-fi
+SETTINGS_FILE="/etc/sandcastle/settings"
+
+setting_value() {
+  key=$1
+  default=$2
+
+  if [ -f "$SETTINGS_FILE" ]; then
+    value=$(
+      awk -F': ' -v key="$key" '$1 == key { print substr($0, index($0, ": ") + 2); exit }' \
+        "$SETTINGS_FILE" 2>/dev/null
+    )
+    [ -n "$value" ] && {
+      printf '%s\n' "$value"
+      return 0
+    }
+  fi
+
+  printf '%s\n' "$default"
+}
+
+VERSION=$(setting_value version unknown)
+HOST=$(setting_value host unknown)
+TLS_MODE=$(setting_value "tls mode" unknown)
+HOME_DIR=$(setting_value home /sandcastle)
+
+print_setting() {
+  printf '  %-10s %s\n' "$1" "$2"
+}
 
 cat << 'EOF'
 
-  ███████╗ █████╗ ███╗   ██╗██████╗  ██████╗ █████╗ ███████╗████████╗██╗     ███████╗
-  ██╔════╝██╔══██╗████╗  ██║██╔══██╗██╔════╝██╔══██╗██╔════╝╚══██╔══╝██║     ██╔════╝
-  ███████╗███████║██╔██╗ ██║██║  ██║██║     ███████║███████╗   ██║   ██║     █████╗
-  ╚════██║██╔══██║██║╚██╗██║██║  ██║██║     ██╔══██║╚════██║   ██║   ██║     ██╔══╝
-  ███████║██║  ██║██║ ╚████║██████╔╝╚██████╗██║  ██║███████║   ██║   ███████╗███████╗
-  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚══════╝╚══════╝
+    |>  |>
+   _|_ _|_
+  |_|_|_|_|
+  |       |
+ ~|_[#]___|~     sandcastle
+ ~~~~~~~~~~~     every tide, a fresh shore
 
 EOF
 
-echo "  Version: ${VERSION}"
-echo "  Docs:    https://github.com/thieso2/Sandcastle"
+print_setting "version" "$VERSION"
+print_setting "host" "$HOST"
+print_setting "tls" "$TLS_MODE"
+print_setting "home" "$HOME_DIR"
+print_setting "settings" "$SETTINGS_FILE"
 echo ""
 BANNER_SCRIPT
 
@@ -3732,6 +3821,7 @@ CREATED_GROUP="${CREATED_GROUP}"
 EOF
   chmod 600 "$SANDCASTLE_HOME/etc/sandcastle.env"
   wrote "$SANDCASTLE_HOME/etc/sandcastle.env"
+  write_login_settings_file
 
   # ── Traefik config ────────────────────────────────────────────────────────
 

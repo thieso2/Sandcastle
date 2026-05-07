@@ -134,45 +134,151 @@ if [ ! -f /etc/ssh/ssh_host_ed25519_key ]; then
     ssh-keygen -q -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N "" < /dev/null
 fi
 
-# Generate login banner with sandbox configuration
-# Resolve values at container start, bake them into the profile script.
+# Generate a login banner with sandbox configuration. Resolve values at
+# container start, bake non-secret settings into a POSIX-compatible profile
+# script, and leave dynamic OIDC/GCP detection for login time.
+shell_quote() {
+    printf "'"
+    printf "%s" "$1" | sed "s/'/'\\\\''/g"
+    printf "'"
+}
+
 _SC_VERSION="unknown"
 [ -f /etc/sandcastle-version ] && _SC_VERSION=$(cat /etc/sandcastle-version)
-_SC_HOME="ephemeral"
-[ "${SANDCASTLE_HOME_PERSISTED:-0}" = "1" ] && _SC_HOME="persisted"
-_SC_DATA="none"
-if [ "${SANDCASTLE_DATA_PERSISTED:-0}" = "1" ]; then
-    _SC_DP="${SANDCASTLE_DATA_PATH:-.}"
-    _SC_DATA="persisted (/persisted)"
-    [ "$_SC_DP" != "." ] && _SC_DATA="persisted (/persisted — $_SC_DP)"
+
+_SC_EMAIL="${USER_EMAIL:-}"
+_SC_FULLNAME="${USER_FULLNAME:-}"
+_SC_GITHUB="${GITHUB_USERNAME:-}"
+_SC_SSH_KEYS="none"
+if [ -n "$SSH_KEY" ]; then
+    _SC_KEY_COUNT="$(printf '%s\n' "$SSH_KEY" | awk 'NF { count++ } END { print count + 0 }')"
+    if [ "${_SC_KEY_COUNT:-0}" -gt 0 ] 2>/dev/null; then
+        _SC_SSH_KEYS="configured ($_SC_KEY_COUNT)"
+    else
+        _SC_SSH_KEYS="configured"
+    fi
 fi
-_SC_VNC="enabled";  [ "${SANDCASTLE_VNC_ENABLED:-1}" = "0" ]    && _SC_VNC="disabled"
-_SC_DKR="enabled";  [ "${SANDCASTLE_DOCKER_ENABLED:-1}" = "0" ] && _SC_DKR="disabled"
+
+_SC_TMUX="enabled"
+[ "${SANDCASTLE_SSH_START_TMUX:-1}" = "0" ] && _SC_TMUX="disabled"
+
+_SC_HOME="ephemeral"
+if [ "${SANDCASTLE_HOME_PERSISTED:-0}" = "1" ]; then
+    _SC_HOME="persisted"
+    [ -n "${SANDCASTLE_HOME_PATH:-}" ] && _SC_HOME="persisted (${SANDCASTLE_HOME_PATH})"
+fi
+
+_SC_DATA="ephemeral"
+if [ "${SANDCASTLE_DATA_PERSISTED:-0}" = "1" ]; then
+    _SC_DATA="persisted:/persisted"
+    [ -n "${SANDCASTLE_DATA_PATH:-}" ] && _SC_DATA="persisted:/persisted (${SANDCASTLE_DATA_PATH})"
+fi
+
+if [ "${SANDCASTLE_VNC_ENABLED:-1}" = "0" ]; then
+    _SC_VNC="disabled"
+else
+    _SC_VNC="enabled (${SANDCASTLE_VNC_GEOMETRY:-1280x900}, depth ${SANDCASTLE_VNC_DEPTH:-24})"
+fi
+
+_SC_DOCKER="enabled"
+[ "${SANDCASTLE_DOCKER_ENABLED:-1}" = "0" ] && _SC_DOCKER="disabled"
+
+_SC_CADDY="enabled"
+[ "${SANDCASTLE_CADDY_ENABLED:-0}" = "0" ] && _SC_CADDY="disabled"
+_SC_DNS="${SANDCASTLE_DNS_NAME:-none}"
+_SC_CADDY_DISPLAY="$_SC_CADDY"
+[ "$_SC_CADDY" = "enabled" ] && [ "$_SC_DNS" != "none" ] && _SC_CADDY_DISPLAY="enabled ($_SC_DNS)"
+
+_SC_SMB="enabled"
+[ "${SANDCASTLE_SMB_ENABLED:-0}" = "0" ] && _SC_SMB="disabled"
+
+_SC_OIDC="disabled"
+[ "${GOOGLE_EXTERNAL_ACCOUNT_ALLOW_EXECUTABLES:-0}" = "1" ] && _SC_OIDC="enabled"
+
+_SC_GCP="not configured"
+if [ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ] || [ -n "${GOOGLE_CLOUD_PROJECT:-}" ]; then
+    _SC_GCP="configured"
+    [ -n "${GOOGLE_CLOUD_PROJECT:-}" ] && _SC_GCP="configured (${GOOGLE_CLOUD_PROJECT})"
+fi
+
+_SC_SETTINGS_FILE="/etc/sandcastle/settings"
+mkdir -p /etc/sandcastle
+: > "$_SC_SETTINGS_FILE"
+{
+    printf '# Sandcastle sandbox settings (non-secret)\n'
+    printf '# Generated %s\n' "$(date -Iseconds)"
+    printf 'version: %s\n' "$_SC_VERSION"
+    printf 'user: %s\n' "$USERNAME"
+    printf 'email: %s\n' "${_SC_EMAIL:-none}"
+    printf 'full name: %s\n' "${_SC_FULLNAME:-none}"
+    printf 'github: %s\n' "${_SC_GITHUB:-none}"
+    printf 'ssh keys: %s\n' "$_SC_SSH_KEYS"
+    printf 'ssh tmux: %s\n' "$_SC_TMUX"
+    printf 'home: %s\n' "$_SC_HOME"
+    printf 'home persisted: %s\n' "${SANDCASTLE_HOME_PERSISTED:-0}"
+    printf 'home path: %s\n' "${SANDCASTLE_HOME_PATH:-none}"
+    printf 'data: %s\n' "$_SC_DATA"
+    printf 'data persisted: %s\n' "${SANDCASTLE_DATA_PERSISTED:-0}"
+    printf 'data path: %s\n' "${SANDCASTLE_DATA_PATH:-none}"
+    printf 'vnc: %s\n' "$_SC_VNC"
+    printf 'vnc enabled: %s\n' "${SANDCASTLE_VNC_ENABLED:-1}"
+    printf 'vnc geometry: %s\n' "${SANDCASTLE_VNC_GEOMETRY:-1280x900}"
+    printf 'vnc depth: %s\n' "${SANDCASTLE_VNC_DEPTH:-24}"
+    printf 'docker: %s\n' "$_SC_DOCKER"
+    printf 'caddy: %s\n' "$_SC_CADDY"
+    printf 'dns: %s\n' "$_SC_DNS"
+    printf 'smb: %s\n' "$_SC_SMB"
+    printf 'oidc: %s\n' "$_SC_OIDC"
+    printf 'gcp: %s\n' "$_SC_GCP"
+    printf 'gcp project: %s\n' "${GOOGLE_CLOUD_PROJECT:-none}"
+    printf 'gcp credentials: %s\n' "${GOOGLE_APPLICATION_CREDENTIALS:-none}"
+} >> "$_SC_SETTINGS_FILE"
+chmod 0644 "$_SC_SETTINGS_FILE"
 
 cat > /etc/profile.d/sandcastle-banner.sh <<BANNER_EOF
-#!/bin/bash
-[[ \$- == *i* ]] || return 0
-[[ -n "\${SANDCASTLE_BANNER_SHOWN:-}" ]] && return 0
+#!/bin/sh
+case "\$-" in
+  *i*) ;;
+  *) return 0 2>/dev/null || exit 0 ;;
+esac
+
+if [ -n "\${SANDCASTLE_BANNER_SHOWN:-}" ]; then
+  return 0 2>/dev/null || exit 0
+fi
 export SANDCASTLE_BANNER_SHOWN=1
+
+SC_VERSION=$(shell_quote "$_SC_VERSION")
+SC_USER=$(shell_quote "$USERNAME")
+SC_HOME=$(shell_quote "$_SC_HOME")
+SC_DATA=$(shell_quote "$_SC_DATA")
+SC_DOCKER=$(shell_quote "$_SC_DOCKER")
+SC_CADDY=$(shell_quote "$_SC_CADDY_DISPLAY")
+SC_SETTINGS_FILE=$(shell_quote "$_SC_SETTINGS_FILE")
+
+print_setting() {
+  printf '  %-12s %s\\n' "\$1" "\$2"
+}
 
 cat << 'ART'
 
-  ███████╗ █████╗ ███╗   ██╗██████╗  ██████╗ █████╗ ███████╗████████╗██╗     ███████╗
-  ██╔════╝██╔══██╗████╗  ██║██╔══██╗██╔════╝██╔══██╗██╔════╝╚══██╔══╝██║     ██╔════╝
-  ███████╗███████║██╔██╗ ██║██║  ██║██║     ███████║███████╗   ██║   ██║     █████╗
-  ╚════██║██╔══██║██║╚██╗██║██║  ██║██║     ██╔══██║╚════██║   ██║   ██║     ██╔══╝
-  ███████║██║  ██║██║ ╚████║██████╔╝╚██████╗██║  ██║███████║   ██║   ███████╗███████╗
-  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚══════╝╚══════╝
+    |>  |>
+   _|_ _|_
+  |_|_|_|_|
+  |       |
+ ~|_[#]___|~     sandcastle
+ ~~~~~~~~~~~     every tide, a fresh shore
 
 ART
-echo "  Version:  $_SC_VERSION"
-echo "  Home:     $_SC_HOME"
-echo "  Data:     $_SC_DATA"
-echo "  VNC:      $_SC_VNC"
-echo "  Docker:   $_SC_DKR"
+print_setting "version" "\$SC_VERSION"
+print_setting "user" "\$SC_USER"
+print_setting "home" "\$SC_HOME"
+print_setting "data" "\$SC_DATA"
+print_setting "docker" "\$SC_DOCKER"
+print_setting "caddy" "\$SC_CADDY"
+print_setting "settings" "\$SC_SETTINGS_FILE"
 echo ""
 BANNER_EOF
-chmod +x /etc/profile.d/sandcastle-banner.sh
+chmod 0644 /etc/profile.d/sandcastle-banner.sh
 
 # Resize /dev/shm to 2GB for Chrome. Docker's ShmSize HostConfig key is not
 # supported by sysbox-runc, so we do it here instead. The runtime bind-mounts
