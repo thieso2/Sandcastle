@@ -62,6 +62,7 @@ Rails.application.routes.draw do
       post :reconcile_discard
     end
     resources :routes, only: [ :create, :destroy ]
+    resources :aliases, only: [ :create, :destroy ], controller: "sandbox_aliases"
   end
   resources :projects, only: [ :new, :create, :edit, :update, :destroy ]
 
@@ -142,6 +143,7 @@ Rails.application.routes.draw do
         post "services/:service/stop", action: :service_stop, as: :service_stop
       end
       resources :routes, only: [ :index, :create, :destroy ]
+      resources :aliases, only: [ :index, :create, :destroy ], controller: "sandbox_aliases"
     end
     resources :snapshots, only: [ :index, :create, :show, :destroy ], param: :name
     resources :users

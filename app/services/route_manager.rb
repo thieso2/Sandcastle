@@ -221,10 +221,17 @@ class RouteManager
   def ensure_mkcert_cert(cert_dir)
     cert_path = File.join(cert_dir, "cert.pem")
     key_path  = File.join(cert_dir, "key.pem")
-    return if File.exist?(cert_path) && File.exist?(key_path)
+    fingerprint_path = File.join(cert_dir, "cert.fingerprint")
 
     host = ENV.fetch("SANDCASTLE_HOST", "localhost")
-    Rails.logger.info("RouteManager: generating mkcert certificate for #{host}")
+    sans = mkcert_san_list(host)
+    fingerprint = Digest::SHA256.hexdigest(sans.join("\n"))
+
+    if File.exist?(cert_path) && File.exist?(key_path) && safe_read(fingerprint_path) == fingerprint
+      return
+    end
+
+    Rails.logger.info("RouteManager: generating mkcert certificate for #{host} with #{sans.size} SANs")
 
     # Store CA alongside the certs so it survives container restarts
     caroot = ENV.fetch("MKCERT_CAROOT", cert_dir)
@@ -236,14 +243,28 @@ class RouteManager
       "mkcert",
       "-cert-file", cert_path,
       "-key-file",  key_path,
-      host, "*.#{host}", "localhost", "127.0.0.1", "::1"
+      *sans
     ) or raise Error, "mkcert certificate generation failed for #{host}"
+
+    File.write(fingerprint_path, fingerprint)
 
     ca_source = File.join(caroot, "rootCA.pem")
     ca_dest   = File.join(cert_dir, "rootCA.pem")
     FileUtils.cp(ca_source, ca_dest) if File.exist?(ca_source) && File.expand_path(ca_source) != File.expand_path(ca_dest)
 
     Rails.logger.info("RouteManager: mkcert certificate written to #{cert_path}")
+  end
+
+  def mkcert_san_list(host)
+    base = [ host, "*.#{host}", "localhost", "127.0.0.1", "::1" ]
+    fqdn_aliases = SandboxAlias.where(kind: "fqdn").pluck(:value).map(&:to_s).reject(&:blank?).uniq.sort
+    (base + fqdn_aliases).uniq
+  end
+
+  def safe_read(path)
+    File.read(path).strip
+  rescue Errno::ENOENT
+    nil
   end
 
   def custom_cert_configured?

@@ -435,6 +435,19 @@ type DNSStatus struct {
 	Skipped             []DNSSkip   `json:"skipped"`
 }
 
+type SandboxAlias struct {
+	ID        int    `json:"id"`
+	SandboxID int    `json:"sandbox_id"`
+	Kind      string `json:"kind"`
+	Value     string `json:"value"`
+	FQDN      string `json:"fqdn"`
+}
+
+type SandboxAliasRequest struct {
+	Kind  string `json:"kind"`
+	Value string `json:"value"`
+}
+
 type DNSRecord struct {
 	Name      string `json:"name"`
 	IP        string `json:"ip"`

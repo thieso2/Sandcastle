@@ -6,6 +6,7 @@ class Sandbox < ApplicationRecord
   has_many :routes, dependent: :destroy
   has_many :container_metrics, dependent: :delete_all
   has_many :sandbox_mounts, dependent: :destroy
+  has_many :aliases, class_name: "SandboxAlias", dependent: :destroy
 
   OIDC_TOKEN_PREFIX = "sc_oidc".freeze
   VNC_GEOMETRIES = %w[1280x900 1366x768 1440x900 1600x900 1920x1080 2560x1440].freeze

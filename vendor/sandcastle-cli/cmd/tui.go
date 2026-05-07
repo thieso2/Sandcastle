@@ -51,9 +51,11 @@ type tuiView int
 const (
 	viewSandboxes tuiView = iota
 	viewRoutes
+	viewAliases
 	viewCreateSandbox
 	viewCreateProject
 	viewAddRoute
+	viewAddAlias
 	viewConfirmDelete
 	viewServers
 	viewAddServer
@@ -92,6 +94,11 @@ type sandboxesLoadedMsg struct {
 type routesLoadedMsg struct {
 	routes []api.RouteResponse
 	err    error
+}
+
+type aliasesLoadedMsg struct {
+	aliases []api.SandboxAlias
+	err     error
 }
 
 type dnsLoadedMsg struct {
@@ -154,6 +161,13 @@ type tuiModel struct {
 	// add route
 	routeInputs   [2]textinput.Model // domain, port
 	routeFocusIdx int
+
+	// aliases
+	aliasSandbox  *api.Sandbox
+	aliases       []api.SandboxAlias
+	aliasCursor   int
+	aliasInput    textinput.Model // value
+	aliasKindIdx  int             // 0 = sub, 1 = fqdn
 
 	// confirm delete
 	deleteTarget string
@@ -334,6 +348,8 @@ func newTUI(client *api.Client) tuiModel {
 	portInput := makeTextInput("port (default 8080)", 10)
 	portInput.CharLimit = 5
 
+	aliasInput := makeTextInput("admin   or   www.example.com", 40)
+
 	return tuiModel{
 		client:        client,
 		spinner:       s,
@@ -341,6 +357,7 @@ func newTUI(client *api.Client) tuiModel {
 		createFields:  buildCreateFields(),
 		projectFields: buildProjectFields(),
 		routeInputs:   [2]textinput.Model{domainInput, portInput},
+		aliasInput:    aliasInput,
 	}
 }
 
@@ -361,6 +378,13 @@ func loadRoutes(client *api.Client, sandboxID int) tea.Cmd {
 	return func() tea.Msg {
 		routes, err := client.ListRoutes(sandboxID)
 		return routesLoadedMsg{routes, err}
+	}
+}
+
+func loadAliases(client *api.Client, sandboxID int) tea.Cmd {
+	return func() tea.Msg {
+		aliases, err := client.ListSandboxAliases(sandboxID)
+		return aliasesLoadedMsg{aliases, err}
 	}
 }
 
@@ -459,6 +483,20 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.routeCursor = 0
 		return m, nil
 
+	case aliasesLoadedMsg:
+		m.loading = false
+		if msg.err != nil {
+			m.feedback = msg.err.Error()
+			m.feedErr = true
+			m.view = viewSandboxes
+			return m, nil
+		}
+		m.aliases = msg.aliases
+		if m.aliasCursor >= len(m.aliases) {
+			m.aliasCursor = max(0, len(m.aliases)-1)
+		}
+		return m, nil
+
 	case deviceCodeMsg:
 		if msg.err != nil {
 			m.feedback = msg.err.Error()
@@ -529,6 +567,9 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewRoutes && m.routeSandbox != nil {
 			return m, tea.Batch(m.spinner.Tick, loadRoutes(m.client, m.routeSandbox.ID))
 		}
+		if m.view == viewAliases && m.aliasSandbox != nil {
+			return m, tea.Batch(m.spinner.Tick, loadAliases(m.client, m.aliasSandbox.ID))
+		}
 		return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client), loadDNS(m.client))
 	}
 
@@ -537,12 +578,16 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateSandboxes(msg)
 	case viewRoutes:
 		return m.updateRoutes(msg)
+	case viewAliases:
+		return m.updateAliases(msg)
 	case viewCreateSandbox:
 		return m.updateCreate(msg)
 	case viewCreateProject:
 		return m.updateCreateProject(msg)
 	case viewAddRoute:
 		return m.updateAddRoute(msg)
+	case viewAddAlias:
+		return m.updateAddAlias(msg)
 	case viewConfirmDelete:
 		return m.updateConfirmDelete(msg)
 	case viewServers:
@@ -598,6 +643,16 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.routeSandbox = &sb
 				m.view = viewRoutes
 				return m, tea.Batch(m.spinner.Tick, loadRoutes(m.client, sb.ID))
+			}
+		case key.Matches(msg, key.NewBinding(key.WithKeys("A"))):
+			if len(m.sandboxes) > 0 {
+				m.loading = true
+				m.feedback = ""
+				sb := m.sandboxes[m.cursor]
+				m.aliasSandbox = &sb
+				m.aliasCursor = 0
+				m.view = viewAliases
+				return m, tea.Batch(m.spinner.Tick, loadAliases(m.client, sb.ID))
 			}
 		case key.Matches(msg, key.NewBinding(key.WithKeys("R"))):
 			m.loading = true
@@ -1022,6 +1077,92 @@ func (m tuiModel) updateAddRoute(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m tuiModel) updateAliases(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		m.feedback = ""
+		switch {
+		case key.Matches(msg, key.NewBinding(key.WithKeys("q", "esc"))):
+			m.view = viewSandboxes
+			m.aliases = nil
+			m.aliasSandbox = nil
+		case key.Matches(msg, key.NewBinding(key.WithKeys("ctrl+c"))):
+			return m, tea.Quit
+		case key.Matches(msg, key.NewBinding(key.WithKeys("up", "k"))):
+			if m.aliasCursor > 0 {
+				m.aliasCursor--
+			}
+		case key.Matches(msg, key.NewBinding(key.WithKeys("down", "j"))):
+			if m.aliasCursor < len(m.aliases)-1 {
+				m.aliasCursor++
+			}
+		case key.Matches(msg, key.NewBinding(key.WithKeys("a"))):
+			m.view = viewAddAlias
+			m.aliasKindIdx = 0
+			m.aliasInput.SetValue("")
+			m.aliasInput.Focus()
+			return m, m.aliasInput.Cursor.BlinkCmd()
+		case key.Matches(msg, key.NewBinding(key.WithKeys("d"))):
+			if len(m.aliases) > 0 {
+				a := m.aliases[m.aliasCursor]
+				sbID := m.aliasSandbox.ID
+				m.loading = true
+				return m, tea.Batch(m.spinner.Tick, doAction(func() (string, error) {
+					err := m.client.RemoveSandboxAliasByID(sbID, a.ID)
+					return fmt.Sprintf("Alias %q removed", a.Value), err
+				}))
+			}
+		case key.Matches(msg, key.NewBinding(key.WithKeys("R"))):
+			if m.aliasSandbox != nil {
+				m.loading = true
+				return m, tea.Batch(m.spinner.Tick, loadAliases(m.client, m.aliasSandbox.ID))
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m tuiModel) updateAddAlias(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEsc:
+			m.view = viewAliases
+			return m, nil
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+		case tea.KeyTab, tea.KeyShiftTab:
+			m.aliasKindIdx = (m.aliasKindIdx + 1) % 2
+			return m, nil
+		case tea.KeyEnter:
+			value := strings.TrimSpace(m.aliasInput.Value())
+			if value == "" {
+				m.feedback = "value is required"
+				m.feedErr = true
+				return m, nil
+			}
+			kind := "sub"
+			if m.aliasKindIdx == 1 {
+				kind = "fqdn"
+			}
+			sbID := m.aliasSandbox.ID
+			m.view = viewAliases
+			m.loading = true
+			return m, tea.Batch(m.spinner.Tick, doAction(func() (string, error) {
+				a, err := m.client.AddSandboxAlias(sbID, api.SandboxAliasRequest{Kind: kind, Value: value})
+				if err != nil {
+					return "", err
+				}
+				return fmt.Sprintf("Alias added: %s → %s", a.Value, a.FQDN), nil
+			}))
+		}
+	}
+
+	var cmd tea.Cmd
+	m.aliasInput, cmd = m.aliasInput.Update(msg)
+	return m, cmd
+}
+
 func (m tuiModel) updateConfirmDelete(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -1059,12 +1200,16 @@ func (m tuiModel) View() string {
 		m.viewSandboxes(&b)
 	case viewRoutes:
 		m.viewRoutes(&b)
+	case viewAliases:
+		m.viewAliases(&b)
 	case viewCreateSandbox:
 		m.viewCreate(&b)
 	case viewCreateProject:
 		m.viewCreateProject(&b)
 	case viewAddRoute:
 		m.viewAddRoute(&b)
+	case viewAddAlias:
+		m.viewAddAlias(&b)
 	case viewConfirmDelete:
 		m.viewConfirmDelete(&b)
 	case viewServers:
@@ -1171,7 +1316,7 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render("  enter connect  c create sandbox  g create project  s start  x stop  d destroy  r routes  S servers  P prefs  R refresh  q quit"))
+	b.WriteString(helpStyle.Render("  enter connect  c create sandbox  g create project  s start  x stop  d destroy  r routes  A aliases  S servers  P prefs  R refresh  q quit"))
 	b.WriteString("\n")
 }
 
@@ -1306,6 +1451,58 @@ func (m tuiModel) viewCreateProject(b *strings.Builder) {
 
 	b.WriteString("\n")
 	b.WriteString(helpStyle.Render("  arrows/tab navigate  space toggle  ctrl+s create  esc cancel"))
+	b.WriteString("\n")
+}
+
+func (m tuiModel) viewAliases(b *strings.Builder) {
+	b.WriteString(headerStyle.Render(fmt.Sprintf("  Aliases for %s", m.aliasSandbox.DisplayName())) + "\n\n")
+
+	if m.loading {
+		b.WriteString("  " + m.spinner.View() + " Loading aliases...\n")
+		b.WriteString("\n" + helpStyle.Render("  esc back  q quit"))
+		return
+	}
+
+	if len(m.aliases) == 0 {
+		b.WriteString("  No aliases. Press a to add one.\n")
+	} else {
+		b.WriteString(headerStyle.Render(fmt.Sprintf("  %-6s %-6s %-30s %s", "ID", "KIND", "VALUE", "FQDN")) + "\n")
+		for i, a := range m.aliases {
+			value := a.Value
+			if len(value) > 28 {
+				value = value[:27] + "…"
+			}
+			fqdn := a.FQDN
+			if len(fqdn) > 60 {
+				fqdn = fqdn[:59] + "…"
+			}
+			line := fmt.Sprintf("  %-6d %-6s %-30s %s", a.ID, a.Kind, value, fqdn)
+			if i == m.aliasCursor {
+				line = selectedStyle.Render(fmt.Sprintf("  %-6d %-6s %-30s %-60s", a.ID, a.Kind, value, fqdn))
+			}
+			b.WriteString(line + "\n")
+		}
+	}
+
+	b.WriteString("\n")
+	b.WriteString(helpStyle.Render("  a add  d delete  R refresh  esc/q back"))
+	b.WriteString("\n")
+}
+
+func (m tuiModel) viewAddAlias(b *strings.Builder) {
+	b.WriteString(headerStyle.Render(fmt.Sprintf("  Add Alias to %s", m.aliasSandbox.DisplayName())) + "\n\n")
+
+	kinds := []string{"sub", "fqdn"}
+	kindLabel := kinds[m.aliasKindIdx]
+	descriptions := []string{
+		"prefix → <value>." + m.aliasSandbox.Name + ".<project>.<host>",
+		"verbatim → <value>",
+	}
+	b.WriteString("  Kind:   " + selectedStyle.Render(kindLabel) + "  " + helpStyle.Render("(tab to toggle)") + "\n")
+	b.WriteString("          " + helpStyle.Render(descriptions[m.aliasKindIdx]) + "\n")
+	b.WriteString("  Value:  " + m.aliasInput.View() + "\n")
+	b.WriteString("\n")
+	b.WriteString(helpStyle.Render("  tab toggle kind  enter confirm  esc cancel"))
 	b.WriteString("\n")
 }
 

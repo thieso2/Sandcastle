@@ -423,6 +423,24 @@ func (c *Client) RemoveRoute(sandboxID int, domain string) error {
 	return fmt.Errorf("route with domain %q not found", domain)
 }
 
+// Sandbox aliases
+
+func (c *Client) ListSandboxAliases(sandboxID int) ([]SandboxAlias, error) {
+	var aliases []SandboxAlias
+	err := c.do("GET", fmt.Sprintf("/api/sandboxes/%d/aliases", sandboxID), nil, &aliases)
+	return aliases, err
+}
+
+func (c *Client) AddSandboxAlias(sandboxID int, req SandboxAliasRequest) (*SandboxAlias, error) {
+	var a SandboxAlias
+	err := c.do("POST", fmt.Sprintf("/api/sandboxes/%d/aliases", sandboxID), req, &a)
+	return &a, err
+}
+
+func (c *Client) RemoveSandboxAliasByID(sandboxID, aliasID int) error {
+	return c.do("DELETE", fmt.Sprintf("/api/sandboxes/%d/aliases/%d", sandboxID, aliasID), nil, nil)
+}
+
 // Snapshots
 
 func (c *Client) SnapshotSandbox(id int, req SnapshotRequest) (*Snapshot, error) {
