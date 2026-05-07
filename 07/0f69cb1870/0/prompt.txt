@@ -1,0 +1,1 @@
+add sandcaste create [project:]name to craeet a new sandcaste in a project with all project defaults. commit an drelease a new versions!

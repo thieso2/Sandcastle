@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "070f69cb1870",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "app/views/pages/guide.html.erb",
+    "vendor/sandcastle-cli/cmd/sandbox.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/07/0f69cb1870/0/metadata.json",
+      "transcript": "/07/0f69cb1870/0/full.jsonl",
+      "content_hash": "/07/0f69cb1870/0/content_hash.txt",
+      "prompt": "/07/0f69cb1870/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 25,
+    "cache_creation_tokens": 65588,
+    "cache_read_tokens": 1025764,
+    "output_tokens": 5692,
+    "api_call_count": 20
+  }
+}
