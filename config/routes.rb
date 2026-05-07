@@ -167,6 +167,9 @@ Rails.application.routes.draw do
       get :status
       post :reconcile
     end
+    resource :trust, only: [], controller: "trust" do
+      get :root_ca
+    end
     resources :gcp_oidc_configs, only: [ :index, :show, :create, :update, :destroy ]
   end
 

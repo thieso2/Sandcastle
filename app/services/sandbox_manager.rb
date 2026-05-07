@@ -60,6 +60,8 @@ class SandboxManager
 
   # Public method for job usage
   def create_container_and_start(sandbox:, user:)
+    CaddyCertificateAuthority.ensure! if sandbox.caddy_enabled?
+
     container = Docker::Container.create(
       "name" => sandbox.full_name,
       "Image" => sandbox.image,
@@ -1101,7 +1103,11 @@ PROFILE_EOF
 
   def volume_binds(user, sandbox)
     mounts = sandbox.sandbox_mounts.to_a
-    return mounts.map(&:bind_spec) if mounts.any?
+    if mounts.any?
+      binds = mounts.map(&:bind_spec)
+      binds << caddy_ca_bind if sandbox.caddy_enabled?
+      return binds
+    end
 
     binds = []
     if (home_dir = sandbox_home_dir(user, sandbox))
@@ -1118,7 +1124,13 @@ PROFILE_EOF
         binds << "#{host_path}:/home/#{user.name}/#{pp.path}"
       end
     end
+    binds << caddy_ca_bind if sandbox.caddy_enabled?
     binds
+  end
+
+  def caddy_ca_bind
+    CaddyCertificateAuthority.ensure!
+    "#{CaddyCertificateAuthority.dir}:/etc/sandcastle/caddy/mkcert:ro"
   end
 
   def sandbox_home_dir(user, sandbox)

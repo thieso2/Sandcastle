@@ -285,8 +285,10 @@ CADDY_DNS_NAME="${SANDCASTLE_DNS_NAME:-}"
 if [ "$CADDY_ENABLED" = "1" ] && [ -n "$CADDY_DNS_NAME" ]; then
     if command -v caddy &>/dev/null && command -v mkcert &>/dev/null; then
         install -d -m 0755 /etc/sandcastle/caddy/certs /var/log/caddy /var/lib/caddy /etc/caddy
+        if [ ! -f /etc/sandcastle/caddy/mkcert/rootCA.pem ] || [ ! -f /etc/sandcastle/caddy/mkcert/rootCA-key.pem ]; then
+            install -d -m 0700 /etc/sandcastle/caddy/mkcert
+        fi
         export CAROOT=/etc/sandcastle/caddy/mkcert
-        mkcert -install &>/var/log/caddy/mkcert-install.log || true
         mkcert \
             -cert-file /etc/sandcastle/caddy/certs/sandbox.pem \
             -key-file /etc/sandcastle/caddy/certs/sandbox-key.pem \
@@ -296,12 +298,24 @@ if [ "$CADDY_ENABLED" = "1" ] && [ -n "$CADDY_DNS_NAME" ]; then
         if [ -f /etc/sandcastle/caddy/certs/sandbox.pem ] && [ -f /etc/sandcastle/caddy/certs/sandbox-key.pem ]; then
             cat > /etc/caddy/Caddyfile <<CADDYFILE
 http://$CADDY_DNS_NAME, http://*.$CADDY_DNS_NAME {
-    reverse_proxy 127.0.0.1:3000
+    log {
+        output file /var/log/caddy/access.log
+    }
+    reverse_proxy 127.0.0.1:3000 [::1]:3000 localhost:3000 {
+        lb_try_duration 5s
+        lb_try_interval 250ms
+    }
 }
 
 https://$CADDY_DNS_NAME, https://*.$CADDY_DNS_NAME {
     tls /etc/sandcastle/caddy/certs/sandbox.pem /etc/sandcastle/caddy/certs/sandbox-key.pem
-    reverse_proxy 127.0.0.1:3000
+    log {
+        output file /var/log/caddy/access.log
+    }
+    reverse_proxy 127.0.0.1:3000 [::1]:3000 localhost:3000 {
+        lb_try_duration 5s
+        lb_try_interval 250ms
+    }
 }
 CADDYFILE
             caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &>/var/log/caddy/caddy.log &

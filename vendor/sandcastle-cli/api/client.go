@@ -565,6 +565,14 @@ func (c *Client) DNSReconcile() (*DNSStatus, error) {
 	return &s, err
 }
 
+// Trust
+
+func (c *Client) TrustRootCA() (*TrustRootCA, error) {
+	var ca TrustRootCA
+	err := c.do("GET", "/api/trust/root_ca", nil, &ca)
+	return &ca, err
+}
+
 // SMB
 
 func (c *Client) SmbSetPassword(password string) error {

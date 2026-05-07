@@ -140,6 +140,11 @@ type ServerDockerInfo struct {
 	Runtimes          []string `json:"runtimes"`
 }
 
+type TrustRootCA struct {
+	Name string `json:"name"`
+	PEM  string `json:"pem"`
+}
+
 type ServerUserCounts struct {
 	Total  int `json:"total"`
 	Admins int `json:"admins"`

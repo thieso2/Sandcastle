@@ -32,13 +32,25 @@ class SandboxManagerTest < ActiveSupport::TestCase
     ENV["SANDCASTLE_NAME"] = "test-castle"
     @sandbox.update!(container_id: nil, status: "pending", project_name: "alpha", caddy_enabled: true)
 
-    @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+    original_ensure = CaddyCertificateAuthority.method(:ensure!)
+    original_dir = CaddyCertificateAuthority.method(:dir)
+    CaddyCertificateAuthority.define_singleton_method(:ensure!) { true }
+    CaddyCertificateAuthority.define_singleton_method(:dir) { "/tmp/sandcastle-test-caddy-ca" }
+
+    begin
+      @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+    ensure
+      CaddyCertificateAuthority.define_singleton_method(:ensure!, original_ensure)
+      CaddyCertificateAuthority.define_singleton_method(:dir, original_dir)
+    end
 
     container = Docker::Container.get(@sandbox.reload.container_id)
     assert_equal "devbox.alpha.test-castle", container.info.dig("Config", "Hostname")
     assert_equal @sandbox.full_name, container.info.dig("Config", "name")
     assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_CADDY_ENABLED=1"
     assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_DNS_NAME=devbox.alpha.test-castle"
+    assert_includes container.info.dig("Config", "HostConfig", "Binds"),
+      "/tmp/sandcastle-test-caddy-ca:/etc/sandcastle/caddy/mkcert:ro"
   ensure
     ENV.delete("SANDCASTLE_NAME")
   end
