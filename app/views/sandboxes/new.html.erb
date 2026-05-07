@@ -6,6 +6,31 @@
     <p class="text-gray-500 mt-1">Configure and create a new sandbox environment</p>
   </div>
 
+  <% project_defaults = @projects.each_with_object({}) do |project, defaults|
+       key = project.default_project? ? "" : project.id.to_s
+       defaults[key] = {
+         name: project.name,
+         path: project.path,
+         image: project.image,
+         mount_home: project.mount_home,
+         home_path: project.home_path,
+         data_path: project.data_path,
+         tailscale: project.tailscale,
+         vnc_enabled: project.vnc_enabled,
+         vnc_geometry: project.vnc_geometry,
+         vnc_depth: project.vnc_depth,
+         docker_enabled: project.docker_enabled,
+         smb_enabled: project.smb_enabled,
+         ssh_start_tmux: project.ssh_start_tmux,
+         oidc_enabled: project.oidc_enabled,
+         gcp_oidc_enabled: project.gcp_oidc_enabled,
+         gcp_oidc_config_id: project.gcp_oidc_config_id,
+         gcp_service_account_email: project.gcp_service_account_email,
+         gcp_principal_scope: project.gcp_principal_scope,
+         gcp_roles: project.gcp_roles_list
+       }
+     end %>
+
   <%= form_with url: sandboxes_path, method: :post, class: "space-y-6" do |form| %>
     <%# Basic Information %>
     <div class="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
@@ -27,6 +52,7 @@
         <%= form.label :image, "Container Image", class: "block text-sm font-medium text-gray-700 mb-1" %>
         <%= form.text_field :image,
               placeholder: "ghcr.io/thieso2/sandcastle-sandbox:latest",
+              id: "sandbox_image",
               class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
         <p class="mt-1 text-xs text-gray-500">Leave empty to use the default image</p>
       </div>
@@ -124,6 +150,7 @@
           <%= form.text_field :data_path,
                 value: @defaults.data_path.presence&.then { |p| p == "." ? "" : p },
                 placeholder: "e.g., projects/myapp",
+                id: "sandbox_data_path",
                 class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
           <p class="mt-1 text-xs text-gray-500">Leave empty for the root data directory, or specify a subpath</p>
         </div>
@@ -139,6 +166,7 @@
           <%= form.select :storage_mode,
                 options_for_select(storage_options, "direct"),
                 {},
+                id: "sandbox_storage_mode",
                 class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
           <p class="mt-1 text-xs text-gray-500">
             Direct writes update the master copy immediately.
@@ -158,7 +186,7 @@
         <h2 class="text-lg font-semibold text-gray-900">Network Options</h2>
 
         <label class="flex items-start gap-3 cursor-pointer">
-          <%= form.check_box :tailscale, checked: true, class: "mt-1 h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500" %>
+          <%= form.check_box :tailscale, checked: @defaults.tailscale, id: "sandbox_tailscale", class: "mt-1 h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500" %>
           <div class="flex-1">
             <div class="text-sm font-medium text-gray-900">Connect to Tailscale network</div>
             <p class="text-xs text-gray-500">Automatically connect this sandbox to your Tailscale network</p>
@@ -173,6 +201,7 @@
 
       <label class="flex items-start gap-3 cursor-pointer">
         <%= form.check_box :docker_enabled, checked: @defaults.docker_enabled,
+              id: "sandbox_docker_enabled",
               class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
         <div class="flex-1">
           <div class="text-sm font-medium text-gray-900">Start Docker daemon</div>
@@ -182,6 +211,7 @@
 
       <label class="flex items-start gap-3 cursor-pointer">
         <%= form.check_box :oidc_enabled, checked: @defaults.oidc_enabled,
+              id: "sandbox_oidc_enabled",
               class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
         <div class="flex-1">
           <div class="text-sm font-medium text-gray-900">Enable OIDC identity tokens</div>
@@ -193,6 +223,7 @@
         <label class="flex items-start gap-3 cursor-pointer">
           <%= form.check_box :gcp_oidc_enabled,
                 checked: @defaults.gcp_oidc_enabled,
+                id: "sandbox_gcp_oidc_enabled",
                 class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
           <div class="flex-1">
             <div class="text-sm font-medium text-gray-900">Configure GCP credentials</div>
@@ -206,6 +237,7 @@
             <%= form.select :gcp_oidc_config_id,
                   options_for_select([["None", ""]] + @gcp_oidc_configs.map { |config| [config.name, config.id] }, @defaults.gcp_oidc_config_id),
                   {},
+                  id: "sandbox_gcp_oidc_config_id",
                   class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
           </div>
           <div class="md:col-span-2">
@@ -213,6 +245,7 @@
             <%= form.email_field :gcp_service_account_email,
                   value: @defaults.gcp_service_account_email,
                   placeholder: "Leave blank for the config default",
+                  id: "sandbox_gcp_service_account_email",
                   class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
             <p class="mt-1 text-xs text-gray-500">Leave blank to use the selected config's default read-only Sandcastle service account.</p>
           </div>
@@ -221,12 +254,14 @@
             <%= form.select :gcp_principal_scope,
                   options_for_select([["All my sandboxes", "user"], ["This sandbox", "sandbox"]], @defaults.gcp_principal_scope),
                   {},
+                  id: "sandbox_gcp_principal_scope",
                   class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" %>
           </div>
           <div>
             <%= label_tag :gcp_roles_text, "Project roles", class: "block text-xs font-medium text-gray-600 mb-1" %>
             <%= text_field_tag :gcp_roles_text, @defaults.gcp_roles_list.join(", "),
                   placeholder: "roles/viewer, roles/storage.objectViewer",
+                  id: "sandbox_gcp_roles_text",
                   class: "block w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" %>
           </div>
         </div>
@@ -238,6 +273,7 @@
 
       <label class="flex items-start gap-3 cursor-pointer">
         <%= form.check_box :ssh_start_tmux, checked: @defaults.ssh_start_tmux,
+              id: "sandbox_ssh_start_tmux",
               class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
         <div class="flex-1">
           <div class="text-sm font-medium text-gray-900">Start tmux on SSH login</div>
@@ -260,6 +296,7 @@
         <%= form.check_box :smb_enabled,
               checked: smb_ready && @defaults.smb_enabled,
               disabled: !smb_ready,
+              id: "sandbox_smb_enabled",
               title: smb_ready ? nil : "Requires Tailscale enabled and an SMB password set in Settings",
               class: "mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
         <div class="flex-1">
@@ -286,8 +323,9 @@
                   ["1600×900", "1600x900"],
                   ["1920×1080 (Full HD)", "1920x1080"],
                   ["2560×1440 (2K)", "2560x1440"]
-                ], "1280x900"),
+                ], @defaults.vnc_geometry.presence || "1280x900"),
                 {},
+                id: "sandbox_vnc_geometry",
                 class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
         </div>
 
@@ -299,8 +337,9 @@
                   ["32-bit", 32],
                   ["16-bit", 16],
                   ["8-bit", 8]
-                ], 24),
+                ], @defaults.vnc_depth.presence || 24),
                 {},
+                id: "sandbox_vnc_depth",
                 class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" %>
         </div>
       </div>
@@ -316,6 +355,7 @@
 
 <script>
 (function() {
+  var projectDefaults = <%= raw json_escape(project_defaults.to_json) %>;
   var adjectives = ["swift", "brave", "wild", "calm", "bold", "wise", "cool", "warm", "bright", "dark", "silent", "loud", "quick", "slow", "happy", "zen", "cosmic", "electric", "quantum", "digital"];
   var nouns = ["fox", "wolf", "eagle", "tiger", "bear", "shark", "hawk", "lion", "dragon", "phoenix", "cobra", "falcon", "raven", "panther", "viper", "lynx", "orca", "jaguar", "puma", "leopard"];
 
@@ -337,10 +377,68 @@
   var projectSelect = document.getElementById("sandbox_project_id");
   var projectPathInput = document.getElementById("sandbox_project_path");
   var homePathInput = document.getElementById("sandbox_home_path");
+  var imageInput = document.getElementById("sandbox_image");
+  var dataPathInput = document.getElementById("sandbox_data_path");
+  var tailscaleCheckbox = document.getElementById("sandbox_tailscale");
+  var dockerCheckbox = document.getElementById("sandbox_docker_enabled");
+  var oidcCheckbox = document.getElementById("sandbox_oidc_enabled");
+  var gcpCheckbox = document.getElementById("sandbox_gcp_oidc_enabled");
+  var gcpConfigSelect = document.getElementById("sandbox_gcp_oidc_config_id");
+  var gcpServiceAccountInput = document.getElementById("sandbox_gcp_service_account_email");
+  var gcpPrincipalScopeSelect = document.getElementById("sandbox_gcp_principal_scope");
+  var gcpRolesInput = document.getElementById("sandbox_gcp_roles_text");
+  var sshStartTmuxCheckbox = document.getElementById("sandbox_ssh_start_tmux");
+  var smbCheckbox = document.getElementById("sandbox_smb_enabled");
+  var vncGeometrySelect = document.getElementById("sandbox_vnc_geometry");
+  var vncDepthSelect = document.getElementById("sandbox_vnc_depth");
   var projectPresetMode = false;
   var toggleDataPath = function() {};
   var toggleHomePath = function() {};
   var syncProjectMode = function() {};
+  var applyCheckbox = function(element, value) {
+    if (element && !element.disabled) {
+      element.checked = !!value;
+    }
+  };
+  var applyValue = function(element, value) {
+    if (element) {
+      element.value = value == null ? "" : String(value);
+    }
+  };
+  var applySelectValue = function(element, value) {
+    if (!element) return;
+
+    var normalized = value == null ? "" : String(value);
+    var hasOption = Array.prototype.some.call(element.options, function(option) {
+      return option.value === normalized;
+    });
+    element.value = hasOption ? normalized : "";
+  };
+  var applyProjectDefaults = function() {
+    if (!projectSelect) return;
+
+    var defaults = projectDefaults[projectSelect.value];
+    if (!defaults) return;
+
+    applyValue(imageInput, defaults.image);
+    applyCheckbox(mountHomeCheckbox, defaults.mount_home);
+    applyValue(homePathInput, defaults.home_path);
+    applyCheckbox(mountDataCheckbox, defaults.data_path !== null && defaults.data_path !== "");
+    applyValue(dataPathInput, defaults.data_path === "." ? "" : defaults.data_path);
+    applyCheckbox(tailscaleCheckbox, defaults.tailscale);
+    applyCheckbox(dockerCheckbox, defaults.docker_enabled);
+    applyCheckbox(oidcCheckbox, defaults.oidc_enabled || defaults.gcp_oidc_enabled);
+    applyCheckbox(gcpCheckbox, defaults.gcp_oidc_enabled);
+    applySelectValue(gcpConfigSelect, defaults.gcp_oidc_config_id);
+    applyValue(gcpServiceAccountInput, defaults.gcp_service_account_email);
+    applySelectValue(gcpPrincipalScopeSelect, defaults.gcp_principal_scope || "user");
+    applyValue(gcpRolesInput, (defaults.gcp_roles || []).join(", "));
+    applyCheckbox(sshStartTmuxCheckbox, defaults.ssh_start_tmux);
+    applyCheckbox(smbCheckbox, defaults.smb_enabled);
+    applyCheckbox(vncCheckbox, defaults.vnc_enabled);
+    applySelectValue(vncGeometrySelect, defaults.vnc_geometry || "1280x900");
+    applySelectValue(vncDepthSelect, defaults.vnc_depth || 24);
+  };
   if (mountDataCheckbox && dataPathRow) {
     toggleDataPath = function() {
       var projectMode = projectPathInput && projectPathInput.value.trim() !== "";
@@ -360,6 +458,14 @@
   if (projectPathInput) {
     syncProjectMode = function() {
       var projectMode = projectPathInput.value.trim() !== "";
+      if (projectSelect) {
+        projectPresetMode = projectSelect.value !== "";
+      }
+      projectPathInput.disabled = projectPresetMode;
+      if (projectPresetMode) {
+        projectPathInput.value = "";
+        projectMode = false;
+      }
       if (mountHomeCheckbox) {
         mountHomeCheckbox.disabled = projectMode || projectPresetMode;
       }
@@ -382,20 +488,22 @@
   }
   if (projectSelect) {
     projectSelect.addEventListener("change", function() {
-      projectPresetMode = projectSelect.value !== "";
+      applyProjectDefaults();
       syncProjectMode();
       toggleHomePath();
       toggleDataPath();
+      if (typeof toggleVncOptions === "function") toggleVncOptions();
     });
     projectPresetMode = projectSelect.value !== "";
   }
 
   var vncCheckbox = document.getElementById("sandbox_vnc_enabled");
   var vncOptionsRow = document.getElementById("vnc_options_row");
+  var toggleVncOptions = function() {};
   if (vncCheckbox && vncOptionsRow) {
-    function toggleVncOptions() {
+    toggleVncOptions = function() {
       vncOptionsRow.style.display = vncCheckbox.checked ? "" : "none";
-    }
+    };
     vncCheckbox.addEventListener("change", toggleVncOptions);
     toggleVncOptions();
   }
