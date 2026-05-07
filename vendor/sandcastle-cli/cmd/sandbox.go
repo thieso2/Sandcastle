@@ -88,12 +88,19 @@ func init() {
 }
 
 var createCmd = &cobra.Command{
-	Use:     "create [name]",
+	Use:     "create [project:]name",
 	Aliases: []string{"cr"},
 	Short:   "Create a new sandbox",
 	Long: `Create a new sandbox.
 
 If no name is provided, creates a temporary sandbox with an auto-generated name like "temp-<timestamp>".
+
+A project preset can be selected by prefixing the name with "<project>:" — the
+sandbox inherits all defaults from that project (image, mounts, Tailscale, VNC,
+Docker, SMB, tmux). This is equivalent to passing --project <project>.
+
+  sandcastle create webapp:dev1     # use "webapp" project defaults
+  sandcastle create dev1 --project webapp   # same thing
 
 Environment variables can set defaults for commonly used flags:
   SANDCASTLE_HOME=1    equivalent to --home
@@ -150,6 +157,19 @@ Flags explicitly passed on the command line take precedence over environment var
 			}
 		} else {
 			name = args[0]
+		}
+
+		// Support "project:name" shorthand in the positional argument.
+		if idx := strings.Index(name, ":"); idx >= 0 {
+			projectFromName := name[:idx]
+			name = name[idx+1:]
+			if projectFromName == "" || name == "" {
+				return fmt.Errorf("invalid name %q: expected [project:]name", args[0])
+			}
+			if sandboxProject != "" && sandboxProject != projectFromName {
+				return fmt.Errorf("project specified twice: %q in name and %q via --project", projectFromName, sandboxProject)
+			}
+			sandboxProject = projectFromName
 		}
 
 		// Resolve snapshot flags: --from-snapshot takes precedence over --snapshot

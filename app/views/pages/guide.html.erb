@@ -84,6 +84,7 @@ sandcastle tailscale enable --auth-key tskey-auth-...</code></pre>
     <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm leading-relaxed"><code>sandcastle project list
 sandcastle project create webapp --path projects/webapp --tailscale
 sandcastle create dev1 --project webapp     # apply project defaults
+sandcastle create webapp:dev1               # same thing — [project:]name shorthand
 sandcastle project delete webapp</code></pre>
     <p class="text-gray-500 text-sm mt-2">
       The dashboard shows a <strong>Project</strong> filter row when you have at least one project — pick a pill to scope the sandbox list.
