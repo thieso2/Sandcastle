@@ -8,7 +8,7 @@ class DnsManager
 
   class Error < StandardError; end
 
-  Record = Struct.new(:name, :ip, :sandbox_id, keyword_init: true)
+  Record = Struct.new(:name, :ip, :sandbox_id, :expand, keyword_init: true)
   SkippedRecord = Struct.new(:name, :reason, :sandbox_id, keyword_init: true)
 
   def self.publish_best_effort(user)
@@ -30,7 +30,7 @@ class DnsManager
       resolver_running: container_running,
       hosts_path: hosts_path(user),
       zone_path: zone_path(user),
-      records: records_for(user).map { |r| { name: r.name, ip: r.ip, sandbox_id: r.sandbox_id } },
+      records: records_for(user).map { |r| { name: r.name, ip: r.ip, sandbox_id: r.sandbox_id, expand: r.expand } },
       skipped: skipped_for(user).map { |r| { name: r.name, reason: r.reason, sandbox_id: r.sandbox_id } }
     }
   end
@@ -117,14 +117,14 @@ class DnsManager
     records = []
     seen = {}
 
-    add_record = lambda do |name, ip, sandbox_id|
+    add_record = lambda do |name, ip, sandbox_id, expand|
       if seen.key?(name)
         records.reject! { |r| r.name == name }
         seen[name] = :duplicate
         next
       end
       seen[name] = sandbox_id
-      records << Record.new(name: name, ip: ip, sandbox_id: sandbox_id)
+      records << Record.new(name: name, ip: ip, sandbox_id: sandbox_id, expand: expand)
     end
 
     dns_sandboxes(user).includes(:aliases).find_each do |sandbox|
@@ -134,12 +134,22 @@ class DnsManager
       name = fqdn_for(sandbox)
       next if name.blank?
 
-      add_record.call(name, ip, sandbox.id)
+      # Sandbox FQDN and sub aliases are scoped under the sandcastle suffix;
+      # short-prefix forms (tubu, tubu.sc) legitimately belong to this
+      # sandbox, so the CLI may safely expand them in /etc/hosts.
+      add_record.call(name, ip, sandbox.id, true)
 
       sandbox.aliases.each do |a|
-        alias_name = alias_fqdn_for(sandbox, a, base: name)
-        next if alias_name.blank?
-        add_record.call(alias_name, ip, sandbox.id)
+        case a.kind
+        when "sub"
+          alias_name = "#{a.value}.#{name}"
+          add_record.call(alias_name, ip, sandbox.id, true)
+        when "fqdn"
+          # FQDN aliases are absolute hostnames the user owns/claims as-is.
+          # Short forms like `www.heise` aren't valid stand-ins for
+          # www.heise.de, so don't auto-expand.
+          add_record.call(a.value, ip, sandbox.id, false)
+        end
       end
     end
 

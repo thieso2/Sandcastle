@@ -452,6 +452,10 @@ type DNSRecord struct {
 	Name      string `json:"name"`
 	IP        string `json:"ip"`
 	SandboxID int    `json:"sandbox_id"`
+	// Expand says whether the CLI may emit cumulative left-prefix forms
+	// of Name into /etc/hosts (true for sandbox FQDN + sub aliases) or
+	// must use Name verbatim (true for fqdn aliases like www.heise.de).
+	Expand bool `json:"expand"`
 }
 
 type DNSSkip struct {

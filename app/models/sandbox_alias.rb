@@ -31,7 +31,18 @@ class SandboxAlias < ApplicationRecord
   # SANDCASTLE_DNS_ALIASES so the in-sandbox Caddy adds explicit SANs and
   # listeners.
   def self.expanded_names_for(sandbox)
-    sandbox.aliases.flat_map { |a| expand_left_prefixes(a.fqdn) }.compact.uniq
+    sandbox.aliases.flat_map do |a|
+      case a.kind
+      # Sub aliases live under the sandbox FQDN; short-prefix forms
+      # (admin.tubu, admin) are valid TLS targets for the same sandbox.
+      when "sub"  then expand_left_prefixes(a.fqdn)
+      # Fqdn aliases are absolute. Short prefixes (e.g. `www.heise` for
+      # www.heise.de) are not necessarily owned by the sandbox, so don't
+      # claim them in the cert.
+      when "fqdn" then [ a.value ].compact
+      else []
+      end
+    end.compact.uniq
   end
 
   def self.expand_left_prefixes(fqdn)

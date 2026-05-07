@@ -553,7 +553,12 @@ func writeHostsBlock(records []api.DNSRecord) error {
 		if r.Name == "" || r.IP == "" {
 			continue
 		}
-		names := hostsAliases(r.Name)
+		var names []string
+		if r.Expand {
+			names = hostsAliases(r.Name)
+		} else {
+			names = []string{r.Name}
+		}
 		fmt.Fprintf(&block, "%s\t%s", r.IP, strings.Join(names, " "))
 		if r.SandboxID != 0 {
 			fmt.Fprintf(&block, "\t# sandbox %d", r.SandboxID)
