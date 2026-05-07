@@ -91,7 +91,7 @@ class CaddyCertificateAuthority
     repaired = false
     begin
       yield
-    rescue Errno::EACCES
+    rescue Errno::EACCES, Errno::EPERM
       raise if repaired
 
       repaired = true

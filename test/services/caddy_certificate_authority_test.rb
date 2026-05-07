@@ -29,4 +29,23 @@ class CaddyCertificateAuthorityTest < ActiveSupport::TestCase
 
     assert_includes error.message, "failed to prepare Caddy certificate authority"
   end
+
+  test "permission repair retries operation-not-permitted failures" do
+    authority = CaddyCertificateAuthority.new(data_dir: "/tmp/sandcastle-caddy-test")
+    attempts = 0
+    repairs = 0
+
+    authority.define_singleton_method(:repair_permissions!) { repairs += 1 }
+
+    result = authority.send(:with_permission_repair) do
+      attempts += 1
+      raise Errno::EPERM, "chmod" if attempts == 1
+
+      :repaired
+    end
+
+    assert_equal :repaired, result
+    assert_equal 2, attempts
+    assert_equal 1, repairs
+  end
 end
