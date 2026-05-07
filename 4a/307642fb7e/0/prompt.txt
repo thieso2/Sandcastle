@@ -1,13 +1,1 @@
-create a PR
-
----
-
-explain what in the PR actually solved out problem
-
----
-
-tehn merge the PR and release a new version!
-
----
-
-in Create Sandcastle - when a project is selected - load all teh project defaults into the form. (also GCP)
+commit and release new versin
