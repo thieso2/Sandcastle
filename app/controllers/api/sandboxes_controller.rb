@@ -356,7 +356,10 @@ module Api
     end
 
     def resolve_project(project_path:)
-      return nil if project_path.present?
+      if project_path.present?
+        return current_user.projects.find_by(name: project_path) ||
+          current_user.projects.find_by(path: project_path)
+      end
       return current_user.projects.find(params[:project_id]) if params[:project_id].present?
       return current_user.projects.find_by!(name: params[:project_name]) if params[:project_name].present?
 
@@ -365,12 +368,13 @@ module Api
 
     def apply_project_defaults(sandbox, project, project_path:)
       if project_path.present?
-        defaults = current_user.default_project
+        defaults = project || current_user.default_project
         defaults.apply_to_sandbox(sandbox)
-        sandbox.project_name = File.basename(project_path)
+        scoped_path = project&.path.presence || project_path
+        sandbox.project_name = project&.name.presence || File.basename(project_path)
         sandbox.mount_home = false
-        sandbox.home_path = project_path
-        sandbox.data_path = project_path
+        sandbox.home_path = scoped_path
+        sandbox.data_path = scoped_path
         sandbox.tailscale = boolean_param(:tailscale, defaults.tailscale)
         sandbox.vnc_enabled = boolean_param(:vnc_enabled, defaults.vnc_enabled)
         sandbox.vnc_geometry = params[:vnc_geometry].presence || defaults.vnc_geometry

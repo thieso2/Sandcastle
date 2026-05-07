@@ -348,7 +348,10 @@ class SandboxesController < ApplicationController
   end
 
   def resolve_project(project_path:)
-    return nil if project_path.present?
+    if project_path.present?
+      return Current.user.projects.find_by(name: project_path) ||
+        Current.user.projects.find_by(path: project_path)
+    end
     return Current.user.projects.find(params[:project_id]) if params[:project_id].present?
 
     Current.user.default_project
@@ -356,11 +359,13 @@ class SandboxesController < ApplicationController
 
   def apply_project_defaults(sandbox, project, project_path:)
     if project_path.present?
-      Current.user.default_project.apply_to_sandbox(sandbox)
-      sandbox.project_name = File.basename(project_path)
+      defaults = project || Current.user.default_project
+      defaults.apply_to_sandbox(sandbox)
+      scoped_path = project&.path.presence || project_path
+      sandbox.project_name = project&.name.presence || File.basename(project_path)
       sandbox.mount_home = false
-      sandbox.home_path = project_path
-      sandbox.data_path = project_path
+      sandbox.home_path = scoped_path
+      sandbox.data_path = scoped_path
       sandbox.tailscale = params[:tailscale] == "1"
       sandbox.vnc_enabled = params[:vnc_enabled] != "0"
       sandbox.vnc_geometry = Sandbox::VNC_GEOMETRIES.include?(params[:vnc_geometry]) ? params[:vnc_geometry] : "1280x900"
