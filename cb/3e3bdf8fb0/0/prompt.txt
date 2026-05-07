@@ -1,0 +1,9 @@
+merge it to main and release new versions!
+
+---
+
+release server and cli!
+
+---
+
+for a domain like admin.tubu.sc.sandman also generate certs for admin.tubu.sc admin.tubu admin

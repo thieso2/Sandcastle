@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "cb3e3bdf8fb0",
+  "session_id": "0af57f3b-97eb-4ddc-bcf1-5de9f29ae2d0",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-07T19:33:16.46421Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "images/sandbox/entrypoint.sh",
+    "app/services/sandbox_manager.rb",
+    "app/models/sandbox_alias.rb",
+    "images/sandbox/sc-caddy-reconfigure.sh",
+    "images/sandbox/Dockerfile",
+    "app/services/sandbox_caddy_manager.rb",
+    "app/jobs/sandbox_caddy_reload_job.rb",
+    "app/controllers/api/sandbox_aliases_controller.rb",
+    "app/controllers/sandbox_aliases_controller.rb"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "b2939700ad48",
+  "checkpoint_transcript_start": 702,
+  "transcript_lines_at_start": 702,
+  "token_usage": {
+    "input_tokens": 74,
+    "cache_creation_tokens": 80917,
+    "cache_read_tokens": 16997443,
+    "output_tokens": 50450,
+    "api_call_count": 59
+  },
+  "session_metrics": {
+    "turn_count": 13
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-07T19:33:16.436573Z",
+    "agent_lines": 182,
+    "agent_removed": 37,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 182,
+    "total_lines_changed": 219,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    }
+  ]
+}
