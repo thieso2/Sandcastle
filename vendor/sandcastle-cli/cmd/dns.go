@@ -303,20 +303,53 @@ var dnsHostsSyncCmd = &cobra.Command{
 		}
 		printServer(client)
 
-		status, err := client.DNSStatus()
+		count, err := syncHostsFromServer(client)
 		if err != nil {
 			return err
 		}
-		if len(status.Records) == 0 {
-			fmt.Println("No DNS records returned by server; clearing managed block.")
-			return clearHostsBlock()
+		if count == 0 {
+			fmt.Println("No DNS records returned by server; cleared managed block.")
+		} else {
+			fmt.Printf("Wrote %d entries to %s\n", count, hostsTargetPath)
 		}
-		if err := writeHostsBlock(status.Records); err != nil {
-			return err
-		}
-		fmt.Printf("Wrote %d entries to %s\n", len(status.Records), hostsTargetPath)
 		return nil
 	},
+}
+
+// syncHostsFromServer reads DNS state from the server and rewrites the
+// managed block in /etc/hosts. Returns the number of records written.
+func syncHostsFromServer(client *api.Client) (int, error) {
+	status, err := client.DNSStatus()
+	if err != nil {
+		return 0, err
+	}
+	if len(status.Records) == 0 {
+		if err := clearHostsBlock(); err != nil {
+			return 0, err
+		}
+		return 0, nil
+	}
+	if err := writeHostsBlock(status.Records); err != nil {
+		return 0, err
+	}
+	return len(status.Records), nil
+}
+
+// autoSyncHostsBestEffort refreshes /etc/hosts after a state-changing CLI
+// command. It silently no-ops when /etc/hosts has no Sandcastle-managed
+// block — opt-in via `sandcastle dns hosts sync`. Errors are reported to
+// stderr but do not fail the parent command.
+func autoSyncHostsBestEffort(client *api.Client) {
+	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
+		return
+	}
+	block, err := readHostsBlock()
+	if err != nil || block == "" {
+		return
+	}
+	if _, err := syncHostsFromServer(client); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: auto-sync /etc/hosts failed: %v\n", err)
+	}
 }
 
 var dnsHostsClearCmd = &cobra.Command{
@@ -386,7 +419,7 @@ var dnsAliasAddCmd = &cobra.Command{
 		}
 		fmt.Printf("Added %s alias %q to sandbox %q.\n", a.Kind, a.Value, sandbox.Name)
 		fmt.Printf("  FQDN: %s\n", a.FQDN)
-		fmt.Println("Run `sandcastle dns hosts sync` to update /etc/hosts.")
+		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }
@@ -428,7 +461,7 @@ var dnsAliasRemoveCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Removed %s alias %q from sandbox %q.\n", match.Kind, match.Value, sandbox.Name)
-		fmt.Println("Run `sandcastle dns hosts sync` to update /etc/hosts.")
+		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }

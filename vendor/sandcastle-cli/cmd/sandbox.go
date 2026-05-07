@@ -334,6 +334,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		if sandboxNoConnect {
+			autoSyncHostsBestEffort(client)
 			return nil
 		}
 
@@ -356,6 +357,11 @@ Flags explicitly passed on the command line take precedence over environment var
 		if err := waitForSSH(info.Host, info.Port); err != nil {
 			return err
 		}
+
+		// Sandbox is up and reachable; refresh /etc/hosts so callers can hit
+		// it by name immediately. No-op if the user hasn't opted into the
+		// managed block (run `sandcastle dns hosts sync` once to enable).
+		autoSyncHostsBestEffort(client)
 
 		cfg, loadErr := config.Load()
 		if loadErr != nil {
@@ -544,6 +550,7 @@ The sandbox is restored in running state. Use 'sandcastle list --archived' to se
 		}
 
 		fmt.Printf("Sandbox %q restored (status: %s).\n", sandbox.DisplayName(), sandbox.Status)
+		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }
@@ -583,6 +590,7 @@ var deleteCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Sandbox %q deleted.\n", sandbox.DisplayName())
+		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }
@@ -610,6 +618,7 @@ var startCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Sandbox %q started.\n", sandbox.DisplayName())
+		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }
@@ -637,6 +646,7 @@ var stopCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Sandbox %q stopped.\n", sandbox.DisplayName())
+		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }
@@ -664,6 +674,7 @@ var rebuildCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Sandbox %q rebuilding with latest image.\n", sandbox.DisplayName())
+		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }
@@ -807,6 +818,7 @@ var renameCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Sandbox renamed to %q.\n", sandbox.DisplayName())
+		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }
