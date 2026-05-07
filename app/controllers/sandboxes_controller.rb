@@ -15,6 +15,7 @@ class SandboxesController < ApplicationController
     @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
                            .select { |s| s[:source_sandbox] == @sandbox.name }
     @routes = @sandbox.routes.order(:created_at)
+    @aliases = @sandbox.aliases.order(:kind, :value)
     @btrfs = BtrfsHelper.btrfs?
     @gcp_oidc_setup = GcpOidcSetup.new(user: @sandbox.user, sandbox: @sandbox).as_json
     @gcp_oidc_configs = @sandbox.user.gcp_oidc_configs.order(:name)
@@ -43,6 +44,7 @@ class SandboxesController < ApplicationController
       @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
                              .select { |s| s[:source_sandbox] == @sandbox.name }
       @routes = @sandbox.routes.order(:created_at)
+    @aliases = @sandbox.aliases.order(:kind, :value)
       @btrfs = BtrfsHelper.btrfs?
       @gcp_oidc_setup = GcpOidcSetup.new(user: @sandbox.user, sandbox: @sandbox).as_json
       @gcp_oidc_configs = @sandbox.user.gcp_oidc_configs.order(:name)

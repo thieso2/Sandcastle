@@ -117,21 +117,30 @@ class DnsManager
     records = []
     seen = {}
 
-    dns_sandboxes(user).find_each do |sandbox|
+    add_record = lambda do |name, ip, sandbox_id|
+      if seen.key?(name)
+        records.reject! { |r| r.name == name }
+        seen[name] = :duplicate
+        next
+      end
+      seen[name] = sandbox_id
+      records << Record.new(name: name, ip: ip, sandbox_id: sandbox_id)
+    end
+
+    dns_sandboxes(user).includes(:aliases).find_each do |sandbox|
       ip = TailscaleManager.new.sandbox_tailscale_ip(sandbox: sandbox)
       next if ip.blank?
 
       name = fqdn_for(sandbox)
       next if name.blank?
 
-      if seen.key?(name)
-        records.reject! { |r| r.name == name }
-        seen[name] = :duplicate
-        next
-      end
+      add_record.call(name, ip, sandbox.id)
 
-      seen[name] = sandbox.id
-      records << Record.new(name: name, ip: ip, sandbox_id: sandbox.id)
+      sandbox.aliases.each do |a|
+        alias_name = alias_fqdn_for(sandbox, a, base: name)
+        next if alias_name.blank?
+        add_record.call(alias_name, ip, sandbox.id)
+      end
     end
 
     records
@@ -141,7 +150,7 @@ class DnsManager
     skipped = []
     names = Hash.new { |h, k| h[k] = [] }
 
-    dns_sandboxes(user).find_each do |sandbox|
+    dns_sandboxes(user).includes(:aliases).find_each do |sandbox|
       name = fqdn_for(sandbox)
       if name.blank?
         skipped << SkippedRecord.new(name: sandbox.display_name, reason: "invalid DNS label", sandbox_id: sandbox.id)
@@ -155,12 +164,21 @@ class DnsManager
       end
 
       names[name] << sandbox.id
+
+      sandbox.aliases.each do |a|
+        alias_name = alias_fqdn_for(sandbox, a, base: name)
+        if alias_name.blank?
+          skipped << SkippedRecord.new(name: a.value, reason: "invalid alias", sandbox_id: sandbox.id)
+          next
+        end
+        names[alias_name] << sandbox.id
+      end
     end
 
     names.each do |name, ids|
-      next unless ids.size > 1
+      next unless ids.uniq.size > 1
 
-      ids.each do |id|
+      ids.uniq.each do |id|
         skipped << SkippedRecord.new(name: name, reason: "duplicate DNS name", sandbox_id: id)
       end
     end
@@ -228,6 +246,17 @@ class DnsManager
         fallthrough
       }
     TEMPLATE
+  end
+
+  def alias_fqdn_for(sandbox, sandbox_alias, base: nil)
+    case sandbox_alias.kind
+    when "sub"
+      base ||= fqdn_for(sandbox)
+      return nil if base.blank? || sandbox_alias.value.blank?
+      "#{sandbox_alias.value}.#{base}"
+    when "fqdn"
+      sandbox_alias.value.presence
+    end
   end
 
   def fqdn_for(sandbox)

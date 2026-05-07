@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_07_131500) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_07_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -166,6 +166,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_131500) do
     t.index ["sandbox_id"], name: "index_routes_on_sandbox_id"
   end
 
+  create_table "sandbox_aliases", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.bigint "sandbox_id", null: false
+    t.datetime "updated_at", null: false
+    t.string "value", null: false
+    t.index ["sandbox_id", "kind", "value"], name: "index_sandbox_aliases_on_sandbox_id_and_kind_and_value", unique: true
+    t.index ["sandbox_id"], name: "index_sandbox_aliases_on_sandbox_id"
+    t.index ["value"], name: "index_sandbox_aliases_on_value", unique: true, where: "((kind)::text = 'fqdn'::text)"
+  end
+
   create_table "sandbox_mounts", force: :cascade do |t|
     t.string "base_path"
     t.datetime "created_at", null: false
@@ -214,6 +225,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_131500) do
     t.string "project_name"
     t.boolean "smb_enabled", default: false, null: false
     t.integer "ssh_port"
+    t.boolean "ssh_start_tmux"
     t.string "status", default: "pending", null: false
     t.string "storage_mode", default: "direct", null: false
     t.boolean "tailscale", default: false, null: false
@@ -448,6 +460,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_07_131500) do
   add_foreign_key "projects", "gcp_oidc_configs"
   add_foreign_key "projects", "users"
   add_foreign_key "routes", "sandboxes"
+  add_foreign_key "sandbox_aliases", "sandboxes"
   add_foreign_key "sandbox_mounts", "sandboxes"
   add_foreign_key "sandboxes", "gcp_oidc_configs"
   add_foreign_key "sandboxes", "users"
