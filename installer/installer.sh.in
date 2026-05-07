@@ -499,12 +499,14 @@ install_mkcert() {
 
 # ═══ write_compose ══════════════════════════════════════════════════════════
 
-# Write the bundled dockyard.sh to /tmp so it can be invoked without wget.
+# Write the bundled dockyard.sh under SANDCASTLE_HOME so it can be invoked
+# without leaving Sandcastle-owned files in host-global temporary paths.
 write_dockyard_sh() {
-  cat > /tmp/dockyard.sh <<'__DOCKYARD_BUNDLED_EOF__'
+  mkdir -p "$SANDCASTLE_HOME/tmp"
+  cat > "$SANDCASTLE_HOME/tmp/dockyard.sh" <<'__DOCKYARD_BUNDLED_EOF__'
 @@TEMPLATE:templates/dockyard.sh@@
 __DOCKYARD_BUNDLED_EOF__
-  chmod +x /tmp/dockyard.sh
+  chmod +x "$SANDCASTLE_HOME/tmp/dockyard.sh"
 }
 
 write_helper_scripts() {
@@ -707,8 +709,8 @@ cmd_destroy() {
   if [ -n "$DOCKYARD_ENV_FILE" ] || systemctl cat "${DOCKYARD_DOCKER_PREFIX}docker.service" &>/dev/null; then
     info "Destroying Dockyard..."
     if [ -n "$DOCKYARD_ENV_FILE" ] && write_dockyard_sh 2>/dev/null; then
-      DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash /tmp/dockyard.sh destroy --yes --keep-data 2>&1 || true
-      rm -f /tmp/dockyard.sh
+      DOCKYARD_ENV="$DOCKYARD_ENV_FILE" bash "$SANDCASTLE_HOME/tmp/dockyard.sh" destroy --yes --keep-data 2>&1 || true
+      rm -f "$SANDCASTLE_HOME/tmp/dockyard.sh"
     else
       systemctl stop "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
       systemctl disable "${DOCKYARD_DOCKER_PREFIX}docker" 2>/dev/null || true
@@ -861,8 +863,8 @@ DOCKYARD_POOL_SIZE=${DOCKYARD_POOL_SIZE}
 DYEOF
     wrote "$_dy_env"
 
-    DOCKYARD_ENV="$_dy_env" bash /tmp/dockyard.sh create
-    rm -f /tmp/dockyard.sh
+    DOCKYARD_ENV="$_dy_env" bash "$SANDCASTLE_HOME/tmp/dockyard.sh" create
+    rm -f "$SANDCASTLE_HOME/tmp/dockyard.sh"
 
     for i in $(seq 1 30); do
       [ -S "$DOCKER_SOCK" ] && break
@@ -964,8 +966,9 @@ DYEOF
       # ── Extract secrets from the backup file ──────────────────────────────
       # Pull just the secrets files from the archive without extracting everything.
       info "Extracting secrets from backup..."
+      mkdir -p "$SANDCASTLE_HOME/tmp"
       local _bk_work
-      _bk_work=$(mktemp -d)
+      _bk_work=$(mktemp -d "$SANDCASTLE_HOME/tmp/install-restore.XXXXXX")
       trap 'rm -rf "$_bk_work"' EXIT
       tar --use-compress-program=zstd -xf "$BACKUP_FILE" -C "$_bk_work" \
         sandcastle-backup/secrets/rails.secrets \
@@ -1450,8 +1453,9 @@ INITDB
     $DOCKER compose up -d
 
     # Load snapshot images now that the Dockyard daemon is fully up
+    mkdir -p "$SANDCASTLE_HOME/tmp"
     local _tmp_bk
-    _tmp_bk=$(mktemp -d)
+    _tmp_bk=$(mktemp -d "$SANDCASTLE_HOME/tmp/snapshot-images.XXXXXX")
     tar --use-compress-program=zstd -xf "$BACKUP_FILE" -C "$_tmp_bk" \
       sandcastle-backup/images 2>/dev/null || true
     if [ -d "$_tmp_bk/sandcastle-backup/images" ]; then

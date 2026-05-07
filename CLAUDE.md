@@ -49,9 +49,14 @@ Go module path is `github.com/sandcastle/cli`. When adding a new feature: add ty
 To apply a single file change directly to the running production instance without a full redeploy:
 
 ```bash
-scp path/to/file.rb sandcastle@sandman:/tmp/file.rb
-ssh sandcastle@sandman 'docker cp /tmp/file.rb sandcastle-web:/rails/path/to/file.rb && docker restart sandcastle-web'
+ssh sandcastle@sandman 'mkdir -p "$SANDCASTLE_HOME/tmp"'
+scp path/to/file.rb sandcastle@sandman:'$SANDCASTLE_HOME/tmp/file.rb'
+ssh sandcastle@sandman 'docker cp "$SANDCASTLE_HOME/tmp/file.rb" sandcastle-web:/rails/path/to/file.rb && rm -f "$SANDCASTLE_HOME/tmp/file.rb" && docker restart sandcastle-web'
 ```
+
+All Sandcastle-owned host files, including temporary hotfix or installer scratch files, must live under `$SANDCASTLE_HOME`; do not stage Sandcastle files in host-global `/tmp`.
+
+Dockyard changes live in the sibling `../dockyard` repository. When changing `dockyard.sh` behavior, edit `../dockyard/src/*.sh`, build it there, and commit/push through Dockyard's git history; do not directly edit the vendored/generated Dockyard script in this repo.
 
 ### Full CI
 

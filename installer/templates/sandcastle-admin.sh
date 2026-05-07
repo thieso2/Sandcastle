@@ -98,8 +98,9 @@ cmd_backup() {
   local default_output="./sandcastle-backup-${timestamp}-${version}.tar.zst"
   output="${output:-$default_output}"
 
+  mkdir -p "$SANDCASTLE_HOME/tmp"
   local work_dir
-  work_dir=$(mktemp -d)
+  work_dir=$(mktemp -d "$SANDCASTLE_HOME/tmp/backup.XXXXXX")
   trap "rm -rf '$work_dir'" EXIT
 
   local backup_dir="$work_dir/sandcastle-backup"
@@ -281,8 +282,9 @@ cmd_restore() {
 
   # ── Read and validate manifest ────────────────────────────────────────────
 
+  mkdir -p "$SANDCASTLE_HOME/tmp"
   local work_dir
-  work_dir=$(mktemp -d)
+  work_dir=$(mktemp -d "$SANDCASTLE_HOME/tmp/restore.XXXXXX")
   trap "rm -rf '$work_dir'" EXIT
 
   info "Reading backup manifest..."
