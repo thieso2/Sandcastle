@@ -1,0 +1,55 @@
+my local resolver does has some issues:
+
+~/Projects/GitHub/Sandcastle % ping -c 1 tubu.sc.sandman.                                                       [codex/fix-caddy-ca-eperm]PING tubu.sc.sandman (10.206.10.3): 56 data bytes64 bytes from 10.206.10.3: icmp_seq=0 ttl=63 time=22.932 ms--- tubu.sc.sandman ping statistics ---1 packets transmitted, 1 packets received, 0.0% packet lossround-trip min/avg/max/stddev = 22.932/22.932/22.932/0.000 ms~/Projects/GitHub/Sandcastle % ping -c 1 tubu.sc.sandman                                                        [codex/fix-caddy-ca-eperm]ping: cannot resolve tubu.sc.sandman: Unknown host~/Projects/GitHub/Sandcastle %                                                                                  [codex/fix-caddy-ca-eperm]
+
+---
+
+2
+
+---
+
+explain Tailscale Split DNS
+
+---
+
+can i set the tailscale dns via cli?
+
+---
+
+that sucks!
+
+---
+
+is there any builtin macos stuff that we can use to forward localhist traffic to this our dns server?
+
+---
+
+add /etc/hosts sync to the cli.
+
+---
+
+also generate 3 enttries per host (is unique in the system) host sandbox.project sandbox.project.host
+
+---
+
+now we need to be able to add aliases to a sandbox that are also generated in hosts an alias can be 
+sandbox is called dev
+
+admin.dev
+or a fqdn like 
+www.heise.de
+
+so it's 
+dns add|remove fqdn www.ehsie.de
+or 
+dns add|remove sub any.level.added ->  any.level.added.admin.dev
+
+make sure that mkcert adds the certs for the newly added hosts also add them to the web and cli and tui
+
+---
+
+continue
+
+---
+
+add tui

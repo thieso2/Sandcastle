@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "90c176f9aadb",
+  "strategy": "manual-commit",
+  "branch": "codex/fix-caddy-ca-eperm",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "app/controllers/api/sandbox_aliases_controller.rb",
+    "app/controllers/sandbox_aliases_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/jobs/sandbox_certificate_refresh_job.rb",
+    "app/models/sandbox.rb",
+    "app/models/sandbox_alias.rb",
+    "app/services/dns_manager.rb",
+    "app/services/route_manager.rb",
+    "app/views/sandboxes/show.html.erb",
+    "config/routes.rb",
+    "db/migrate/20260507140000_create_sandbox_aliases.rb",
+    "db/queue_schema.rb",
+    "db/schema.rb",
+    "vendor/sandcastle-cli/api/client.go",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/dns.go",
+    "vendor/sandcastle-cli/cmd/tui.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/90/c176f9aadb/0/metadata.json",
+      "transcript": "/90/c176f9aadb/0/full.jsonl",
+      "content_hash": "/90/c176f9aadb/0/content_hash.txt",
+      "prompt": "/90/c176f9aadb/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 260,
+    "cache_creation_tokens": 304925,
+    "cache_read_tokens": 28091488,
+    "output_tokens": 107208,
+    "api_call_count": 195
+  }
+}

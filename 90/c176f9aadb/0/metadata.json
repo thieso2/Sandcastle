@@ -1,0 +1,105 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "90c176f9aadb",
+  "session_id": "0af57f3b-97eb-4ddc-bcf1-5de9f29ae2d0",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-07T19:11:53.565015Z",
+  "branch": "codex/fix-caddy-ca-eperm",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "app/controllers/api/sandbox_aliases_controller.rb",
+    "app/controllers/sandbox_aliases_controller.rb",
+    "app/controllers/sandboxes_controller.rb",
+    "app/jobs/sandbox_certificate_refresh_job.rb",
+    "app/models/sandbox.rb",
+    "app/models/sandbox_alias.rb",
+    "app/services/dns_manager.rb",
+    "app/services/route_manager.rb",
+    "app/views/sandboxes/show.html.erb",
+    "config/routes.rb",
+    "db/migrate/20260507140000_create_sandbox_aliases.rb",
+    "db/queue_schema.rb",
+    "db/schema.rb",
+    "vendor/sandcastle-cli/api/client.go",
+    "vendor/sandcastle-cli/api/types.go",
+    "vendor/sandcastle-cli/cmd/dns.go",
+    "vendor/sandcastle-cli/cmd/tui.go"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-7[1m]",
+  "turn_id": "29215fbcd877",
+  "token_usage": {
+    "input_tokens": 260,
+    "cache_creation_tokens": 304925,
+    "cache_read_tokens": 28091488,
+    "output_tokens": 107208,
+    "api_call_count": 195
+  },
+  "session_metrics": {
+    "turn_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-07T19:11:53.543615Z",
+    "agent_lines": 891,
+    "agent_removed": 18,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 891,
+    "total_lines_changed": 909,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 183,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 193,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 693,
+      "agent_lines_removed": 17,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 891,
+      "agent_lines_removed": 18,
+      "user_added_per_file": {
+        "tmp/pids/server.pid": 1
+      }
+    }
+  ]
+}
