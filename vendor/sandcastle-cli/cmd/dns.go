@@ -582,15 +582,14 @@ func writeHostsBlock(records []api.DNSRecord) error {
 
 	var block bytes.Buffer
 	fmt.Fprintln(&block, hostsBeginMark)
-	for _, r := range records {
+	namesByRecord := hostsNamesForRecords(records)
+	for i, r := range records {
 		if r.Name == "" || r.IP == "" {
 			continue
 		}
-		var names []string
-		if r.Expand {
-			names = hostsAliases(r.Name)
-		} else {
-			names = []string{r.Name}
+		names := namesByRecord[i]
+		if len(names) == 0 {
+			continue
 		}
 		fmt.Fprintf(&block, "%s\t%s", r.IP, strings.Join(names, " "))
 		if r.SandboxID != 0 {
@@ -668,6 +667,65 @@ func stripHostsBlock(data []byte) ([]byte, error) {
 	out = append(out, prefix...)
 	out = append(out, data[end:]...)
 	return out, nil
+}
+
+func hostsNamesForRecords(records []api.DNSRecord) [][]string {
+	candidates := make([][]string, len(records))
+	owner := make(map[string]int)
+	duplicate := make(map[string]bool)
+
+	for i, r := range records {
+		if r.Name == "" || r.IP == "" {
+			continue
+		}
+		if r.Expand {
+			candidates[i] = hostsAliases(r.Name)
+		} else {
+			candidates[i] = []string{r.Name}
+		}
+
+		seenInRecord := make(map[string]bool)
+		for _, name := range candidates[i] {
+			if name == "" || seenInRecord[name] {
+				continue
+			}
+			seenInRecord[name] = true
+			if previous, ok := owner[name]; ok && previous != i {
+				duplicate[name] = true
+				continue
+			}
+			owner[name] = i
+		}
+	}
+
+	namesByRecord := make([][]string, len(records))
+	for i, r := range records {
+		if r.Name == "" || r.IP == "" {
+			continue
+		}
+
+		seen := make(map[string]bool)
+		add := func(name string) {
+			if name == "" || seen[name] {
+				return
+			}
+			seen[name] = true
+			namesByRecord[i] = append(namesByRecord[i], name)
+		}
+
+		// Keep the full DNS record as the canonical hostname. macOS groups
+		// /etc/hosts results by canonical name, so using short aliases first
+		// can make unrelated FQDN lookups inherit each other's IPs.
+		add(r.Name)
+		for _, name := range candidates[i] {
+			if name == r.Name || duplicate[name] {
+				continue
+			}
+			add(name)
+		}
+	}
+
+	return namesByRecord
 }
 
 func hostsAliases(fqdn string) []string {
