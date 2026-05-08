@@ -27,7 +27,9 @@ if ! command -v caddy &>/dev/null || ! command -v mkcert &>/dev/null; then
 fi
 
 install -d -m 0755 /etc/sandcastle/caddy/certs /var/log/caddy /var/lib/caddy /etc/caddy
-install -d -m 0700 /etc/sandcastle/caddy/mkcert
+if [ ! -d /etc/sandcastle/caddy/mkcert ]; then
+    install -d -m 0700 /etc/sandcastle/caddy/mkcert
+fi
 export CAROOT=/etc/sandcastle/caddy/mkcert
 
 # Build SAN + Caddy host lists. Every left-prefix form of CADDY_DNS_NAME
