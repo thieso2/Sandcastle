@@ -18,6 +18,7 @@ func init() {
 	serverCmd.AddCommand(serverListCmd)
 	serverCmd.AddCommand(serverUseCmd)
 	serverCmd.AddCommand(serverRemoveCmd)
+	serverRemoveCmd.Flags().BoolVar(&serverRemoveForce, "force", false, "Remove the config even if local DNS proxy state still references it")
 
 }
 
@@ -269,6 +270,17 @@ var serverRemoveCmd = &cobra.Command{
 
 		if _, ok := cfg.Servers[alias]; !ok {
 			return fmt.Errorf("server %q not found", alias)
+		}
+		if !serverRemoveForce {
+			state, err := loadDNSState()
+			if err != nil {
+				return err
+			}
+			for suffix, proxy := range state.Proxies {
+				if proxy.ServerAlias == alias {
+					return fmt.Errorf("server %q still has local DNS proxy state for %s; run `sandcastle dns uninstall --suffix %s` first or use --force", alias, suffix, suffix)
+				}
+			}
 		}
 
 		delete(cfg.Servers, alias)

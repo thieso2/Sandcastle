@@ -2,41 +2,90 @@ package cmd
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/sandcastle/cli/api"
 	"github.com/sandcastle/cli/internal/config"
+	"github.com/sandcastle/cli/internal/dnsproxy"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 const (
 	resolverMarker  = "# Managed by sandcastle dns"
+	resolverVersion = "2"
 	hostsBeginMark  = "# BEGIN sandcastle-dns"
 	hostsEndMark    = "# END sandcastle-dns"
 	hostsTargetPath = "/etc/hosts"
 )
 
 var (
-	dnsInstallSearch bool
-	dnsSearchProject string
-	dnsSearchService string
-	dnsSearchAll     bool
+	dnsInstallSearch   bool
+	dnsInstallForce    bool
+	dnsUninstallSuffix string
+	dnsSearchProject   string
+	dnsSearchService   string
+	dnsSearchAll       bool
+	serverRemoveForce  bool
 )
 
+var resolverRoot = "/etc/resolver"
+
 type dnsState struct {
-	Search map[string]map[string]managedSearchDomain `yaml:"search,omitempty"`
+	Version int                                       `yaml:"version,omitempty"`
+	Search  map[string]map[string]managedSearchDomain `yaml:"search,omitempty"`
+	Proxies map[string]dnsProxyState                  `yaml:"proxies,omitempty"`
 }
 
 type managedSearchDomain struct {
 	AddedBySandcastle bool `yaml:"added_by_sandcastle"`
+}
+
+type dnsProxyState struct {
+	Suffix             string `yaml:"suffix"`
+	RawSuffix          string `yaml:"raw_suffix,omitempty"`
+	LocalAddress       string `yaml:"local_address"`
+	UpstreamAddress    string `yaml:"upstream_address"`
+	LaunchdLabel       string `yaml:"launchd_label"`
+	PlistPath          string `yaml:"plist_path"`
+	StdoutLogPath      string `yaml:"stdout_log_path"`
+	StderrLogPath      string `yaml:"stderr_log_path"`
+	ServerAlias        string `yaml:"server_alias,omitempty"`
+	ServerURL          string `yaml:"server_url,omitempty"`
+	ResolverBackupPath string `yaml:"resolver_backup_path,omitempty"`
+}
+
+type resolverInfo struct {
+	State       string
+	Managed     bool
+	Legacy      bool
+	Suffix      string
+	Domain      string
+	Nameserver  string
+	Port        int
+	ServerAlias string
+	ServerURL   string
+	Upstream    string
+	BackupPath  string
+}
+
+type launchdStatus struct {
+	Loaded  bool
+	Running bool
+	Raw     string
 }
 
 func init() {
@@ -44,6 +93,7 @@ func init() {
 	dnsCmd.AddCommand(dnsStatusCmd)
 	dnsCmd.AddCommand(dnsInstallCmd)
 	dnsCmd.AddCommand(dnsUninstallCmd)
+	dnsCmd.AddCommand(dnsProxyCmd)
 	dnsCmd.AddCommand(dnsSearchCmd)
 	dnsCmd.AddCommand(dnsHostsCmd)
 	dnsCmd.AddCommand(dnsAliasCmd)
@@ -57,6 +107,8 @@ func init() {
 	dnsAliasCmd.AddCommand(dnsAliasListCmd)
 
 	dnsInstallCmd.Flags().BoolVar(&dnsInstallSearch, "search", false, "Also add the instance suffix to the macOS DNS search path")
+	dnsInstallCmd.Flags().BoolVar(&dnsInstallForce, "force", false, "Back up and replace an existing unmanaged resolver file")
+	dnsUninstallCmd.Flags().StringVar(&dnsUninstallSuffix, "suffix", "", "DNS suffix to uninstall without contacting the server")
 
 	dnsSearchCmd.AddCommand(dnsSearchStatusCmd)
 	dnsSearchCmd.AddCommand(dnsSearchAddCmd)
@@ -69,6 +121,13 @@ func init() {
 	}
 	dnsSearchStatusCmd.Flags().StringVar(&dnsSearchService, "service", "", "macOS network service to inspect")
 	dnsSearchStatusCmd.Flags().BoolVar(&dnsSearchAll, "all-enabled", false, "Inspect all enabled macOS network services")
+
+	dnsProxyCmd.AddCommand(dnsProxyServeCmd)
+	dnsProxyServeCmd.Flags().StringVar(&dnsProxyListen, "listen", "", "local listen address")
+	dnsProxyServeCmd.Flags().StringVar(&dnsProxyUpstream, "upstream", "", "upstream DNS address")
+	dnsProxyServeCmd.Flags().BoolVar(&dnsProxyVerbose, "verbose", false, "log each query")
+	dnsProxyCmd.Hidden = true
+	dnsProxyServeCmd.Hidden = true
 }
 
 var dnsCmd = &cobra.Command{
@@ -76,34 +135,66 @@ var dnsCmd = &cobra.Command{
 	Short: "Manage Sandcastle DNS on this client",
 }
 
+var (
+	dnsProxyListen   string
+	dnsProxyUpstream string
+	dnsProxyVerbose  bool
+)
+
+var dnsProxyCmd = &cobra.Command{
+	Use:   "proxy",
+	Short: "Internal DNS proxy commands",
+}
+
+var dnsProxyServeCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "Run the local DNS proxy",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if dnsProxyListen == "" {
+			return fmt.Errorf("--listen is required")
+		}
+		if dnsProxyUpstream == "" {
+			return fmt.Errorf("--upstream is required")
+		}
+		return dnsproxy.Serve(cmd.Context(), dnsproxy.Config{
+			Listen:   dnsProxyListen,
+			Upstream: dnsProxyUpstream,
+			Verbose:  dnsProxyVerbose,
+			Log:      os.Stderr,
+		})
+	},
+}
+
 var dnsStatusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show Sandcastle DNS status",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := api.NewClient()
-		if err != nil {
-			return err
-		}
-		printServer(client)
-
-		status, err := client.DNSStatus()
-		if err != nil {
-			return err
+		var status *api.DNSStatus
+		if err == nil {
+			printServer(client)
+			status, err = client.DNSStatus()
 		}
 
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
-		fmt.Fprintf(w, "Suffix:\t%s\n", valueOrDash(status.Suffix))
-		fmt.Fprintf(w, "Resolver IP:\t%s\n", valueOrDash(status.ResolverIP))
-		fmt.Fprintf(w, "Tailscale IP:\t%s\n", valueOrDash(status.TailscaleIP))
-		fmt.Fprintf(w, "Resolver running:\t%t\n", status.ResolverRunning)
-		fmt.Fprintf(w, "Network:\t%s\n", valueOrDash(status.Network))
-		fmt.Fprintf(w, "Hosts file:\t%s\n", valueOrDash(status.HostsPath))
-		if runtime.GOOS == "darwin" && status.Suffix != "" {
-			fmt.Fprintf(w, "macOS resolver:\t%s\n", resolverStatus(status.Suffix))
+		if status != nil && err == nil {
+			fmt.Fprintf(w, "Suffix:\t%s\n", valueOrDash(status.Suffix))
+			fmt.Fprintf(w, "Resolver IP:\t%s\n", valueOrDash(status.ResolverIP))
+			fmt.Fprintf(w, "Tailscale IP:\t%s\n", valueOrDash(status.TailscaleIP))
+			fmt.Fprintf(w, "Resolver running:\t%t\n", status.ResolverRunning)
+			fmt.Fprintf(w, "Network:\t%s\n", valueOrDash(status.Network))
+			fmt.Fprintf(w, "Hosts file:\t%s\n", valueOrDash(status.HostsPath))
+		} else {
+			fmt.Fprintf(w, "Server:\toffline (%v)\n", err)
+		}
+		if runtime.GOOS == "darwin" {
+			if err := printLocalDNSStatus(w, status); err != nil {
+				return err
+			}
 		}
 		w.Flush()
 
-		if len(status.Records) > 0 {
+		if status != nil && len(status.Records) > 0 {
 			fmt.Println()
 			w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 			fmt.Fprintln(w, "NAME\tIP")
@@ -113,7 +204,7 @@ var dnsStatusCmd = &cobra.Command{
 			w.Flush()
 		}
 
-		if len(status.Skipped) > 0 {
+		if status != nil && len(status.Skipped) > 0 {
 			fmt.Println()
 			w = tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
 			fmt.Fprintln(w, "SKIPPED\tREASON")
@@ -128,7 +219,7 @@ var dnsStatusCmd = &cobra.Command{
 
 var dnsInstallCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install macOS resolver configuration for Sandcastle DNS",
+	Short: "Install macOS local proxy resolver configuration for Sandcastle DNS",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := requireDarwin(); err != nil {
 			return err
@@ -151,10 +242,10 @@ var dnsInstallCmd = &cobra.Command{
 			return fmt.Errorf("DNS resolver IP is not available; enable Tailscale and approve subnet routes first")
 		}
 
-		if err := installResolver(status.Suffix, status.ResolverIP); err != nil {
+		if err := installProxyResolver(status, client, dnsInstallForce); err != nil {
 			return err
 		}
-		fmt.Printf("Installed /etc/resolver/%s -> %s\n", status.Suffix, status.ResolverIP)
+		fmt.Printf("Installed /etc/resolver/%s through local DNS proxy\n", normalizeSuffix(status.Suffix))
 
 		if dnsInstallSearch {
 			if err := addSearchDomain(status.Suffix); err != nil {
@@ -174,21 +265,18 @@ var dnsUninstallCmd = &cobra.Command{
 			return err
 		}
 
-		client, err := api.NewClient()
-		if err != nil {
+		suffix := dnsUninstallSuffix
+		if suffix == "" {
+			if client, err := api.NewClient(); err == nil {
+				if status, err := client.DNSStatus(); err == nil {
+					suffix = status.Suffix
+				}
+			}
+		}
+		if err := uninstallProxyResolver(suffix); err != nil {
 			return err
 		}
-		status, err := client.DNSStatus()
-		if err != nil {
-			return err
-		}
-		if status.Suffix == "" {
-			return fmt.Errorf("server did not return a DNS suffix")
-		}
-		if err := uninstallResolver(status.Suffix); err != nil {
-			return err
-		}
-		fmt.Printf("Removed /etc/resolver/%s\n", status.Suffix)
+		fmt.Printf("Removed Sandcastle DNS resolver%s\n", suffixMessage(suffix))
 		return nil
 	},
 }
@@ -289,8 +377,8 @@ var dnsHostsCmd = &cobra.Command{
 	Use:   "hosts",
 	Short: "Manage /etc/hosts entries for Sandcastle sandboxes",
 	Long: "Write a managed block of sandbox name→IP mappings into /etc/hosts.\n" +
-		"Useful when /etc/resolver-based DNS is unreliable (for example when the\n" +
-		"resolver is reached over Tailscale and macOS treats it as transient).",
+		"This is a fallback for debugging or non-macOS clients; macOS resolver\n" +
+		"install uses a local DNS proxy by default.",
 }
 
 var dnsHostsSyncCmd = &cobra.Command{
@@ -520,8 +608,156 @@ func dnsLabel(s string) string {
 	return strings.Trim(strings.ToLower(strings.ReplaceAll(s, "_", "-")), ".")
 }
 
-func installResolver(suffix, resolverIP string) error {
-	content := fmt.Sprintf("%s\n# Server: %s\nnameserver %s\nsearch_order 1\n", resolverMarker, suffix, resolverIP)
+func installProxyResolver(status *api.DNSStatus, client *api.Client, force bool) error {
+	unlock, err := lockDNSState()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	suffix, err := validateSuffix(status.Suffix)
+	if err != nil {
+		return err
+	}
+	upstream, err := upstreamAddress(status.ResolverIP)
+	if err != nil {
+		return err
+	}
+	state, err := loadDNSState()
+	if err != nil {
+		return err
+	}
+	prev, hadPrev := state.Proxies[suffix]
+	entry := prev
+	if hadPrev && (prev.ServerAlias != "" || prev.ServerURL != "") && (prev.ServerAlias != client.ServerAlias || prev.ServerURL != client.BaseURL) {
+		fmt.Fprintf(os.Stderr, "warning: replacing existing DNS proxy for %s from server %s (%s)\n", suffix, valueOrDash(prev.ServerAlias), valueOrDash(prev.ServerURL))
+	}
+	if !hadPrev {
+		port, err := pickProxyPort()
+		if err != nil {
+			return err
+		}
+		entry.LocalAddress = net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+	}
+	entry.Suffix = suffix
+	entry.RawSuffix = status.Suffix
+	entry.UpstreamAddress = upstream
+	entry.LaunchdLabel = launchdLabel(suffix)
+	entry.PlistPath = launchdPlistPath(entry.LaunchdLabel)
+	entry.StdoutLogPath = proxyLogPath(entry.LaunchdLabel, "out.log")
+	entry.StderrLogPath = proxyLogPath(entry.LaunchdLabel, "err.log")
+	entry.ServerAlias = client.ServerAlias
+	entry.ServerURL = client.BaseURL
+
+	info, err := parseResolverFile(suffix)
+	if err != nil {
+		return err
+	}
+	if info.State == "unmanaged" {
+		if !force {
+			return fmt.Errorf("%s is not managed by Sandcastle; rerun with --force to back it up and replace it", resolverPath(suffix))
+		}
+		backup, err := backupResolverFile(suffix)
+		if err != nil {
+			return err
+		}
+		entry.ResolverBackupPath = backup
+	}
+
+	oldEntry := prev
+	if err := writeLaunchAgent(entry); err != nil {
+		return err
+	}
+	if err := launchdReload(entry); err != nil {
+		return err
+	}
+	if err := waitForProxyReady(entry.LocalAddress, suffix, 5*time.Second); err != nil {
+		if hadPrev {
+			_ = writeLaunchAgent(oldEntry)
+			_ = launchdReload(oldEntry)
+		} else {
+			_ = launchdUnload(entry)
+			_ = os.Remove(entry.PlistPath)
+		}
+		return fmt.Errorf("local DNS proxy was not ready: %w; check Tailscale connectivity, subnet route approval, and server DNS state. Logs: %s", err, entry.StderrLogPath)
+	}
+	if err := writeResolverFile(entry); err != nil {
+		if hadPrev {
+			_ = writeLaunchAgent(oldEntry)
+			_ = launchdReload(oldEntry)
+			_ = writeResolverFile(oldEntry)
+		} else {
+			_ = launchdUnload(entry)
+			_ = os.Remove(entry.PlistPath)
+		}
+		return err
+	}
+	if state.Proxies == nil {
+		state.Proxies = make(map[string]dnsProxyState)
+	}
+	state.Version = 2
+	state.Proxies[suffix] = entry
+	if err := saveDNSState(state); err != nil {
+		_ = uninstallResolverFile(suffix, entry.ResolverBackupPath)
+		if hadPrev {
+			_ = writeLaunchAgent(oldEntry)
+			_ = launchdReload(oldEntry)
+			_ = writeResolverFile(oldEntry)
+		} else {
+			_ = launchdUnload(entry)
+			_ = os.Remove(entry.PlistPath)
+		}
+		return err
+	}
+	return nil
+}
+
+func uninstallProxyResolver(rawSuffix string) error {
+	unlock, err := lockDNSState()
+	if err != nil {
+		return err
+	}
+	defer unlock()
+
+	state, err := loadDNSState()
+	if err != nil {
+		return err
+	}
+	suffix, entry, err := resolveUninstallTarget(rawSuffix, state)
+	if err != nil {
+		return err
+	}
+	info, err := parseResolverFile(suffix)
+	if err != nil {
+		return err
+	}
+	if info.State == "unmanaged" {
+		return fmt.Errorf("%s is not managed by Sandcastle; refusing to remove", resolverPath(suffix))
+	}
+	if err := uninstallResolverFile(suffix, entry.ResolverBackupPath); err != nil {
+		return err
+	}
+	if entry.LaunchdLabel != "" {
+		if err := launchdUnload(entry); err != nil {
+			return err
+		}
+	}
+	if entry.PlistPath != "" {
+		if err := os.Remove(entry.PlistPath); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	if err := removeManagedSearchDomainFromSystem(state, suffix); err != nil {
+		return err
+	}
+	delete(state.Proxies, suffix)
+	removeManagedSearchForSuffix(state, suffix)
+	cleanupDNSState(state)
+	return saveDNSState(state)
+}
+
+func writeResolverFile(entry dnsProxyState) error {
+	content := renderResolverFile(entry)
 	tmp, err := os.CreateTemp("", "sandcastle-resolver-*")
 	if err != nil {
 		return err
@@ -537,10 +773,18 @@ func installResolver(suffix, resolverIP string) error {
 	if err := run("sudo", "mkdir", "-p", "/etc/resolver"); err != nil {
 		return err
 	}
-	return run("sudo", "cp", tmp.Name(), resolverPath(suffix))
+	return run("sudo", "cp", tmp.Name(), resolverPath(entry.Suffix))
 }
 
-func uninstallResolver(suffix string) error {
+func uninstallResolverFile(suffix, backup string) error {
+	if backup != "" {
+		if _, err := os.Stat(backup); err == nil {
+			if err := run("sudo", "cp", backup, resolverPath(suffix)); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
 	path := resolverPath(suffix)
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -556,18 +800,447 @@ func uninstallResolver(suffix string) error {
 }
 
 func resolverStatus(suffix string) string {
-	data, err := os.ReadFile(resolverPath(suffix))
+	info, err := parseResolverFile(suffix)
 	if err != nil {
 		return "not installed"
 	}
-	if strings.Contains(string(data), resolverMarker) {
-		return "installed"
+	switch info.State {
+	case "proxy":
+		return fmt.Sprintf("installed via local proxy %s", net.JoinHostPort(info.Nameserver, strconv.Itoa(info.Port)))
+	case "legacy":
+		return "legacy direct resolver"
+	case "unmanaged":
+		return "exists, not managed by Sandcastle"
+	default:
+		return "not installed"
 	}
-	return "exists, not managed by Sandcastle"
 }
 
 func resolverPath(suffix string) string {
-	return filepath.Join("/etc/resolver", suffix)
+	return filepath.Join(resolverRoot, suffix)
+}
+
+func renderResolverFile(entry dnsProxyState) string {
+	host, port, _ := net.SplitHostPort(entry.LocalAddress)
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	return fmt.Sprintf("%s\n# sandcastle_resolver_version: %s\n# sandcastle_server_alias: %s\n# sandcastle_server_url: %s\n# sandcastle_upstream: %s\ndomain %s\nnameserver %s\nport %s\nsearch_order 1\n",
+		resolverMarker,
+		resolverVersion,
+		entry.ServerAlias,
+		entry.ServerURL,
+		entry.UpstreamAddress,
+		entry.Suffix,
+		host,
+		port,
+	)
+}
+
+func parseResolverFile(suffix string) (resolverInfo, error) {
+	data, err := os.ReadFile(resolverPath(suffix))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return resolverInfo{State: "missing"}, nil
+		}
+		return resolverInfo{}, err
+	}
+	info := resolverInfo{State: "unmanaged", Suffix: suffix}
+	if !strings.Contains(string(data), resolverMarker) {
+		return info, nil
+	}
+	info.Managed = true
+	info.State = "legacy"
+	info.Legacy = true
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(line, "# sandcastle_resolver_version:"):
+			if strings.TrimSpace(strings.TrimPrefix(line, "# sandcastle_resolver_version:")) == resolverVersion {
+				info.State = "proxy"
+				info.Legacy = false
+			}
+		case strings.HasPrefix(line, "# sandcastle_server_alias:"):
+			info.ServerAlias = strings.TrimSpace(strings.TrimPrefix(line, "# sandcastle_server_alias:"))
+		case strings.HasPrefix(line, "# sandcastle_server_url:"):
+			info.ServerURL = strings.TrimSpace(strings.TrimPrefix(line, "# sandcastle_server_url:"))
+		case strings.HasPrefix(line, "# sandcastle_upstream:"):
+			info.Upstream = strings.TrimSpace(strings.TrimPrefix(line, "# sandcastle_upstream:"))
+		case strings.HasPrefix(line, "domain "):
+			info.Domain = strings.TrimSpace(strings.TrimPrefix(line, "domain "))
+		case strings.HasPrefix(line, "nameserver "):
+			info.Nameserver = strings.TrimSpace(strings.TrimPrefix(line, "nameserver "))
+		case strings.HasPrefix(line, "port "):
+			info.Port, _ = strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(line, "port ")))
+		}
+	}
+	return info, nil
+}
+
+func validateSuffix(raw string) (string, error) {
+	suffix := normalizeSuffix(raw)
+	if suffix == "" {
+		return "", fmt.Errorf("server did not return a DNS suffix")
+	}
+	if strings.ContainsAny(suffix, "/\x00\\") || suffix == "." || suffix == ".." {
+		return "", fmt.Errorf("unsafe DNS suffix %q", raw)
+	}
+	for _, label := range strings.Split(suffix, ".") {
+		if label == "" || label == "." || label == ".." {
+			return "", fmt.Errorf("unsafe DNS suffix %q", raw)
+		}
+	}
+	return suffix, nil
+}
+
+func normalizeSuffix(raw string) string {
+	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(raw)), ".")
+}
+
+func upstreamAddress(resolverIP string) (string, error) {
+	host := strings.TrimSpace(resolverIP)
+	if host == "" {
+		return "", fmt.Errorf("DNS resolver IP is not available; enable Tailscale and approve subnet routes first")
+	}
+	if h, p, err := net.SplitHostPort(host); err == nil {
+		if p == "" {
+			p = "53"
+		}
+		return net.JoinHostPort(h, p), nil
+	}
+	if ip := net.ParseIP(host); ip == nil {
+		return "", fmt.Errorf("invalid DNS resolver IP %q", resolverIP)
+	}
+	return net.JoinHostPort(host, "53"), nil
+}
+
+func pickProxyPort() (int, error) {
+	for i := 0; i < 20; i++ {
+		ln, err := net.Listen("tcp4", "127.0.0.1:0")
+		if err != nil {
+			return 0, err
+		}
+		port := ln.Addr().(*net.TCPAddr).Port
+		_ = ln.Close()
+		if port < 1024 {
+			continue
+		}
+		udp, err := net.ListenPacket("udp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+		if err == nil {
+			_ = udp.Close()
+			return port, nil
+		}
+	}
+	return 0, fmt.Errorf("could not find an available local DNS proxy port")
+}
+
+func launchdLabel(suffix string) string {
+	sum := sha1.Sum([]byte(suffix))
+	safe := strings.NewReplacer(".", "-", "_", "-", ":", "-").Replace(suffix)
+	if len(safe) > 48 {
+		safe = safe[:48]
+	}
+	return "dev.sandcastle.dns." + safe + "." + hex.EncodeToString(sum[:])[:8]
+}
+
+func launchdPlistPath(label string) string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, "Library", "LaunchAgents", label+".plist")
+}
+
+func proxyLogPath(label, name string) string {
+	return filepath.Join(config.Dir(), "logs", "dns", label+"."+name)
+}
+
+func writeLaunchAgent(entry dnsProxyState) error {
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(entry.PlistPath), 0o755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(entry.StdoutLogPath), 0o700); err != nil {
+		return err
+	}
+	content := renderLaunchAgent(entry, exe)
+	tmp, err := os.CreateTemp(filepath.Dir(entry.PlistPath), ".sandcastle-launchagent-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.WriteString(content); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), entry.PlistPath)
+}
+
+func renderLaunchAgent(entry dnsProxyState, exe string) string {
+	args := []string{exe, "dns", "proxy", "serve", "--listen", entry.LocalAddress, "--upstream", entry.UpstreamAddress}
+	var items strings.Builder
+	for _, arg := range args {
+		items.WriteString("    <string>")
+		items.WriteString(xmlEscape(arg))
+		items.WriteString("</string>\n")
+	}
+	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>%s</string>
+  <key>ProgramArguments</key>
+  <array>
+%s  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+  <key>StandardOutPath</key>
+  <string>%s</string>
+  <key>StandardErrorPath</key>
+  <string>%s</string>
+</dict>
+</plist>
+`, xmlEscape(entry.LaunchdLabel), items.String(), xmlEscape(entry.StdoutLogPath), xmlEscape(entry.StderrLogPath))
+}
+
+func xmlEscape(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	s = strings.ReplaceAll(s, "\"", "&quot;")
+	return strings.ReplaceAll(s, "'", "&apos;")
+}
+
+func launchdReload(entry dnsProxyState) error {
+	_ = launchdUnload(entry)
+	domain := launchdDomain()
+	if err := run("launchctl", "bootstrap", domain, entry.PlistPath); err != nil {
+		return err
+	}
+	return run("launchctl", "kickstart", "-k", domain+"/"+entry.LaunchdLabel)
+}
+
+func launchdUnload(entry dnsProxyState) error {
+	if entry.LaunchdLabel == "" {
+		return nil
+	}
+	err := run("launchctl", "bootout", launchdDomain()+"/"+entry.LaunchdLabel)
+	if err != nil && !strings.Contains(err.Error(), "Could not find specified service") && !strings.Contains(err.Error(), "No such process") {
+		return err
+	}
+	return nil
+}
+
+func launchdDomain() string {
+	return fmt.Sprintf("gui/%d", os.Getuid())
+}
+
+func launchdPrint(label string) launchdStatus {
+	out, err := exec.Command("launchctl", "print", launchdDomain()+"/"+label).CombinedOutput()
+	if err != nil {
+		return launchdStatus{Raw: strings.TrimSpace(string(out))}
+	}
+	text := string(out)
+	return launchdStatus{
+		Loaded:  true,
+		Running: strings.Contains(text, "state = running") || strings.Contains(text, "pid ="),
+		Raw:     strings.TrimSpace(text),
+	}
+}
+
+func waitForProxyReady(localAddress, suffix string, deadline time.Duration) error {
+	end := time.Now().Add(deadline)
+	var last error
+	for time.Now().Before(end) {
+		last = dnsproxy.Probe(localAddress, suffix, 500*time.Millisecond)
+		if last == nil {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	if last == nil {
+		last = fmt.Errorf("timed out")
+	}
+	return last
+}
+
+func backupResolverFile(suffix string) (string, error) {
+	if err := os.MkdirAll(filepath.Join(config.Dir(), "dns-backups"), 0o700); err != nil {
+		return "", err
+	}
+	name := suffix + "." + time.Now().UTC().Format("20060102T150405Z") + ".resolver"
+	path := filepath.Join(config.Dir(), "dns-backups", name)
+	src, err := os.Open(resolverPath(suffix))
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+	dst, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, src); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func resolveUninstallTarget(raw string, state *dnsState) (string, dnsProxyState, error) {
+	if raw != "" {
+		suffix, err := validateSuffix(raw)
+		if err != nil {
+			return "", dnsProxyState{}, err
+		}
+		return suffix, state.Proxies[suffix], nil
+	}
+	if len(state.Proxies) == 1 {
+		for suffix, entry := range state.Proxies {
+			return suffix, entry, nil
+		}
+	}
+	if len(state.Proxies) > 1 {
+		return "", dnsProxyState{}, fmt.Errorf("multiple local DNS proxies are installed; rerun with --suffix <suffix>")
+	}
+	return "", dnsProxyState{}, fmt.Errorf("server unavailable or no local DNS proxy state found; rerun with --suffix <suffix>")
+}
+
+func removeManagedSearchForSuffix(state *dnsState, suffix string) {
+	for service, domains := range state.Search {
+		if managed, ok := domains[suffix]; ok && managed.AddedBySandcastle {
+			delete(domains, suffix)
+		}
+		if len(domains) == 0 {
+			delete(state.Search, service)
+		}
+	}
+}
+
+func removeManagedSearchDomainFromSystem(state *dnsState, suffix string) error {
+	for service, domains := range state.Search {
+		managed, ok := domains[suffix]
+		if !ok || !managed.AddedBySandcastle {
+			continue
+		}
+		current, err := getSearchDomains(service)
+		if err != nil {
+			return err
+		}
+		if err := setSearchDomains(service, removeDomain(current, suffix)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func cleanupDNSState(state *dnsState) {
+	if len(state.Search) == 0 {
+		state.Search = nil
+	}
+	if len(state.Proxies) == 0 {
+		state.Proxies = nil
+	}
+}
+
+func lockDNSState() (func(), error) {
+	if err := os.MkdirAll(config.Dir(), 0o700); err != nil {
+		return nil, err
+	}
+	lockDir := filepath.Join(config.Dir(), "dns.lock")
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		err := os.Mkdir(lockDir, 0o700)
+		if err == nil {
+			return func() { _ = os.Remove(lockDir) }, nil
+		}
+		if !os.IsExist(err) {
+			return nil, err
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("timed out waiting for DNS state lock %s", lockDir)
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func printLocalDNSStatus(w *tabwriter.Writer, status *api.DNSStatus) error {
+	state, err := loadDNSState()
+	if err != nil {
+		return err
+	}
+	targets := map[string]dnsProxyState{}
+	for suffix, entry := range state.Proxies {
+		targets[suffix] = entry
+	}
+	if status != nil && status.Suffix != "" {
+		suffix := normalizeSuffix(status.Suffix)
+		if _, ok := targets[suffix]; !ok {
+			targets[suffix] = dnsProxyState{Suffix: suffix, UpstreamAddress: net.JoinHostPort(status.ResolverIP, "53")}
+		}
+	}
+	if len(targets) == 0 {
+		fmt.Fprintf(w, "macOS resolver:\tnot installed\n")
+		return nil
+	}
+	suffixes := make([]string, 0, len(targets))
+	for suffix := range targets {
+		suffixes = append(suffixes, suffix)
+	}
+	sort.Strings(suffixes)
+	for _, suffix := range suffixes {
+		entry := targets[suffix]
+		info, err := parseResolverFile(suffix)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "macOS resolver %s:\t%s\n", suffix, resolverInfoSummary(info, entry))
+		if entry.LocalAddress != "" {
+			fmt.Fprintf(w, "Local proxy %s:\t%s -> %s\n", suffix, entry.LocalAddress, valueOrDash(entry.UpstreamAddress))
+			ls := launchdPrint(entry.LaunchdLabel)
+			fmt.Fprintf(w, "LaunchAgent %s:\tloaded=%t running=%t\n", suffix, ls.Loaded, ls.Running)
+			if err := dnsproxy.Probe(entry.LocalAddress, suffix, 800*time.Millisecond); err != nil {
+				fmt.Fprintf(w, "Proxy probe %s:\tfailed: %v\n", suffix, err)
+			} else {
+				fmt.Fprintf(w, "Proxy probe %s:\tok\n", suffix)
+			}
+			fmt.Fprintf(w, "Proxy logs %s:\tstdout=%s stderr=%s\n", suffix, entry.StdoutLogPath, entry.StderrLogPath)
+		}
+	}
+	return nil
+}
+
+func resolverInfoSummary(info resolverInfo, entry dnsProxyState) string {
+	switch info.State {
+	case "missing":
+		return "missing"
+	case "unmanaged":
+		return "exists, not managed by Sandcastle"
+	case "legacy":
+		return "legacy direct Sandcastle resolver"
+	case "proxy":
+		wantHost, wantPort, _ := net.SplitHostPort(entry.LocalAddress)
+		if entry.LocalAddress != "" && (info.Nameserver != wantHost || strconv.Itoa(info.Port) != wantPort) {
+			return fmt.Sprintf("mismatch (file %s:%d, state %s)", info.Nameserver, info.Port, entry.LocalAddress)
+		}
+		return "installed"
+	default:
+		return info.State
+	}
+}
+
+func suffixMessage(suffix string) string {
+	if suffix == "" {
+		return ""
+	}
+	return " for " + normalizeSuffix(suffix)
 }
 
 func writeHostsBlock(records []api.DNSRecord) error {
@@ -757,6 +1430,11 @@ func writeHostsFile(data []byte) error {
 }
 
 func addSearchDomain(domain string) error {
+	unlock, err := lockDNSState()
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	state, err := loadDNSState()
 	if err != nil {
 		return err
@@ -783,6 +1461,11 @@ func addSearchDomain(domain string) error {
 }
 
 func removeSearchDomain(domain string) error {
+	unlock, err := lockDNSState()
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	state, err := loadDNSState()
 	if err != nil {
 		return err
@@ -907,7 +1590,7 @@ func setSearchDomains(service string, domains []string) error {
 }
 
 func loadDNSState() (*dnsState, error) {
-	state := &dnsState{Search: make(map[string]map[string]managedSearchDomain)}
+	state := &dnsState{Search: make(map[string]map[string]managedSearchDomain), Proxies: make(map[string]dnsProxyState)}
 	data, err := os.ReadFile(dnsStatePath())
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -920,6 +1603,9 @@ func loadDNSState() (*dnsState, error) {
 	}
 	if state.Search == nil {
 		state.Search = make(map[string]map[string]managedSearchDomain)
+	}
+	if state.Proxies == nil {
+		state.Proxies = make(map[string]dnsProxyState)
 	}
 	return state, nil
 }
