@@ -1,0 +1,23 @@
+i created a new sandcastle in a project and my persisted dirs/files are owned by nobody. 
+explore the reason and propose a fix:
+~/Projects/GitHub/Sandcastle % sc ls                                                                                                [main]Server: demo (https://demo.sandcastle.rocks)NAME  PROJECT  STATUS   CREATED           DNS                    TAILSCALE IP  IMAGE AGEtubu  sc       running  2026-05-07 20:08  admin.tubu.sc.sandman  10.206.10.3   13h agodev   sc       running  2026-05-08 08:49  dev.sc.sandman         10.206.10.5   -~/Projects/GitHub/Sandcastle % ssh dev.sc.sandman ls -la /persisted                                                                 [main]total 0drwxrwxrwx 1 thies  thies     48 May  7 11:16 .drwxr-xr-x 1 root   root      70 May  8 06:51 ..drwxrwxr-x 1 nobody nogroup  372 May  7 11:16 dockyarddrwxrwxr-x 1 nobody nogroup 1152 May  7 11:19 sandcastledrwxrwxr-x 1 nobody nogroup  558 May  7 11:16 sysbox
+
+---
+
+i created a new sandcastle in a project and my persisted dirs/files are owned by nobody. 
+explore the reason and propose a fix:
+~/Projects/GitHub/Sandcastle % sc ls                                                                                                [main]Server: demo (https://demo.sandcastle.rocks)NAME  PROJECT  STATUS   CREATED           DNS                    TAILSCALE IP  IMAGE AGEtubu  sc       running  2026-05-07 20:08  admin.tubu.sc.sandman  10.206.10.3   13h agodev   sc       running  2026-05-08 08:49  dev.sc.sandman         10.206.10.5   -~/Projects/GitHub/Sandcastle % ssh dev.sc.sandman ls -la /persisted                                                                 [main]total 0drwxrwxrwx 1 thies  thies     48 May  7 11:16 .drwxr-xr-x 1 root   root      70 May  8 06:51 ..drwxrwxr-x 1 nobody nogroup  372 May  7 11:16 dockyarddrwxrwxr-x 1 nobody nogroup 1152 May  7 11:19 sandcastledrwxrwxr-x 1 nobody nogroup  558 May  7 11:16 sysbox
+
+every user of sandcastle shoudl maybe have his own fixed UIS/GID - explain your strategy
+
+---
+
+create an issue for dockyard
+
+---
+
+teh fix in dockyard is in - update the local copy
+
+---
+
+write the uid issue and the ideas to STABLE_UID.md

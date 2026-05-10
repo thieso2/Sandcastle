@@ -3,7 +3,7 @@
   "checkpoint_id": "eda551a39b01",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 11,
+  "checkpoints_count": 13,
   "files_touched": [
     "installer/templates/dockyard.sh"
   ],
@@ -13,13 +13,19 @@
       "transcript": "/ed/a551a39b01/0/full.jsonl",
       "content_hash": "/ed/a551a39b01/0/content_hash.txt",
       "prompt": "/ed/a551a39b01/0/prompt.txt"
+    },
+    {
+      "metadata": "/ed/a551a39b01/1/metadata.json",
+      "transcript": "/ed/a551a39b01/1/full.jsonl",
+      "content_hash": "/ed/a551a39b01/1/content_hash.txt",
+      "prompt": "/ed/a551a39b01/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 416,
-    "cache_creation_tokens": 617999,
-    "cache_read_tokens": 20802202,
-    "output_tokens": 105434,
-    "api_call_count": 154
+    "input_tokens": 464,
+    "cache_creation_tokens": 777503,
+    "cache_read_tokens": 22307590,
+    "output_tokens": 125960,
+    "api_call_count": 177
   }
 }
