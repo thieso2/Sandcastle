@@ -46,6 +46,11 @@ services:
     volumes:
       - \${DOCKER_SOCK}:/var/run/docker.sock
       - ${DATA_MOUNT}:${DATA_MOUNT}
+    env_file:
+      # Single source of truth for DOCKYARD_POOL_BASE — must match the value
+      # dockerd actually uses, otherwise Tailscale sidecar subnets land outside
+      # the host MASQUERADE rule and lose internet access.
+      - ${SANDCASTLE_HOME}/dockyard/etc/dockyard.env
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: \${SECRET_KEY_BASE}
@@ -68,7 +73,6 @@ services:
       GITHUB_CLIENT_SECRET: \${GITHUB_CLIENT_SECRET:-}
       GOOGLE_CLIENT_ID: \${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: \${GOOGLE_CLIENT_SECRET:-}
-      DOCKYARD_POOL_BASE: \${DOCKYARD_POOL_BASE:-10.89.0.0/16}
       DOCKER_SOCK: \${DOCKER_SOCK:-/var/run/docker.sock}
       SANDCASTLE_TCP_PORT_MIN: \${SANDCASTLE_TCP_PORT_MIN:-${TCP_PORT_MIN}}
       SANDCASTLE_TCP_PORT_MAX: \${SANDCASTLE_TCP_PORT_MAX:-${TCP_PORT_MAX}}
@@ -92,6 +96,8 @@ services:
     volumes:
       - \${DOCKER_SOCK}:/var/run/docker.sock
       - ${DATA_MOUNT}:${DATA_MOUNT}
+    env_file:
+      - ${SANDCASTLE_HOME}/dockyard/etc/dockyard.env
     environment:
       RAILS_ENV: production
       SECRET_KEY_BASE: \${SECRET_KEY_BASE}
@@ -106,7 +112,6 @@ services:
       DB_HOST: postgres
       DB_USER: sandcastle
       DB_PASSWORD: \${DB_PASSWORD}
-      DOCKYARD_POOL_BASE: \${DOCKYARD_POOL_BASE:-10.89.0.0/16}
       SANDCASTLE_TCP_PORT_MIN: \${SANDCASTLE_TCP_PORT_MIN:-${TCP_PORT_MIN}}
       SANDCASTLE_TCP_PORT_MAX: \${SANDCASTLE_TCP_PORT_MAX:-${TCP_PORT_MAX}}
       SANDCASTLE_TRAEFIK_CONFIG: ${DATA_MOUNT}/traefik/traefik.yml

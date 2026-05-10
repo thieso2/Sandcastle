@@ -445,27 +445,58 @@ class TailscaleManager
   end
 
   def subnet_for(user)
-    # 1. Use the subnet stored in the DB — stable across Docker/reinstalls
-    return user.tailscale_subnet if user.tailscale_subnet.present?
+    pool = ENV["DOCKYARD_POOL_BASE"]
+
+    # 1. Use the subnet stored in the DB — but only if it still falls inside the
+    # current pool. If DOCKYARD_POOL_BASE changed (or was previously wrong), the
+    # stored subnet would be outside the host MASQUERADE rule and the sidecar
+    # would have no internet. Drop it and regenerate.
+    if user.tailscale_subnet.present?
+      if pool.blank? || subnet_in_pool?(user.tailscale_subnet, pool)
+        return user.tailscale_subnet
+      end
+      Rails.logger.warn(
+        "TailscaleManager: stored subnet #{user.tailscale_subnet} for #{user.name} " \
+        "is outside DOCKYARD_POOL_BASE #{pool} — regenerating"
+      )
+      user.update_column(:tailscale_subnet, nil)
+    end
 
     # 2. If the network already exists on Docker, read its actual subnet
+    # (same validation as above).
     begin
       network = Docker::Network.get("sc-ts-net-#{user.name}")
       ipam = network.info.dig("IPAM", "Config")
-      return ipam.first["Subnet"] if ipam&.first
+      existing = ipam&.first&.dig("Subnet")
+      if existing.present?
+        return existing if pool.blank? || subnet_in_pool?(existing, pool)
+        Rails.logger.warn(
+          "TailscaleManager: existing network sc-ts-net-#{user.name} subnet " \
+          "#{existing} is outside DOCKYARD_POOL_BASE #{pool} — caller must remove it"
+        )
+      end
     rescue Docker::Error::NotFoundError
       # Network doesn't exist yet — fall through to generate a random /24
     end
 
     # 3. Generate a random /24 from the pool (first allocation)
-    base = ENV["DOCKYARD_POOL_BASE"]
-    if base
-      parts = base.split("/").first.split(".").map(&:to_i)
+    if pool
+      parts = pool.split("/").first.split(".").map(&:to_i)
     else
       parts = [ 10, rand(1..254), 0, 0 ]
     end
     parts[2] = rand(1..254)
     "#{parts[0]}.#{parts[1]}.#{parts[2]}.0/24"
+  end
+
+  # Returns true if `subnet` (e.g. "10.89.42.0/24") is fully contained in `pool`
+  # (e.g. "10.89.0.0/16"). Used to catch DOCKYARD_POOL_BASE drift before it
+  # causes silent loss of internet for Tailscale sidecars.
+  def subnet_in_pool?(subnet, pool)
+    require "ipaddr"
+    IPAddr.new(pool).include?(IPAddr.new(subnet))
+  rescue IPAddr::Error
+    false
   end
 
   def create_network(name, subnet)

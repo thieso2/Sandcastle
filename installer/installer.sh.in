@@ -1137,7 +1137,6 @@ SANDCASTLE_ADMIN_PASSWORD="${SANDCASTLE_ADMIN_PASSWORD:-}"
 SANDCASTLE_ADMIN_SSH_KEY="${SANDCASTLE_ADMIN_SSH_KEY:-}"
 DOCKER_GID="${DOCKER_GID}"
 DOCKER_SOCK="${DOCKER_SOCK}"
-DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE}"
 ACME_EMAIL="${ACME_EMAIL:-}"
 GITHUB_CLIENT_ID="${GITHUB_CLIENT_ID:-}"
 GITHUB_CLIENT_SECRET="${GITHUB_CLIENT_SECRET:-}"
@@ -1175,9 +1174,13 @@ EOF
     DOCKER_SOCK="${DOCKYARD_ROOT}/run/docker.sock"
     echo "DOCKER_SOCK=$DOCKER_SOCK" >> "$SANDCASTLE_HOME/.env"
   fi
-  # Backfill DOCKYARD_POOL_BASE — required so docker-compose passes the correct subnet to Rails
-  grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
-    echo "DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}" >> "$SANDCASTLE_HOME/.env"
+  # DOCKYARD_POOL_BASE lives only in dockyard.env (loaded by docker-compose via
+  # env_file:) — having it in .env too risked silent drift that broke Tailscale
+  # sidecar networking. Strip any leftover entry from older installs.
+  if grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null; then
+    sed -i '/^DOCKYARD_POOL_BASE=/d' "$SANDCASTLE_HOME/.env"
+    info "Removed stale DOCKYARD_POOL_BASE from .env (now sourced from dockyard.env)"
+  fi
   # Backfill SANDCASTLE_NAME — used for Tailscale sidecar machine names (sc-<name>)
   grep -q '^SANDCASTLE_NAME=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
     echo "SANDCASTLE_NAME=${SANDCASTLE_NAME:-$(hostname -s 2>/dev/null || echo sandcastle)}" >> "$SANDCASTLE_HOME/.env"
@@ -1619,9 +1622,13 @@ cmd_update() {
   # shellcheck source=/dev/null
   source "$SANDCASTLE_HOME/.env"
 
-  # Backfill vars that may be missing in older .env files
-  grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null || \
-    echo "DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}" >> "$SANDCASTLE_HOME/.env"
+  # Strip stale DOCKYARD_POOL_BASE from older .env files — it now lives only in
+  # dockyard.env (loaded by docker-compose via env_file). Keeping a duplicate in
+  # .env risked silent drift that broke Tailscale sidecar networking.
+  if grep -q '^DOCKYARD_POOL_BASE=' "$SANDCASTLE_HOME/.env" 2>/dev/null; then
+    sed -i '/^DOCKYARD_POOL_BASE=/d' "$SANDCASTLE_HOME/.env"
+    info "Removed stale DOCKYARD_POOL_BASE from .env (now sourced from dockyard.env)"
+  fi
   if ! grep -q '^AR_ENCRYPTION_PRIMARY_KEY=' "$SANDCASTLE_HOME/.env" 2>/dev/null; then
     RAILS_SECRETS_FILE="$SANDCASTLE_HOME/data/rails/.secrets"
     if [ -f "$RAILS_SECRETS_FILE" ]; then
