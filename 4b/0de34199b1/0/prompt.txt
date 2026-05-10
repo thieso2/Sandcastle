@@ -42,3 +42,7 @@ also donÄt write /etc/hosts unless asked for!
 
 if we have fqdn entried we need to write etc hosts. 
 the host swritten need to be clealy marked by sandcastle name.
+
+---
+
+commit and release!
