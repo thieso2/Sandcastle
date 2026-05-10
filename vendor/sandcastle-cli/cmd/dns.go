@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -786,7 +785,7 @@ func uninstallResolverFile(suffix, backup string) error {
 		}
 	}
 	path := resolverPath(suffix)
-	data, err := os.ReadFile(path)
+	data, err := readResolverFile(suffix)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -838,7 +837,7 @@ func renderResolverFile(entry dnsProxyState) string {
 }
 
 func parseResolverFile(suffix string) (resolverInfo, error) {
-	data, err := os.ReadFile(resolverPath(suffix))
+	data, err := readResolverFile(suffix)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return resolverInfo{State: "missing"}, nil
@@ -1078,20 +1077,41 @@ func backupResolverFile(suffix string) (string, error) {
 	}
 	name := suffix + "." + time.Now().UTC().Format("20060102T150405Z") + ".resolver"
 	path := filepath.Join(config.Dir(), "dns-backups", name)
-	src, err := os.Open(resolverPath(suffix))
-	if err != nil {
-		return "", err
-	}
-	defer src.Close()
 	dst, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return "", err
 	}
 	defer dst.Close()
-	if _, err := io.Copy(dst, src); err != nil {
+	data, err := readResolverFile(suffix)
+	if err != nil {
+		return "", err
+	}
+	if _, err := dst.Write(data); err != nil {
 		return "", err
 	}
 	return path, nil
+}
+
+func readResolverFile(suffix string) ([]byte, error) {
+	path := resolverPath(suffix)
+	data, err := os.ReadFile(path)
+	if err == nil || !os.IsPermission(err) {
+		return data, err
+	}
+
+	cmd := exec.Command("sudo", "cat", path)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	cmd.Stdin = os.Stdin
+	data, err = cmd.Output()
+	if err != nil {
+		msg := strings.TrimSpace(stderr.String())
+		if msg != "" {
+			return nil, fmt.Errorf("%s: %w", msg, err)
+		}
+		return nil, err
+	}
+	return data, nil
 }
 
 func resolveUninstallTarget(raw string, state *dnsState) (string, dnsProxyState, error) {
