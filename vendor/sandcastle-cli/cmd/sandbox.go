@@ -162,12 +162,13 @@ Flags explicitly passed on the command line take precedence over environment var
 		}
 
 		// Support "project:name" shorthand in the positional argument.
-		if idx := strings.Index(name, ":"); idx >= 0 {
-			projectFromName := name[:idx]
-			name = name[idx+1:]
-			if projectFromName == "" || name == "" {
+		if strings.Contains(name, ":") {
+			ref, err := parseSandboxRef(name)
+			if err != nil || !ref.Scoped {
 				return fmt.Errorf("invalid name %q: expected [project:]name", args[0])
 			}
+			projectFromName := ref.Project
+			name = ref.Name
 			if sandboxProject != "" && sandboxProject != projectFromName {
 				return fmt.Errorf("project specified twice: %q in name and %q via --project", projectFromName, sandboxProject)
 			}
@@ -439,6 +440,7 @@ var listCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		sortSandboxesForDisplay(sandboxes)
 
 		if len(sandboxes) == 0 {
 			fmt.Println("No sandboxes.")
@@ -446,32 +448,19 @@ var listCmd = &cobra.Command{
 		}
 
 		hasRoute := false
-		hasProject := false
 		for _, s := range sandboxes {
 			if len(s.Routes) > 0 {
 				hasRoute = true
 			}
-			if s.ProjectName != "" {
-				hasProject = true
-			}
 		}
-		dnsNames := dnsNamesBySandboxID(client)
-		hasDNS := len(dnsNames) > 0
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-		headers := []string{"NAME"}
-		if hasProject {
-			headers = append(headers, "PROJECT")
-		}
-		headers = append(headers, "STATUS", "CREATED")
+		headers := []string{"NAME", "PROJECT", "STATUS", "CREATED", "HOSTNAME", "TAILSCALE IP"}
 		if hasRoute {
 			headers = append(headers, "ROUTE")
 		}
-		if hasDNS {
-			headers = append(headers, "DNS")
-		}
-		headers = append(headers, "TAILSCALE IP", "IMAGE AGE")
+		headers = append(headers, "IMAGE AGE")
 		fmt.Fprintln(w, strings.Join(headers, "\t"))
 
 		for _, s := range sandboxes {
@@ -483,11 +472,7 @@ var listCmd = &cobra.Command{
 			created := s.CreatedAt.Local().Format("2006-01-02 15:04")
 			imageAge := formatImageAge(s.ImageBuiltAt)
 
-			cols := []string{name}
-			if hasProject {
-				cols = append(cols, s.ProjectName)
-			}
-			cols = append(cols, s.Status, created)
+			cols := []string{name, displayProject(s.ProjectName), s.Status, created, displayValue(s.Hostname), displayValue(tsIP)}
 			if hasRoute {
 				route := ""
 				if len(s.Routes) > 0 {
@@ -499,10 +484,7 @@ var listCmd = &cobra.Command{
 				}
 				cols = append(cols, route)
 			}
-			if hasDNS {
-				cols = append(cols, dnsNames[s.ID])
-			}
-			cols = append(cols, tsIP, imageAge)
+			cols = append(cols, imageAge)
 			fmt.Fprintln(w, strings.Join(cols, "\t"))
 		}
 		w.Flush()
@@ -558,7 +540,7 @@ The sandbox is restored in running state. Use 'sandcastle list --archived' to se
 var deleteForce bool
 
 var deleteCmd = &cobra.Command{
-	Use:     "delete <name>",
+	Use:     "delete <[project:]name>",
 	Aliases: []string{"rm", "d"},
 	Short:   "Delete a sandbox",
 	Args:    cobra.ExactArgs(1),
@@ -596,7 +578,7 @@ var deleteCmd = &cobra.Command{
 }
 
 var startCmd = &cobra.Command{
-	Use:     "start <name>",
+	Use:     "start <[project:]name>",
 	Aliases: []string{"up"},
 	Short:   "Start a stopped sandbox",
 	Args:    cobra.ExactArgs(1),
@@ -624,7 +606,7 @@ var startCmd = &cobra.Command{
 }
 
 var stopCmd = &cobra.Command{
-	Use:     "stop <name>",
+	Use:     "stop <[project:]name>",
 	Aliases: []string{"dn"},
 	Short:   "Stop a running sandbox",
 	Args:    cobra.ExactArgs(1),
@@ -652,7 +634,7 @@ var stopCmd = &cobra.Command{
 }
 
 var rebuildCmd = &cobra.Command{
-	Use:   "rebuild <name>",
+	Use:   "rebuild <[project:]name>",
 	Short: "Rebuild a sandbox with the latest image",
 	Long:  `Destroys and recreates the container from the latest image. Bind-mounted data (home, persisted) is preserved but file ownership may shift due to Sysbox UID remapping. Use "start" for a quick restart that preserves ownership.`,
 	Args:  cobra.ExactArgs(1),
@@ -681,13 +663,12 @@ var rebuildCmd = &cobra.Command{
 
 var useCmd = &cobra.Command{
 	Use:   "use [name]",
-	Short: "Show or set active server/sandbox",
-	Long: `Without arguments, shows the current server and active sandbox.
-With an argument, switches the active server or sandbox.
+	Short: "Show or set active server",
+	Long: `Without arguments, shows configured servers and highlights the active server.
+With an argument, switches the active server.
 
 Examples:
-  sandcastle use                  # Show current server and sandbox
-  sandcastle use my-sandbox       # Set active sandbox
+  sandcastle use                  # Show configured servers
   sandcastle use prod             # Switch to server "prod" (if configured)`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -750,7 +731,7 @@ Examples:
 }
 
 var setCmd = &cobra.Command{
-	Use:   "set <name> <temp|keep>",
+	Use:   "set <[project:]name> <temp|keep>",
 	Short: "Toggle sandbox between temporary and kept",
 	Long: `Toggle a sandbox between temporary (auto-remove on exit) and kept.
 
@@ -795,7 +776,7 @@ var setCmd = &cobra.Command{
 }
 
 var renameCmd = &cobra.Command{
-	Use:     "rename <name> <new-name>",
+	Use:     "rename <[project:]name> <new-name>",
 	Aliases: []string{"mv"},
 	Short:   "Rename a sandbox",
 	Args:    cobra.ExactArgs(2),
@@ -812,6 +793,9 @@ var renameCmd = &cobra.Command{
 		}
 
 		newName := args[1]
+		if strings.Contains(newName, ":") {
+			return fmt.Errorf("new name must not include a project prefix")
+		}
 		sandbox, err = client.UpdateSandbox(sandbox.ID, api.UpdateSandboxRequest{Name: &newName})
 		if err != nil {
 			return err
@@ -845,17 +829,4 @@ func formatImageAge(builtAt *time.Time) string {
 func envTruthy(key string) bool {
 	v := strings.ToLower(os.Getenv(key))
 	return v == "1" || v == "true" || v == "yes"
-}
-
-func findSandboxByName(client *api.Client, name string) (*api.Sandbox, error) {
-	sandboxes, err := client.ListSandboxes()
-	if err != nil {
-		return nil, err
-	}
-	for _, s := range sandboxes {
-		if s.Name == name {
-			return &s, nil
-		}
-	}
-	return nil, fmt.Errorf("sandbox %q not found", name)
 }

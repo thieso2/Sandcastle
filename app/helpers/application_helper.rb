@@ -4,7 +4,7 @@ module ApplicationHelper
 
     units = %w[B KB MB GB TB]
     exp = (Math.log(bytes) / Math.log(1024)).to_i
-    exp = [exp, units.length - 1].min
+    exp = [ exp, units.length - 1 ].min
     value = bytes.to_f / (1024**exp)
 
     if value >= 10 || exp == 0

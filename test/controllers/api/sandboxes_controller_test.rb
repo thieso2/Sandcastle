@@ -50,5 +50,24 @@ class Api::SandboxesControllerTest < ActionDispatch::IntegrationTest
     assert sandbox.caddy_enabled?
     assert_equal config, sandbox.gcp_oidc_config
     assert_equal true, response.parsed_body["caddy_enabled"]
+    assert_equal "testbox-io26", response.parsed_body["hostname"]
+    assert_equal DnsManager.new.hostname_for(sandbox), response.parsed_body["primary_dns_name"]
+  end
+
+  test "connect response includes primary dns name" do
+    sandbox = @user.sandboxes.find_by!(name: "devbox")
+    sandbox.update!(project_name: "alpha", tailscale: true)
+
+    original = SandboxManager.instance_method(:wait_for_tailscale_ip)
+    SandboxManager.define_method(:wait_for_tailscale_ip) { |sandbox:, **| "10.206.10.9" }
+    begin
+      post "/api/sandboxes/#{sandbox.id}/connect", headers: @headers
+    ensure
+      SandboxManager.define_method(:wait_for_tailscale_ip, original)
+    end
+
+    assert_response :success
+    assert_equal DnsManager.new.hostname_for(sandbox), response.parsed_body["primary_dns_name"]
+    assert_equal "10.206.10.9", response.parsed_body["tailscale_ip"]
   end
 end

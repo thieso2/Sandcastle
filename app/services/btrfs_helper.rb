@@ -1,4 +1,4 @@
-require "shellwords"
+require "open3"
 
 class BtrfsHelper
   class Error < StandardError; end
@@ -16,7 +16,7 @@ class BtrfsHelper
       parent = File.dirname(snapshot_path)
       mkdir_p(parent)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot -r #{sh(source_path)} #{sh(snapshot_path)}")
+      output, status = run_sudo_command("/usr/bin/btrfs", "subvolume", "snapshot", "-r", source_path, snapshot_path)
       unless status&.success?
         raise Error, "Failed to create BTRFS snapshot #{snapshot_path}: #{output}"
       end
@@ -36,9 +36,9 @@ class BtrfsHelper
       # Read-only BTRFS snapshots can fail deletion on some kernels/tools unless
       # their ro property is cleared first. This is harmless for writable
       # subvolumes and best-effort for plain directories.
-      run_sudo_command("/usr/bin/btrfs property set -ts #{sh(snapshot_path)} ro false")
+      run_sudo_command("/usr/bin/btrfs", "property", "set", "-ts", snapshot_path, "ro", "false")
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume delete #{sh(snapshot_path)}")
+      output, status = run_sudo_command("/usr/bin/btrfs", "subvolume", "delete", snapshot_path)
       unless status&.success?
         raise Error, "Failed to delete BTRFS snapshot #{snapshot_path}: #{output}"
       end
@@ -55,7 +55,7 @@ class BtrfsHelper
     def subvolume_size(path)
       return 0 unless Dir.exist?(path)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume show #{sh(path)}")
+      output, status = run_sudo_command("/usr/bin/btrfs", "subvolume", "show", path)
       return 0 unless status&.success?
 
       # Try to parse "Exclusive referenced:" from output
@@ -95,7 +95,7 @@ class BtrfsHelper
       parent = File.dirname(target_path)
       mkdir_p(parent)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume snapshot #{sh(snapshot_path)} #{sh(target_path)}")
+      output, status = run_sudo_command("/usr/bin/btrfs", "subvolume", "snapshot", snapshot_path, target_path)
       unless status&.success?
         raise Error, "Failed to restore BTRFS snapshot to #{target_path}: #{output}"
       end
@@ -138,7 +138,8 @@ class BtrfsHelper
     def btrfs?(path = DATA_DIR)
       return @is_btrfs if defined?(@is_btrfs)
 
-      fs_type = `stat -f -c %T #{sh(path)} 2>/dev/null`.strip
+      fs_type, = Open3.capture2("stat", "-f", "-c", "%T", path.to_s)
+      fs_type = fs_type.strip
       is_btrfs_fs = fs_type == "btrfs"
       has_sudo = is_btrfs_fs && system("/usr/bin/sudo -n /usr/bin/btrfs --version >/dev/null 2>&1")
       @is_btrfs = has_sudo == true
@@ -279,7 +280,7 @@ class BtrfsHelper
       mkdir_p(parent)
 
       # Create subvolume using sudo with full path
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{sh(path)}")
+      output, status = run_sudo_command("/usr/bin/btrfs", "subvolume", "create", path)
 
       unless status.success?
         raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
@@ -300,7 +301,7 @@ class BtrfsHelper
       parent = File.dirname(path)
       mkdir_p(parent)
 
-      output, status = run_sudo_command("/usr/bin/btrfs subvolume create #{sh(path)}")
+      output, status = run_sudo_command("/usr/bin/btrfs", "subvolume", "create", path)
       unless status&.success?
         raise Error, "Failed to create BTRFS subvolume #{path}: #{output}"
       end
@@ -314,7 +315,7 @@ class BtrfsHelper
     def ensure_owned(path)
       return if File.stat(path).uid == Process.uid
 
-      _output, status = run_sudo_command("/usr/bin/chown #{Process.uid}:#{Process.gid} #{sh(path)}")
+      _output, status = run_sudo_command("/usr/bin/chown", "#{Process.uid}:#{Process.gid}", path)
       return if status&.success?
 
       PermissionRepair.chown_chmod(path, uid: Process.uid, gid: Process.gid)
@@ -334,16 +335,11 @@ class BtrfsHelper
     end
 
     # Run a command with sudo
-    def run_sudo_command(command)
-      full_command = "/usr/bin/sudo -n #{command}"
-      output = `#{full_command} 2>&1`
-      [ output, $? ]
+    def run_sudo_command(*command)
+      output, status = Open3.capture2e("/usr/bin/sudo", "-n", *command.map(&:to_s))
+      [ output, status ]
     rescue StandardError => e
       [ e.message, nil ]
-    end
-
-    def sh(value)
-      Shellwords.escape(value.to_s)
     end
   end
 end

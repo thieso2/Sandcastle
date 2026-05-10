@@ -29,10 +29,10 @@ func init() {
 }
 
 var connectCmd = &cobra.Command{
-	Use:     "connect [name] [-- ssh-options...]",
+	Use:     "connect [[project:]name] [-- ssh-options...]",
 	Aliases: []string{"c"},
 	Short:   "Connect to sandbox and attach tmux (auto-starts if stopped)",
-	Args:  cobra.ArbitraryArgs,
+	Args:    cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, passthrough := splitArgs(args)
 		if name == "" {
@@ -94,10 +94,10 @@ var connectCmd = &cobra.Command{
 }
 
 var sshCmd = &cobra.Command{
-	Use:     "ssh [name] [-- ssh-options...]",
+	Use:     "ssh [[project:]name] [-- ssh-options...]",
 	Aliases: []string{"s"},
 	Short:   "SSH into sandbox shell (without tmux)",
-	Args:  cobra.ArbitraryArgs,
+	Args:    cobra.ArbitraryArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, passthrough := splitArgs(args)
 		if name == "" {
@@ -251,9 +251,7 @@ func sshExec(host string, port int, user string, remoteCmd string, extraArgs str
 		return fmt.Errorf("ssh not found: %w", err)
 	}
 
-	if os.Getenv("VERBOSE") == "1" {
-		fmt.Fprintf(os.Stderr, "→ ssh %s\n", shellJoin(sshArgs))
-	}
+	fmt.Fprintf(os.Stderr, "→ ssh %s\n", shellJoin(sshArgs))
 
 	proc := &os.ProcAttr{
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
@@ -295,9 +293,7 @@ func moshExec(host string, port int, user string, remoteCmd string, extraArgs st
 		return fmt.Errorf("mosh not found in PATH — install mosh on your local machine first (https://mosh.org): %w", err)
 	}
 
-	if os.Getenv("VERBOSE") == "1" {
-		fmt.Fprintf(os.Stderr, "→ mosh %s\n", shellJoin(moshArgs))
-	}
+	fmt.Fprintf(os.Stderr, "→ mosh %s\n", shellJoin(moshArgs))
 
 	proc := &os.ProcAttr{
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},

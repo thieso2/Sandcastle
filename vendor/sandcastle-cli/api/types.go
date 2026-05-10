@@ -7,6 +7,7 @@ type Sandbox struct {
 	Name                   string         `json:"name"`
 	FullName               string         `json:"full_name"`
 	Hostname               string         `json:"hostname,omitempty"`
+	PrimaryDNSName         string         `json:"primary_dns_name,omitempty"`
 	Status                 string         `json:"status"`
 	Image                  string         `json:"image"`
 	SSHPort                int            `json:"ssh_port,omitempty"`
@@ -60,11 +61,12 @@ type SandboxRoute struct {
 }
 
 type ConnectInfo struct {
-	Host        string `json:"host"`
-	Port        int    `json:"port"`
-	User        string `json:"user"`
-	Command     string `json:"command"`
-	TailscaleIP string `json:"tailscale_ip,omitempty"`
+	Host           string `json:"host"`
+	Port           int    `json:"port"`
+	User           string `json:"user"`
+	Command        string `json:"command"`
+	TailscaleIP    string `json:"tailscale_ip,omitempty"`
+	PrimaryDNSName string `json:"primary_dns_name,omitempty"`
 }
 
 type User struct {

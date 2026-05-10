@@ -24,8 +24,9 @@ var cpCmd = &cobra.Command{
 	Short: "Copy files to/from a sandbox via scp",
 	Long: `Copy files between local machine and a sandbox using scp.
 
-Use sandbox:path syntax to reference files in a sandbox:
+Use [project:]sandbox:path syntax to reference files in a sandbox:
   sandcastle cp file.txt my-dev:~/          # local → sandbox
+  sandcastle cp file.txt sc:my-dev:~/       # local → sandbox in project "sc"
   sandcastle cp my-dev:~/data.csv .         # sandbox → local
   sandcastle cp -r my-dev:~/project ./      # recursive copy from sandbox
   sandcastle cp -r ./dist my-dev:~/app/     # recursive copy to sandbox`,
@@ -119,9 +120,13 @@ Use sandbox:path syntax to reference files in a sandbox:
 	},
 }
 
-// parseCpArg splits "sandbox:path" into (sandbox, path).
+// parseCpArg splits "[project:]sandbox:path" into (sandbox, path).
 // If no colon, returns ("", arg) — it's a local path.
 func parseCpArg(arg string) (string, string) {
+	if isWindowsDrivePath(arg) {
+		return "", arg
+	}
+
 	// Don't split on Windows-style paths like C:\...
 	// A sandbox name is always lowercase alpha + digits + hyphens
 	idx := strings.Index(arg, ":")
@@ -135,5 +140,37 @@ func parseCpArg(arg string) (string, string) {
 			return "", arg
 		}
 	}
+
+	rest := arg[idx+1:]
+	secondIdx := strings.Index(rest, ":")
+	if secondIdx > 0 {
+		second := rest[:secondIdx]
+		if validSandboxRefSegment(second) {
+			return name + ":" + second, rest[secondIdx+1:]
+		}
+	}
 	return name, arg[idx+1:]
+}
+
+func validSandboxRefSegment(segment string) bool {
+	if segment == "" {
+		return false
+	}
+	for _, c := range segment {
+		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+func isWindowsDrivePath(arg string) bool {
+	if len(arg) < 3 || arg[1] != ':' {
+		return false
+	}
+	drive := arg[0]
+	if !((drive >= 'a' && drive <= 'z') || (drive >= 'A' && drive <= 'Z')) {
+		return false
+	}
+	return arg[2] == '\\' || arg[2] == '/'
 }

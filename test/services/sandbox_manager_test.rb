@@ -244,12 +244,22 @@ class SandboxManagerTest < ActiveSupport::TestCase
 
     assert_kind_of Snapshot, snap
     assert_equal "test-snap", snap.name
-    assert_equal @sandbox.name, snap.source_sandbox
+    assert_equal @sandbox.display_name, snap.source_sandbox
     assert snap.docker_image.present?
     assert_includes snap.layers, "container"
 
     # Verify Docker image was committed
     Docker::Image.get(snap.docker_image)
+  end
+
+  test "create_snapshot stores project-aware source sandbox" do
+    @sandbox.update!(container_id: nil, status: "pending", project_name: "alpha")
+    @manager.create_container_and_start(sandbox: @sandbox, user: @user)
+    @sandbox.reload
+
+    snap = @manager.create_snapshot(sandbox: @sandbox, name: "project-snap")
+
+    assert_equal "alpha:#{@sandbox.name}", snap.source_sandbox
   end
 
   test "create_snapshot with label stores label" do

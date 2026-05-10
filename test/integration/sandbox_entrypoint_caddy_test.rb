@@ -3,12 +3,15 @@ require "test_helper"
 class SandboxEntrypointCaddyTest < ActiveSupport::TestCase
   test "entrypoint generates mkcert certificate and Caddy routes for exact and wildcard sandbox DNS names" do
     entrypoint = Rails.root.join("images/sandbox/entrypoint.sh").read
+    script = Rails.root.join("images/sandbox/sc-caddy-reconfigure.sh").read
 
-    assert_includes entrypoint, "mkcert \\"
-    assert_includes entrypoint, "\"$CADDY_DNS_NAME\" \"*.$CADDY_DNS_NAME\" \\"
-    assert_includes entrypoint, "http://$CADDY_DNS_NAME, http://*.$CADDY_DNS_NAME {"
-    assert_includes entrypoint, "https://$CADDY_DNS_NAME, https://*.$CADDY_DNS_NAME {"
-    assert_includes entrypoint, "tls /etc/sandcastle/caddy/certs/sandbox.pem /etc/sandcastle/caddy/certs/sandbox-key.pem"
+    assert_includes entrypoint, "/usr/local/bin/sc-caddy-reconfigure"
+    assert_includes script, "SAN_ARGS+=(\"$prefix\" \"*.$prefix\")"
+    assert_includes script, 'HOSTS_HTTP+="http://$prefix, http://*.$prefix"'
+    assert_includes script, 'HOSTS_HTTPS+="https://$prefix, https://*.$prefix"'
+    assert_includes script, "mkcert \\"
+    assert_includes script, "\"${SAN_ARGS[@]}\" \\"
+    assert_includes script, "tls /etc/sandcastle/caddy/certs/sandbox.pem /etc/sandcastle/caddy/certs/sandbox-key.pem"
   end
 
   test "caddy reconfigure tolerates read-only mounted mkcert CA directory" do

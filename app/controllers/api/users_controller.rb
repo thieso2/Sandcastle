@@ -39,7 +39,10 @@ module Api
     end
 
     def user_params
-      params.permit(:name, :full_name, :github_username, :email_address, :password, :password_confirmation, :ssh_public_key, :admin, :status)
+      permitted = params.permit(:name, :full_name, :github_username, :email_address, :password, :password_confirmation, :ssh_public_key).to_h
+      permitted[:admin] = ActiveModel::Type::Boolean.new.cast(params[:admin]) if params.key?(:admin)
+      permitted[:status] = params[:status] if params.key?(:status)
+      permitted
     end
 
     def user_json(user, include_sandboxes: false)

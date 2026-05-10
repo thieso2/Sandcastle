@@ -208,7 +208,7 @@ var gcpConfigSetupCmd = &cobra.Command{
 }
 
 var gcpConfigureCmd = &cobra.Command{
-	Use:   "configure <sandbox>",
+	Use:   "configure <[project:]name>",
 	Short: "Assign GCP identity config and service account to a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -263,7 +263,7 @@ var gcpConfigureCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("GCP identity updated for sandbox %q.\n", response.Sandbox.Name)
+		fmt.Printf("GCP identity updated for sandbox %q.\n", response.Sandbox.DisplayName())
 		if len(response.Setup.Missing) > 0 {
 			fmt.Printf("Missing: %s\n", strings.Join(response.Setup.Missing, ", "))
 		}
@@ -275,7 +275,7 @@ var gcpConfigureCmd = &cobra.Command{
 }
 
 var gcpSetupCmd = &cobra.Command{
-	Use:   "setup <sandbox>",
+	Use:   "setup <[project:]name>",
 	Short: "Print sandbox-specific GCP setup commands",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

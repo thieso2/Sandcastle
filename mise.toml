@@ -1,9 +1,37 @@
+[settings]
+
+[settings.ruby]
+compile = false
+
 [tasks.dev]
-description = "Create/migrate DB if needed, then start the dev server"
+description = "Install dependencies, prepare DB if needed, then start the dev server"
 run = """
 #!/usr/bin/env bash
 set -euo pipefail
-bin/rails db:prepare
+
+if [ -z "${DB_HOST:-}" ] && [ -z "${DB_PORT:-}" ]; then
+  docker compose -f docker-compose.dev.yml up -d postgres
+  export DB_HOST=127.0.0.1
+  export DB_PORT=7633
+
+  ready=0
+  for _ in {1..30}; do
+    if timeout 1 bash -c "</dev/tcp/${DB_HOST}/${DB_PORT}" >/dev/null 2>&1; then
+      ready=1
+      break
+    fi
+    sleep 1
+  done
+  if [ "$ready" -ne 1 ]; then
+    echo "Postgres did not become reachable at ${DB_HOST}:${DB_PORT}"
+    exit 1
+  fi
+elif [ -z "${DB_HOST:-}" ] || [ -z "${DB_PORT:-}" ]; then
+  echo "Set both DB_HOST and DB_PORT, or leave both unset to use the dev Postgres container."
+  exit 1
+fi
+
+bin/setup --skip-server
 bin/dev
 """
 
@@ -267,5 +295,5 @@ fi
 """
 
 [tools]
-go = "1.25.5"
-ruby = "4.0.1"
+go = "1.26.2"
+ruby = "4.0.3"

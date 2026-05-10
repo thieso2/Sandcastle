@@ -465,7 +465,7 @@ class SandboxManager
       user: user,
       name: name,
       label: label,
-      source_sandbox: sandbox.name,
+      source_sandbox: sandbox.display_name,
       data_subdir: data_subdir
     )
 
@@ -476,7 +476,7 @@ class SandboxManager
       image = container.commit(
         repo: repo,
         tag: name,
-        comment: "sandbox:#{sandbox.name}"
+        comment: "sandbox:#{sandbox.display_name}"
       )
       snap.docker_image = "#{repo}:#{name}"
       snap.docker_size  = image.info["Size"]
@@ -738,7 +738,8 @@ class SandboxManager
       port: 22,
       user: user,
       command: "ssh #{user}@#{ts_ip}",
-      tailscale_ip: ts_ip
+      tailscale_ip: ts_ip,
+      primary_dns_name: DnsManager.new.hostname_for(sandbox)
     }
   end
 

@@ -290,6 +290,7 @@ module Api
         name: sandbox.name,
         full_name: sandbox.full_name,
         hostname: sandbox.hostname,
+        primary_dns_name: DnsManager.new.hostname_for(sandbox),
         status: sandbox.status,
         image: sandbox.image,
         project_name: sandbox.project_name,

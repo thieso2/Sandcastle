@@ -163,11 +163,11 @@ type tuiModel struct {
 	routeFocusIdx int
 
 	// aliases
-	aliasSandbox  *api.Sandbox
-	aliases       []api.SandboxAlias
-	aliasCursor   int
-	aliasInput    textinput.Model // value
-	aliasKindIdx  int             // 0 = sub, 1 = fqdn
+	aliasSandbox *api.Sandbox
+	aliases      []api.SandboxAlias
+	aliasCursor  int
+	aliasInput   textinput.Model // value
+	aliasKindIdx int             // 0 = sub, 1 = fqdn
 
 	// confirm delete
 	deleteTarget string
@@ -362,7 +362,7 @@ func newTUI(client *api.Client) tuiModel {
 }
 
 func (m tuiModel) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, loadSandboxes(m.client), loadDNS(m.client))
+	return tea.Batch(m.spinner.Tick, loadSandboxes(m.client))
 }
 
 // ---------- commands ----------
@@ -370,6 +370,7 @@ func (m tuiModel) Init() tea.Cmd {
 func loadSandboxes(client *api.Client) tea.Cmd {
 	return func() tea.Msg {
 		sandboxes, err := client.ListSandboxes()
+		sortSandboxesForDisplay(sandboxes)
 		return sandboxesLoadedMsg{sandboxes, err}
 	}
 }
@@ -570,7 +571,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.view == viewAliases && m.aliasSandbox != nil {
 			return m, tea.Batch(m.spinner.Tick, loadAliases(m.client, m.aliasSandbox.ID))
 		}
-		return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client), loadDNS(m.client))
+		return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client))
 	}
 
 	switch m.view {
@@ -657,7 +658,7 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("R"))):
 			m.loading = true
 			m.feedback = ""
-			return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client), loadDNS(m.client))
+			return m, tea.Batch(m.spinner.Tick, loadSandboxes(m.client))
 		case key.Matches(msg, key.NewBinding(key.WithKeys("S"))):
 			m.servers = loadServerList()
 			m.serverCursor = 0
@@ -702,7 +703,7 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, key.NewBinding(key.WithKeys("d"))):
 			if len(m.sandboxes) > 0 {
 				sb := m.sandboxes[m.cursor]
-				m.deleteTarget = sb.Name
+				m.deleteTarget = sb.DisplayName()
 				m.deleteID = sb.ID
 				m.view = viewConfirmDelete
 			}
@@ -711,7 +712,7 @@ func (m tuiModel) updateSandboxes(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(m.sandboxes) > 0 {
 				sb := m.sandboxes[m.cursor]
 				exe, _ := os.Executable()
-				c := exec.Command(exe, "connect", sb.Name)
+				c := exec.Command(exe, "connect", sb.DisplayName())
 				c.Stdin = os.Stdin
 				c.Stdout = os.Stdout
 				c.Stderr = os.Stderr
@@ -876,6 +877,22 @@ func (m tuiModel) submitCreateForm() (tea.Model, tea.Cmd) {
 	homePath := strings.TrimSpace(m.createFields[cfHomeSubdir].input.Value())
 	projectPath := strings.TrimSpace(m.createFields[cfProjectSubdir].input.Value())
 	dataPath := strings.TrimSpace(m.createFields[cfData].input.Value())
+
+	if strings.Contains(name, ":") {
+		ref, err := parseSandboxRef(name)
+		if err != nil || !ref.Scoped {
+			m.feedback = "invalid name: expected [project:]name"
+			m.feedErr = true
+			return m, nil
+		}
+		if project != "" && project != ref.Project {
+			m.feedback = fmt.Sprintf("project specified twice: %q in name and %q in Project field", ref.Project, project)
+			m.feedErr = true
+			return m, nil
+		}
+		project = ref.Project
+		name = ref.Name
+	}
 
 	if project != "" && projectPath != "" {
 		m.feedback = "project preset and project subdir cannot be combined"
@@ -1248,22 +1265,26 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 	if len(m.sandboxes) == 0 {
 		b.WriteString("  No sandboxes. Press c to create one.\n")
 	} else {
-		hasDNS := len(m.dnsNames) > 0
 		// Header
-		if hasDNS {
-			b.WriteString(headerStyle.Render(fmt.Sprintf("  %-22s %-10s %-18s %-25s %s", "NAME", "STATUS", "CREATED", "DNS", "ROUTE")) + "\n")
-		} else {
-			b.WriteString(headerStyle.Render(fmt.Sprintf("  %-22s %-10s %-18s %s", "NAME", "STATUS", "CREATED", "ROUTE")) + "\n")
-		}
+		b.WriteString(headerStyle.Render(fmt.Sprintf("  %-18s %-10s %-10s %-14s %-18s %-15s %s", "NAME", "PROJECT", "STATUS", "CREATED", "HOSTNAME", "TAILSCALE IP", "ROUTE")) + "\n")
 
 		for i, sb := range m.sandboxes {
-			name := sb.DisplayName()
+			name := sb.Name
 			if sb.Temporary {
 				name += " ~"
 			}
-			if len(name) > 22 {
-				name = name[:21] + "…"
+			if len(name) > 18 {
+				name = name[:17] + "…"
 			}
+			project := displayProject(sb.ProjectName)
+			if len(project) > 10 {
+				project = project[:9] + "…"
+			}
+			hostname := displayValue(sb.Hostname)
+			if len(hostname) > 18 {
+				hostname = hostname[:17] + "…"
+			}
+			tsIP := displayValue(sb.TailscaleIP)
 
 			st := statusStopped.Render(sb.Status)
 			if sb.Status == "running" {
@@ -1288,24 +1309,10 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 				}
 			}
 
-			dns := m.dnsNames[sb.ID]
-			if len(dns) > 25 {
-				dns = dns[:24] + "…"
-			}
-
-			var line string
-			if hasDNS {
-				line = fmt.Sprintf("  %-22s %-10s %-18s %-25s %s", name, st, created, dns, route)
-				if i == m.cursor {
-					padded := fmt.Sprintf("  %-22s %-20s %-18s %-25s %-30s", name, sb.Status, created, dns, route)
-					line = selectedStyle.Render(padded)
-				}
-			} else {
-				line = fmt.Sprintf("  %-22s %-10s %-18s %s", name, st, created, route)
-				if i == m.cursor {
-					padded := fmt.Sprintf("  %-22s %-20s %-18s %-30s", name, sb.Status, created, route)
-					line = selectedStyle.Render(padded)
-				}
+			line := fmt.Sprintf("  %-18s %-10s %-10s %-14s %-18s %-15s %s", name, project, st, created, hostname, tsIP, route)
+			if i == m.cursor {
+				padded := fmt.Sprintf("  %-18s %-10s %-10s %-14s %-18s %-15s %-30s", name, project, sb.Status, created, hostname, tsIP, route)
+				line = selectedStyle.Render(padded)
 			}
 			b.WriteString(line + "\n")
 		}

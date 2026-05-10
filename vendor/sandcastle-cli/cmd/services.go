@@ -34,28 +34,28 @@ var vncCmd = &cobra.Command{
 }
 
 var dockerStartCmd = &cobra.Command{
-	Use:   "start <sandbox>",
+	Use:   "start <[project:]name>",
 	Short: "Start Docker daemon inside a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE:  serviceRunE("docker", "start"),
 }
 
 var dockerStopCmd = &cobra.Command{
-	Use:   "stop <sandbox>",
+	Use:   "stop <[project:]name>",
 	Short: "Stop Docker daemon inside a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE:  serviceRunE("docker", "stop"),
 }
 
 var vncStartCmd = &cobra.Command{
-	Use:   "start <sandbox>",
+	Use:   "start <[project:]name>",
 	Short: "Start VNC display server inside a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE:  serviceRunE("vnc", "start"),
 }
 
 var vncStopCmd = &cobra.Command{
-	Use:   "stop <sandbox>",
+	Use:   "stop <[project:]name>",
 	Short: "Stop VNC display server inside a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE:  serviceRunE("vnc", "stop"),
@@ -97,7 +97,7 @@ func serviceRunE(service, action string) func(cmd *cobra.Command, args []string)
 			verb = "stopped"
 		}
 
-		fmt.Printf("%s %s in sandbox %q.", label, verb, result.Name)
+		fmt.Printf("%s %s in sandbox %q.", label, verb, result.DisplayName())
 		if serviceSave {
 			fmt.Print(" (saved for restart)")
 		}

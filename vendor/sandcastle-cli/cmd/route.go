@@ -28,16 +28,16 @@ var routeCmd = &cobra.Command{
 Each sandbox can have multiple routes pointing to different ports.
 
 Examples:
-  sandcastle route add myapp app.example.com         # Add HTTP route (default port 8080)
-  sandcastle route add myapp api.example.com 3000    # Add HTTP route on custom port
-  sandcastle route add myapp --tcp 3000              # Add TCP forward to container port 3000
-  sandcastle route list myapp                        # List all routes
-  sandcastle route delete myapp app.example.com      # Remove an HTTP route by domain
-  sandcastle route delete myapp --id 42              # Remove any route by ID`,
+  sandcastle route add myapp app.example.com            # Add HTTP route (default port 8080)
+  sandcastle route add sc:myapp api.example.com 3000    # Add HTTP route on custom port
+  sandcastle route add myapp --tcp 3000                 # Add TCP forward to container port 3000
+  sandcastle route list sc:myapp                        # List all routes
+  sandcastle route delete myapp app.example.com         # Remove an HTTP route by domain
+  sandcastle route delete sc:myapp --id 42              # Remove any route by ID`,
 }
 
 var routeAddCmd = &cobra.Command{
-	Use:   "add <sandbox> [domain] [port]",
+	Use:   "add <[project:]name> [domain] [port]",
 	Short: "Add a custom domain or TCP route",
 	Args:  cobra.RangeArgs(1, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -86,7 +86,7 @@ var routeAddCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Route added for sandbox %q.\n", sandbox.Name)
+		fmt.Printf("Route added for sandbox %q.\n", sandbox.DisplayName())
 		if route.Mode == "tcp" {
 			fmt.Printf("  Mode:           TCP\n")
 			fmt.Printf("  Public port:    %d\n", route.PublicPort)
@@ -103,7 +103,7 @@ var routeAddCmd = &cobra.Command{
 }
 
 var routeListCmd = &cobra.Command{
-	Use:   "list <sandbox>",
+	Use:   "list <[project:]name>",
 	Short: "List all routes for a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -124,7 +124,7 @@ var routeListCmd = &cobra.Command{
 		}
 
 		if len(routes) == 0 {
-			fmt.Printf("No routes for sandbox %q.\n", sandbox.Name)
+			fmt.Printf("No routes for sandbox %q.\n", sandbox.DisplayName())
 			return nil
 		}
 
@@ -149,7 +149,7 @@ func init() {
 }
 
 var routeDeleteCmd = &cobra.Command{
-	Use:   "delete <sandbox> [domain]",
+	Use:   "delete <[project:]name> [domain]",
 	Short: "Remove a custom domain or TCP route",
 	Args:  cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -168,7 +168,7 @@ var routeDeleteCmd = &cobra.Command{
 			if err := client.RemoveRouteByID(sandbox.ID, routeDeleteID); err != nil {
 				return err
 			}
-			fmt.Printf("Route #%d removed from sandbox %q.\n", routeDeleteID, sandbox.Name)
+			fmt.Printf("Route #%d removed from sandbox %q.\n", routeDeleteID, sandbox.DisplayName())
 			return nil
 		}
 
@@ -181,7 +181,7 @@ var routeDeleteCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Route %q removed from sandbox %q.\n", domain, sandbox.Name)
+		fmt.Printf("Route %q removed from sandbox %q.\n", domain, sandbox.DisplayName())
 		return nil
 	},
 }

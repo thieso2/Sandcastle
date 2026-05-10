@@ -14,7 +14,7 @@ Rails.application.configure do
 
   # Allow web-console from any IP when running locally (web-console only loads when bundled).
   if ENV["RAILS_SHOW_DETAILED_ERRORS"] == "true" && defined?(WebConsole)
-    config.web_console.allowed_ips = ["0.0.0.0/0", "::/0"]
+    config.web_console.allowed_ips = [ "0.0.0.0/0", "::/0" ]
   end
 
   # Turn on fragment caching in view templates.

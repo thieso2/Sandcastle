@@ -1,3 +1,5 @@
+require "open3"
+
 class SystemStatus
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
 
@@ -56,7 +58,8 @@ class SystemStatus
   end
 
   def disk_info
-    output = `df -B1 #{DATA_DIR} 2>&1`.lines.last
+    output, = Open3.capture2e("df", "-B1", DATA_DIR)
+    output = output.lines.last
     fields = output.split
     total = fields[1].to_i
     used = fields[2].to_i

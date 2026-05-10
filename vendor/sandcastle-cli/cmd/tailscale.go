@@ -160,7 +160,7 @@ var tsStatusCmd = &cobra.Command{
 }
 
 var tsConnectCmd = &cobra.Command{
-	Use:   "connect <sandbox>",
+	Use:   "connect <[project:]name>",
 	Short: "Connect a sandbox to Tailscale network",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -180,14 +180,14 @@ var tsConnectCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Sandbox %q connected to Tailscale.\n", sandbox.Name)
+		fmt.Printf("Sandbox %q connected to Tailscale.\n", sandbox.DisplayName())
 		fmt.Println("Run `sandcastle ts status` to see the bridge IP.")
 		return nil
 	},
 }
 
 var tsDisconnectCmd = &cobra.Command{
-	Use:   "disconnect <sandbox>",
+	Use:   "disconnect <[project:]name>",
 	Short: "Disconnect a sandbox from Tailscale network",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -207,7 +207,7 @@ var tsDisconnectCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Sandbox %q disconnected from Tailscale.\n", sandbox.Name)
+		fmt.Printf("Sandbox %q disconnected from Tailscale.\n", sandbox.DisplayName())
 		return nil
 	},
 }

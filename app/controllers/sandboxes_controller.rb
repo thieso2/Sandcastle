@@ -13,7 +13,7 @@ class SandboxesController < ApplicationController
 
   def show
     @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
-                           .select { |s| s[:source_sandbox] == @sandbox.name }
+                           .select { |s| [ @sandbox.name, @sandbox.display_name ].include?(s[:source_sandbox]) }
     @routes = @sandbox.routes.order(:created_at)
     @aliases = @sandbox.aliases.order(:kind, :value)
     @btrfs = BtrfsHelper.btrfs?
@@ -42,7 +42,7 @@ class SandboxesController < ApplicationController
       redirect_to @sandbox, notice: notice
     else
       @sandbox_snapshots = SandboxManager.new.list_snapshots(user: Current.user)
-                             .select { |s| s[:source_sandbox] == @sandbox.name }
+                             .select { |s| [ @sandbox.name, @sandbox.display_name ].include?(s[:source_sandbox]) }
       @routes = @sandbox.routes.order(:created_at)
     @aliases = @sandbox.aliases.order(:kind, :value)
       @btrfs = BtrfsHelper.btrfs?

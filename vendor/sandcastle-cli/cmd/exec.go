@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/sandcastle/cli/api"
@@ -14,12 +13,15 @@ func init() {
 }
 
 var execCmd = &cobra.Command{
-	Use:     "exec <name> -- <command...>",
+	Use:     "exec <[project:]name> -- <command...>",
 	Aliases: []string{"x"},
 	Short:   "Run a single command in a sandbox",
-	Args:  cobra.MinimumNArgs(2),
+	Args:    cobra.MinimumNArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
+		if _, err := parseSandboxRef(name); err != nil {
+			return err
+		}
 		remoteCmd := strings.Join(args[1:], " ")
 
 		client, err := api.NewClient()
@@ -30,7 +32,7 @@ var execCmd = &cobra.Command{
 
 		sandbox, err := findSandboxByName(client, name)
 		if err != nil {
-			return fmt.Errorf("sandbox %q not found", name)
+			return err
 		}
 
 		info, err := client.ConnectInfo(sandbox.ID)

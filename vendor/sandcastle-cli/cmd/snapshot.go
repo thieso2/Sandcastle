@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	snapshotLabel    string
-	snapshotLayers   string
+	snapshotLabel      string
+	snapshotLayers     string
 	snapshotDataSubdir string
-	restoreLayers    string
+	restoreLayers      string
 )
 
 func init() {
@@ -40,7 +40,7 @@ var snapshotCmd = &cobra.Command{
 }
 
 var snapshotCreateCmd = &cobra.Command{
-	Use:   "create <sandbox> <name>",
+	Use:   "create <[project:]name> <name>",
 	Short: "Create a composite snapshot of a sandbox",
 	Args:  cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -80,7 +80,7 @@ var snapshotCreateCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Snapshot %q created from sandbox %q\n", snap.Name, args[0])
+		fmt.Printf("Snapshot %q created from sandbox %q\n", snap.Name, sandbox.DisplayName())
 		if len(snap.Layers) > 0 {
 			fmt.Printf("Layers:  %s\n", strings.Join(snap.Layers, ", "))
 		}
@@ -235,7 +235,7 @@ func runSnapshotDelete(name string) error {
 }
 
 var snapshotRestoreCmd = &cobra.Command{
-	Use:   "restore <sandbox> <snapshot>",
+	Use:   "restore <[project:]name> <snapshot>",
 	Short: "Restore a sandbox from a snapshot",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -269,7 +269,7 @@ var snapshotRestoreCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Sandbox %q restored from snapshot %q\n", sandbox.Name, args[1])
+		fmt.Printf("Sandbox %q restored from snapshot %q\n", sandbox.DisplayName(), args[1])
 		return nil
 	},
 }

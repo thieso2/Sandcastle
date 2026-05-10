@@ -471,9 +471,9 @@ var dnsAliasCmd = &cobra.Command{
 	Long: `Add additional hostnames that resolve to a sandbox.
 
 Two kinds of alias:
-  sub  <value> <sandbox>   — value is prefixed onto the sandbox's FQDN.
+  sub  <value> <[project:]name>   — value is prefixed onto the sandbox's FQDN.
                              e.g. "admin" on sandbox "dev" → admin.dev.<project>.<host>
-  fqdn <value> <sandbox>   — value is used verbatim, e.g. www.example.com.
+  fqdn <value> <[project:]name>   — value is used verbatim, e.g. www.example.com.
 
 Aliases land in the server's DNS records and in /etc/hosts (after
 ` + "`sandcastle dns hosts sync`" + `). FQDN aliases are also added to the
@@ -481,7 +481,7 @@ mkcert SAN list so HTTPS works locally.`,
 }
 
 var dnsAliasAddCmd = &cobra.Command{
-	Use:   "add <sub|fqdn> <value> <sandbox>",
+	Use:   "add <sub|fqdn> <value> <[project:]name>",
 	Short: "Add an alias to a sandbox",
 	Args:  cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -505,7 +505,7 @@ var dnsAliasAddCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Added %s alias %q to sandbox %q.\n", a.Kind, a.Value, sandbox.Name)
+		fmt.Printf("Added %s alias %q to sandbox %q.\n", a.Kind, a.Value, sandbox.DisplayName())
 		fmt.Printf("  FQDN: %s\n", a.FQDN)
 		autoSyncHostsBestEffort(client)
 		return nil
@@ -513,7 +513,7 @@ var dnsAliasAddCmd = &cobra.Command{
 }
 
 var dnsAliasRemoveCmd = &cobra.Command{
-	Use:   "remove <value> <sandbox>",
+	Use:   "remove <value> <[project:]name>",
 	Short: "Remove an alias from a sandbox",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -543,19 +543,19 @@ var dnsAliasRemoveCmd = &cobra.Command{
 			}
 		}
 		if match == nil {
-			return fmt.Errorf("no alias %q on sandbox %q", value, sandbox.Name)
+			return fmt.Errorf("no alias %q on sandbox %q", value, sandbox.DisplayName())
 		}
 		if err := client.RemoveSandboxAliasByID(sandbox.ID, match.ID); err != nil {
 			return err
 		}
-		fmt.Printf("Removed %s alias %q from sandbox %q.\n", match.Kind, match.Value, sandbox.Name)
+		fmt.Printf("Removed %s alias %q from sandbox %q.\n", match.Kind, match.Value, sandbox.DisplayName())
 		autoSyncHostsBestEffort(client)
 		return nil
 	},
 }
 
 var dnsAliasListCmd = &cobra.Command{
-	Use:   "list <sandbox>",
+	Use:   "list <[project:]name>",
 	Short: "List aliases for a sandbox",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -574,7 +574,7 @@ var dnsAliasListCmd = &cobra.Command{
 			return err
 		}
 		if len(aliases) == 0 {
-			fmt.Printf("No aliases on sandbox %q.\n", sandbox.Name)
+			fmt.Printf("No aliases on sandbox %q.\n", sandbox.DisplayName())
 			return nil
 		}
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
