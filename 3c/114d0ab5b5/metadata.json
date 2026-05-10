@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "3c114d0ab5b5",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "app/services/tailscale_manager.rb",
+    "installer.sh",
+    "installer/installer.sh.in",
+    "installer/templates/docker-compose.yml.template"
+  ],
+  "sessions": [
+    {
+      "metadata": "/3c/114d0ab5b5/0/metadata.json",
+      "transcript": "/3c/114d0ab5b5/0/full.jsonl",
+      "content_hash": "/3c/114d0ab5b5/0/content_hash.txt",
+      "prompt": "/3c/114d0ab5b5/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 233,
+    "cache_creation_tokens": 182435,
+    "cache_read_tokens": 4605322,
+    "output_tokens": 35553,
+    "api_call_count": 61
+  }
+}
