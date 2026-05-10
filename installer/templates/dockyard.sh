@@ -48,6 +48,7 @@ derive_vars() {
     DOCKYARD_FIXED_CIDR="${DOCKYARD_FIXED_CIDR:-172.30.0.0/24}"
     DOCKYARD_POOL_BASE="${DOCKYARD_POOL_BASE:-172.31.0.0/16}"
     DOCKYARD_POOL_SIZE="${DOCKYARD_POOL_SIZE:-24}"
+    DOCKYARD_SYSBOX_MGR_EXTRA_ARGS="${DOCKYARD_SYSBOX_MGR_EXTRA_ARGS:-${SYSBOX_MGR_EXTRA_ARGS:-}}"
 
     BIN_DIR="${DOCKYARD_ROOT}/bin"
     ETC_DIR="${DOCKYARD_ROOT}/etc"
@@ -67,6 +68,12 @@ derive_vars() {
     # Per-instance sysbox daemons (separate sysbox-mgr + sysbox-fs per installation)
     SYSBOX_RUN_DIR="${DOCKYARD_ROOT}/run/sysbox"
     SYSBOX_DATA_DIR="${DOCKYARD_ROOT}/lib/sysbox"
+
+    # Optional deterministic subuid/subgid range reservation for installers that
+    # pin a common sysbox user namespace mapping.
+    DOCKYARD_SYSBOX_SUBID_USER="${DOCKYARD_SYSBOX_SUBID_USER:-$INSTANCE_USER}"
+    DOCKYARD_SYSBOX_SUBID_START="${DOCKYARD_SYSBOX_SUBID_START:-}"
+    DOCKYARD_SYSBOX_SUBID_COUNT="${DOCKYARD_SYSBOX_SUBID_COUNT:-}"
 }
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -230,6 +237,65 @@ detect_upstream_dns() {
         out="${out}${ip} "
     done
     echo "${out% }"
+}
+
+validate_uint() {
+    local value="$1"
+    local label="$2"
+
+    if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+        echo "Error: ${label} must be a positive integer (got '${value}')" >&2
+        return 1
+    fi
+    if (( 10#$value == 0 )); then
+        echo "Error: ${label} must be greater than zero" >&2
+        return 1
+    fi
+}
+
+configure_subid_file() {
+    local path="$1"
+    local user="$2"
+    local start="$3"
+    local count="$4"
+    local tmp
+
+    touch "$path"
+    chmod 0644 "$path"
+
+    {
+        flock -x 9
+        tmp=$(mktemp "${path}.dockyard.XXXXXX")
+        awk -F: -v user="$user" '$1 != user { print }' "$path" > "$tmp"
+        printf '%s:%s:%s\n' "$user" "$start" "$count" >> "$tmp"
+        chmod 0644 "$tmp"
+        mv "$tmp" "$path"
+    } 9>"${path}.lock"
+}
+
+configure_sysbox_subids() {
+    local start="${DOCKYARD_SYSBOX_SUBID_START:-}"
+    local count="${DOCKYARD_SYSBOX_SUBID_COUNT:-}"
+    local user="${DOCKYARD_SYSBOX_SUBID_USER:-$INSTANCE_USER}"
+
+    if [ -z "${start}${count}" ]; then
+        return 0
+    fi
+    if [ -z "$start" ] || [ -z "$count" ]; then
+        echo "Error: DOCKYARD_SYSBOX_SUBID_START and DOCKYARD_SYSBOX_SUBID_COUNT must be set together." >&2
+        exit 1
+    fi
+    if [ -z "$user" ]; then
+        echo "Error: DOCKYARD_SYSBOX_SUBID_USER must not be empty." >&2
+        exit 1
+    fi
+
+    validate_uint "$start" "DOCKYARD_SYSBOX_SUBID_START" || exit 1
+    validate_uint "$count" "DOCKYARD_SYSBOX_SUBID_COUNT" || exit 1
+
+    configure_subid_file /etc/subuid "$user" "$start" "$count"
+    configure_subid_file /etc/subgid "$user" "$start" "$count"
+    echo "  Configured subuid/subgid ${user}:${start}:${count}"
 }
 
 wait_for_file() {
@@ -396,6 +462,10 @@ cmd_gen_env() {
     local root="${DOCKYARD_ROOT:-/dockyard}"
     local prefix="${DOCKYARD_DOCKER_PREFIX:-dy_}"
     local pool_size="${DOCKYARD_POOL_SIZE:-24}"
+    local sysbox_mgr_extra_args="${DOCKYARD_SYSBOX_MGR_EXTRA_ARGS:-${SYSBOX_MGR_EXTRA_ARGS:-}}"
+    local sysbox_subid_user="${DOCKYARD_SYSBOX_SUBID_USER:-${prefix}docker}"
+    local sysbox_subid_start="${DOCKYARD_SYSBOX_SUBID_START:-}"
+    local sysbox_subid_count="${DOCKYARD_SYSBOX_SUBID_COUNT:-}"
 
     # Generate random networks if not provided via env
     local bridge_cidr="${DOCKYARD_BRIDGE_CIDR:-}"
@@ -462,6 +532,18 @@ cmd_gen_env() {
         check_root_conflict "$root" || exit 1
     fi
 
+    if [ -n "${sysbox_subid_start}${sysbox_subid_count}" ]; then
+        if [ -z "$sysbox_subid_start" ] || [ -z "$sysbox_subid_count" ]; then
+            echo "Error: DOCKYARD_SYSBOX_SUBID_START and DOCKYARD_SYSBOX_SUBID_COUNT must be set together." >&2
+            exit 1
+        fi
+        validate_uint "$sysbox_subid_start" "DOCKYARD_SYSBOX_SUBID_START" || exit 1
+        validate_uint "$sysbox_subid_count" "DOCKYARD_SYSBOX_SUBID_COUNT" || exit 1
+    fi
+
+    local quoted_sysbox_mgr_extra_args
+    printf -v quoted_sysbox_mgr_extra_args '%q' "$sysbox_mgr_extra_args"
+
     # Write config file
     cat > "$out_file" <<EOF
 # Dockyard configuration
@@ -473,6 +555,15 @@ DOCKYARD_BRIDGE_CIDR=${bridge_cidr}
 DOCKYARD_FIXED_CIDR=${fixed_cidr}
 DOCKYARD_POOL_BASE=${pool_base}
 DOCKYARD_POOL_SIZE=${pool_size}
+
+# Optional sysbox controls. Extra args are split on whitespace and appended to sysbox-mgr.
+DOCKYARD_SYSBOX_MGR_EXTRA_ARGS=${quoted_sysbox_mgr_extra_args}
+
+# Optional deterministic /etc/subuid and /etc/subgid reservation.
+# Set START and COUNT together to have create replace this user's range.
+DOCKYARD_SYSBOX_SUBID_USER=${sysbox_subid_user}
+DOCKYARD_SYSBOX_SUBID_START=${sysbox_subid_start}
+DOCKYARD_SYSBOX_SUBID_COUNT=${sysbox_subid_count}
 EOF
 
     echo "Generated ${out_file}:"
@@ -514,6 +605,12 @@ cmd_create() {
     echo "  DOCKYARD_FIXED_CIDR:    ${DOCKYARD_FIXED_CIDR}"
     echo "  DOCKYARD_POOL_BASE:     ${DOCKYARD_POOL_BASE}"
     echo "  DOCKYARD_POOL_SIZE:     ${DOCKYARD_POOL_SIZE}"
+    if [ -n "${DOCKYARD_SYSBOX_MGR_EXTRA_ARGS:-}" ]; then
+        echo "  sysbox-mgr extra args: ${DOCKYARD_SYSBOX_MGR_EXTRA_ARGS}"
+    fi
+    if [ -n "${DOCKYARD_SYSBOX_SUBID_START:-}${DOCKYARD_SYSBOX_SUBID_COUNT:-}" ]; then
+        echo "  sysbox subid range:    ${DOCKYARD_SYSBOX_SUBID_USER}:${DOCKYARD_SYSBOX_SUBID_START}:${DOCKYARD_SYSBOX_SUBID_COUNT}"
+    fi
     echo ""
     echo "  bridge:      ${BRIDGE}"
     echo "  service:     ${SERVICE_NAME}.service"
@@ -542,7 +639,7 @@ cmd_create() {
     #   called for sandbox containers, so this version does NOT trigger the
     #   sysbox procfs incompatibility (nestybox/sysbox#973).
     #
-    # SYSBOX_VERSION: 0.6.7.10-tc is a patched fork (github.com/thieso2/sysbox)
+    # SYSBOX_VERSION: 0.7.0.6-tc is a patched fork (github.com/thieso2/sysbox)
     #   that adds --run-dir to sysbox-mgr, sysbox-fs, and sysbox-runc, allowing
     #   N independent sysbox instances per host (each with its own socket dir).
     #   SetRunDir() calls os.Setenv("SYSBOX_RUN_DIR", dir) and os.Args is scanned
@@ -551,9 +648,8 @@ cmd_create() {
     #   No wrapper script needed.
     #   Fixed: https://github.com/thieso2/sysbox/issues/5
     #   Distributed as a static tarball (no .deb, no dpkg dependency).
-    #   0.6.7.10-tc is the first release with an aarch64 static tarball.
-    #   NOTE: 0.7.0.1-tc has a netns regression — do not upgrade until fixed
-    #   (see https://github.com/thieso2/sysbox/issues/9)
+    #   0.7.0.6-tc includes the netns regression fix tracked in:
+    #   https://github.com/thieso2/sysbox/issues/9
 
     # --- Detect CPU architecture ---
     local ARCH
@@ -617,6 +713,8 @@ cmd_create() {
     else
         echo "  User ${INSTANCE_USER} already exists"
     fi
+
+    configure_sysbox_subids
 
     # Allow sysbox-fs FUSE mounts at this instance's sysbox mountpoint.
     # The default fusermount3 AppArmor profile (tightened in Ubuntu 25.10+)
@@ -843,6 +941,9 @@ cmd_enable() {
 
     echo "Installing ${SERVICE_NAME}.service (with per-instance sysbox)..."
 
+    local sysbox_mgr_extra_args_escaped
+    printf -v sysbox_mgr_extra_args_escaped '%q' "${DOCKYARD_SYSBOX_MGR_EXTRA_ARGS:-}"
+
     # Write the stack script (bakes all paths in at install time; no env file at runtime)
     cat > "${BIN_DIR}/dockyard-stack" <<STACKEOF
 #!/bin/bash
@@ -852,6 +953,7 @@ MGR_PID=""
 FS_PID=""
 CTR_PID=""
 DOCKERD_PID=""
+SYSBOX_MGR_EXTRA_ARGS=${sysbox_mgr_extra_args_escaped}
 
 wait_for_socket() {
     local sock="\$1" pid="\$2" name="\$3" i=0
@@ -882,7 +984,12 @@ cleanup() {
 trap 'cleanup 0' TERM INT
 
 # --- Start sysbox-mgr ---
-${BIN_DIR}/sysbox-mgr --run-dir ${SYSBOX_RUN_DIR} --data-root ${SYSBOX_DATA_DIR} \
+SYSBOX_MGR_ARGS=(--run-dir "${SYSBOX_RUN_DIR}" --data-root "${SYSBOX_DATA_DIR}")
+if [ -n "\$SYSBOX_MGR_EXTRA_ARGS" ]; then
+    read -r -a EXTRA_SYSBOX_MGR_ARGS <<< "\$SYSBOX_MGR_EXTRA_ARGS"
+    SYSBOX_MGR_ARGS+=("\${EXTRA_SYSBOX_MGR_ARGS[@]}")
+fi
+${BIN_DIR}/sysbox-mgr "\${SYSBOX_MGR_ARGS[@]}" \
     >>${LOG_DIR}/sysbox-mgr.log 2>&1 &
 MGR_PID=\$!
 echo "\$MGR_PID" > ${SYSBOX_RUN_DIR}/sysbox-mgr.pid
@@ -1003,7 +1110,7 @@ ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -i ${BRIDGE} -o ${BRIDGE} -j ACC
 ExecStopPost=-/bin/bash -c 'iptables -D FORWARD -s ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -D FORWARD -d ${DOCKYARD_POOL_BASE} -j ACCEPT 2>/dev/null; iptables -t nat -D POSTROUTING -s ${DOCKYARD_POOL_BASE} -j MASQUERADE 2>/dev/null'
 
 # Remove per-instance isolation chain and its jump rules
-ExecStopPost=-/bin/bash -c 'for br in \$(ip -o link show type bridge 2>/dev/null | grep -oP "br-[0-9a-f]+"); do iptables -D FORWARD -i "\$br" -o "\$br" -j ${ISO_CHAIN} 2>/dev/null; done; iptables -F ${ISO_CHAIN} 2>/dev/null; iptables -X ${ISO_CHAIN} 2>/dev/null'
+ExecStopPost=-/bin/bash -c 'iptables -S FORWARD 2>/dev/null | grep -F " -j ${ISO_CHAIN}" | sed "s/^-A /-D /" | while IFS= read -r rule; do iptables \$rule 2>/dev/null || true; done; iptables -F ${ISO_CHAIN} 2>/dev/null; iptables -X ${ISO_CHAIN} 2>/dev/null'
 
 # Remove bridge
 ExecStopPost=-/bin/bash -c 'if ip link show ${BRIDGE} &>/dev/null; then ip link set ${BRIDGE} down 2>/dev/null; ip link delete ${BRIDGE} 2>/dev/null; fi'
@@ -1098,7 +1205,13 @@ cmd_start() {
     mkdir -p "$SYSBOX_RUN_DIR" "$SYSBOX_DATA_DIR"
 
     echo "Starting sysbox-mgr..."
-    "${BIN_DIR}/sysbox-mgr" --run-dir "${SYSBOX_RUN_DIR}" --data-root "${SYSBOX_DATA_DIR}" \
+    local -a sysbox_mgr_args=(--run-dir "${SYSBOX_RUN_DIR}" --data-root "${SYSBOX_DATA_DIR}")
+    if [ -n "${DOCKYARD_SYSBOX_MGR_EXTRA_ARGS:-}" ]; then
+        local -a extra_sysbox_mgr_args=()
+        read -r -a extra_sysbox_mgr_args <<< "$DOCKYARD_SYSBOX_MGR_EXTRA_ARGS"
+        sysbox_mgr_args+=("${extra_sysbox_mgr_args[@]}")
+    fi
+    "${BIN_DIR}/sysbox-mgr" "${sysbox_mgr_args[@]}" \
         &>"${LOG_DIR}/sysbox-mgr.log" &
     SYSBOX_MGR_PID=$!
     echo "$SYSBOX_MGR_PID" > "${SYSBOX_RUN_DIR}/sysbox-mgr.pid"
@@ -1265,9 +1378,12 @@ cmd_stop() {
 
     # Remove per-instance isolation chain and its jump rules
     local iso_chain="DOCKYARD-ISO-${DOCKYARD_DOCKER_PREFIX%_}"
-    for br in $(ip -o link show type bridge 2>/dev/null | grep -oP 'br-[0-9a-f]+'); do
-        iptables -D FORWARD -i "$br" -o "$br" -j "$iso_chain" 2>/dev/null || true
-    done
+    iptables -S FORWARD 2>/dev/null |
+        grep -F " -j ${iso_chain}" |
+        sed "s/^-A /-D /" |
+        while IFS= read -r rule; do
+            iptables $rule 2>/dev/null || true
+        done || true
     iptables -F "$iso_chain" 2>/dev/null || true
     iptables -X "$iso_chain" 2>/dev/null || true
 
@@ -1295,6 +1411,12 @@ cmd_status() {
     echo "  DOCKYARD_FIXED_CIDR=${DOCKYARD_FIXED_CIDR}"
     echo "  DOCKYARD_POOL_BASE=${DOCKYARD_POOL_BASE}"
     echo "  DOCKYARD_POOL_SIZE=${DOCKYARD_POOL_SIZE}"
+    echo "  DOCKYARD_SYSBOX_MGR_EXTRA_ARGS=${DOCKYARD_SYSBOX_MGR_EXTRA_ARGS:-}"
+    if [ -n "${DOCKYARD_SYSBOX_SUBID_START:-}${DOCKYARD_SYSBOX_SUBID_COUNT:-}" ]; then
+        echo "  DOCKYARD_SYSBOX_SUBID_USER=${DOCKYARD_SYSBOX_SUBID_USER}"
+        echo "  DOCKYARD_SYSBOX_SUBID_START=${DOCKYARD_SYSBOX_SUBID_START}"
+        echo "  DOCKYARD_SYSBOX_SUBID_COUNT=${DOCKYARD_SYSBOX_SUBID_COUNT}"
+    fi
     echo ""
 
     echo "Derived:"
@@ -1679,6 +1801,12 @@ Override any variable via environment:
   DOCKYARD_FIXED_CIDR     Container subnet (default: derived from bridge)
   DOCKYARD_POOL_BASE      Address pool base (default: random from 172.16.0.0/12)
   DOCKYARD_POOL_SIZE      Pool subnet size (default: 24)
+  DOCKYARD_SYSBOX_MGR_EXTRA_ARGS
+                          Optional sysbox-mgr flags appended at startup
+  DOCKYARD_SYSBOX_SUBID_USER
+                          User for optional /etc/subuid and /etc/subgid reservation
+  DOCKYARD_SYSBOX_SUBID_START / DOCKYARD_SYSBOX_SUBID_COUNT
+                          Optional deterministic subuid/subgid range
 
 Examples:
   ./dockyard.sh gen-env
