@@ -85,8 +85,31 @@ class DnsManagerTest < ActiveSupport::TestCase
     assert_includes corefile, "template IN A test-castle"
     assert_includes corefile, 'match ^([^.]+\.)?devbox\.alpha\.test\-castle\.$'
     assert_includes corefile, 'answer "{{ .Name }} 15 IN A 100.64.0.8"'
+    assert_includes corefile, "template IN ANY test-castle"
+    assert_includes corefile, 'match ^(?P<prefix>[^.]+\.)?devbox\.alpha\.test\-castle\.test\-castle\.$'
+    assert_includes corefile, 'answer "{{ .Name }} 15 IN CNAME {{ .Group.prefix }}devbox.alpha.test-castle."'
     assert_includes zone, "devbox.alpha IN A 100.64.0.8"
     assert_includes zone, "*.devbox.alpha IN A 100.64.0.8"
     assert_includes hosts, "100.64.0.8 devbox.alpha.test-castle *.devbox.alpha.test-castle"
+  end
+
+  test "publish does not add search suffix fallback for external fqdn aliases" do
+    user = users(:one)
+    dns_dir = File.join(@testdir, "users", user.name, "dns")
+
+    @manager.define_singleton_method(:dns_dir) { |_u| dns_dir }
+    @manager.define_singleton_method(:ensure_dir) { |path| FileUtils.mkdir_p(path) }
+    @manager.define_singleton_method(:suffix) { "test-castle" }
+    @manager.define_singleton_method(:records_for) do |_u|
+      [ DnsManager::Record.new(name: "www.example.com", ip: "100.64.0.9", sandbox_id: 123, expand: false) ]
+    end
+    @manager.define_singleton_method(:skipped_for) { |_u| [] }
+
+    @manager.publish(user: user)
+
+    corefile = File.read(File.join(dns_dir, "Corefile"))
+    assert_includes corefile, 'match ^([^.]+\.)?www\.example\.com\.$'
+    assert_not_includes corefile, "www\\.example\\.com\\.test\\-castle"
+    assert_not_includes corefile, "template IN ANY test-castle"
   end
 end

@@ -249,13 +249,30 @@ class DnsManager
 
   def template_block_for(record)
     escaped_name = Regexp.escape(record.name)
-    <<~TEMPLATE.indent(2)
+    blocks = <<~TEMPLATE
       template IN A #{suffix} {
         match ^([^.]+\\.)?#{escaped_name}\\.$
         answer "{{ .Name }} 15 IN A #{record.ip}"
         fallthrough
       }
     TEMPLATE
+
+    # macOS applies DNS search domains before trying the user-entered name as
+    # absolute. With hz1 as a search domain, dev.poold.hz1 may arrive here as
+    # dev.poold.hz1.hz1. Answer that form with a CNAME back to the canonical
+    # Sandcastle name so both searched and fully-qualified spellings work.
+    if record.name.end_with?(".#{suffix}")
+      escaped_suffix = Regexp.escape(suffix)
+      blocks += <<~TEMPLATE
+        template IN ANY #{suffix} {
+          match ^(?P<prefix>[^.]+\\.)?#{escaped_name}\\.#{escaped_suffix}\\.$
+          answer "{{ .Name }} 15 IN CNAME {{ .Group.prefix }}#{record.name}."
+          fallthrough
+        }
+      TEMPLATE
+    end
+
+    blocks.indent(2)
   end
 
   def alias_fqdn_for(sandbox, sandbox_alias, base: nil)
