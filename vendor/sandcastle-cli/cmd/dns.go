@@ -26,10 +26,42 @@ import (
 const (
 	resolverMarker  = "# Managed by sandcastle dns"
 	resolverVersion = "2"
-	hostsBeginMark  = "# BEGIN sandcastle-dns"
-	hostsEndMark    = "# END sandcastle-dns"
-	hostsTargetPath = "/etc/hosts"
+	// hostsBeginPrefix / hostsEndPrefix are the per-suffix block markers in
+	// /etc/hosts. The full marker is `# BEGIN sandcastle-dns <suffix>` so each
+	// Sandcastle instance owns its own block and multiple servers can coexist
+	// on the same client. The prefix-only form (without trailing suffix) is the
+	// legacy marker still recognised when reading/stripping for migration.
+	hostsBeginPrefix = "# BEGIN sandcastle-dns"
+	hostsEndPrefix   = "# END sandcastle-dns"
+	hostsTargetPath  = "/etc/hosts"
 )
+
+func hostsBeginMark(suffix string) string {
+	if suffix == "" {
+		return hostsBeginPrefix
+	}
+	return hostsBeginPrefix + " " + suffix
+}
+
+func hostsEndMark(suffix string) string {
+	if suffix == "" {
+		return hostsEndPrefix
+	}
+	return hostsEndPrefix + " " + suffix
+}
+
+// hostsBlockMarkers returns the (begin, end) markers we'll match when reading
+// or stripping. We accept the suffixed form first, then fall back to the
+// legacy (suffix-less) form so old blocks get cleaned up on the next write.
+func hostsBlockMarkers(suffix string) (begins, ends []string) {
+	if suffix != "" {
+		begins = append(begins, hostsBeginMark(suffix))
+		ends = append(ends, hostsEndMark(suffix))
+	}
+	begins = append(begins, hostsBeginPrefix)
+	ends = append(ends, hostsEndPrefix)
+	return
+}
 
 var (
 	dnsInstallSearch   bool
@@ -405,53 +437,92 @@ var dnsHostsSyncCmd = &cobra.Command{
 
 // syncHostsFromServer reads DNS state from the server and rewrites the
 // managed block in /etc/hosts. Returns the number of records written.
+// Block markers carry the server's suffix so blocks from different Sandcastle
+// instances coexist in /etc/hosts without overwriting each other.
 func syncHostsFromServer(client *api.Client) (int, error) {
 	status, err := client.DNSStatus()
 	if err != nil {
 		return 0, err
 	}
 	if len(status.Records) == 0 {
-		if err := clearHostsBlock(); err != nil {
+		if err := clearHostsBlock(status.Suffix); err != nil {
 			return 0, err
 		}
 		return 0, nil
 	}
-	if err := writeHostsBlock(status.Records); err != nil {
+	if err := writeHostsBlock(status.Suffix, status.Records); err != nil {
 		return 0, err
 	}
 	return len(status.Records), nil
 }
 
-// autoSyncHostsBestEffort refreshes /etc/hosts after a state-changing CLI
-// command. It silently no-ops when /etc/hosts has no Sandcastle-managed
-// block — opt-in via `sandcastle dns hosts sync`. Errors are reported to
-// stderr but do not fail the parent command.
+// autoSyncHostsBestEffort refreshes this server's /etc/hosts block after a
+// state-changing CLI command, but ONLY if the server has FQDN-kind aliases
+// that can't be resolved via the Tailscale DNS resolver (which only handles
+// names under <SANDCASTLE_NAME>). When no FQDN aliases exist, this function
+// also cleans up a stale block from a previous sync.
+//
+// Errors are reported to stderr but never fail the parent command.
 func autoSyncHostsBestEffort(client *api.Client) {
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
 		return
 	}
-	block, err := readHostsBlock()
-	if err != nil || block == "" {
+	status, err := client.DNSStatus()
+	if err != nil {
 		return
 	}
-	if _, err := syncHostsFromServer(client); err != nil {
+	var fqdnRecords []api.DNSRecord
+	for _, r := range status.Records {
+		if !r.Expand {
+			fqdnRecords = append(fqdnRecords, r)
+		}
+	}
+	if len(fqdnRecords) == 0 {
+		// No FQDN aliases — only touch /etc/hosts to clean up our own block
+		// (no-op if absent; leaves blocks owned by other suffixes alone).
+		if err := clearHostsBlock(status.Suffix); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: clear /etc/hosts failed: %v\n", err)
+		}
+		return
+	}
+	if err := writeHostsBlock(status.Suffix, fqdnRecords); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: auto-sync /etc/hosts failed: %v\n", err)
 	}
 }
 
 var dnsHostsClearCmd = &cobra.Command{
 	Use:   "clear",
-	Short: "Remove the Sandcastle-managed block from /etc/hosts",
+	Short: "Remove this server's Sandcastle-managed block from /etc/hosts",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return clearHostsBlock()
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+		// Resolve the server's suffix so we only clear OUR block; blocks for
+		// other Sandcastle servers in the same /etc/hosts are left alone.
+		// If the server can't be reached, fall through with empty suffix —
+		// that still matches a legacy (suffix-less) block for cleanup.
+		suffix := ""
+		if status, err := client.DNSStatus(); err == nil {
+			suffix = status.Suffix
+		}
+		return clearHostsBlock(suffix)
 	},
 }
 
 var dnsHostsStatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show the Sandcastle-managed block in /etc/hosts",
+	Short: "Show this server's Sandcastle-managed block in /etc/hosts",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		block, err := readHostsBlock()
+		client, err := api.NewClient()
+		if err != nil {
+			return err
+		}
+		suffix := ""
+		if status, err := client.DNSStatus(); err == nil {
+			suffix = status.Suffix
+		}
+		block, err := readHostsBlock(suffix)
 		if err != nil {
 			return err
 		}
@@ -1263,18 +1334,18 @@ func suffixMessage(suffix string) string {
 	return " for " + normalizeSuffix(suffix)
 }
 
-func writeHostsBlock(records []api.DNSRecord) error {
+func writeHostsBlock(suffix string, records []api.DNSRecord) error {
 	current, err := os.ReadFile(hostsTargetPath)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", hostsTargetPath, err)
 	}
-	stripped, err := stripHostsBlock(current)
+	stripped, err := stripHostsBlock(current, suffix)
 	if err != nil {
 		return err
 	}
 
 	var block bytes.Buffer
-	fmt.Fprintln(&block, hostsBeginMark)
+	fmt.Fprintln(&block, hostsBeginMark(suffix))
 	namesByRecord := hostsNamesForRecords(records)
 	for i, r := range records {
 		if r.Name == "" || r.IP == "" {
@@ -1290,7 +1361,7 @@ func writeHostsBlock(records []api.DNSRecord) error {
 		}
 		fmt.Fprintln(&block)
 	}
-	fmt.Fprintln(&block, hostsEndMark)
+	fmt.Fprintln(&block, hostsEndMark(suffix))
 
 	updated := stripped
 	if len(updated) > 0 && !bytes.HasSuffix(updated, []byte("\n")) {
@@ -1300,12 +1371,12 @@ func writeHostsBlock(records []api.DNSRecord) error {
 	return writeHostsFile(updated)
 }
 
-func clearHostsBlock() error {
+func clearHostsBlock(suffix string) error {
 	current, err := os.ReadFile(hostsTargetPath)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", hostsTargetPath, err)
 	}
-	stripped, err := stripHostsBlock(current)
+	stripped, err := stripHostsBlock(current, suffix)
 	if err != nil {
 		return err
 	}
@@ -1315,43 +1386,30 @@ func clearHostsBlock() error {
 	return writeHostsFile(stripped)
 }
 
-func readHostsBlock() (string, error) {
+func readHostsBlock(suffix string) (string, error) {
 	current, err := os.ReadFile(hostsTargetPath)
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", hostsTargetPath, err)
 	}
-	begin := bytes.Index(current, []byte(hostsBeginMark))
+	begin, end, _, err := findHostsBlock(current, suffix)
+	if err != nil {
+		return "", err
+	}
 	if begin < 0 {
 		return "", nil
-	}
-	end := bytes.Index(current[begin:], []byte(hostsEndMark))
-	if end < 0 {
-		return "", fmt.Errorf("%s contains %q without matching %q", hostsTargetPath, hostsBeginMark, hostsEndMark)
-	}
-	end += begin + len(hostsEndMark)
-	if eol := bytes.IndexByte(current[end:], '\n'); eol >= 0 {
-		end += eol + 1
 	}
 	return string(current[begin:end]), nil
 }
 
-func stripHostsBlock(data []byte) ([]byte, error) {
-	begin := bytes.Index(data, []byte(hostsBeginMark))
+func stripHostsBlock(data []byte, suffix string) ([]byte, error) {
+	begin, end, _, err := findHostsBlock(data, suffix)
+	if err != nil {
+		return nil, err
+	}
 	if begin < 0 {
-		if bytes.Contains(data, []byte(hostsEndMark)) {
-			return nil, fmt.Errorf("%s contains %q without matching %q; refusing to edit", hostsTargetPath, hostsEndMark, hostsBeginMark)
-		}
 		return data, nil
 	}
-	end := bytes.Index(data[begin:], []byte(hostsEndMark))
-	if end < 0 {
-		return nil, fmt.Errorf("%s contains %q without matching %q; refusing to edit", hostsTargetPath, hostsBeginMark, hostsEndMark)
-	}
-	end += begin + len(hostsEndMark)
-	if eol := bytes.IndexByte(data[end:], '\n'); eol >= 0 {
-		end += eol + 1
-	}
-	// Also drop a single blank line that we may have inserted before the block.
+	// Drop a single blank line that we may have inserted before the block.
 	prefix := data[:begin]
 	if bytes.HasSuffix(prefix, []byte("\n\n")) {
 		prefix = prefix[:len(prefix)-1]
@@ -1360,6 +1418,46 @@ func stripHostsBlock(data []byte) ([]byte, error) {
 	out = append(out, prefix...)
 	out = append(out, data[end:]...)
 	return out, nil
+}
+
+// findHostsBlock locates a Sandcastle-managed block in /etc/hosts content,
+// preferring the suffix-specific marker but falling back to the legacy
+// (suffix-less) marker so old blocks get migrated on the next write.
+// Returns (begin, end, matchedBegin, err). begin == -1 means "no block".
+func findHostsBlock(data []byte, suffix string) (int, int, string, error) {
+	begins, ends := hostsBlockMarkers(suffix)
+	for i, beginMark := range begins {
+		endMark := ends[i]
+		begin := bytes.Index(data, []byte(beginMark))
+		if begin < 0 {
+			continue
+		}
+		// For the legacy (suffix-less) prefix we must avoid matching the
+		// suffixed form (which starts with the same prefix). Skip if the
+		// next char after the prefix isn't '\n' or end-of-data.
+		if beginMark == hostsBeginPrefix && begin+len(beginMark) < len(data) {
+			next := data[begin+len(beginMark)]
+			if next != '\n' && next != '\r' {
+				continue
+			}
+		}
+		end := bytes.Index(data[begin:], []byte(endMark))
+		if end < 0 {
+			return 0, 0, "", fmt.Errorf("%s contains %q without matching %q; refusing to edit", hostsTargetPath, beginMark, endMark)
+		}
+		end += begin + len(endMark)
+		if eol := bytes.IndexByte(data[end:], '\n'); eol >= 0 {
+			end += eol + 1
+		}
+		return begin, end, beginMark, nil
+	}
+	// No begin found — but if a stray end exists, refuse to edit.
+	for _, endMark := range ends {
+		if bytes.Contains(data, []byte(endMark)) {
+			return 0, 0, "", fmt.Errorf("%s contains %q without matching begin marker; refusing to edit", hostsTargetPath, endMark)
+		}
+	}
+	return -1, 0, "", nil
 }
 
 func hostsNamesForRecords(records []api.DNSRecord) [][]string {
