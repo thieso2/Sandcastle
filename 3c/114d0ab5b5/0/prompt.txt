@@ -7,3 +7,7 @@ tailscale on root@77.42.120.179 SANDCASTE is in /sandcastle does not come up
 ---
 
 do all and fox it in the code so that i cannot happen again!
+
+---
+
+yes
