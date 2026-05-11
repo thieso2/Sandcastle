@@ -1,0 +1,88 @@
+find me the best server for a sandcastle install preis/leistung on https://www.hetzner.com/de/sb/
+
+---
+
+tailscale on root@77.42.120.179 SANDCASTE is in /sandcastle does not come up
+
+---
+
+do all and fox it in the code so that i cannot happen again!
+
+---
+
+yes
+
+---
+
+restart sandcaste on the host and remove the broken tc container
+
+---
+
+still stuck in 
+Starting sidecar container...
+
+---
+
+still "Waiting for login URL..."
+
+---
+
+ist the fixed code pushed?
+
+---
+
+for the "internal tailscale based" dns. 
+
+use SANDCASTLE_NAME as the TDL 
+hosts are <name>.<project>.<SANDCASTLE_NAME>
+
+also donÄt write /etc/hosts unless asked for!
+
+---
+
+if we have fqdn entried we need to write etc hosts. 
+the host swritten need to be clealy marked by sandcastle name.
+
+---
+
+commit and release!
+
+---
+
+$grill-me lets add a local mise task that can build a full release without using GH actions.
+
+---
+
+A
+
+---
+
+B
+
+---
+
+B
+
+---
+
+B
+
+---
+
+A
+
+---
+
+y
+
+---
+
+B
+
+---
+
+A
+
+---
+
+Y
