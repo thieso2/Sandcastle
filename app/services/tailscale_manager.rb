@@ -576,12 +576,17 @@ class TailscaleManager
 
     host_config = {
       "NetworkMode" => network,
+      # Dockyard defaults to sysbox-runc so sandboxes can run Docker-in-Docker,
+      # but Tailscale subnet routing needs kernel netfilter/SNAT support that
+      # Sysbox does not expose inside the sidecar network namespace.
+      "Runtime" => "runc",
       "Sysctls" => { "net.ipv4.ip_forward" => "1" },
       "Binds" => [ "#{state_dir}:/var/lib/tailscale" ],
       "RestartPolicy" => { "Name" => "unless-stopped" }
     }
 
     unless userspace
+      host_config["Binds"] << "/lib/modules:/lib/modules:ro"
       host_config["CapAdd"] = [ "NET_ADMIN", "SYS_MODULE" ]
       host_config["Devices"] = [
         { "PathOnHost" => "/dev/net/tun", "PathInContainer" => "/dev/net/tun", "CgroupPermissions" => "rwm" }
