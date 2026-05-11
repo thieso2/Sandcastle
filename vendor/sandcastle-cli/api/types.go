@@ -6,6 +6,7 @@ type Sandbox struct {
 	ID                     int            `json:"id"`
 	Name                   string         `json:"name"`
 	FullName               string         `json:"full_name"`
+	UserName               string         `json:"user_name,omitempty"`
 	Hostname               string         `json:"hostname,omitempty"`
 	PrimaryDNSName         string         `json:"primary_dns_name,omitempty"`
 	Status                 string         `json:"status"`

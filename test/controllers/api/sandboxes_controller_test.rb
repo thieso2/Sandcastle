@@ -50,7 +50,9 @@ class Api::SandboxesControllerTest < ActionDispatch::IntegrationTest
     assert sandbox.caddy_enabled?
     assert_equal config, sandbox.gcp_oidc_config
     assert_equal true, response.parsed_body["caddy_enabled"]
+    assert_equal @user.name, response.parsed_body["user_name"]
     assert_equal "testbox-io26", response.parsed_body["hostname"]
+    assert_equal project.path, response.parsed_body["project_path"]
     assert_equal DnsManager.new.hostname_for(sandbox), response.parsed_body["primary_dns_name"]
   end
 

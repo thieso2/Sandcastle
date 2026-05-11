@@ -30,7 +30,7 @@ class SandboxManagerTest < ActiveSupport::TestCase
 
   test "create_container_and_start uses project dns name as container hostname" do
     ENV["SANDCASTLE_NAME"] = "test-castle"
-    @sandbox.update!(container_id: nil, status: "pending", project_name: "alpha", caddy_enabled: true)
+    @sandbox.update!(container_id: nil, status: "pending", project_name: "alpha", home_path: "alpha", data_path: "alpha", caddy_enabled: true)
 
     original_ensure = CaddyCertificateAuthority.method(:ensure!)
     original_dir = CaddyCertificateAuthority.method(:dir)
@@ -48,9 +48,40 @@ class SandboxManagerTest < ActiveSupport::TestCase
     assert_equal "devbox.alpha.test-castle", container.info.dig("Config", "Hostname")
     assert_equal @sandbox.full_name, container.info.dig("Config", "name")
     assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_CADDY_ENABLED=1"
+    assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_TAILSCALE_ENABLED=0"
     assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_DNS_NAME=devbox.alpha.test-castle"
+    assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_PROJECT_NAME=alpha"
+    assert_includes container.info.dig("Config", "Env"), "SANDCASTLE_PROJECT_PATH=alpha"
     assert_includes container.info.dig("Config", "HostConfig", "Binds"),
       "/tmp/sandcastle-test-caddy-ca:/etc/sandcastle/caddy/mkcert:ro"
+  ensure
+    ENV.delete("SANDCASTLE_NAME")
+  end
+
+  test "tailscale runtime metadata includes sandbox addressing" do
+    ENV["SANDCASTLE_NAME"] = "hz"
+    @user.update!(tailscale_state: "enabled", tailscale_network: "sc-ts-net-alice")
+    @sandbox.update!(project_name: "pool", home_path: "pool", data_path: "pool", tailscale: true)
+
+    container = Docker::Container.create(
+      "name" => @sandbox.full_name,
+      "Image" => @sandbox.image,
+      "Config" => {},
+      "HostConfig" => {}
+    )
+    DockerMock.containers[container.id]["NetworkSettings"]["Networks"]["sc-ts-net-alice"] = {
+      "IPAddress" => "10.143.211.5"
+    }
+
+    TailscaleManager.new.write_sandbox_runtime_metadata(container: container, sandbox: @sandbox)
+
+    call = DockerMock.exec_calls.last
+    assert_includes call[:cmd][2], "/etc/sandcastle/runtime"
+    assert_includes call[:cmd][4], "SC_TAILSCALE=enabled"
+    assert_includes call[:cmd][4], "SC_TAILSCALE_IP=10.143.211.5"
+    assert_includes call[:cmd][4], "SC_DNS=devbox.pool.hz"
+    assert_includes call[:cmd][4], "SC_PROJECT=pool"
+    assert_includes call[:cmd][4], "SC_PROJECT_PATH=pool"
   ensure
     ENV.delete("SANDCASTLE_NAME")
   end
@@ -386,6 +417,29 @@ class SandboxManagerTest < ActiveSupport::TestCase
     home = mounts.find { |m| m.mount_type == "home" }
     assert_equal "/home/#{@user.name}", home.target_path
     assert_equal "#{SandboxManager::DATA_DIR}/users/#{@user.name}/home", home.source_path
+  end
+
+  test "sync_mount_records records scoped home and data mounts" do
+    path = ".tool-#{SecureRandom.hex(4)}"
+    @user.persisted_paths.create!(path: path)
+    @sandbox.update!(mount_home: false, home_path: "projects/app", data_path: "projects/app")
+
+    @manager.send(:sync_mount_records, @user, @sandbox)
+
+    mounts = @sandbox.sandbox_mounts.order(:target_path).to_a
+    assert_equal 2, mounts.size
+
+    home = mounts.find { |m| m.mount_type == "home" }
+    assert_equal "projects/app", home.logical_path
+    assert_equal "/home/#{@user.name}", home.target_path
+    assert_equal "#{SandboxManager::DATA_DIR}/users/#{@user.name}/home/projects/app", home.source_path
+
+    data = mounts.find { |m| m.mount_type == "data" }
+    assert_equal "projects/app", data.logical_path
+    assert_equal "/persisted", data.target_path
+    assert_equal "#{SandboxManager::DATA_DIR}/users/#{@user.name}/data/projects/app", data.source_path
+
+    assert_nil mounts.find { |m| m.mount_type == "persisted_path" }
   end
 
   test "sync_mount_records records persisted paths when home is not mounted" do

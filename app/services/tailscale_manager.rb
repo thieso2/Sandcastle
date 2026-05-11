@@ -1,3 +1,5 @@
+require "shellwords"
+
 class TailscaleManager
   DATA_DIR = ENV.fetch("SANDCASTLE_DATA_DIR", "/data")
   TAILSCALE_IMAGE = "tailscale/tailscale:latest"
@@ -260,7 +262,10 @@ class TailscaleManager
     # Verify container exists and check if already connected
     container = Docker::Container.get(sandbox.container_id)
     connected_networks = container.info.dig("NetworkSettings", "Networks") || {}
-    return sandbox if connected_networks.key?(user.tailscale_network)
+    if connected_networks.key?(user.tailscale_network)
+      write_sandbox_runtime_metadata(container: container, sandbox: sandbox)
+      return sandbox
+    end
 
     network = Docker::Network.get(user.tailscale_network)
 
@@ -277,6 +282,8 @@ class TailscaleManager
     end
 
     sandbox.update!(tailscale: true)
+    container.refresh!
+    write_sandbox_runtime_metadata(container: container, sandbox: sandbox)
     ensure_dns_resolver(user)
     sandbox
   rescue Error
@@ -313,6 +320,52 @@ class TailscaleManager
     container.json.dig("NetworkSettings", "Networks", user.tailscale_network, "IPAddress")
   rescue Docker::Error::DockerError
     nil
+  end
+
+  def write_sandbox_runtime_metadata(container:, sandbox:)
+    tailscale_ip = container.json.dig("NetworkSettings", "Networks", sandbox.user.tailscale_network, "IPAddress").presence || "none"
+    dns_name = DnsManager.new.hostname_for(sandbox).presence || "none"
+    project_name = sandbox.project_name.presence || "none"
+    project_path = sandbox.project_path.presence || "none"
+    content = {
+      "SC_TAILSCALE" => sandbox.tailscale? ? "enabled" : "disabled",
+      "SC_TAILSCALE_IP" => tailscale_ip,
+      "SC_DNS" => dns_name,
+      "SC_PROJECT" => project_name,
+      "SC_PROJECT_PATH" => project_path
+    }.map { |key, value| "#{key}=#{Shellwords.shellescape(value)}" }.join("\n") + "\n"
+
+    container.exec([
+      "sh", "-c",
+      <<~'SH',
+        install -d -m 0755 /etc/sandcastle
+        printf '%s' "$1" > /etc/sandcastle/runtime
+        chmod 0644 /etc/sandcastle/runtime
+
+        if [ -f /etc/sandcastle/settings ]; then
+          tmp="$(mktemp)"
+          sed '/^project:/d;/^project path:/d;/^tailscale:/d;/^tailscale ip:/d;/^dns:/d' /etc/sandcastle/settings > "$tmp"
+          {
+            cat "$tmp"
+            . /etc/sandcastle/runtime
+            tailscale_display="${SC_TAILSCALE:-disabled}"
+            if [ "$tailscale_display" = "enabled" ] && [ "${SC_TAILSCALE_IP:-none}" != "none" ]; then
+              tailscale_display="enabled (${SC_TAILSCALE_IP})"
+            fi
+            printf 'project: %s\n' "${SC_PROJECT:-none}"
+            printf 'project path: %s\n' "${SC_PROJECT_PATH:-none}"
+            printf 'tailscale: %s\n' "$tailscale_display"
+            printf 'tailscale ip: %s\n' "${SC_TAILSCALE_IP:-none}"
+            printf 'dns: %s\n' "${SC_DNS:-none}"
+          } > /etc/sandcastle/settings
+          rm -f "$tmp"
+          chmod 0644 /etc/sandcastle/settings
+        fi
+      SH
+      "_", content
+    ])
+  rescue Docker::Error::DockerError => e
+    Rails.logger.warn("Failed to write Sandcastle runtime metadata for #{sandbox.full_name}: #{e.message}")
   end
 
   def auth_key_path(user)

@@ -189,6 +189,13 @@ _SC_DNS="${SANDCASTLE_DNS_NAME:-none}"
 _SC_CADDY_DISPLAY="$_SC_CADDY"
 [ "$_SC_CADDY" = "enabled" ] && [ "$_SC_DNS" != "none" ] && _SC_CADDY_DISPLAY="enabled ($_SC_DNS)"
 _SC_PROMPT_FQDN="${SANDCASTLE_DNS_NAME:-$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo sandcastle)}"
+_SC_PROJECT="${SANDCASTLE_PROJECT_NAME:-none}"
+_SC_PROJECT_PATH="${SANDCASTLE_PROJECT_PATH:-none}"
+_SC_TAILSCALE="disabled"
+[ "${SANDCASTLE_TAILSCALE_ENABLED:-0}" = "1" ] && _SC_TAILSCALE="enabled"
+_SC_TAILSCALE_IP="${SANDCASTLE_TAILSCALE_IP:-none}"
+_SC_TAILSCALE_DISPLAY="$_SC_TAILSCALE"
+[ "$_SC_TAILSCALE" = "enabled" ] && [ "$_SC_TAILSCALE_IP" != "none" ] && _SC_TAILSCALE_DISPLAY="enabled ($_SC_TAILSCALE_IP)"
 
 _SC_SMB="enabled"
 [ "${SANDCASTLE_SMB_ENABLED:-0}" = "0" ] && _SC_SMB="disabled"
@@ -203,7 +210,17 @@ if [ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ] || [ -n "${GOOGLE_CLOUD_PROJECT:
 fi
 
 _SC_SETTINGS_FILE="/etc/sandcastle/settings"
+_SC_RUNTIME_FILE="/etc/sandcastle/runtime"
 mkdir -p /etc/sandcastle
+{
+    printf 'SC_TAILSCALE=%s\n' "$(shell_quote "$_SC_TAILSCALE")"
+    printf 'SC_TAILSCALE_IP=%s\n' "$(shell_quote "$_SC_TAILSCALE_IP")"
+    printf 'SC_DNS=%s\n' "$(shell_quote "$_SC_DNS")"
+    printf 'SC_PROJECT=%s\n' "$(shell_quote "$_SC_PROJECT")"
+    printf 'SC_PROJECT_PATH=%s\n' "$(shell_quote "$_SC_PROJECT_PATH")"
+} > "$_SC_RUNTIME_FILE"
+chmod 0644 "$_SC_RUNTIME_FILE"
+
 : > "$_SC_SETTINGS_FILE"
 {
     printf '# Sandcastle sandbox settings (non-secret)\n'
@@ -215,6 +232,8 @@ mkdir -p /etc/sandcastle
     printf 'github: %s\n' "${_SC_GITHUB:-none}"
     printf 'ssh keys: %s\n' "$_SC_SSH_KEYS"
     printf 'ssh tmux: %s\n' "$_SC_TMUX"
+    printf 'project: %s\n' "$_SC_PROJECT"
+    printf 'project path: %s\n' "$_SC_PROJECT_PATH"
     printf 'home: %s\n' "$_SC_HOME"
     printf 'home persisted: %s\n' "${SANDCASTLE_HOME_PERSISTED:-0}"
     printf 'home path: %s\n' "${SANDCASTLE_HOME_PATH:-none}"
@@ -227,6 +246,8 @@ mkdir -p /etc/sandcastle
     printf 'vnc depth: %s\n' "${SANDCASTLE_VNC_DEPTH:-24}"
     printf 'docker: %s\n' "$_SC_DOCKER"
     printf 'caddy: %s\n' "$_SC_CADDY"
+    printf 'tailscale: %s\n' "$_SC_TAILSCALE_DISPLAY"
+    printf 'tailscale ip: %s\n' "$_SC_TAILSCALE_IP"
     printf 'dns: %s\n' "$_SC_DNS"
     printf 'smb: %s\n' "$_SC_SMB"
     printf 'oidc: %s\n' "$_SC_OIDC"
@@ -250,11 +271,32 @@ export SANDCASTLE_BANNER_SHOWN=1
 
 SC_VERSION=$(shell_quote "$_SC_VERSION")
 SC_USER=$(shell_quote "$USERNAME")
+SC_PROJECT=$(shell_quote "$_SC_PROJECT")
+SC_PROJECT_PATH=$(shell_quote "$_SC_PROJECT_PATH")
 SC_HOME=$(shell_quote "$_SC_HOME")
 SC_DATA=$(shell_quote "$_SC_DATA")
+SC_TAILSCALE=$(shell_quote "$_SC_TAILSCALE")
+SC_TAILSCALE_IP=$(shell_quote "$_SC_TAILSCALE_IP")
+SC_DNS=$(shell_quote "$_SC_DNS")
 SC_DOCKER=$(shell_quote "$_SC_DOCKER")
 SC_CADDY=$(shell_quote "$_SC_CADDY_DISPLAY")
+SC_VNC=$(shell_quote "$_SC_VNC")
 SC_SETTINGS_FILE=$(shell_quote "$_SC_SETTINGS_FILE")
+SC_RUNTIME_FILE=$(shell_quote "$_SC_RUNTIME_FILE")
+
+[ -r "\$SC_RUNTIME_FILE" ] && . "\$SC_RUNTIME_FILE"
+SC_TAILSCALE=\${SC_TAILSCALE:-disabled}
+SC_TAILSCALE_IP=\${SC_TAILSCALE_IP:-none}
+SC_DNS=\${SC_DNS:-none}
+SC_PROJECT=\${SC_PROJECT:-none}
+SC_PROJECT_PATH=\${SC_PROJECT_PATH:-none}
+SC_TAILSCALE_DISPLAY="\$SC_TAILSCALE"
+if [ "\$SC_TAILSCALE" = "enabled" ] && [ "\$SC_TAILSCALE_IP" != "none" ]; then
+  SC_TAILSCALE_DISPLAY="enabled (\$SC_TAILSCALE_IP)"
+fi
+if [ "\$SC_CADDY" = "enabled" ] && [ "\$SC_DNS" != "none" ]; then
+  SC_CADDY="enabled (\$SC_DNS)"
+fi
 
 print_setting() {
   printf '  %-12s %s\\n' "\$1" "\$2"
@@ -272,10 +314,15 @@ cat << 'ART'
 ART
 print_setting "version" "\$SC_VERSION"
 print_setting "user" "\$SC_USER"
+print_setting "project" "\$SC_PROJECT"
+print_setting "subdir" "\$SC_PROJECT_PATH"
 print_setting "home" "\$SC_HOME"
 print_setting "data" "\$SC_DATA"
+print_setting "tailscale" "\$SC_TAILSCALE_DISPLAY"
+print_setting "dns" "\$SC_DNS"
 print_setting "docker" "\$SC_DOCKER"
 print_setting "caddy" "\$SC_CADDY"
+print_setting "vnc" "\$SC_VNC"
 print_setting "settings" "\$SC_SETTINGS_FILE"
 echo ""
 BANNER_EOF

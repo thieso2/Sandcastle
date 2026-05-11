@@ -16,11 +16,15 @@ class SandboxMountBuilder
   def direct_mount_attributes
     records = []
 
-    if @sandbox.mount_home
+    if @sandbox.mount_home || @sandbox.home_path.present?
       home_path = "#{DATA_DIR}/users/#{@user.name}/home"
+      if @sandbox.home_path.present?
+        home_path = "#{home_path}/#{@sandbox.home_path}".chomp("/")
+      end
+
       records << {
         mount_type: "home",
-        logical_path: nil,
+        logical_path: @sandbox.home_path,
         target_path: "/home/#{@user.name}",
         master_path: home_path,
         source_path: home_path,
@@ -40,7 +44,7 @@ class SandboxMountBuilder
       }
     end
 
-    if !@sandbox.mount_home
+    if !@sandbox.home_persisted?
       @user.persisted_paths.find_each do |pp|
         path = "#{DATA_DIR}/users/#{@user.name}/persisted/#{pp.path}"
         records << {

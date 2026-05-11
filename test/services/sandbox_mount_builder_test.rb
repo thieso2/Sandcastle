@@ -19,6 +19,24 @@ class SandboxMountBuilderTest < ActiveSupport::TestCase
     assert_equal "/persisted", records.find { |r| r[:mount_type] == "data" }[:target_path]
   end
 
+  test "builds direct scoped home and data mounts" do
+    @sandbox.mount_home = false
+    @sandbox.home_path = "projects/app"
+    @sandbox.data_path = "projects/app"
+
+    records = SandboxMountBuilder.new(user: @user, sandbox: @sandbox).direct_mount_attributes
+
+    assert_equal 2, records.size
+    home = records.find { |r| r[:mount_type] == "home" }
+    assert_equal "projects/app", home[:logical_path]
+    assert_equal "/home/#{@user.name}", home[:target_path]
+    assert_equal "#{SandboxMountBuilder::DATA_DIR}/users/#{@user.name}/home/projects/app", home[:source_path]
+
+    data = records.find { |r| r[:mount_type] == "data" }
+    assert_equal "projects/app", data[:logical_path]
+    assert_equal "/persisted", data[:target_path]
+  end
+
   test "builds persisted path mounts when home is not mounted" do
     path = ".builder-test-#{SecureRandom.hex(4)}"
     @user.persisted_paths.create!(path: path)

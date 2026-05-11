@@ -20,4 +20,17 @@ class SandboxEntrypointCaddyTest < ActiveSupport::TestCase
     assert_includes script, "if [ ! -d /etc/sandcastle/caddy/mkcert ]; then"
     assert_includes script, "install -d -m 0700 /etc/sandcastle/caddy/mkcert"
   end
+
+  test "entrypoint banner includes addressing and project metadata" do
+    entrypoint = Rails.root.join("images/sandbox/entrypoint.sh").read
+
+    assert_includes entrypoint, "_SC_RUNTIME_FILE=\"/etc/sandcastle/runtime\""
+    assert_includes entrypoint, "SC_TAILSCALE_IP="
+    assert_includes entrypoint, "SANDCASTLE_PROJECT_NAME"
+    assert_includes entrypoint, "SANDCASTLE_PROJECT_PATH"
+    assert_includes entrypoint, "print_setting \"tailscale\""
+    assert_includes entrypoint, "print_setting \"dns\""
+    assert_includes entrypoint, "print_setting \"project\""
+    assert_includes entrypoint, "print_setting \"subdir\""
+  end
 end

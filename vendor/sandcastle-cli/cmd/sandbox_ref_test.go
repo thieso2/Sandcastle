@@ -96,6 +96,49 @@ func TestSandboxDNSNameFallsBackToHostname(t *testing.T) {
 	}
 }
 
+func TestSandboxSummaryRowsIncludeRuntimeAddressingAndMounts(t *testing.T) {
+	sandbox := api.Sandbox{
+		Name:           "dev",
+		FullName:       "thies-dev-pool",
+		UserName:       "thies",
+		Hostname:       "dev-pool",
+		PrimaryDNSName: "dev.pool.hz",
+		ProjectName:    "pool",
+		ProjectPath:    "pool",
+		HomePath:       "pool",
+		DataPath:       "pool",
+		Tailscale:      true,
+		TailscaleIP:    "10.143.211.5",
+		DockerEnabled:  true,
+		CaddyEnabled:   true,
+		VNCEnabled:     false,
+	}
+
+	got := map[string]string{}
+	for _, row := range sandboxSummaryRows(sandbox) {
+		got[row.label] = row.value
+	}
+
+	want := map[string]string{
+		"user":      "thies",
+		"project":   "pool",
+		"subdir":    "pool",
+		"home":      "persisted (pool)",
+		"data":      "persisted:/persisted (pool)",
+		"tailscale": "enabled (10.143.211.5)",
+		"dns":       "dev.pool.hz",
+		"docker":    "enabled",
+		"caddy":     "enabled (dev.pool.hz)",
+		"vnc":       "disabled",
+		"settings":  "/etc/sandcastle/settings",
+	}
+	for label, value := range want {
+		if got[label] != value {
+			t.Fatalf("summary %q = %q, want %q", label, got[label], value)
+		}
+	}
+}
+
 func TestParseCpArg(t *testing.T) {
 	tests := []struct {
 		input       string

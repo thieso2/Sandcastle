@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"sort"
 	"strconv"
@@ -276,63 +277,7 @@ Flags explicitly passed on the command line take precedence over environment var
 		} else {
 			fmt.Printf("Sandbox %q created.\n", sandbox.DisplayName())
 		}
-
-		// Print active options (use local flags — they reflect what was actually requested)
-		if sandboxHome || sandboxHomeSubdir != "" || sandboxProject != "" || sandboxProjectSubdir != "" || sandboxData != "" || sandboxStorage != "direct" || sandbox.Tailscale || sandboxRemove || fromSnap != "" || sandboxNoVNC || sandboxVNCGeometry != "" || sandboxVNCDepth != 0 || sandboxNoDocker || sandboxSMB || sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "" {
-			if sandboxHome {
-				fmt.Println("  Home:      mounted (~/ persisted)")
-			}
-			if sandboxHomeSubdir != "" {
-				fmt.Printf("  Home:      mounted (%s → $HOME)\n", sandboxHomeSubdir)
-			}
-			if sandboxProject != "" {
-				fmt.Printf("  Project:   %s\n", sandboxProject)
-			}
-			if sandboxProjectSubdir != "" {
-				fmt.Printf("  Project:   %s (scoped home + persisted)\n", sandboxProjectSubdir)
-			}
-			if sandboxData != "" {
-				label := sandboxData
-				if label == "." {
-					label = "user data root"
-				}
-				fmt.Printf("  Data:      mounted (%s → /persisted)\n", label)
-			}
-			if sandboxStorage != "direct" {
-				fmt.Printf("  Storage:   %s\n", sandboxStorage)
-			}
-			if sandbox.Tailscale {
-				fmt.Println("  Tailscale: enabled")
-			}
-			if sandboxRemove {
-				fmt.Println("  Cleanup:   auto-remove on exit")
-			}
-			if fromSnap != "" {
-				fmt.Printf("  Snapshot:  restored from %q\n", fromSnap)
-			}
-			if sandboxNoDocker {
-				fmt.Println("  Docker:    disabled")
-			}
-			if sandboxNoVNC {
-				fmt.Println("  VNC:       disabled")
-			} else if sandboxVNCGeometry != "" || sandboxVNCDepth != 0 {
-				geom := sandbox.VNCGeometry
-				if geom == "" {
-					geom = "1280x900"
-				}
-				depth := sandbox.VNCDepth
-				if depth == 0 {
-					depth = 24
-				}
-				fmt.Printf("  VNC:       %s @ %d-bit\n", geom, depth)
-			}
-			if sandboxSMB {
-				fmt.Println("  SMB:       enabled")
-			}
-			if sandboxGCP || sandboxGCPConfig != "" || sandboxGCPServiceAccount != "" {
-				fmt.Println("  GCP:       configured")
-			}
-		}
+		printSandboxSummary(os.Stdout, *sandbox)
 
 		if sandboxNoConnect {
 			autoSyncHostsBestEffort(client)
@@ -824,6 +769,114 @@ func formatImageAge(builtAt *time.Time) string {
 	default:
 		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
 	}
+}
+
+type sandboxSummaryRow struct {
+	label string
+	value string
+}
+
+func printSandboxSummary(w io.Writer, sandbox api.Sandbox) {
+	for _, row := range sandboxSummaryRows(sandbox) {
+		fmt.Fprintf(w, "  %-12s %s\n", row.label, row.value)
+	}
+}
+
+func sandboxSummaryRows(sandbox api.Sandbox) []sandboxSummaryRow {
+	dnsName := sandboxDNSName(sandbox)
+	if dnsName == "" {
+		dnsName = "none"
+	}
+
+	caddy := enabledDisabled(sandbox.CaddyEnabled)
+	if sandbox.CaddyEnabled && dnsName != "none" {
+		caddy = fmt.Sprintf("enabled (%s)", dnsName)
+	}
+
+	tailscale := enabledDisabled(sandbox.Tailscale)
+	if sandbox.Tailscale && sandbox.TailscaleIP != "" {
+		tailscale = fmt.Sprintf("enabled (%s)", sandbox.TailscaleIP)
+	}
+
+	return []sandboxSummaryRow{
+		{"user", sandboxSummaryUser(sandbox)},
+		{"project", noneIfEmpty(sandbox.ProjectName)},
+		{"subdir", noneIfEmpty(sandbox.ProjectPath)},
+		{"home", sandboxSummaryHome(sandbox)},
+		{"data", sandboxSummaryData(sandbox)},
+		{"tailscale", tailscale},
+		{"dns", dnsName},
+		{"docker", enabledDisabled(sandbox.DockerEnabled)},
+		{"caddy", caddy},
+		{"vnc", sandboxSummaryVNC(sandbox)},
+		{"settings", "/etc/sandcastle/settings"},
+	}
+}
+
+func sandboxSummaryUser(sandbox api.Sandbox) string {
+	if sandbox.UserName != "" {
+		return sandbox.UserName
+	}
+	if sandbox.FullName != "" && sandbox.Hostname != "" {
+		suffix := "-" + sandbox.Hostname
+		if strings.HasSuffix(sandbox.FullName, suffix) {
+			return strings.TrimSuffix(sandbox.FullName, suffix)
+		}
+	}
+	return "none"
+}
+
+func sandboxSummaryHome(sandbox api.Sandbox) string {
+	if sandbox.MountHome {
+		return "persisted"
+	}
+	if sandbox.HomePath != "" {
+		return fmt.Sprintf("persisted (%s)", mountPathLabel(sandbox.HomePath))
+	}
+	return "ephemeral"
+}
+
+func sandboxSummaryData(sandbox api.Sandbox) string {
+	if sandbox.DataPath != "" {
+		return fmt.Sprintf("persisted:/persisted (%s)", mountPathLabel(sandbox.DataPath))
+	}
+	return "ephemeral"
+}
+
+func sandboxSummaryVNC(sandbox api.Sandbox) string {
+	if !sandbox.VNCEnabled {
+		return "disabled"
+	}
+	geom := sandbox.VNCGeometry
+	if geom == "" {
+		geom = "1280x900"
+	}
+	depth := sandbox.VNCDepth
+	if depth == 0 {
+		depth = 24
+	}
+	return fmt.Sprintf("enabled (%s, depth %d)", geom, depth)
+}
+
+func enabledDisabled(enabled bool) string {
+	if enabled {
+		return "enabled"
+	}
+	return "disabled"
+}
+
+func noneIfEmpty(value string) string {
+	if value == "" {
+		return "none"
+	}
+	return value
+}
+
+func mountPathLabel(path string) string {
+	if path == "." {
+		return "user data root"
+	}
+	return path
 }
 
 func envTruthy(key string) bool {

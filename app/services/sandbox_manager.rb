@@ -862,7 +862,10 @@ class SandboxManager
     env << "SANDCASTLE_VNC_DEPTH=#{sandbox.vnc_depth}"
     env << "SANDCASTLE_DOCKER_ENABLED=#{sandbox.docker_enabled? ? '1' : '0'}"
     env << "SANDCASTLE_CADDY_ENABLED=#{sandbox.caddy_enabled? ? '1' : '0'}"
+    env << "SANDCASTLE_TAILSCALE_ENABLED=#{sandbox.tailscale? ? '1' : '0'}"
     env << "SANDCASTLE_DNS_NAME=#{DnsManager.new.hostname_for(sandbox)}"
+    env << "SANDCASTLE_PROJECT_NAME=#{sandbox.project_name}" if sandbox.project_name.present?
+    env << "SANDCASTLE_PROJECT_PATH=#{sandbox.project_path}" if sandbox.project_path.present?
     alias_names = SandboxAlias.expanded_names_for(sandbox)
     env << "SANDCASTLE_DNS_ALIASES=#{alias_names.join(',')}" if alias_names.any?
     env << "SANDCASTLE_SMB_ENABLED=#{sandbox.smb_enabled? ? '1' : '0'}"
