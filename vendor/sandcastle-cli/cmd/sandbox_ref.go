@@ -110,3 +110,10 @@ func displayValue(value string) string {
 	}
 	return value
 }
+
+func sandboxDNSName(s api.Sandbox) string {
+	if s.PrimaryDNSName != "" {
+		return s.PrimaryDNSName
+	}
+	return s.Hostname
+}

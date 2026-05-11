@@ -1266,7 +1266,7 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 		b.WriteString("  No sandboxes. Press c to create one.\n")
 	} else {
 		// Header
-		b.WriteString(headerStyle.Render(fmt.Sprintf("  %-18s %-10s %-10s %-14s %-18s %-15s %s", "NAME", "PROJECT", "STATUS", "CREATED", "HOSTNAME", "TAILSCALE IP", "ROUTE")) + "\n")
+		b.WriteString(headerStyle.Render(fmt.Sprintf("  %-18s %-10s %-10s %-14s %-30s %-15s %s", "NAME", "PROJECT", "STATUS", "CREATED", "TAILSCALE DNS", "TAILSCALE IP", "ROUTE")) + "\n")
 
 		for i, sb := range m.sandboxes {
 			name := sb.Name
@@ -1280,9 +1280,9 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 			if len(project) > 10 {
 				project = project[:9] + "…"
 			}
-			hostname := displayValue(sb.Hostname)
-			if len(hostname) > 18 {
-				hostname = hostname[:17] + "…"
+			dnsName := displayValue(sandboxDNSName(sb))
+			if len(dnsName) > 30 {
+				dnsName = dnsName[:29] + "…"
 			}
 			tsIP := displayValue(sb.TailscaleIP)
 
@@ -1309,9 +1309,9 @@ func (m tuiModel) viewSandboxes(b *strings.Builder) {
 				}
 			}
 
-			line := fmt.Sprintf("  %-18s %-10s %-10s %-14s %-18s %-15s %s", name, project, st, created, hostname, tsIP, route)
+			line := fmt.Sprintf("  %-18s %-10s %-10s %-14s %-30s %-15s %s", name, project, st, created, dnsName, tsIP, route)
 			if i == m.cursor {
-				padded := fmt.Sprintf("  %-18s %-10s %-10s %-14s %-18s %-15s %-30s", name, project, sb.Status, created, hostname, tsIP, route)
+				padded := fmt.Sprintf("  %-18s %-10s %-10s %-14s %-30s %-15s %-30s", name, project, sb.Status, created, dnsName, tsIP, route)
 				line = selectedStyle.Render(padded)
 			}
 			b.WriteString(line + "\n")

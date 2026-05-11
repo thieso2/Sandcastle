@@ -188,6 +188,7 @@ _SC_CADDY="enabled"
 _SC_DNS="${SANDCASTLE_DNS_NAME:-none}"
 _SC_CADDY_DISPLAY="$_SC_CADDY"
 [ "$_SC_CADDY" = "enabled" ] && [ "$_SC_DNS" != "none" ] && _SC_CADDY_DISPLAY="enabled ($_SC_DNS)"
+_SC_PROMPT_FQDN="${SANDCASTLE_DNS_NAME:-$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo sandcastle)}"
 
 _SC_SMB="enabled"
 [ "${SANDCASTLE_SMB_ENABLED:-0}" = "0" ] && _SC_SMB="disabled"
@@ -279,6 +280,57 @@ print_setting "settings" "\$SC_SETTINGS_FILE"
 echo ""
 BANNER_EOF
 chmod 0644 /etc/profile.d/sandcastle-banner.sh
+
+cat > /etc/profile.d/sandcastle-prompt.sh <<PROMPT_EOF
+#!/bin/bash
+[ -n "\${BASH_VERSION:-}" ] || return 0 2>/dev/null || true
+case "\$-" in
+  *i*) ;;
+  *) return 0 2>/dev/null || true ;;
+esac
+
+if [ -n "\${SANDCASTLE_PROMPT_READY:-}" ]; then
+  return 0 2>/dev/null || true
+fi
+SANDCASTLE_PROMPT_READY=1
+
+SC_PROMPT_HOST=$(shell_quote "$_SC_PROMPT_FQDN")
+
+__sandcastle_git_branch() {
+  command -v git >/dev/null 2>&1 || return 0
+
+  local branch
+  branch=\$(git branch --show-current 2>/dev/null) || branch=""
+  if [ -z "\$branch" ]; then
+    branch=\$(git rev-parse --short HEAD 2>/dev/null) || branch=""
+  fi
+
+  [ -n "\$branch" ] && printf ' (%s)' "\$branch"
+}
+
+__sandcastle_prompt() {
+  local exit_code=\$?
+  local branch
+  branch="\$(__sandcastle_git_branch)"
+  PS1="\[\\033[1;32m\]\\u@\${SC_PROMPT_HOST}\[\\033[0m\]:\[\\033[1;34m\]\\w\[\\033[33m\]\${branch}\[\\033[0m\]\\$ "
+  return "\$exit_code"
+}
+
+if [ -n "\${PROMPT_COMMAND:-}" ]; then
+  PROMPT_COMMAND="\${PROMPT_COMMAND%;}; __sandcastle_prompt"
+else
+  PROMPT_COMMAND="__sandcastle_prompt"
+fi
+PROMPT_EOF
+chmod 0644 /etc/profile.d/sandcastle-prompt.sh
+
+if ! grep -qF "# sandcastle prompt hook" /etc/bash.bashrc 2>/dev/null; then
+    {
+        echo ""
+        echo "# sandcastle prompt hook"
+        echo '[ -f /etc/profile.d/sandcastle-prompt.sh ] && . /etc/profile.d/sandcastle-prompt.sh'
+    } >> /etc/bash.bashrc
+fi
 
 # Resize /dev/shm to 2GB for Chrome. Docker's ShmSize HostConfig key is not
 # supported by sysbox-runc, so we do it here instead. The runtime bind-mounts

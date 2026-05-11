@@ -456,7 +456,7 @@ var listCmd = &cobra.Command{
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-		headers := []string{"NAME", "PROJECT", "STATUS", "CREATED", "HOSTNAME", "TAILSCALE IP"}
+		headers := []string{"NAME", "PROJECT", "STATUS", "CREATED", "TAILSCALE DNS", "TAILSCALE IP"}
 		if hasRoute {
 			headers = append(headers, "ROUTE")
 		}
@@ -472,7 +472,7 @@ var listCmd = &cobra.Command{
 			created := s.CreatedAt.Local().Format("2006-01-02 15:04")
 			imageAge := formatImageAge(s.ImageBuiltAt)
 
-			cols := []string{name, displayProject(s.ProjectName), s.Status, created, displayValue(s.Hostname), displayValue(tsIP)}
+			cols := []string{name, displayProject(s.ProjectName), s.Status, created, displayValue(sandboxDNSName(s)), displayValue(tsIP)}
 			if hasRoute {
 				route := ""
 				if len(s.Routes) > 0 {

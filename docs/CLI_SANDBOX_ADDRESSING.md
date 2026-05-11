@@ -118,7 +118,7 @@ Both plain `sandcastle list` and the TUI sandbox table should change.
 Main table columns should be stable and always include:
 
 ```text
-NAME  PROJECT  STATUS  CREATED  HOSTNAME  TAILSCALE IP
+NAME  PROJECT  STATUS  CREATED  TAILSCALE DNS  TAILSCALE IP
 ```
 
 Routes may still be shown when width allows, but route data is secondary. In the
@@ -128,10 +128,9 @@ Rules:
 
 - `NAME` shows local sandbox name only, for example `dev`.
 - `PROJECT` shows project name or `-`.
-- `HOSTNAME` shows the short API `hostname`, for example `dev-sc`.
+- `TAILSCALE DNS` shows `primary_dns_name`, for example `dev.sc.sandman`.
 - `TAILSCALE IP` shows `tailscale_ip` or `-`.
 - Do not show DNS aliases or arbitrary FQDN aliases in the main table.
-- Do not show `primary_dns_name` in the main table.
 - Sort display by project, then name, with blank project as `-` last.
 - Sorting is for display only and must not affect resolver behavior.
 

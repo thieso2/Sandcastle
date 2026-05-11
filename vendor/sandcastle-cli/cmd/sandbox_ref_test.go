@@ -77,6 +77,25 @@ func TestParseSandboxRefRejectsMalformedRefs(t *testing.T) {
 	}
 }
 
+func TestSandboxDNSNamePrefersPrimaryDNSName(t *testing.T) {
+	sandbox := api.Sandbox{
+		Hostname:       "dev-sc",
+		PrimaryDNSName: "dev.sc.sandman",
+	}
+
+	if got := sandboxDNSName(sandbox); got != "dev.sc.sandman" {
+		t.Fatalf("sandboxDNSName() = %q, want %q", got, "dev.sc.sandman")
+	}
+}
+
+func TestSandboxDNSNameFallsBackToHostname(t *testing.T) {
+	sandbox := api.Sandbox{Hostname: "dev-sc"}
+
+	if got := sandboxDNSName(sandbox); got != "dev-sc" {
+		t.Fatalf("sandboxDNSName() = %q, want %q", got, "dev-sc")
+	}
+}
+
 func TestParseCpArg(t *testing.T) {
 	tests := []struct {
 		input       string
