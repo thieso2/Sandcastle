@@ -35,4 +35,33 @@ class TailscaleManagerTest < ActiveSupport::TestCase
       "CgroupPermissions" => "rwm"
     }
   end
+
+  test "restore repeats configured advertise tag" do
+    original_tag = TailscaleManager::TAILSCALE_TAG
+    TailscaleManager.send(:remove_const, :TAILSCALE_TAG)
+    TailscaleManager.const_set(:TAILSCALE_TAG, "tag:sandcastle")
+
+    @user.update!(
+      tailscale_state: "disabled",
+      tailscale_container_id: nil,
+      tailscale_network: nil,
+      tailscale_subnet: "10.140.131.0/24"
+    )
+    DockerMock.images[TailscaleManager::TAILSCALE_IMAGE] = {
+      "Id" => "sha256:tailscale",
+      "RepoTags" => [ TailscaleManager::TAILSCALE_IMAGE ],
+      "Size" => 1_000_000,
+      "Created" => Time.current.to_i
+    }
+
+    TailscaleManager.new.restore_from_state(user: @user)
+
+    up_call = DockerMock.exec_calls.find { |call| call[:cmd].join(" ").include?("tailscale up") }
+    assert up_call, "expected tailscale up to run during restore"
+    assert_includes up_call[:cmd][2], "--advertise-routes=10.140.131.0/24"
+    assert_includes up_call[:cmd][2], "--advertise-tags=tag:sandcastle"
+  ensure
+    TailscaleManager.send(:remove_const, :TAILSCALE_TAG)
+    TailscaleManager.const_set(:TAILSCALE_TAG, original_tag)
+  end
 end

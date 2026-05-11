@@ -48,11 +48,13 @@ class TailscaleManager
     # after a reinstall (Docker reallocates from the pool). No --reset so we preserve
     # credentials and other settings in the persisted state. Also re-applies the
     # canonical hostname so it reflects the current SANDCASTLE_NAME.
+    tag_flag = TAILSCALE_TAG ? " --advertise-tags=#{TAILSCALE_TAG}" : ""
     container.exec([
       "sh", "-c",
       "sleep 3 && tailscale up" \
       " --advertise-routes=#{subnet}" \
       " --accept-routes" \
+      "#{tag_flag}" \
       " --hostname=#{TAILSCALE_HOSTNAME}" \
       " --timeout=60s &"
     ])
