@@ -2684,8 +2684,8 @@ cmd_status() {
     echo ""
     echo "Connectivity:"
     if [ -e "$DOCKER_SOCKET" ]; then
-        echo "  DOCKER_HOST=unix://${DOCKER_SOCKET} docker run --rm alpine /bin/ash -c 'ping -c 3 heise.de'"
-        DOCKER_HOST="unix://${DOCKER_SOCKET}" docker run --rm alpine /bin/ash -c 'ping -c 3 heise.de' 2>&1 | sed 's/^/  /'
+        echo "  DOCKER_HOST=unix://${DOCKER_SOCKET} docker run --rm alpine /bin/ash -c 'wget -q -T 8 -O /dev/null http://example.com'"
+        DOCKER_HOST="unix://${DOCKER_SOCKET}" docker run --rm alpine /bin/ash -c 'wget -q -T 8 -O /dev/null http://example.com' 2>&1 | sed 's/^/  /'
     else
         echo "  skipped (docker socket not found)"
     fi
@@ -2890,11 +2890,11 @@ cmd_verify() {
         _fail "container run" "$out"
     fi
 
-    # 5. outbound networking
-    if DOCKER_HOST="$_s" "$_d" run --rm alpine ping -c3 -W2 1.1.1.1 >/dev/null 2>&1; then
-        _pass "outbound networking (ping 1.1.1.1)"
+    # 5. outbound networking. Some providers drop public ICMP while TCP works.
+    if DOCKER_HOST="$_s" "$_d" run --rm alpine /bin/ash -c 'wget -q -T 8 -O /dev/null http://example.com' >/dev/null 2>&1; then
+        _pass "outbound networking (http://example.com)"
     else
-        _fail "outbound networking" "ping 1.1.1.1 failed from container"
+        _fail "outbound networking" "HTTP request to http://example.com failed from container"
     fi
 
     # 6. Docker-in-Docker via sysbox
@@ -3100,7 +3100,6 @@ case "$COMMAND" in
         usage
         ;;
 esac
-
 __DOCKYARD_BUNDLED_EOF__
   chmod +x "$SANDCASTLE_HOME/tmp/dockyard.sh"
 }
