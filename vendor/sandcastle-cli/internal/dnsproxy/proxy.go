@@ -2,7 +2,6 @@ package dnsproxy
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -13,10 +12,12 @@ import (
 )
 
 type Config struct {
-	Listen   string
-	Upstream string
-	Verbose  bool
-	Log      io.Writer
+	Listen    string
+	Upstream  string
+	Suffix    string
+	Fallbacks map[string]string
+	Verbose   bool
+	Log       io.Writer
 }
 
 func Serve(ctx context.Context, cfg Config) error {
@@ -32,26 +33,11 @@ func Serve(ctx context.Context, cfg Config) error {
 	}
 
 	handler := dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
-		if cfg.Verbose && cfg.Log != nil && len(req.Question) > 0 {
-			fmt.Fprintf(cfg.Log, "dns query %s from %s\n", req.Question[0].Name, w.RemoteAddr())
-		}
-		resp, _, err := (&dns.Client{Net: w.RemoteAddr().Network(), Timeout: 2 * time.Second}).Exchange(req, cfg.Upstream)
-		if err != nil {
-			servfail := new(dns.Msg)
-			servfail.SetRcode(req, dns.RcodeServerFailure)
-			_ = w.WriteMsg(servfail)
-			if cfg.Log != nil {
-				fmt.Fprintf(cfg.Log, "dns upstream failure: %v\n", err)
-			}
-			return
-		}
-		_ = w.WriteMsg(resp)
+		handle(w, req, cfg)
 	})
 
 	udp := &dns.Server{Addr: cfg.Listen, Net: "udp", Handler: handler}
-	tcp := &dns.Server{Addr: cfg.Listen, Net: "tcp", Handler: dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
-		forwardTCP(w, req, cfg)
-	})}
+	tcp := &dns.Server{Addr: cfg.Listen, Net: "tcp", Handler: handler}
 
 	errc := make(chan error, 2)
 	go func() { errc <- udp.ListenAndServe() }()
@@ -69,42 +55,111 @@ func Serve(ctx context.Context, cfg Config) error {
 	}
 }
 
-func forwardTCP(w dns.ResponseWriter, req *dns.Msg, cfg Config) {
-	in, err := req.Pack()
-	if err != nil {
-		servfail := new(dns.Msg)
-		servfail.SetRcode(req, dns.RcodeServerFailure)
-		_ = w.WriteMsg(servfail)
-		return
+func handle(w dns.ResponseWriter, req *dns.Msg, cfg Config) {
+	if cfg.Verbose && cfg.Log != nil && len(req.Question) > 0 {
+		fmt.Fprintf(cfg.Log, "dns query %s from %s\n", req.Question[0].Name, w.RemoteAddr())
 	}
-	conn, err := net.DialTimeout("tcp", cfg.Upstream, 2*time.Second)
-	if err != nil {
-		servfail := new(dns.Msg)
-		servfail.SetRcode(req, dns.RcodeServerFailure)
-		_ = w.WriteMsg(servfail)
-		return
-	}
-	defer conn.Close()
-	_ = conn.SetDeadline(time.Now().Add(3 * time.Second))
 
-	var length [2]byte
-	binary.BigEndian.PutUint16(length[:], uint16(len(in)))
-	if _, err := conn.Write(append(length[:], in...)); err != nil {
-		return
-	}
-	if _, err := io.ReadFull(conn, length[:]); err != nil {
-		return
-	}
-	n := binary.BigEndian.Uint16(length[:])
-	out := make([]byte, n)
-	if _, err := io.ReadFull(conn, out); err != nil {
-		return
-	}
-	resp := new(dns.Msg)
-	if err := resp.Unpack(out); err != nil {
+	resp, err := exchange(req, cfg, w.RemoteAddr().Network())
+	if err != nil {
+		servfail := new(dns.Msg)
+		servfail.SetRcode(req, dns.RcodeServerFailure)
+		_ = w.WriteMsg(servfail)
+		if cfg.Log != nil {
+			fmt.Fprintf(cfg.Log, "dns upstream failure: %v\n", err)
+		}
 		return
 	}
 	_ = w.WriteMsg(resp)
+}
+
+func exchange(req *dns.Msg, cfg Config, network string) (*dns.Msg, error) {
+	if rewritten, target, canonical := fallbackQuery(req, cfg); rewritten != nil {
+		resp, _, err := (&dns.Client{Net: network, Timeout: 2 * time.Second}).Exchange(rewritten, target)
+		if err != nil {
+			return nil, err
+		}
+		return rewriteFallbackResponse(req, resp, canonical), nil
+	}
+
+	resp, _, err := (&dns.Client{Net: network, Timeout: 2 * time.Second}).Exchange(req, cfg.Upstream)
+	return resp, err
+}
+
+func fallbackQuery(req *dns.Msg, cfg Config) (*dns.Msg, string, string) {
+	if cfg.Suffix == "" || len(cfg.Fallbacks) == 0 || len(req.Question) != 1 {
+		return nil, "", ""
+	}
+
+	suffix := normalizeName(cfg.Suffix)
+	qname := normalizeName(req.Question[0].Name)
+	if suffix == "" || qname == "" {
+		return nil, "", ""
+	}
+	searchSuffix := "." + suffix
+	if !strings.HasSuffix(qname, searchSuffix) {
+		return nil, "", ""
+	}
+	canonical := strings.TrimSuffix(qname, searchSuffix)
+	if canonical == "" || canonical == qname {
+		return nil, "", ""
+	}
+
+	var bestSuffix, bestAddress string
+	for fallbackSuffix, address := range cfg.Fallbacks {
+		fallbackSuffix = normalizeName(fallbackSuffix)
+		if fallbackSuffix == "" || fallbackSuffix == suffix || address == "" {
+			continue
+		}
+		if canonical != fallbackSuffix && !strings.HasSuffix(canonical, "."+fallbackSuffix) {
+			continue
+		}
+		if len(fallbackSuffix) > len(bestSuffix) {
+			bestSuffix = fallbackSuffix
+			bestAddress = address
+		}
+	}
+	if bestAddress == "" {
+		return nil, "", ""
+	}
+
+	rewritten := req.Copy()
+	rewritten.Question[0].Name = dns.Fqdn(canonical)
+	return rewritten, bestAddress, dns.Fqdn(canonical)
+}
+
+func rewriteFallbackResponse(original, resp *dns.Msg, canonical string) *dns.Msg {
+	out := new(dns.Msg)
+	out.SetReply(original)
+	out.Rcode = resp.Rcode
+	out.Authoritative = resp.Authoritative
+	out.RecursionAvailable = resp.RecursionAvailable
+	out.Compress = resp.Compress
+	out.Ns = cloneRRs(resp.Ns)
+	out.Extra = cloneRRs(resp.Extra)
+	if resp.Rcode == dns.RcodeSuccess {
+		out.Answer = append(out.Answer, &dns.CNAME{
+			Hdr:    dns.RR_Header{Name: original.Question[0].Name, Rrtype: dns.TypeCNAME, Class: original.Question[0].Qclass, Ttl: 15},
+			Target: canonical,
+		})
+	}
+	out.Answer = append(out.Answer, cloneRRs(resp.Answer)...)
+	return out
+}
+
+func cloneRRs(records []dns.RR) []dns.RR {
+	if len(records) == 0 {
+		return nil
+	}
+	out := make([]dns.RR, 0, len(records))
+	for _, record := range records {
+		out = append(out, dns.Copy(record))
+	}
+	return out
+}
+
+func normalizeName(name string) string {
+	return strings.TrimSuffix(strings.TrimSpace(strings.ToLower(name)), ".")
 }
 
 func Probe(address, suffix string, timeout time.Duration) error {

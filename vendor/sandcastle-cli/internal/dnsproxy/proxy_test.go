@@ -73,6 +73,76 @@ func TestProxyForwardsTCP(t *testing.T) {
 	}
 }
 
+func TestProxyRoutesSearchSuffixedQueryToFallback(t *testing.T) {
+	primary, primaryAddr := startTestDNSServerWithHandler(t, "udp", func(w dns.ResponseWriter, r *dns.Msg) {
+		resp := new(dns.Msg)
+		resp.SetRcode(r, dns.RcodeNameError)
+		_ = w.WriteMsg(resp)
+	})
+	defer primary.Shutdown()
+
+	questions := make(chan string, 1)
+	fallback, fallbackAddr := startTestDNSServerWithHandler(t, "udp", func(w dns.ResponseWriter, r *dns.Msg) {
+		questions <- r.Question[0].Name
+		resp := new(dns.Msg)
+		resp.SetReply(r)
+		resp.Answer = []dns.RR{&dns.A{
+			Hdr: dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 15},
+			A:   net.ParseIP("10.143.211.4"),
+		}}
+		_ = w.WriteMsg(resp)
+	})
+	defer fallback.Shutdown()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	local := freeLocalAddr(t)
+	go func() {
+		_ = Serve(ctx, Config{
+			Listen:    local,
+			Upstream:  primaryAddr,
+			Suffix:    "hz1",
+			Fallbacks: map[string]string{"hz": fallbackAddr},
+		})
+	}()
+	waitForDNS(t, local)
+
+	msg := new(dns.Msg)
+	msg.SetQuestion("dev.sc.hz.hz1.", dns.TypeA)
+	resp, _, err := (&dns.Client{Net: "udp", Timeout: time.Second}).Exchange(msg, local)
+	if err != nil {
+		t.Fatalf("udp exchange failed: %v", err)
+	}
+	select {
+	case got := <-questions:
+		if want := "dev.sc.hz."; got != want {
+			t.Fatalf("fallback got question %q, want %q", got, want)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("fallback did not receive a query")
+	}
+	if resp.Rcode != dns.RcodeSuccess {
+		t.Fatalf("rcode=%d, want success", resp.Rcode)
+	}
+	if len(resp.Answer) != 2 {
+		t.Fatalf("answers=%d, want cname + a: %#v", len(resp.Answer), resp.Answer)
+	}
+	cname, ok := resp.Answer[0].(*dns.CNAME)
+	if !ok {
+		t.Fatalf("first answer = %T, want CNAME", resp.Answer[0])
+	}
+	if cname.Hdr.Name != "dev.sc.hz.hz1." || cname.Target != "dev.sc.hz." {
+		t.Fatalf("unexpected cname: %#v", cname)
+	}
+	a, ok := resp.Answer[1].(*dns.A)
+	if !ok {
+		t.Fatalf("second answer = %T, want A", resp.Answer[1])
+	}
+	if got := a.A.String(); got != "10.143.211.4" {
+		t.Fatalf("A record = %s, want 10.143.211.4", got)
+	}
+}
+
 func TestProbeRejectsZeroAnswerResponse(t *testing.T) {
 	server, addr := startTestDNSServerWithHandler(t, "udp", func(w dns.ResponseWriter, r *dns.Msg) {
 		resp := new(dns.Msg)

@@ -86,17 +86,18 @@ type managedSearchDomain struct {
 }
 
 type dnsProxyState struct {
-	Suffix             string `yaml:"suffix"`
-	RawSuffix          string `yaml:"raw_suffix,omitempty"`
-	LocalAddress       string `yaml:"local_address"`
-	UpstreamAddress    string `yaml:"upstream_address"`
-	LaunchdLabel       string `yaml:"launchd_label"`
-	PlistPath          string `yaml:"plist_path"`
-	StdoutLogPath      string `yaml:"stdout_log_path"`
-	StderrLogPath      string `yaml:"stderr_log_path"`
-	ServerAlias        string `yaml:"server_alias,omitempty"`
-	ServerURL          string `yaml:"server_url,omitempty"`
-	ResolverBackupPath string `yaml:"resolver_backup_path,omitempty"`
+	Suffix             string            `yaml:"suffix"`
+	RawSuffix          string            `yaml:"raw_suffix,omitempty"`
+	LocalAddress       string            `yaml:"local_address"`
+	UpstreamAddress    string            `yaml:"upstream_address"`
+	LaunchdLabel       string            `yaml:"launchd_label"`
+	PlistPath          string            `yaml:"plist_path"`
+	StdoutLogPath      string            `yaml:"stdout_log_path"`
+	StderrLogPath      string            `yaml:"stderr_log_path"`
+	ServerAlias        string            `yaml:"server_alias,omitempty"`
+	ServerURL          string            `yaml:"server_url,omitempty"`
+	ResolverBackupPath string            `yaml:"resolver_backup_path,omitempty"`
+	Fallbacks          map[string]string `yaml:"-"`
 }
 
 type resolverInfo struct {
@@ -156,6 +157,8 @@ func init() {
 	dnsProxyCmd.AddCommand(dnsProxyServeCmd)
 	dnsProxyServeCmd.Flags().StringVar(&dnsProxyListen, "listen", "", "local listen address")
 	dnsProxyServeCmd.Flags().StringVar(&dnsProxyUpstream, "upstream", "", "upstream DNS address")
+	dnsProxyServeCmd.Flags().StringVar(&dnsProxySuffix, "suffix", "", "local Sandcastle DNS suffix")
+	dnsProxyServeCmd.Flags().StringArrayVar(&dnsProxyFallback, "fallback", nil, "fallback suffix=address for another local Sandcastle proxy")
 	dnsProxyServeCmd.Flags().BoolVar(&dnsProxyVerbose, "verbose", false, "log each query")
 	dnsProxyCmd.Hidden = true
 	dnsProxyServeCmd.Hidden = true
@@ -169,6 +172,8 @@ var dnsCmd = &cobra.Command{
 var (
 	dnsProxyListen   string
 	dnsProxyUpstream string
+	dnsProxySuffix   string
+	dnsProxyFallback []string
 	dnsProxyVerbose  bool
 )
 
@@ -187,11 +192,17 @@ var dnsProxyServeCmd = &cobra.Command{
 		if dnsProxyUpstream == "" {
 			return fmt.Errorf("--upstream is required")
 		}
+		fallbacks, err := parseDNSProxyFallbacks(dnsProxyFallback)
+		if err != nil {
+			return err
+		}
 		return dnsproxy.Serve(cmd.Context(), dnsproxy.Config{
-			Listen:   dnsProxyListen,
-			Upstream: dnsProxyUpstream,
-			Verbose:  dnsProxyVerbose,
-			Log:      os.Stderr,
+			Listen:    dnsProxyListen,
+			Upstream:  dnsProxyUpstream,
+			Suffix:    dnsProxySuffix,
+			Fallbacks: fallbacks,
+			Verbose:   dnsProxyVerbose,
+			Log:       os.Stderr,
 		})
 	},
 }
@@ -718,6 +729,12 @@ func installProxyResolver(status *api.DNSStatus, client *api.Client, force bool)
 	entry.StderrLogPath = proxyLogPath(entry.LaunchdLabel, "err.log")
 	entry.ServerAlias = client.ServerAlias
 	entry.ServerURL = client.BaseURL
+	proxiesForLaunch := make(map[string]dnsProxyState, len(state.Proxies)+1)
+	for installedSuffix, installedEntry := range state.Proxies {
+		proxiesForLaunch[installedSuffix] = installedEntry
+	}
+	proxiesForLaunch[suffix] = entry
+	entry.Fallbacks = proxyFallbacksFor(proxiesForLaunch, suffix)
 
 	info, err := parseResolverFile(suffix)
 	if err != nil {
@@ -777,6 +794,9 @@ func installProxyResolver(status *api.DNSStatus, client *api.Client, force bool)
 			_ = launchdUnload(entry)
 			_ = os.Remove(entry.PlistPath)
 		}
+		return err
+	}
+	if err := refreshProxyLaunchAgents(state); err != nil {
 		return err
 	}
 	return nil
@@ -967,6 +987,26 @@ func normalizeSuffix(raw string) string {
 	return strings.TrimSuffix(strings.ToLower(strings.TrimSpace(raw)), ".")
 }
 
+func parseDNSProxyFallbacks(values []string) (map[string]string, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	fallbacks := make(map[string]string, len(values))
+	for _, value := range values {
+		suffix, address, ok := strings.Cut(value, "=")
+		suffix = normalizeSuffix(suffix)
+		address = strings.TrimSpace(address)
+		if !ok || suffix == "" || address == "" {
+			return nil, fmt.Errorf("invalid --fallback %q: expected suffix=host:port", value)
+		}
+		if _, _, err := net.SplitHostPort(address); err != nil {
+			return nil, fmt.Errorf("invalid --fallback %q: %w", value, err)
+		}
+		fallbacks[suffix] = address
+	}
+	return fallbacks, nil
+}
+
 func upstreamAddress(resolverIP string) (string, error) {
 	host := strings.TrimSpace(resolverIP)
 	if host == "" {
@@ -1049,8 +1089,61 @@ func writeLaunchAgent(entry dnsProxyState) error {
 	return os.Rename(tmp.Name(), entry.PlistPath)
 }
 
+func refreshProxyLaunchAgents(state *dnsState) error {
+	for suffix, entry := range state.Proxies {
+		if entry.Suffix == "" {
+			entry.Suffix = suffix
+		}
+		if entry.LocalAddress == "" || entry.UpstreamAddress == "" || entry.PlistPath == "" {
+			continue
+		}
+		entry.Fallbacks = proxyFallbacksFor(state.Proxies, entry.Suffix)
+		if err := writeLaunchAgent(entry); err != nil {
+			return err
+		}
+		if err := launchdReload(entry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func proxyFallbacksFor(proxies map[string]dnsProxyState, currentSuffix string) map[string]string {
+	currentSuffix = normalizeSuffix(currentSuffix)
+	fallbacks := make(map[string]string)
+	for suffix, entry := range proxies {
+		suffix = normalizeSuffix(suffix)
+		if suffix == "" || suffix == currentSuffix {
+			continue
+		}
+		address := entry.LocalAddress
+		if address == "" {
+			address = entry.UpstreamAddress
+		}
+		if address == "" {
+			continue
+		}
+		fallbacks[suffix] = address
+	}
+	if len(fallbacks) == 0 {
+		return nil
+	}
+	return fallbacks
+}
+
 func renderLaunchAgent(entry dnsProxyState, exe string) string {
 	args := []string{exe, "dns", "proxy", "serve", "--listen", entry.LocalAddress, "--upstream", entry.UpstreamAddress}
+	if entry.Suffix != "" {
+		args = append(args, "--suffix", entry.Suffix)
+	}
+	fallbackSuffixes := make([]string, 0, len(entry.Fallbacks))
+	for suffix := range entry.Fallbacks {
+		fallbackSuffixes = append(fallbackSuffixes, suffix)
+	}
+	sort.Strings(fallbackSuffixes)
+	for _, suffix := range fallbackSuffixes {
+		args = append(args, "--fallback", suffix+"="+entry.Fallbacks[suffix])
+	}
 	var items strings.Builder
 	for _, arg := range args {
 		items.WriteString("    <string>")
@@ -1567,9 +1660,9 @@ func addSearchDomain(domain string) error {
 			return err
 		}
 		already := contains(domains, domain)
-		if !already {
-			domains = append(domains, domain)
-			if err := setSearchDomains(service, domains); err != nil {
+		next := prependDomain(domains, domain)
+		if !sameStrings(domains, next) {
+			if err := setSearchDomains(service, next); err != nil {
 				return err
 			}
 		}
@@ -1760,6 +1853,29 @@ func removeDomain(items []string, target string) []string {
 		}
 	}
 	return out
+}
+
+func prependDomain(items []string, target string) []string {
+	out := make([]string, 0, len(items)+1)
+	out = append(out, target)
+	for _, item := range items {
+		if item != target {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+func sameStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func displayDomains(domains []string) string {

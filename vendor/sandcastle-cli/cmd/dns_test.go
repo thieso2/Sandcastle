@@ -200,3 +200,58 @@ func TestRenderLaunchAgentUsesProxyServeCommandAndLogs(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderLaunchAgentIncludesSuffixAndFallbacks(t *testing.T) {
+	content := renderLaunchAgent(dnsProxyState{
+		Suffix:          "hz1",
+		LocalAddress:    "127.0.0.1:15432",
+		UpstreamAddress: "100.64.0.2:53",
+		LaunchdLabel:    "dev.sandcastle.dns.hz1.abcdef12",
+		Fallbacks: map[string]string{
+			"hz":      "127.0.0.1:53921",
+			"sandman": "127.0.0.1:1234",
+		},
+	}, "/opt/homebrew/bin/sandcastle")
+
+	for _, want := range []string{
+		"<string>--suffix</string>",
+		"<string>hz1</string>",
+		"<string>--fallback</string>",
+		"<string>hz=127.0.0.1:53921</string>",
+		"<string>sandman=127.0.0.1:1234</string>",
+	} {
+		if !strings.Contains(content, want) {
+			t.Fatalf("launch agent missing %q:\n%s", want, content)
+		}
+	}
+}
+
+func TestParseDNSProxyFallbacks(t *testing.T) {
+	got, err := parseDNSProxyFallbacks([]string{"hz=127.0.0.1:53921", "sandman=127.0.0.1:1234"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]string{
+		"hz":      "127.0.0.1:53921",
+		"sandman": "127.0.0.1:1234",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("parseDNSProxyFallbacks() = %#v, want %#v", got, want)
+	}
+}
+
+func TestPrependDomainMovesExistingDomainToFront(t *testing.T) {
+	got := prependDomain([]string{"hz1", "hz", "example.com"}, "hz")
+	want := []string{"hz", "hz1", "example.com"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("prependDomain() = %#v, want %#v", got, want)
+	}
+}
+
+func TestPrependDomainAddsNewDomainToFront(t *testing.T) {
+	got := prependDomain([]string{"hz1", "example.com"}, "hz")
+	want := []string{"hz", "hz1", "example.com"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("prependDomain() = %#v, want %#v", got, want)
+	}
+}
