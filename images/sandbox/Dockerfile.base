@@ -141,6 +141,15 @@ RUN ARCH=$(dpkg --print-architecture) \
        -o /usr/local/bin/ttyd \
     && chmod +x /usr/local/bin/ttyd
 
+# herdr — terminal multiplexer for coding agents (https://herdr.dev)
+# Single static Rust binary; installed in /usr/local/bin so every sandbox
+# user gets it on PATH.
+RUN ARCH=$(dpkg --print-architecture) \
+    && HERDR_ARCH=$([ "$ARCH" = "arm64" ] && echo "aarch64" || echo "x86_64") \
+    && curl -fsSL "https://github.com/ogulcancelik/herdr/releases/latest/download/herdr-linux-${HERDR_ARCH}" \
+       -o /usr/local/bin/herdr \
+    && chmod +x /usr/local/bin/herdr
+
 # Entire CLI — git observability for AI agent sessions (https://entire.io)
 # Uses the upstream install script for freshness, then moves the binary to
 # /usr/local/bin so every sandbox user (not just root) gets it on PATH.
