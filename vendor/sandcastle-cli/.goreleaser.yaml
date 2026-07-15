@@ -37,18 +37,11 @@ checksum:
 #         key_id: "{{ .Env.MACOS_NOTARY_KEY_ID }}"
 #         key: "{{ .Env.MACOS_NOTARY_KEY }}"
 
-brews:
-  - repository:
-      owner: thieso2
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
-    homepage: "https://github.com/thieso2/Sandcastle"
-    description: "CLI for Sandcastle, a self-hosted shared Docker sandbox platform"
-    license: "MIT"
-    test: |
-      system "#{bin}/sandcastle", "version"
-
+# Homebrew publishing removed (2026-07-15): this pre-incus rails tool is
+# superseded by github.com/thieso2/sandcastle-incus, which now owns the
+# `sandcastle` name in thieso2/homebrew-tap as a Cask (Casks/sandcastle.rb).
+# Re-adding a `brews` block here would regenerate Formula/sandcastle.rb and
+# collide with that cask. See sandcastle-incus#101.
 changelog:
   sort: asc
   filters:
